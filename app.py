@@ -6,13 +6,13 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN MAESTRA
+# CONFIGURACIÓN MAESTRA DE SEGURIDAD
 app.config['SECRET_KEY'] = 'farol2026'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 csrf = CSRFProtect(app)
 
-# Crear carpetas para Railway
+# Asegurar que las carpetas existan en el servidor
 os.makedirs(os.path.join(app.root_path, app.config['UPLOAD_FOLDER']), exist_ok=True)
 
 @app.context_processor
@@ -21,7 +21,7 @@ def inject_csrf():
 
 @app.route('/')
 def index():
-    return "<h1>EL FAROL AL DÍA - PORTADA</h1>"
+    return "<h1>EL FAROL AL DÍA: PORTADA ACTIVA</h1>"
 
 @app.route('/upload', methods=['POST'])
 @csrf.exempt 
@@ -33,7 +33,7 @@ def upload_file():
         filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
         filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-        # URL profesional para que la imagen no se quede en el aire
+        # URL profesional para el editor
         file_url = url_for('static', filename=f'uploads/{filename}', _external=True)
         return jsonify({'location': file_url})
     return jsonify({'error': 'Error de subida'}), 400
@@ -42,9 +42,9 @@ def upload_file():
 def admin_panel():
     return render_template('admin.html')
 
-# --- CORRECCIÓN FINAL DEL PUERTO ---
+# --- CORRECCIÓN DEFINITIVA DEL PUERTO ---
 if __name__ == '__main__':
-    # Obtenemos el puerto de Railway, por defecto 5000
-    port = int(os.environ.get("PORT", 5000))
-    # SE ELIMINÓ EL ERROR port-port
-    app.run(host='0.0.0.0', port=port)
+    # Tomamos el puerto que Railway nos asigne
+    server_port = int(os.environ.get("PORT", 5000))
+    # Eliminamos el error de resta (port-port)
+    app.run(host='0.0.0.0', port=server_port)
