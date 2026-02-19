@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "farol_mxl_2026_oficial_master")
 csrf = CSRFProtect(app)
 
-# --- BASE DE DATOS CON ESTADÍSTICAS (TIPO BLOGGER) ---
+# --- BASE DE DATOS PROFESIONAL (CON VISTAS) ---
 uri = os.getenv("DATABASE_URL", "sqlite:///farol.db")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -26,7 +26,7 @@ class Noticia(db.Model):
     imagen_url = db.Column(db.String(500))
     video_url = db.Column(db.String(500))
     keywords = db.Column(db.String(200))
-    vistas = db.Column(db.Integer, default=0) # <--- CONTADOR DE VISTAS (Blogger Style)
+    vistas = db.Column(db.Integer, default=0) # Para sus gráficas de Blogger
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     slug = db.Column(db.String(260), unique=True)
 
@@ -36,7 +36,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- SEGURIDAD ---
+# --- SEGURIDAD DE ACCESO ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -45,7 +45,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS ---
+# --- RUTAS PÚBLICAS ---
 @app.route('/')
 def index():
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -60,16 +60,16 @@ def login():
             return redirect(url_for('admin'))
     return '''<body style="background:#003366;color:white;text-align:center;padding-top:100px;font-family:Impact;">
         <h1>🏮 ACCESO EL FAROL</h1><form method="post" style="background:white;padding:20px;display:inline-block;border-radius:10px;color:black;">
-        <input name="username" placeholder="Usuario"><br><input type="password" name="password" placeholder="Clave"><br>
-        <button type="submit" style="background:#FF8C00;color:white;border:none;padding:10px;width:100%;">ENTRAR</button></form></body>'''
+        <input name="username" placeholder="Usuario" style="width:100%;margin-bottom:10px;"><br>
+        <input type="password" name="password" placeholder="Contraseña" style="width:100%;margin-bottom:10px;"><br>
+        <button type="submit" style="background:#FF8C00;color:white;border:none;padding:10px;width:100%;cursor:pointer;">ENTRAR</button></form></body>'''
 
-# --- PANEL DE ADMINISTRACIÓN INTEGRADO (CON ESTADÍSTICAS) ---
+# --- PANEL ADMIN: DISEÑO BLOGGER + GADGETS ---
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 @csrf.exempt
 def admin():
     if request.method == 'POST':
-        # Limpieza de contenido para iconos
         contenido_limpio = bleach.clean(request.form.get('contenido'), 
             tags=['p','br','strong','em','u','h1','h2','h3','ul','ol','li','a','img','iframe','div','span'],
             attributes={'*': ['class', 'style'], 'a': ['href'], 'img': ['src'], 'iframe': ['src']}, strip=False)
@@ -84,55 +84,58 @@ def admin():
         nueva.generate_slug()
         db.session.add(nueva)
         db.session.commit()
-        return redirect(url_for('admin')) # Regresa al admin para ver la lista
+        return redirect(url_for('admin'))
 
-    # Cargamos noticias para mostrar estadísticas abajo (como en su captura de Blogger)
-    lista_noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
     
     return '''
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Panel de Control - El Farol</title>
+        <title>Panel El Farol</title>
         <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script>
         <style>
-            body { font-family: sans-serif; background: #f0f2f5; margin: 0; display: flex; }
-            .sidebar { width: 250px; background: #003366; color: white; height: 100vh; padding: 20px; position: fixed; }
-            .main-content { margin-left: 290px; padding: 20px; width: 100%; }
-            .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-            .stat-box { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0; }
-            .btn-pub { background: #FF8C00; color: white; padding: 15px; border: none; width: 100%; font-family: Impact; cursor: pointer; font-size: 1.2em; border-radius: 5px; }
+            body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: #f4f7f6; }
+            .sidebar { width: 260px; background: #003366; color: white; height: 100vh; position: fixed; padding-top: 20px; }
+            .sidebar a { display: block; color: white; padding: 15px; text-decoration: none; border-bottom: 1px solid #004080; }
+            .sidebar a:hover { background: #FF8C00; }
+            .main { margin-left: 260px; padding: 30px; width: 100%; }
+            .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+            .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+            th { text-align: left; background: #eee; padding: 10px; }
+            td { padding: 10px; border-bottom: 1px solid #eee; }
         </style>
     </head>
     <body>
         <div class="sidebar">
-            <h2 style="font-family:Impact;">🏮 EL FAROL</h2>
-            <p>📊 Estadísticas</p>
-            <p>📝 Entradas</p>
-            <p>🎨 Diseño (Gadgets)</p>
-            <p>⚙️ Configuración</p>
-            <hr>
-            <a href="/logout" style="color:#ff4444; text-decoration:none;">Cerrar Sesión</a>
+            <h2 style="text-align:center; font-family:Impact;">🏮 EL FAROL</h2>
+            <a href="#">📝 Entradas</a>
+            <a href="#">📊 Estadísticas</a>
+            <a href="#">💬 Comentarios</a>
+            <a href="#">🎨 Diseño / Gadgets</a>
+            <a href="/logout" style="margin-top:50px; color:#ff6666;">Cerrar Sesión</a>
         </div>
-
-        <div class="main-content">
-            <div class="card">
-                <h3 style="border-bottom: 2px solid #FF8C00; padding-bottom: 10px;">CREAR NUEVA ENTRADA</h3>
-                <form method="post">
-                    <input type="text" name="titulo" placeholder="TÍTULO IMPACTANTE" style="width:100%; padding:10px; margin-bottom:10px;" required>
-                    <input type="text" name="imagen_url" placeholder="URL Foto (Blur 20%)" style="width:48%; padding:10px;">
-                    <input type="text" name="video_url" placeholder="URL Video" style="width:48%; padding:10px;">
-                    <input type="text" name="keywords" placeholder="Keywords (SEO)" style="width:100%; padding:10px; margin:10px 0;">
-                    <textarea name="contenido" id="editor_pro"></textarea>
-                    <script>CKEDITOR.replace('editor_pro', { height: 300, versionCheck: false });</script>
-                    <button type="submit" class="btn-pub">🚀 PUBLICAR AHORA</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h3>📈 ESTADÍSTICAS DE ENTRADAS RECIENTES</h3>
-                <div style="background: #fafafa; padding: 10px; border-radius: 5px;">
-                    ''' + "".join([f'<div class="stat-box"><span>{n.titulo[:50]}...</span> <b>👁️ {n.vistas} vistas</b></div>' for n in lista_noticias]) + '''
+        <div class="main">
+            <div class="grid">
+                <div class="card">
+                    <h2 style="font-family:Impact; color:#003366;">NUEVA ENTRADA</h2>
+                    <form method="post">
+                        <input type="text" name="titulo" placeholder="Título de la noticia" style="width:100%; padding:10px; margin-bottom:15px;" required>
+                        <textarea name="contenido" id="editor_pro"></textarea>
+                        <script>CKEDITOR.replace('editor_pro', { height: 350, versionCheck: false });</script>
+                        <button type="submit" style="background:#FF8C00; color:white; width:100%; padding:15px; border:none; margin-top:15px; font-family:Impact; font-size:1.2em; cursor:pointer;">🚀 PUBLICAR</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3 style="font-family:Impact;">📦 GADGETS Y SEO</h3>
+                    <input type="text" name="imagen_url" placeholder="URL Imagen (Blur 20%)" style="width:100%; padding:8px; margin-bottom:10px;">
+                    <input type="text" name="video_url" placeholder="URL Video (Youtube)" style="width:100%; padding:8px; margin-bottom:10px;">
+                    <input type="text" name="keywords" placeholder="Keywords: Nacional, Viral, MXL" style="width:100%; padding:8px;">
+                    <hr>
+                    <h4>📈 RESUMEN DE VISTAS</h4>
+                    <div style="font-size:0.9em;">
+                        ''' + "".join([f'<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>{n.titulo[:30]}...</span><b>👁️ {n.vistas}</b></div>' for n in noticias[:5]]) + '''
+                    </div>
                 </div>
             </div>
         </div>
