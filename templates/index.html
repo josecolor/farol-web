@@ -5,11 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Farol al Día | Mexicali</title>
     <style>
-        body { font-family: 'Roboto', sans-serif; margin: 0; background-color: #f0f2f5; }
-        header { background-color: #FF8C00; color: white; padding: 15px; border-bottom: 6px solid #003366; position: sticky; top: 0; z-index: 1000; }
-        .logo-box { background-color: #003366; display: inline-block; padding: 10px; border-radius: 5px; margin-right: 15px; vertical-align: middle; }
-        .star { color: white; font-size: 1.5em; }
-        h1 { font-family: 'Impact', sans-serif; display: inline-block; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 4px #000; margin: 0; vertical-align: middle; }
-        .hero { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://source.unsplash.com/1600x900/?mexicali,news'); background-size: cover; height: 300px; display: flex; align-items: center; justify-content: center; color: white; text-align: center; filter: blur(0px); transition: 0.3s; }
-        .main-content { max-width: 900px; margin:
+        :root { --azul: #003366; --naranja: #FF8C00; }
+        body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f4; color: #333; }
+        header { background: var(--naranja); color: white; padding: 15px; border-bottom: 8px solid var(--azul); position: sticky; top: 0; z-index: 1000; }
+        .logo-container { display: flex; align-items: center; max-width: 1000px; margin: auto; }
+        .logo { background: var(--azul); padding: 10px; border-radius: 5px; font-size: 1.5em; margin-right: 15px; }
+        h1 { font-family: 'Impact', sans-serif; margin: 0; font-size: 2.2em; text-shadow: 2px 2px #000; text-transform: uppercase; }
+        
+        .container { max-width: 800px; margin: 20px auto; padding: 10px; }
+        .noticia-card { background: white; margin-bottom: 30px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        /* Cabecera con Blur */
+        .foto-container { position: relative; height: 350px; overflow: hidden; }
+        .foto-blur { position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; filter: blur(10px); opacity: 0.6; }
+        .foto-real { position: absolute; width: 100%; height: 100%; object-fit: contain; z-index: 2; }
+        .logo-watermark { position: absolute; top: 15px; left: 15px; background: var(--azul); color: white; padding: 5px 10px; z-index: 10; font-weight: bold; border-radius: 3px; font-size: 0.8em; }
 
+        .noticia-body { padding: 25px; }
+        .tag { background: var(--azul); color: white; padding: 4px 10px; font-size: 0.7em; font-weight: bold; text-transform: uppercase; border-radius: 3px; }
+        .titulo-nota { font-family: 'Impact', sans-serif; font-size: 2.5em; margin: 15px 0; color: #111; line-height: 1; }
+        .meta { font-size: 0.8em; color: #666; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .contenido { line-height: 1.6; font-size: 1.1em; }
+        
+        /* Botón WhatsApp */
+        .btn-ws { display: inline-block; background: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 50px; font-weight: bold; margin-top: 20px; }
+        
+        .video-box { margin-top: 20px; background: #000; border-radius: 8px; overflow: hidden; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo-container">
+        <div class="logo">🏮</div>
+        <h1>EL FAROL AL DÍA</h1>
+    </div>
+</header>
+
+<div class="container">
+    {% for nota in noticias %}
+    <article class="noticia-card">
+        <div class="foto-container">
+            <div class="logo-watermark">🏮 EL FAROL</div>
+            <div class="foto-blur" style="background-image: url('{{ nota.imagen_url }}');"></div>
+            <img src="{{ nota.imagen_url }}" class="foto-real" alt="Noticia">
+        </div>
+        
+        <div class="noticia-body">
+            <span class="tag">{{ nota.keywords if nota.keywords else 'NACIONAL' }}</span>
+            <h2 class="titulo-nota">{{ nota.titulo }}</h2>
+            <div class="meta">📍 Mexicali, B.C. | Por: Dirección General | {{ nota.fecha.strftime('%d/%m/%Y') }}</div>
+            
+            <div class="contenido">
+                {{ nota.contenido | safe }}
+            </div>
+
+            {% if nota.video_url %}
+            <div class="video-box">
+                <p style="color:white; text-align:center; padding:10px;"><a href="{{ nota.video_url }}" style="color:white;">📺 Ver Video de la Noticia</a></p>
+            </div>
+            {% endif %}
+
+            <a href="https://wa.me/?text=Mira esta noticia en El Farol: {{ nota.titulo }}" class="btn-ws">📲 Compartir por WhatsApp</a>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+
+</body>
+</html>
