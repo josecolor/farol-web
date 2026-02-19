@@ -5,9 +5,9 @@ from functools import wraps
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "farol_secreto_2026_mxl"
+app.secret_key = "farol_mxl_2026_safe"
 
-# --- CONFIGURACIÓN DE BASE DE DATOS ---
+# BASE DE DATOS PROFESIONAL
 uri = os.getenv("DATABASE_URL", "sqlite:///farol.db")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -15,7 +15,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- MODELO DE NOTICIA ---
 class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(250), nullable=False)
@@ -28,7 +27,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- SEGURIDAD ---
+# SEGURIDAD DE ACCESO
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -48,18 +47,8 @@ def login():
         if request.form['username'] == 'director' and request.form['password'] == 'farol2026':
             session['logged_in'] = True
             return redirect(url_for('admin'))
-    return '''
-    <body style="background:#003366; color:white; font-family:Impact; text-align:center; padding-top:100px;">
-        <h1>🏮 ACCESO EL FAROL</h1>
-        <form method="post" style="background:white; padding:30px; display:inline-block; color:black; border-radius:15px;">
-            <input type="text" name="username" placeholder="Usuario" required><br><br>
-            <input type="password" name="password" placeholder="Contraseña" required><br><br>
-            <button type="submit" style="background:#FF8C00; color:white; border:none; padding:10px 20px; font-family:Impact;">ENTRAR</button>
-        </form>
-    </body>
-    '''
+    return '<body style="background:#003366;color:white;text-align:center;padding-top:100px;font-family:Impact;"><h1>🏮 LOGIN EL FAROL</h1><form method="post" style="background:white;padding:20px;display:inline-block;border-radius:10px;color:black;"><input name="username" placeholder="Usuario"><br><br><input type="password" name="password" placeholder="Clave"><br><br><button type="submit">ENTRAR</button></form></body>'
 
-# --- PANEL CON TODOS LOS ICONOS (ESTILO BLOGGER) ---
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
@@ -79,26 +68,20 @@ def admin():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Editor El Farol</title>
-        <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
+        <title>Panel El Farol</title>
+        <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script>
     </head>
-    <body style="background:#f4f4f4; font-family:sans-serif; margin:0; padding:20px;">
-        <div style="max-width:900px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
-            <h2 style="font-family:Impact; color:#003366;">🏮 EDITOR DE NOTICIAS - ESTILO BLOGGER</h2>
+    <body style="background:#f4f4f4;font-family:sans-serif;padding:20px;">
+        <div style="max-width:900px;margin:auto;background:white;padding:25px;border-radius:15px;box-shadow:0 0 15px rgba(0,0,0,0.2);">
+            <h2 style="font-family:Impact;color:#003366;text-align:center;border-bottom:4px solid #FF8C00;padding-bottom:10px;">🏮 EDITOR PROFESIONAL - EL FAROL</h2>
             <form method="post">
-                <input type="text" name="titulo" placeholder="Título de la Noticia" style="width:100%; padding:10px; margin-bottom:10px; font-size:1.2em;" required>
-                <input type="text" name="imagen_url" placeholder="URL de la Foto" style="width:100%; padding:10px; margin-bottom:10px;">
-                <input type="text" name="video_url" placeholder="URL del Video" style="width:100%; padding:10px; margin-bottom:10px;">
-                <input type="text" name="keywords" placeholder="Palabras Clave (SEO)" style="width:100%; padding:10px; margin-bottom:10px;">
-                
-                <p><b>Contenido (Use los iconos para dar formato):</b></p>
-                <textarea name="contenido" id="editor1"></textarea>
-                
-                <script>
-                    CKEDITOR.replace('editor1'); // ACTIVA LOS ICONOS TIPO BLOGGER
-                </script>
-                
-                <button type="submit" style="background:#FF8C00; color:white; width:100%; padding:15px; border:none; font-family:Impact; font-size:1.5em; margin-top:20px; cursor:pointer;">🚀 PUBLICAR EN EL FAROL</button>
+                <input type="text" name="titulo" placeholder="Título Impactante" style="width:100%;padding:10px;margin:10px 0;" required>
+                <input type="text" name="imagen_url" placeholder="URL de la Foto (Blur 20% automático)" style="width:100%;padding:10px;margin:10px 0;">
+                <input type="text" name="video_url" placeholder="URL del Video (YouTube/FB)" style="width:100%;padding:10px;margin:10px 0;">
+                <input type="text" name="keywords" placeholder="Keywords: Nacional, Viral, Mexicali" style="width:100%;padding:10px;margin:10px 0;">
+                <textarea name="contenido" id="editor_pro"></textarea>
+                <script>CKEDITOR.replace('editor_pro');</script>
+                <button type="submit" style="background:#FF8C00;color:white;width:100%;padding:20px;font-family:Impact;font-size:1.5em;border:none;margin-top:20px;cursor:pointer;border-radius:10px;">🚀 PUBLICAR NOTICIA</button>
             </form>
         </div>
     </body>
@@ -106,6 +89,6 @@ def admin():
     '''
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
                 
