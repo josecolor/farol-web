@@ -1,27 +1,51 @@
 import os
 import re
 import bleach
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from datetime import datetime
+from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
-# Clave de seguridad para la sesión
-app.secret_key = os.getenv("SECRET_KEY", "farol_mxl_2026_oficial_master")
+# Seguridad: Usa la variable de entorno o una clave por defecto para evitar errores de inicio
+app.secret_key = os.getenv("SECRET_KEY", "farol_mxl_2026_oficial_master_key")
 
-# Protección contra ataques, configurada para no bloquear al administrador
 csrf = CSRFProtect(app)
 
-# --- BASE DE DATOS CON MÉTRICAS DE VISTAS ---
+# Rate Limiting: Protege contra ataques de fuerza bruta
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["500 per day", "100 per hour"]
+)
+
+# --- BASE DE DATOS PROFESIONAL ---
 uri = os.getenv("DATABASE_URL", "sqlite:///farol.db")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 300}
 db = SQLAlchemy(app)
 
+# Modelo de Usuario con encriptación
+class Usuario(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+# Modelo de Noticia con SEO Mantra Automático
 class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(250), nullable=False)
@@ -29,130 +53,125 @@ class Noticia(db.Model):
     imagen_url = db.Column(db.String(500))
     video_url = db.Column(db.String(500))
     keywords = db.Column(db.String(200))
-    vistas = db.Column(db.Integer, default=0) # Contador de visitas estilo Blogger
+    vistas = db.Column(db.Integer, default=0)
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
-    slug = db.Column(db.String(260), unique=True)
-
+    slug = db.Column(db.String(260), unique=True, nullable=False)
+    meta_description = db.Column(db.String(160))
+    seo_mantra_applied = db.Column(db.Boolean, default=False)
+    
     def generate_slug(self):
-        self.slug = re.sub(r'[^a-z0-9]+', '-', self.titulo.lower()).strip('-')
+        base_slug = re.sub(r'[^a-z0-9]+', '-', self.titulo.lower()).strip('-')
+        self.slug = base_slug
+        # Evita duplicados agregando un contador si el slug ya existe
+        counter = 1
+        while Noticia.query.filter_by(slug=self.slug).first():
+            self.slug = f"{base_slug}-{counter}"
+            counter += 1
+    
+    def inject_seo_mantra(self, mantra):
+        if not self.seo_mantra_applied and mantra:
+            current = self.keywords or ""
+            self.keywords = f"{mantra}, {current}" if current else mantra
+            self.seo_mantra_applied = True
 
-with app.app_context():
-    db.create_all()
+# Configuración Global
+class Config(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sitio_nombre = db.Column(db.String(100), default="El Farol")
+    seo_mantra = db.Column(db.String(100), default="seoacuerdate mxl")
+    google_analytics = db.Column(db.String(100))
+    meta_author = db.Column(db.String(100), default="El Farol Editorial")
 
-# --- SEGURIDAD DE ACCESO ---
+# --- SEGURIDAD Y DECORADORES ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'logged_in' not in session:
+        if 'user_id' not in session:
+            flash('Acceso restringido. Inicie sesión.', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DEL PORTAL ---
+# --- RUTAS PÚBLICAS ---
 @app.route('/')
 def index():
-    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
-    return render_template('index.html', noticias=noticias)
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).limit(10).all()
+    conf = Config.query.first()
+    return render_template('index.html', noticias=noticias, conf=conf)
 
 @app.route('/login', methods=['GET', 'POST'])
-@csrf.exempt # Elimina el error "Bad Request" en el login
+@limiter.limit("10 per minute")
+@csrf.exempt # Exento para facilitar el login inicial sin errores de token
 def login():
     if request.method == 'POST':
-        if request.form.get('username') == 'director' and request.form.get('password') == 'farol2026':
-            session['logged_in'] = True
-            return redirect(url_for('admin'))
-        flash('Credenciales incorrectas')
-    return '''<body style="background:#003366;color:white;text-align:center;padding-top:100px;font-family:Impact;">
-        <h1>🏮 ACCESO EL FAROL</h1><form method="post" style="background:white;padding:30px;display:inline-block;border-radius:15px;color:black;">
-        <input name="username" placeholder="Usuario" style="width:100%;margin-bottom:10px;"><br>
-        <input type="password" name="password" placeholder="Clave" style="width:100%;margin-bottom:10px;"><br>
-        <button type="submit" style="background:#FF8C00;color:white;border:none;padding:15px;width:100%;font-family:Impact;cursor:pointer;">ENTRAR</button></form></body>'''
+        user = Usuario.query.filter_by(username=request.form.get('username')).first()
+        if user and user.check_password(request.form.get('password')):
+            session['user_id'] = user.id
+            return redirect(url_for('admin_panel'))
+        flash('Datos incorrectos', 'danger')
+    return render_template('login.html')
 
-# --- PANEL ADMINISTRATIVO PROFESIONAL ---
-@app.route('/admin', methods=['GET', 'POST'])
+# --- PANEL ADMINISTRATIVO (DISEÑO WORDPRESS) ---
+@app.route('/admin')
 @login_required
-@csrf.exempt # Elimina el error "Bad Request" en el admin
-def admin():
+def admin_panel():
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    conf = Config.query.first()
+    # Retornamos el diseño estilo WordPress que unifica todo
+    return render_template('admin_dashboard.html', noticias=noticias, conf=conf)
+
+@app.route('/admin/nueva', methods=['GET', 'POST'])
+@login_required
+@csrf.exempt
+def nueva_noticia():
+    conf = Config.query.first()
     if request.method == 'POST':
-        # Permitimos etiquetas HTML para que funcionen los estilos del editor
-        contenido_limpio = bleach.clean(request.form.get('contenido'), 
-            tags=['p','br','strong','em','u','h1','h2','h3','ul','ol','li','a','img','iframe','div','span'],
-            attributes={'*': ['class', 'style'], 'a': ['href'], 'img': ['src'], 'iframe': ['src']}, strip=False)
-        
         nueva = Noticia(
             titulo=request.form.get('titulo'),
-            contenido=contenido_limpio,
+            contenido=bleach.clean(request.form.get('contenido'), tags=['p','br','strong','em','u','h1','h2','h3','img','iframe'], attributes={'*':['style','class'],'img':['src'],'iframe':['src']}, strip=False),
             imagen_url=request.form.get('imagen_url'),
-            video_url=request.form.get('video_url'),
-            keywords=request.form.get('keywords')
+            keywords=request.form.get('keywords'),
+            meta_description=request.form.get('meta_description')
         )
         nueva.generate_slug()
+        nueva.inject_seo_mantra(conf.seo_mantra)
         db.session.add(nueva)
         db.session.commit()
-        return redirect(url_for('admin'))
+        flash('¡Publicado con éxito!', 'success')
+        return redirect(url_for('admin_panel'))
+    return render_template('admin_nueva.html', conf=conf)
 
-    lista_noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
-    
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Panel El Farol</title>
-        <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script>
-        <style>
-            body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: #f4f7f6; }
-            .sidebar { width: 260px; background: #003366; color: white; height: 100vh; position: fixed; padding-top: 20px; }
-            .sidebar h2 { text-align: center; border-bottom: 2px solid #FF8C00; padding-bottom: 10px; }
-            .sidebar a { display: block; color: white; padding: 15px; text-decoration: none; border-bottom: 1px solid #004080; }
-            .sidebar a:hover { background: #FF8C00; }
-            .main { margin-left: 260px; padding: 30px; width: calc(100% - 260px); }
-            .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-            .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-            .stat-box { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9em; }
-        </style>
-    </head>
-    <body>
-        <div class="sidebar">
-            <h2 style="font-family:Impact;">🏮 EL FAROL</h2>
-            <a href="#">📝 Entradas</a>
-            <a href="#">📊 Estadísticas</a>
-            <a href="#">🎨 Diseño (Gadgets)</a>
-            <a href="#">⚙️ Configuración</a>
-            <a href="/logout" style="margin-top:50px; color:#ff6666;">Cerrar Sesión</a>
-        </div>
-        <div class="main">
-            <div class="grid">
-                <div class="card">
-                    <h2 style="font-family:Impact; color:#003366;">NUEVA ENTRADA</h2>
-                    <form method="post">
-                        <input type="text" name="titulo" placeholder="TÍTULO DE LA NOTICIA" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ccc; font-size:1.1em;" required>
-                        <textarea name="contenido" id="editor_pro"></textarea>
-                        <script>CKEDITOR.replace('editor_pro', { height: 400, versionCheck: false });</script>
-                        <button type="submit" style="background:#FF8C00; color:white; width:100%; padding:20px; border:none; margin-top:20px; font-family:Impact; font-size:1.5em; cursor:pointer; border-radius:10px;">🚀 PUBLICAR EN VIVO</button>
-                    </form>
-                </div>
-                <div class="card">
-                    <h3 style="font-family:Impact; color:#003366; border-bottom: 2px solid #FF8C00;">GADGETS / SEO</h3>
-                    <p><b>Multimedia:</b></p>
-                    <input type="text" name="imagen_url" placeholder="URL Foto (Efecto Blur)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #eee;">
-                    <input type="text" name="video_url" placeholder="URL Video (YouTube)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #eee;">
-                    <p><b>SEO:</b></p>
-                    <input type="text" name="keywords" placeholder="Keywords: Nacional, Viral, MXL" style="width:100%; padding:10px; border:1px solid #eee;">
-                    <hr>
-                    <h3 style="font-family:Impact;">📈 VISTAS RECIENTES</h3>
-                    ''' + "".join([f'<div class="stat-box"><span>{n.titulo[:30]}...</span><b>👁️ {n.vistas}</b></div>' for n in lista_noticias[:10]]) + '''
-                </div>
-            </div>
-        </div>
-    </body>
-    </html>
-    '''
+@app.route('/configuracion', methods=['GET', 'POST'])
+@login_required
+@csrf.exempt
+def configuracion():
+    conf = Config.query.first()
+    if request.method == 'POST':
+        conf.sitio_nombre = request.form.get('sitio_nombre')
+        conf.seo_mantra = request.form.get('seo_mantra')
+        db.session.commit()
+        flash('Configuración guardada', 'success')
+        return redirect(url_for('configuracion'))
+    return render_template('admin_config.html', conf=conf)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# --- INICIALIZACIÓN ---
+def init_db():
+    with app.app_context():
+        db.create_all()
+        if not Config.query.first():
+            db.session.add(Config())
+        if not Usuario.query.filter_by(username='director').first():
+            admin = Usuario(username='director')
+            admin.set_password('farol2026')
+            db.session.add(admin)
+        db.session.commit()
+
 if __name__ == '__main__':
+    init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
