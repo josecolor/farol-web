@@ -3,74 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Farol al Día | Mexicali</title>
+    <title>El Farol al Día — Mexicali</title>
     <style>
-        :root { --azul: #003366; --naranja: #FF8C00; }
-        body { font-family: 'Roboto', sans-serif; margin: 0; background: #f4f4f4; color: #333; }
-        header { background: var(--naranja); color: white; padding: 15px; border-bottom: 8px solid var(--azul); position: sticky; top: 0; z-index: 1000; }
-        .logo-container { display: flex; align-items: center; max-width: 1000px; margin: auto; }
-        .logo { background: var(--azul); padding: 10px; border-radius: 5px; font-size: 1.5em; margin-right: 15px; }
-        h1 { font-family: 'Impact', sans-serif; margin: 0; font-size: 2.2em; text-shadow: 2px 2px #000; text-transform: uppercase; }
-        
-        .container { max-width: 800px; margin: 20px auto; padding: 10px; }
-        .noticia-card { background: white; margin-bottom: 30px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        
-        /* Cabecera con Blur */
-        .foto-container { position: relative; height: 350px; overflow: hidden; }
-        .foto-blur { position: absolute; width: 100%; height: 100%; background-size: cover; background-position: center; filter: blur(10px); opacity: 0.6; }
-        .foto-real { position: absolute; width: 100%; height: 100%; object-fit: contain; z-index: 2; }
-        .logo-watermark { position: absolute; top: 15px; left: 15px; background: var(--azul); color: white; padding: 5px 10px; z-index: 10; font-weight: bold; border-radius: 3px; font-size: 0.8em; }
-
-        .noticia-body { padding: 25px; }
-        .tag { background: var(--azul); color: white; padding: 4px 10px; font-size: 0.7em; font-weight: bold; text-transform: uppercase; border-radius: 3px; }
-        .titulo-nota { font-family: 'Impact', sans-serif; font-size: 2.5em; margin: 15px 0; color: #111; line-height: 1; }
-        .meta { font-size: 0.8em; color: #666; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-        .contenido { line-height: 1.6; font-size: 1.1em; }
-        
-        /* Botón WhatsApp */
-        .btn-ws { display: inline-block; background: #25D366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 50px; font-weight: bold; margin-top: 20px; }
-        
-        .video-box { margin-top: 20px; background: #000; border-radius: 8px; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Georgia', serif; background: #f5f0e8; color: #1a1a1a; }
+        header { background: #E87722; color: white; padding: 20px; text-align: center; border-bottom: 8px solid #1a3a5c; }
+        .logo-area { display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .logo-farol { font-size: 3rem; }
+        h1 { font-family: 'Impact', sans-serif; font-size: 2.5rem; letter-spacing: 2px; }
+        .barra-tags { background: #1a3a5c; color: white; padding: 10px; text-align: center; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; }
+        main { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+        .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
+        .tarjeta { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-decoration: none; color: inherit; transition: 0.3s; }
+        .tarjeta:hover { transform: translateY(-5px); }
+        .tarjeta-img { width: 100%; height: 200px; object-fit: cover; background: #ddd; }
+        .tarjeta-body { padding: 20px; }
+        .tarjeta-fecha { font-size: 0.7rem; color: #E87722; font-weight: bold; margin-bottom: 10px; }
+        .tarjeta-titulo { font-family: 'Impact', sans-serif; font-size: 1.3rem; line-height: 1.2; }
+        footer { background: #1a3a5c; color: white; text-align: center; padding: 30px; margin-top: 50px; }
     </style>
 </head>
 <body>
-
 <header>
-    <div class="logo-container">
-        <div class="logo">🏮</div>
+    <div class="logo-area">
+        <span class="logo-farol">🏮</span>
         <h1>EL FAROL AL DÍA</h1>
     </div>
 </header>
-
-<div class="container">
-    {% for nota in noticias %}
-    <article class="noticia-card">
-        <div class="foto-container">
-            <div class="logo-watermark">🏮 EL FAROL</div>
-            <div class="foto-blur" style="background-image: url('{{ nota.imagen_url }}');"></div>
-            <img src="{{ nota.imagen_url }}" class="foto-real" alt="Noticia">
-        </div>
-        
-        <div class="noticia-body">
-            <span class="tag">{{ nota.keywords if nota.keywords else 'NACIONAL' }}</span>
-            <h2 class="titulo-nota">{{ nota.titulo }}</h2>
-            <div class="meta">📍 Mexicali, B.C. | Por: Dirección General | {{ nota.fecha.strftime('%d/%m/%Y') }}</div>
-            
-            <div class="contenido">
-                {{ nota.contenido | safe }}
-            </div>
-
-            {% if nota.video_url %}
-            <div class="video-box">
-                <p style="color:white; text-align:center; padding:10px;"><a href="{{ nota.video_url }}" style="color:white;">📺 Ver Video de la Noticia</a></p>
-            </div>
+<div class="barra-tags">National • Viral • Mexicali • #seoacuerdate mxl</div>
+<main>
+    <div class="grilla">
+        {% for noticia in noticias %}
+        <a href="/nota/{{ noticia.id }}" class="tarjeta">
+            {% if noticia.imagen %}
+                <img src="{{ noticia.imagen }}" class="tarjeta-img">
+            {% else %}
+                <div class="tarjeta-img" style="display:flex;align-items:center;justify-content:center;">🏮</div>
             {% endif %}
-
-            <a href="https://wa.me/?text=Mira esta noticia en El Farol: {{ nota.titulo }}" class="btn-ws">📲 Compartir por WhatsApp</a>
-        </div>
-    </article>
-    {% endfor %}
-</div>
-
+            <div class="tarjeta-body">
+                <div class="tarjeta-fecha">{{ noticia.creado_en.strftime('%d %b, %Y') }}</div>
+                <h2 class="tarjeta-titulo">{{ noticia.titulo }}</h2>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</main>
+<footer>
+    <p>© 2026 El Farol al Día — Mexicali, B.C. | <strong>#seoacuerdate mxl</strong></p>
+</footer>
 </body>
 </html>
