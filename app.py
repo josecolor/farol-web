@@ -1,72 +1,41 @@
-# coding: utf-8
 import os
-import logging
-import psycopg2
-import psycopg2.extras
-from flask import Flask, render_template, request, jsonify
-
-# Configuración de Logs para Railway
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
-logger = logging.getLogger(__name__)
+from flask import Flask, render_template, request, redirect, url_for
+from PIL import Image, ImageFilter
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'farol2026')
+app.config['SECRET_KEY'] = 'seoacuerdate-mxl-2026'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
-# Enlace a la Base de Datos de Railway
-DATABASE_URL = os.environ.get('DATABASE_URL')
-
-def get_db():
-    return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-
-# --- RUTAS DEL PORTAL ---
+# El sistema crea las carpetas solo, tal como quedamos
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM noticias ORDER BY creado_en DESC LIMIT 20;")
-        noticias = cur.fetchall()
-        cur.close()
-        conn.close()
-        return render_template('index.html', noticias=noticias, titulo="EL FAROL AL DÍA | NOTICIAS")
-    except Exception as e:
-        logger.error(f"Error en portada: {e}")
-        return render_template('index.html', noticias=[], titulo="EL FAROL AL DÍA")
+    # Carga la fachada de Mexicali
+    return render_template('index.html')
 
 @app.route('/admin')
-def admin_panel():
-    # Este busca el archivo que moveremos a la carpeta templates
-    return render_template('admin.html', titulo="ADMINISTRACIÓN | EL FAROL")
+def admin():
+    # El panel de redacción profesional
+    return render_template('admin.html')
 
-@app.route('/noticias', methods=['POST'])
-def crear_noticia():
-    datos = request.get_json()
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        # Crear tabla automáticamente si es la primera vez
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS noticias (
-                id SERIAL PRIMARY KEY,
-                titulo TEXT NOT NULL,
-                contenido TEXT NOT NULL,
-                imagen TEXT,
-                creado_en TIMESTAMP DEFAULT NOW()
-            );
-        """)
-        cur.execute(
-            "INSERT INTO noticias (titulo, contenido, imagen) VALUES (%s, %s, %s) RETURNING id;",
-            (datos.get('titulo'), datos.get('contenido'), datos.get('imagen'))
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({'mensaje': '¡Noticia publicada con éxito!'}), 201
-    except Exception as e:
-        logger.error(f"Error al guardar: {e}")
-        return jsonify({'error': str(e)}), 500
+@app.route('/publicar', methods=['POST'])
+def publicar():
+    titulo = request.form.get('titulo')
+    # Proceso de imagen con REGLA DE ORO: 20% Blur
+    file = request.files.get('imagen')
+    if file:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+        
+        # Aplicación del efecto ráfaga
+        img = Image.open(filepath)
+        img = img.filter(ImageFilter.GaussianBlur(radius=5)) # 20% de blur
+        img.save(filepath)
+        
+    return "Publicado con seoacuerdate mxl"
 
 if __name__ == '__main__':
-    puerto = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=puerto)
+    # Configuración para que Railway lo vea de inmediato
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
