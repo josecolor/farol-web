@@ -1,39 +1,12 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Redacción - El Farol al Día</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body { background-color: #1a1a1a; color: white; padding: 20px; }
-        .editor-container { background: #2b2b2b; padding: 30px; border-radius: 15px; border-top: 5px solid #ff8c00; max-width: 900px; margin: auto; }
-        .btn-farol { background-color: #ff8c00; color: white; font-weight: bold; border: none; width: 100%; }
-        .form-control { background: #333; color: white; border: 1px solid #444; margin-bottom: 15px; }
-        .form-control:focus { background: #444; color: white; border-color: #ff8c00; }
-    </style>
-</head>
-<body>
-    <div class="editor-container">
-        <h2 class="mb-4 text-center">🏮 Redacción: El Farol al Día</h2>
-        <form method="POST">
-            <input type="text" name="titulo" placeholder="Título de la noticia (Mexicali)" class="form-control" required>
-            <textarea name="contenido" placeholder="Escriba aquí la noticia... seoacuerdate mxl" class="form-control" rows="8" required></textarea>
-            
-            <div class="row">
-                <div class="col-md-6"><input type="text" name="protagonista" placeholder="Protagonista" class="form-control"></div>
-                <div class="col-md-6"><input type="text" name="ciudad" placeholder="Ciudad (Ej: Mexicali)" class="form-control"></div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6"><input type="text" name="categoria" placeholder="Categoría (Ej: Policiaca)" class="form-control"></div>
-                <div class="col-md-6"><input type="text" name="imagen_url" placeholder="URL de la imagen" class="form-control"></div>
-            </div>
+<form method="POST" enctype="multipart/form-data">
+    <input type="text" name="titulo" placeholder="Título de impacto..." class="form-input" required>
+    
+    <label class="btn-farol" style="display:block; text-align:center; background:#444; margin-bottom:15px;">
+        📸 SUBIR FOTO O VIDEO DESDE EL CELULAR
+        <input type="file" name="archivo" accept="image/*,video/*" style="display:none;">
+    </label>
 
-            <button type="submit" class="btn btn-farol py-2 mt-3">PUBLICA AHORA EN MEXICALI</button>
-        </form>
-        <div class="text-center mt-4">
-            <a href="/" class="text-warning" style="text-decoration:none;">← Volver al Portal</a>
-        </div>
-    </div>
-</body>
-</html>
+    <textarea id="editor" name="contenido">Escriba o pegue links de YouTube aquí... seoacuerdate mxl</textarea>
+    
+    <button type="submit" class="btn-farol" style="margin-top:20px;">PUBLICAR MULTIMEDIA</button>
+</form>
