@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>🏮 Redacción - El Farol al Día</title>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+      tinymce.init({
+        selector: '#editor',
+        plugins: 'image link media lists',
+        toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | image media',
+        images_upload_url: '/upload',
+        automatic_uploads: true
+      });
+    </script>
+    <style>
+        body { background: #1a3a5c; color: white; font-family: 'Roboto', sans-serif; padding: 20px; }
+        .editor-container { background: white; color: #333; padding: 30px; border-radius: 15px; max-width: 900px; margin: auto; }
+        h2 { font-family: 'Impact'; color: #1a3a5c; text-transform: uppercase; }
+        .btn-farol { background-color: #E87722; color: white; font-weight: bold; border: none; padding: 15px; width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <h2>🏮 Redacción: El Farol al Día</h2>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="titulo" placeholder="Título de la noticia (Mexicali)" style="width:100%; margin-bottom: 20px; padding: 10px;">
+            <textarea id="editor" name="contenido">Escriba aquí... seoacuerdate mxl</textarea>
+            <button type="submit" class="btn-farol">PUBLICA AHORA EN MEXICALI</button>
+        </form>
+    </div>
+</body>
+</html>
+
