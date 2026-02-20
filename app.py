@@ -5,15 +5,21 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# FORZAR SQLite — ignora cualquier variable de PostgreSQL
+# IGNORAR completamente DATABASE_URL de Railway (PostgreSQL)
+# Usar SOLO SQLite sin importar lo que Railway tenga configurado
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'noticias.db')
+db_path = os.path.join(basedir, 'noticias.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'el_farol_mxl_2026'
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'connect_args': {'check_same_thread': False}
+}
 
 db = SQLAlchemy(app)
 
 class Noticia(db.Model):
+    __tablename__ = 'noticia'
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
     contenido = db.Column(db.Text, nullable=False)
