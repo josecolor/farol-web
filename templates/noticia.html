@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ meta_title }}</title>
+    <meta name="description" content="{{ meta_desc }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #1a1a1a; color: white; font-family: 'Roboto', sans-serif; }
+        .navbar { background-color: #ff8c00; }
+        .navbar-brand img { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; }
+        .noticia-img { width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 24px; }
+        .badge-cat { background-color: #ff8c00; font-size: 0.8rem; }
+        .contenido { font-size: 1.1rem; line-height: 1.8; color: #ddd; }
+        .meta-info { color: #aaa; font-size: 0.9rem; border-left: 3px solid #ff8c00; padding-left: 12px; margin-bottom: 24px; }
+        .footer { background: #111; color: #888; text-align: center; padding: 20px; margin-top: 40px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+            <img src="/static/logo.png" alt="El Farol">
+            <strong style="font-size:1.4rem;">EL FAROL AL DÍA</strong>
+        </a>
+        <span class="text-white" style="font-size:0.85rem;">📍 Mexicali, B.C.</span>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 800px;">
+    <a href="/" class="btn btn-outline-warning btn-sm mb-4">← Volver al inicio</a>
+
+    {% if noticia.imagen_url %}
+    <img src="{{ noticia.imagen_url }}" class="noticia-img" alt="{{ noticia.titulo }}">
+    {% endif %}
+
+    <span class="badge badge-cat mb-3">{{ noticia.categoria }}</span>
+
+    <h1 style="font-family: Impact, sans-serif; font-size: 2rem; text-transform: uppercase; margin-bottom: 16px;">
+        {{ noticia.titulo }}
+    </h1>
+
+    <div class="meta-info">
+        📍 {{ noticia.ciudad }} &nbsp;|&nbsp;
+        👤 {{ noticia.protagonista }} &nbsp;|&nbsp;
+        🕐 {{ noticia.fecha.strftime('%d/%m/%Y %H:%M') }}
+    </div>
+
+    <div class="contenido">
+        {{ noticia.contenido }}
+    </div>
+
+    <hr style="border-color: #333; margin-top: 40px;">
+    <a href="/" class="btn btn-outline-warning btn-sm">← Volver al inicio</a>
+</div>
+
+<div class="footer">
+    🏮 El Farol Al Día · Mexicali, Baja California · Todos los derechos reservados
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
