@@ -5,66 +5,53 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Configuración de la Base de Datos
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'noticias.db')
+# CONFIGURACIÓN DE BASE DE DATOS
+# Usa SQLite para simplicidad en Railway
+app.config['SQLALCHEMY_DATABASE_DATABASE_URI'] = 'sqlite:///noticias.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026')
+app.config['SECRET_KEY'] = 'el_farol_mxl_2026'
 
 db = SQLAlchemy(app)
 
-# Modelo de la Noticia
+# MODELO DE LA NOTICIA (Estructura para SEO)
 class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
     contenido = db.Column(db.Text, nullable=False)
     protagonista = db.Column(db.String(100))
-    ciudad = db.Column(db.String(100), default='Mexicali')
-    categoria = db.Column(db.String(50), default='National')
+    ciudad = db.Column(db.String(100))
+    categoria = db.Column(db.String(50), default='Nacional')
+    imagen_url = db.Column(db.String(300))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
-# ESTO ES LO QUE ARREGLA EL ERROR 500: Se ejecuta al importar
+# CREACIÓN DE BASE DE DATOS (Vital para evitar Error 500)
 with app.app_context():
     db.create_all()
 
+# RUTAS DEL PORTAL
 @app.route('/')
 def index():
-    try:
-        noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
-        return render_template('index.html', noticias=noticias)
-    except Exception as e:
-        print(f"Error en portada: {e}")
-        return render_template('index.html', noticias=[])
-
-@app.route('/noticia/<int:id>')
-def ver_noticia(id):
-    noticia = Noticia.query.get_or_404(id)
-    return render_template('noticia.html', noticia=noticia)
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    return render_template('index.html', noticias=noticias)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if request.method == 'POST':
-        nueva_noticia = Noticia(
-            titulo=request.form.get('titulo', 'Sin Título'),
-            contenido=request.form.get('contenido', ''),
-            protagonista=request.form.get('protagonista', 'Desconocido'),
-            ciudad=request.form.get('ciudad', 'Mexicali'),
-            categoria=request.form.get('categoria', 'National')
+        nueva_nota = Noticia(
+            titulo=request.form.get('titulo'),
+            contenido=request.form.get('contenido'),
+            protagonista=request.form.get('protagonista'),
+            ciudad=request.form.get('ciudad'),
+            categoria=request.form.get('categoria'),
+            imagen_url=request.form.get('imagen_url')
         )
-        db.session.add(nueva_noticia)
+        db.session.add(nueva_nota)
         db.session.commit()
         return redirect(url_for('index'))
-    
-    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
-    return render_template('admin.html', noticias=noticias)
+    return render_template('admin.html')
 
-@app.route('/eliminar/<int:id>')
-def eliminar(id):
-    noticia = Noticia.query.get_or_404(id)
-    db.session.delete(noticia)
-    db.session.commit()
-    return redirect(url_for('admin'))
-
+# CONFIGURACIÓN DEL PUERTO PARA RAILWAY (El punto crítico)
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    # Railway inyecta la variable PORT, si no existe usa el 5000 por defecto
+    puerto = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=puerto)
