@@ -1,4 +1,4 @@
-flask
-flask-wtf
+Flask
+flask-sqlalchemy
 gunicorn
 Pillow
