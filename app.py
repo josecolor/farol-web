@@ -90,6 +90,13 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+@app.route('/sitemap.xml')
+def sitemap():
+    noticias = Noticia.query.filter_by(publicada=True).all()
+    base = request.host_url.rstrip('/')
+    xml = render_template('sitemap.xml', noticias=noticias, base=base)
+    return app.response_class(xml, mimetype='application/xml')
+
 # ─────────────────────────────────────────
 #  ADMINISTRACIÓN MULTIMEDIA
 # ─────────────────────────────────────────
@@ -139,6 +146,10 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
+# ─────────────────────────────────────────
+#  ARRANQUE DINÁMICO (FIX RAILWAY)
+# ─────────────────────────────────────────
 if __name__ == '__main__':
+    # Esto detecta si Railway pide el puerto 8080 o 5000
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
