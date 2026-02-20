@@ -90,13 +90,6 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/sitemap.xml')
-def sitemap():
-    noticias = Noticia.query.filter_by(publicada=True).all()
-    base = request.host_url.rstrip('/')
-    xml = render_template('sitemap.xml', noticias=noticias, base=base)
-    return app.response_class(xml, mimetype='application/xml')
-
 # ─────────────────────────────────────────
 #  ADMINISTRACIÓN MULTIMEDIA
 # ─────────────────────────────────────────
