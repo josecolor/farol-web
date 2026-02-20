@@ -5,12 +5,16 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN DE BASE DE DATOS (CORREGIDA) ---
-# Determinamos la ruta absoluta para que Railway no se pierda
+# --- CONFIGURACIÓN DE BASE DE DATOS ---
+# Lee la variable de entorno primero (Railway la inyecta automáticamente)
+# Si no existe, usa SQLite local como respaldo
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'noticias.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL',
+    'sqlite:///' + os.path.join(basedir, 'noticias.db')
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'el_farol_mxl_2026'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026')
 
 db = SQLAlchemy(app)
 
@@ -34,9 +38,15 @@ with app.app_context():
 def index():
     try:
         noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
-    except:
+    except Exception as e:
+        print(f"Error BD: {e}")
         noticias = []
     return render_template('index.html', noticias=noticias)
+
+@app.route('/noticia/<int:id>')
+def noticia(id):
+    nota = Noticia.query.get_or_404(id)
+    return render_template('noticia.html', noticia=nota)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -52,10 +62,17 @@ def admin():
         db.session.add(nueva_nota)
         db.session.commit()
         return redirect(url_for('index'))
-    return render_template('admin.html')
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    return render_template('admin.html', noticias=noticias)
 
-# --- CONFIGURACIÓN DEL PUERTO (PARA RAILWAY) ---
+@app.route('/admin/eliminar/<int:id>', methods=['POST'])
+def eliminar(id):
+    nota = Noticia.query.get_or_404(id)
+    db.session.delete(nota)
+    db.session.commit()
+    return redirect(url_for('admin'))
+
+# Solo para desarrollo local
 if __name__ == '__main__':
-    # Escucha en el puerto que asigne Railway o 5000 por defecto
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
