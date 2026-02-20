@@ -5,9 +5,6 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN DE BASE DE DATOS ---
-# Lee la variable de entorno primero (Railway la inyecta automáticamente)
-# Si no existe, usa SQLite local como respaldo
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL',
@@ -18,7 +15,6 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026')
 
 db = SQLAlchemy(app)
 
-# --- MODELO DE LA NOTICIA ---
 class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
@@ -29,11 +25,11 @@ class Noticia(db.Model):
     imagen_url = db.Column(db.String(300))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- CREACIÓN AUTOMÁTICA DE LA BASE DE DATOS ---
+# Resetea y recrea las tablas limpias
 with app.app_context():
+    db.drop_all()
     db.create_all()
 
-# --- RUTAS ---
 @app.route('/')
 def index():
     try:
@@ -72,7 +68,6 @@ def eliminar(id):
     db.session.commit()
     return redirect(url_for('admin'))
 
-# Solo para desarrollo local
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
