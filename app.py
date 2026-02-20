@@ -22,6 +22,7 @@ app.config['SECRET_KEY'] = 'el_farol_mxl_2026_secreto'
 
 db = SQLAlchemy(app)
 
+# --- SEO: SLUG GENERATOR ---
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -38,9 +39,26 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
+# --- SEGURIDAD ---
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('logged_in'): return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+# --- RUTAS ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('usuario') == 'director' and request.form.get('password') == 'farol2026':
+            session['logged_in'] = True
+            return redirect(url_for('admin'))
+    return render_template('login.html')
+
 @app.route('/admin', methods=['GET', 'POST'])
+@login_required
 def admin():
-    if not session.get('logged_in'): return redirect(url_for('login'))
     if request.method == 'POST':
         file = request.files.get('archivo')
         filename = ""
@@ -48,7 +66,8 @@ def admin():
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            if filename.lower().endswith(('mp4', 'mov', 'avi')): tipo = "video"
+            if filename.lower().endswith(('mp4', 'mov', 'avi')):
+                tipo = "video"
         
         titulo = request.form.get('titulo')
         nueva_nota = Noticia(
@@ -61,6 +80,7 @@ def admin():
         db.session.add(nueva_nota)
         db.session.commit()
         return redirect(url_for('admin'))
+    
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
     return render_template('admin.html', noticias=noticias)
 
@@ -68,4 +88,16 @@ def admin():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# (Aquí siguen sus rutas de index, login y noticia_slug...)
+@app.route('/')
+def index():
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    return render_template('index.html', noticias=noticias)
+
+@app.route('/noticia/<slug>')
+def noticia_slug(slug):
+    nota = Noticia.query.filter_by(slug=slug).first_or_404()
+    return render_template('noticia.html', noticia=nota)
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
