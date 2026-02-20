@@ -1,8 +1,9 @@
-import os
+import os, re
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from functools import wraps
+from unicodedata import normalize
 
 app = Flask(__name__)
 
@@ -15,16 +16,21 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'connect_args': {'check_same_thread': False}
 }
 
-# --- CREDENCIALES DE ADMIN (cámbielas en Variables de Railway) ---
 ADMIN_USER = os.environ.get('ADMIN_USER', 'director')
 ADMIN_PASS = os.environ.get('ADMIN_PASS', 'farol2026')
 
 db = SQLAlchemy(app)
 
+# --- SEO: Genera URL amigable desde el título ---
+def slugify(text):
+    text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
+    return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+
 class Noticia(db.Model):
     __tablename__ = 'noticia'
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
+    slug = db.Column(db.String(200), unique=True)  # SEO
     contenido = db.Column(db.Text, nullable=False)
     protagonista = db.Column(db.String(100))
     ciudad = db.Column(db.String(100))
@@ -35,7 +41,6 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- DECORADOR: protege rutas de admin ---
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -44,7 +49,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# --- LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -55,13 +59,11 @@ def login():
         flash('Usuario o contraseña incorrectos')
     return render_template('login.html')
 
-# --- LOGOUT ---
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# --- PORTADA (pública) ---
 @app.route('/')
 def index():
     try:
@@ -69,21 +71,38 @@ def index():
     except Exception as e:
         print(f"Error BD: {e}")
         noticias = []
-    return render_template('index.html', noticias=noticias)
+    return render_template('index.html', noticias=noticias,
+                           meta_title="El Farol al Día - Noticias de Mexicali",
+                           meta_desc="Últimas noticias de Mexicali, Baja California y México.")
 
-# --- NOTICIA INDIVIDUAL (pública) ---
 @app.route('/noticia/<int:id>')
 def noticia(id):
     nota = Noticia.query.get_or_404(id)
-    return render_template('noticia.html', noticia=nota)
+    return render_template('noticia.html', noticia=nota,
+                           meta_title=nota.titulo + " - El Farol al Día",
+                           meta_desc=nota.contenido[:150])
 
-# --- ADMIN (protegido) ---
+@app.route('/noticia/<slug>')
+def noticia_slug(slug):
+    nota = Noticia.query.filter_by(slug=slug).first_or_404()
+    return render_template('noticia.html', noticia=nota,
+                           meta_title=nota.titulo + " - El Farol al Día",
+                           meta_desc=nota.contenido[:150])
+
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
     if request.method == 'POST':
+        titulo = request.form.get('titulo')
+        base_slug = slugify(titulo)
+        slug = base_slug
+        contador = 1
+        while Noticia.query.filter_by(slug=slug).first():
+            slug = f"{base_slug}-{contador}"
+            contador += 1
         nueva_nota = Noticia(
-            titulo=request.form.get('titulo'),
+            titulo=titulo,
+            slug=slug,
             contenido=request.form.get('contenido'),
             protagonista=request.form.get('protagonista'),
             ciudad=request.form.get('ciudad'),
@@ -97,7 +116,6 @@ def admin():
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
     return render_template('admin.html', noticias=noticias)
 
-# --- ELIMINAR (protegido) ---
 @app.route('/admin/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar(id):
