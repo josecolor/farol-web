@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Farol - Noticias Mexicali</title>
+    <title>El Farol al Día - Noticias Mexicali</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body { background-color: #1a1a1a; color: white; font-family: 'Roboto', sans-serif; }
-        .navbar { background-color: #ff8c00; }
+        .navbar { background-color: #ff8c00; } /* El naranja corporativo */
         .card { background-color: #2b2b2b; border: none; color: white; margin-bottom: 20px; }
-        .card-title { font-family: 'Impact', sans-serif; font-weight: bold; }
+        .card-title { font-family: 'Impact', sans-serif; font-weight: bold; font-size: 1.5rem; text-shadow: 2px 2px 4px #000; }
         .img-blur { filter: blur(0px); transition: 0.3s; width: 100%; height: 200px; object-fit: cover; }
-        .img-blur:hover { filter: blur(2px); }
+        .img-blur:hover { filter: blur(2px); opacity: 0.8; }
+        .btn-outline-warning { border-color: #ff8c00; color: #ff8c00; }
+        .btn-outline-warning:hover { background-color: #ff8c00; color: #000; }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-dark shadow-sm mb-4">
-        <div class="container">
+        <div class="container d-flex align-items-center">
+            <img src="/static/logo.png" alt="Logo" style="height: 40px; margin-right: 15px; background-color: #ff8c00; border-radius: 5px;">
             <a class="navbar-brand" href="/">
-                <strong>EL FAROL</strong>
+                <strong style="font-family: 'Impact', sans-serif; font-size: 1.8rem;">EL FAROL AL DÍA</strong>
             </a>
         </div>
     </nav>
@@ -26,13 +29,19 @@
         <div class="row">
             {% for noticia in noticias %}
             <div class="col-md-4">
-                <div class="card h-100">
+                <div class="card h-100 shadow">
                     <img src="{{ noticia.imagen_url }}" class="img-blur" alt="{{ noticia.titulo }}">
                     <div class="card-body">
                         <h5 class="card-title text-uppercase">{{ noticia.titulo }}</h5>
-                        <p class="card-text"><small class="text-warning">{{ noticia.ciudad }} | {{ noticia.protagonista }}</small></p>
-                        <p class="card-text">{{ noticia.contenido[:100] }}...</p>
-                        <a href="/noticia/{{ noticia.id }}" class="btn btn-outline-warning btn-sm">Leer más</a>
+                        <p class="card-text">
+                            <small class="text-warning">
+                                <strong>{{ noticia.ciudad }}</strong> | {{ noticia.protagonista }}
+                            </small>
+                        </p>
+                        <div class="card-text" style="color: #ccc;">{{ noticia.contenido[:120]|striptags }}...</div>
+                        <div class="mt-3">
+                            <a href="/noticia/{{ noticia.id }}" class="btn btn-outline-warning btn-sm">Leer noticia completa</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -41,4 +50,3 @@
     </div>
 </body>
 </html>
-
