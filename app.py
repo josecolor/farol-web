@@ -5,11 +5,17 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL',
-    'sqlite:///' + os.path.join(basedir, 'noticias.db')
-)
+# Railway a veces entrega 'postgres://' pero SQLAlchemy necesita 'postgresql://'
+database_url = os.environ.get('DATABASE_URL', '')
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+# Si no hay variable de entorno, usa SQLite local
+if not database_url:
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    database_url = 'sqlite:///' + os.path.join(basedir, 'noticias.db')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026')
 
@@ -25,7 +31,6 @@ class Noticia(db.Model):
     imagen_url = db.Column(db.String(300))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Resetea y recrea las tablas limpias
 with app.app_context():
     db.drop_all()
     db.create_all()
