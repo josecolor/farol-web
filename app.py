@@ -5,15 +5,16 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN DE BASE DE DATOS
-# Usa SQLite para simplicidad en Railway
-app.config['SQLALCHEMY_DATABASE_DATABASE_URI'] = 'sqlite:///noticias.db'
+# --- CONFIGURACIÓN DE BASE DE DATOS (CORREGIDA) ---
+# Determinamos la ruta absoluta para que Railway no se pierda
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'noticias.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'el_farol_mxl_2026'
 
 db = SQLAlchemy(app)
 
-# MODELO DE LA NOTICIA (Estructura para SEO)
+# --- MODELO DE LA NOTICIA ---
 class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
@@ -24,14 +25,17 @@ class Noticia(db.Model):
     imagen_url = db.Column(db.String(300))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
-# CREACIÓN DE BASE DE DATOS (Vital para evitar Error 500)
+# --- CREACIÓN AUTOMÁTICA DE LA BASE DE DATOS ---
 with app.app_context():
     db.create_all()
 
-# RUTAS DEL PORTAL
+# --- RUTAS ---
 @app.route('/')
 def index():
-    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    try:
+        noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    except:
+        noticias = []
     return render_template('index.html', noticias=noticias)
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -50,8 +54,8 @@ def admin():
         return redirect(url_for('index'))
     return render_template('admin.html')
 
-# CONFIGURACIÓN DEL PUERTO PARA RAILWAY (El punto crítico)
+# --- CONFIGURACIÓN DEL PUERTO (PARA RAILWAY) ---
 if __name__ == '__main__':
-    # Railway inyecta la variable PORT, si no existe usa el 5000 por defecto
-    puerto = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=puerto)
+    # Escucha en el puerto que asigne Railway o 5000 por defecto
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
