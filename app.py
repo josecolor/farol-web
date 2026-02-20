@@ -21,7 +21,6 @@ ADMIN_PASS = os.environ.get('ADMIN_PASS', 'farol2026')
 
 db = SQLAlchemy(app)
 
-# --- SEO: Genera URL amigable desde el título ---
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -30,7 +29,7 @@ class Noticia(db.Model):
     __tablename__ = 'noticia'
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
-    slug = db.Column(db.String(200), unique=True)  # SEO
+    slug = db.Column(db.String(200), unique=True)
     contenido = db.Column(db.Text, nullable=False)
     protagonista = db.Column(db.String(100))
     ciudad = db.Column(db.String(100))
@@ -39,6 +38,7 @@ class Noticia(db.Model):
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
 with app.app_context():
+    db.drop_all()   # ← RESETEA LA BD — quitar esta línea después del primer deploy
     db.create_all()
 
 def login_required(f):
