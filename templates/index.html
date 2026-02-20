@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Farol - Noticias Mexicali</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #1a1a1a; color: white; font-family: 'Roboto', sans-serif; }
+        .navbar { background-color: #ff8c00; }
+        .card { background-color: #2b2b2b; border: none; color: white; margin-bottom: 20px; }
+        .card-title { font-family: 'Impact', sans-serif; font-weight: bold; }
+        .img-blur { filter: blur(0px); transition: 0.3s; width: 100%; height: 200px; object-fit: cover; }
+        .img-blur:hover { filter: blur(2px); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <strong>EL FAROL</strong>
+            </a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="row">
+            {% for noticia in noticias %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <img src="{{ noticia.imagen_url }}" class="img-blur" alt="{{ noticia.titulo }}">
+                    <div class="card-body">
+                        <h5 class="card-title text-uppercase">{{ noticia.titulo }}</h5>
+                        <p class="card-text"><small class="text-warning">{{ noticia.ciudad }} | {{ noticia.protagonista }}</small></p>
+                        <p class="card-text">{{ noticia.contenido[:100] }}...</p>
+                        <a href="/noticia/{{ noticia.id }}" class="btn btn-outline-warning btn-sm">Leer más</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
+
