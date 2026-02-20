@@ -1,41 +1,50 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, jsonify
 from PIL import Image, ImageFilter
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'seoacuerdate-mxl-2026'
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
-# El sistema crea las carpetas solo, tal como quedamos
+# CONFIGURACIÓN API DE EL FAROL
+app.config['SECRET_KEY'] = 'seoacuerdate-mxl-2026'
+app.config['UPLOAD_FOLDER'] = 'static' # Donde reside el logo y las ráfagas
+
+# Crear directorio de trabajo si no existe
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/')
-def index():
-    # Carga la fachada de Mexicali
+def home():
+    """API de Portada: Muestra el Farol al Día"""
     return render_template('index.html')
 
 @app.route('/admin')
 def admin():
-    # El panel de redacción profesional
+    """API Administrativa: El Lápiz de Redacción"""
     return render_template('admin.html')
 
 @app.route('/publicar', methods=['POST'])
-def publicar():
+def api_publicar():
+    """Motor de Procesamiento: Imagen + Blur + SEO"""
     titulo = request.form.get('titulo')
-    # Proceso de imagen con REGLA DE ORO: 20% Blur
     file = request.files.get('imagen')
+    
     if file:
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        filename = file.filename
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
-        # Aplicación del efecto ráfaga
+        # REGLA DE ORO: Procesamiento de 20% Blur
         img = Image.open(filepath)
-        img = img.filter(ImageFilter.GaussianBlur(radius=5)) # 20% de blur
+        img = img.filter(ImageFilter.GaussianBlur(radius=5)) 
         img.save(filepath)
         
-    return "Publicado con seoacuerdate mxl"
+        # Retorno de éxito con el Mantra
+        return jsonify({
+            "status": "success",
+            "message": "Noticia publicada: seoacuerdate mxl",
+            "image_path": f"/static/{filename}"
+        }), 200
 
 if __name__ == '__main__':
-    # Configuración para que Railway lo vea de inmediato
+    # Configuración dinámica para Railway
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
