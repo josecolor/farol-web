@@ -20,9 +20,10 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB para videos
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Lógica de Base de Datos: PostgreSQL (Railway) o SQLite (Local)
+# --- FIX CRÍTICO DE CONEXIÓN ---
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
+    # SQLAlchemy requiere 'postgresql://' (con 'ql') para funcionar
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or \
@@ -49,6 +50,7 @@ class Noticia(db.Model):
     publicada        = db.Column(db.Boolean, default=True)
 
 with app.app_context():
+    # Crea las tablas automáticamente en Postgres al arrancar
     db.create_all()
 
 # ─────────────────────────────────────────
@@ -90,15 +92,8 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/sitemap.xml')
-def sitemap():
-    noticias = Noticia.query.filter_by(publicada=True).all()
-    base = request.host_url.rstrip('/')
-    xml = render_template('sitemap.xml', noticias=noticias, base=base)
-    return app.response_class(xml, mimetype='application/xml')
-
 # ─────────────────────────────────────────
-#  ADMINISTRACIÓN MULTIMEDIA
+#  ADMINISTRACIÓN
 # ─────────────────────────────────────────
 ADMIN_USER = os.environ.get('ADMIN_USER', 'director')
 ADMIN_PASS = os.environ.get('ADMIN_PASS', 'farol2026')
@@ -147,9 +142,9 @@ def logout():
     return redirect(url_for('index'))
 
 # ─────────────────────────────────────────
-#  ARRANQUE DINÁMICO (FIX RAILWAY)
+#  ARRANQUE (AUTO-PUERTO)
 # ─────────────────────────────────────────
 if __name__ == '__main__':
-    # Esto detecta si Railway pide el puerto 8080 o 5000
+    # Indispensable para Railway: Escuchar en el puerto dinámico
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
