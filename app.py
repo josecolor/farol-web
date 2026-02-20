@@ -10,8 +10,8 @@ app = Flask(__name__)
 
 # --- CONFIGURACIÓN MULTIMEDIA ---
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Límite 100MB para videos
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -31,28 +31,24 @@ class Noticia(db.Model):
     titulo = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(200), unique=True)
     contenido = db.Column(db.Text, nullable=False)
-    multimedia_url = db.Column(db.String(300)) # Aquí guardamos foto o video
+    multimedia_url = db.Column(db.String(300))
     tipo_multimedia = db.Column(db.String(10)) # 'imagen' o 'video'
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
 with app.app_context():
     db.create_all()
 
-# --- RUTAS DE ADMINISTRACIÓN ---
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if not session.get('logged_in'): return redirect(url_for('login'))
-    
     if request.method == 'POST':
         file = request.files.get('archivo')
         filename = ""
         tipo = "imagen"
-        
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            if filename.lower().endswith(('mp4', 'mov', 'avi')):
-                tipo = "video"
+            if filename.lower().endswith(('mp4', 'mov', 'avi')): tipo = "video"
         
         titulo = request.form.get('titulo')
         nueva_nota = Noticia(
@@ -64,14 +60,12 @@ def admin():
         )
         db.session.add(nueva_nota)
         db.session.commit()
-        flash('¡Publicado con éxito!')
-    
+        return redirect(url_for('admin'))
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
     return render_template('admin.html', noticias=noticias)
 
-# Para poder ver los archivos subidos
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# (Mantener las rutas de login e index igual que antes...)
+# (Aquí siguen sus rutas de index, login y noticia_slug...)
