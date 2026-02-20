@@ -1,6 +1,6 @@
 import os, re
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, send_from_directory, abort)
+                   url_for, session, flash, send_from_directory)
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from functools import wraps
@@ -9,53 +9,43 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# ─────────────────────────────────────────
-#  CONFIGURACIÓN MULTIMEDIA Y DB
-# ─────────────────────────────────────────
+# ── CONFIGURACIÓN ──
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB para videos
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# --- FIX CRÍTICO DE CONEXIÓN ---
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
-    # SQLAlchemy requiere 'postgresql://' (con 'ql') para funcionar
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or \
     f"sqlite:///{os.path.join(os.path.abspath(os.path.dirname(__file__)), 'noticias.db')}"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 db = SQLAlchemy(app)
 
-# ─────────────────────────────────────────
-#  MODELO DE DATOS SEO-READY
-# ─────────────────────────────────────────
+# ── MODELO ──
 class Noticia(db.Model):
     __tablename__ = 'noticias'
-    id               = db.Column(db.Integer, primary_key=True)
-    titulo           = db.Column(db.String(200), nullable=False)
-    slug             = db.Column(db.String(220), unique=True, nullable=False)
-    resumen          = db.Column(db.String(300))          
-    contenido        = db.Column(db.Text, nullable=False)
-    multimedia_url   = db.Column(db.String(400))
-    tipo_multimedia  = db.Column(db.String(10))           # 'imagen' | 'video'
-    categoria        = db.Column(db.String(80))
-    autor            = db.Column(db.String(100), default='Redacción')
-    fecha            = db.Column(db.DateTime, default=datetime.utcnow)
-    publicada        = db.Column(db.Boolean, default=True)
+    id              = db.Column(db.Integer, primary_key=True)
+    titulo          = db.Column(db.String(200), nullable=False)
+    slug            = db.Column(db.String(220), unique=True, nullable=False)
+    resumen         = db.Column(db.String(300))
+    contenido       = db.Column(db.Text, nullable=False)
+    multimedia_url  = db.Column(db.String(400))
+    tipo_multimedia = db.Column(db.String(10))
+    categoria       = db.Column(db.String(80))
+    autor           = db.Column(db.String(100), default='Redacción')
+    fecha           = db.Column(db.DateTime, default=datetime.utcnow)
+    publicada       = db.Column(db.Boolean, default=True)
 
 with app.app_context():
-    # Crea las tablas automáticamente en Postgres al arrancar
     db.create_all()
 
-# ─────────────────────────────────────────
-#  UTILIDADES Y SEGURIDAD
-# ─────────────────────────────────────────
+# ── UTILIDADES ──
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -71,9 +61,25 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ─────────────────────────────────────────
-#  RUTAS PÚBLICAS Y SEO
-# ─────────────────────────────────────────
+# ── SEO ──
+@app.route('/sitemap.xml')
+def sitemap():
+    noticias = Noticia.query.filter_by(publicada=True).all()
+    base = request.host_url.rstrip('/')
+    urls = [f"<url><loc>{base}/</loc><priority>1.0</priority></url>"]
+    for n in noticias:
+        urls.append(f"<url><loc>{base}/noticia/{n.slug}</loc><lastmod>{n.fecha.strftime('%Y-%m-%d')}</lastmod></url>")
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{"".join(urls)}</urlset>'
+    return app.response_class(xml, mimetype='application/xml')
+
+@app.route('/robots.txt')
+def robots():
+    base = request.host_url.rstrip('/')
+    return app.response_class(
+        f"User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: {base}/sitemap.xml",
+        mimetype='text/plain')
+
+# ── RUTAS PÚBLICAS ──
 @app.route('/')
 def index():
     categoria = request.args.get('categoria')
@@ -81,70 +87,116 @@ def index():
     if categoria:
         query = query.filter_by(categoria=categoria)
     noticias = query.order_by(Noticia.fecha.desc()).all()
-    return render_template('index.html', noticias=noticias)
+    categorias = [c[0] for c in db.session.query(Noticia.categoria).filter(
+        Noticia.categoria != None).distinct().all()]
+    return render_template('index.html', noticias=noticias,
+                           categorias=categorias, categoria_activa=categoria)
 
 @app.route('/noticia/<slug>')
 def noticia_slug(slug):
     nota = Noticia.query.filter_by(slug=slug, publicada=True).first_or_404()
-    return render_template('noticia.html', noticia=nota)
+    relacionadas = Noticia.query.filter(
+        Noticia.categoria == nota.categoria,
+        Noticia.id != nota.id,
+        Noticia.publicada == True
+    ).limit(3).all()
+    return render_template('noticia.html', noticia=nota, relacionadas=relacionadas)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ─────────────────────────────────────────
-#  ADMINISTRACIÓN
-# ─────────────────────────────────────────
-ADMIN_USER = os.environ.get('ADMIN_USER', 'director')
-ADMIN_PASS = os.environ.get('ADMIN_PASS', 'farol2026')
-
+# ── AUTH ──
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get('logged_in'):
+        return redirect(url_for('admin'))
     if request.method == 'POST':
-        if request.form.get('usuario') == ADMIN_USER and request.form.get('password') == ADMIN_PASS:
+        if (request.form.get('usuario') == os.environ.get('ADMIN_USER', 'director') and
+                request.form.get('password') == os.environ.get('ADMIN_PASS', 'farol2026')):
             session['logged_in'] = True
             return redirect(url_for('admin'))
+        flash('Credenciales incorrectas.', 'danger')
     return render_template('login.html')
-
-@app.route('/admin', methods=['GET', 'POST'])
-@login_required
-def admin():
-    if request.method == 'POST':
-        file = request.files.get('archivo')
-        filename, tipo = '', 'imagen'
-        if file and allowed_file(file.filename):
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = secure_filename(f"{int(datetime.utcnow().timestamp())}.{ext}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            if ext in {'mp4', 'mov', 'avi'}: tipo = 'video'
-
-        titulo = request.form.get('titulo')
-        nueva = Noticia(
-            titulo=titulo,
-            slug=slugify(titulo),
-            resumen=request.form.get('resumen'),
-            contenido=request.form.get('contenido'),
-            multimedia_url=filename,
-            tipo_multimedia=tipo,
-            categoria=request.form.get('categoria'),
-            autor=request.form.get('autor')
-        )
-        db.session.add(nueva)
-        db.session.commit()
-        return redirect(url_for('admin'))
-    
-    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
-    return render_template('admin.html', noticias=noticias)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# ─────────────────────────────────────────
-#  ARRANQUE (AUTO-PUERTO)
-# ─────────────────────────────────────────
-if __name__ == '__main__':
-    # Indispensable para Railway: Escuchar en el puerto dinámico
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+# ── ADMIN ──
+@app.route('/admin', methods=['GET', 'POST'])
+@login_required
+def admin():
+    if request.method == 'POST':
+        titulo = request.form.get('titulo', '').strip()
+        if not titulo:
+            flash('El título es obligatorio.', 'danger')
+            return redirect(url_for('admin'))
+
+        filename, tipo = '', 'imagen'
+        file = request.files.get('archivo')
+        if file and file.filename and allowed_file(file.filename):
+            base, ext = os.path.splitext(secure_filename(file.filename))
+            filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}:
+                tipo = 'video'
+
+        base_slug = slugify(titulo)
+        slug, counter = base_slug, 1
+        while Noticia.query.filter_by(slug=slug).first():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        db.session.add(Noticia(
+            titulo=titulo, slug=slug,
+            resumen=request.form.get('resumen', '')[:300],
+            contenido=request.form.get('contenido', ''),
+            multimedia_url=filename, tipo_multimedia=tipo,
+            categoria=request.form.get('categoria', '').strip() or None,
+            autor=request.form.get('autor', 'Redacción').strip(),
+            publicada=bool(request.form.get('publicada'))
+        ))
+        db.session.commit()
+        flash('Noticia publicada.', 'success')
+        return redirect(url_for('admin'))
+
+    noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
+    return render_template('admin.html', noticias=noticias)
+
+@app.route('/admin/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar(id):
+    nota = Noticia.query.get_or_404(id)
+    if nota.multimedia_url:
+        ruta = os.path.join(app.config['UPLOAD_FOLDER'], nota.multimedia_url)
+        if os.path.exists(ruta):
+            os.remove(ruta)
+    db.session.delete(nota)
+    db.session.commit()
+    flash('Noticia eliminada.', 'info')
+    return redirect(url_for('admin'))
+
+@app.route('/admin/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar(id):
+    nota = Noticia.query.get_or_404(id)
+    if request.method == 'POST':
+        nota.titulo    = request.form.get('titulo', nota.titulo).strip()
+        nota.resumen   = request.form.get('resumen', '')[:300]
+        nota.contenido = request.form.get('contenido', nota.contenido)
+        nota.categoria = request.form.get('categoria', '').strip() or None
+        nota.autor     = request.form.get('autor', nota.autor).strip()
+        nota.publicada = bool(request.form.get('publicada'))
+        file = request.files.get('archivo')
+        if file and file.filename and allowed_file(file.filename):
+            base, ext = os.path.splitext(secure_filename(file.filename))
+            filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            nota.multimedia_url  = filename
+            nota.tipo_multimedia = 'video' if ext.lower().lstrip('.') in {'mp4','mov','avi'} else 'imagen'
+        db.session.commit()
+        flash('Noticia actualizada.', 'success')
+        return redirect(url_for('admin'))
+    return render_template('editar.html', noticia=nota)
