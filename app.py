@@ -1,4 +1,4 @@
-import os, re  # Corregido: import en minúscula
+import os, re  # Corregido: import en minúscula para evitar crash
 from flask import (Flask, render_template, request, redirect,
                    url_for, session, flash, send_from_directory)
 from flask_sqlalchemy import SQLAlchemy
@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# ── CONFIGURACIÓN ──
+# ── CONFIGURACIÓN DE SEGURIDAD Y RUTAS ──
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
@@ -18,7 +18,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Adaptación para Railway
+# Adaptación Dinámica de Base de Datos para Railway
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -29,7 +29,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or \
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 db = SQLAlchemy(app)
 
-# ── MODELO ──
+# ── MODELO DE DATOS (EL FAROL) ──
 class Noticia(db.Model):
     __tablename__ = 'noticias'
     id              = db.Column(db.Integer, primary_key=True)
@@ -47,7 +47,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# ── UTILIDADES ──
+# ── UTILIDADES MAESTRAS ──
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -83,13 +83,14 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ── AUTH ──
+# ── AUTH (DIRECTOR) ──
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'): return redirect(url_for('admin'))
     if request.method == 'POST':
-        if (request.form.get('usuario') == os.environ.get('ADMIN_USER', 'director') and
-            request.form.get('password') == os.environ.get('ADMIN_PASS', 'farol2026')):
+        user_env = os.environ.get('ADMIN_USER', 'director')
+        pass_env = os.environ.get('ADMIN_PASS', 'farol2026')
+        if (request.form.get('usuario') == user_env and request.form.get('password') == pass_env):
             session['logged_in'] = True
             return redirect(url_for('admin'))
         flash('Acceso denegado.', 'danger')
@@ -100,7 +101,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# ── ADMIN (SYNC CON EDITOR MAESTRO) ──
+# ── ADMIN PANEL (SEO MXL SYNC) ──
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
@@ -114,11 +115,10 @@ def admin():
             flash('Título y contenido son requeridos.', 'danger')
             return redirect(url_for('admin'))
 
-        # Manejo de Multimedia
+        # Multimedia
         multimedia_url = request.form.get('multimedia', '')
         tipo = 'imagen'
         file = request.files.get('archivo')
-        
         if file and file.filename and allowed_file(file.filename):
             base, ext = os.path.splitext(secure_filename(file.filename))
             filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
@@ -126,29 +126,22 @@ def admin():
             multimedia_url = filename
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}: tipo = 'video'
 
-        # SEO Slug: ciudad-titulo
+        # SEO Slug Automático
         base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
 
-        # Guardado
-        nueva_nota = Noticia(
-            titulo=titulo,
-            slug=slug,
-            resumen=f"{ciudad} | {protagonista}",
-            contenido=contenido,
-            multimedia_url=multimedia_url,
-            tipo_multimedia=tipo,
-            categoria=request.form.get('categoria', 'Nacional'),
-            autor=request.form.get('autor', 'Redacción')
-        )
-        db.session.add(nueva_nota)
+        db.session.add(Noticia(
+            titulo=titulo, slug=slug, resumen=f"{ciudad} | {protagonista}",
+            contenido=contenido, multimedia_url=multimedia_url, 
+            tipo_multimedia=tipo, categoria=request.form.get('categoria', 'Nacional')
+        ))
         db.session.commit()
-        flash('¡Noticia lanzada con éxito!', 'success')
+        flash('Noticia lanzada.', 'success')
         return redirect(url_for('admin'))
-
+    
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
     return render_template('admin.html', noticias=noticias)
 
@@ -159,3 +152,9 @@ def eliminar(id):
     db.session.delete(nota)
     db.session.commit()
     return redirect(url_for('admin'))
+
+# ── LANZAMIENTO (ESTACIÓN RAILWAY) ──
+if __name__ == "__main__":
+    # Esta es la pieza clave para que Railway encuentre la estación
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
