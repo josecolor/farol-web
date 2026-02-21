@@ -2,40 +2,48 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Redacción - El Farol al Día</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ noticia.titulo }} | El Farol</title>
+    <meta name="description" content="{{ noticia.resumen }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #1a1a1a; color: white; padding: 20px; font-family: 'Roboto', sans-serif; }
-        .editor-container { background: #2b2b2b; padding: 30px; border-radius: 15px; border-top: 5px solid #ff8c00; max-width: 800px; margin: auto; }
-        .btn-farol { background-color: #ff8c00; color: white; font-weight: bold; border: none; width: 100%; padding: 12px; border-radius: 8px; transition: 0.3s; }
-        .btn-farol:hover { background-color: #e67e00; }
-        .form-control { background: #333; color: white; border: 1px solid #444; margin-bottom: 15px; }
-        .file-label { display: block; background: #444; padding: 15px; text-align: center; border-radius: 8px; cursor: pointer; border: 2px dashed #ff8c00; margin-bottom: 15px; }
+        .news-header { background: #f8f9fa; padding: 40px 0; border-bottom: 5px solid orange; }
+        .logo-container { position: absolute; top: 10px; left: 10px; z-index: 100; }
+        .badge-city { background-color: orange; color: white; font-weight: bold; }
+        .content img, .content video { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; }
+        h1 { font-family: 'Impact', sans-serif; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
-    <div class="editor-container">
-        <h2 class="mb-4 text-center">🏮 Redacción: El Farol al Día</h2>
-        <form method="POST" enctype="multipart/form-data">
-            <input type="text" name="titulo" placeholder="Título de la noticia (Mexicali)" class="form-control" required>
-            
-            <label class="file-label">
-                📸 CLIC AQUÍ PARA SUBIR FOTO O VIDEO
-                <input type="file" name="archivo" accept="image/*,video/*" style="display:none;">
-            </label>
-
-            <textarea name="contenido" placeholder="Escriba aquí la noticia... seoacuerdate mxl" class="form-control" rows="10" required></textarea>
-            
-            <div class="row">
-                <div class="col-md-6"><input type="text" name="protagonista" placeholder="Protagonista" class="form-control"></div>
-                <div class="col-md-6"><input type="text" name="ciudad" placeholder="Ciudad (Ej: Mexicali)" class="form-control"></div>
-            </div>
-
-            <button type="submit" class="btn-farol">PUBLICA MULTIMEDIA AHORA</button>
-        </form>
-        <div class="text-center mt-4">
-            <a href="/" class="text-warning" style="text-decoration:none;">← Volver al Portal</a>
-        </div>
+    <div class="logo-container">
+        <img src="/static/logo_farol.png" alt="El Farol" style="width: 80px; background: orange; padding: 5px; border-radius: 5px;">
     </div>
+
+    <header class="news-header text-center">
+        <div class="container">
+            <span class="badge badge-city mb-2">{{ noticia.ciudad }}</span>
+            <h1 class="display-4">{{ noticia.titulo }}</h1>
+            <p class="text-muted">Por: {{ noticia.autor }} | {{ noticia.fecha.strftime('%d/%m/%Y') }}</p>
+        </div>
+    </header>
+
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 content">
+                {% if noticia.multimedia_url %}
+                    {% if noticia.tipo_multimedia == 'video' %}
+                        <video controls class="w-100 shadow"><source src="{{ url_for('uploaded_file', filename=noticia.multimedia_url) }}"></video>
+                    {% else %}
+                        <img src="{{ url_for('uploaded_file', filename=noticia.multimedia_url) }}" class="w-100 shadow" alt="{{ noticia.titulo }}">
+                    {% endif %}
+                {% endif %}
+                
+                <div class="mt-4 lead">{{ noticia.contenido | safe }}</div>
+                
+                <hr>
+                <p><strong>Protagonista:</strong> {{ noticia.protagonista or 'N/A' }}</p>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
