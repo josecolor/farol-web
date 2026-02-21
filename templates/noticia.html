@@ -3,63 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ meta_title }}</title>
-    <meta name="description" content="{{ meta_desc }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>{{ noticia.titulo }} | El Farol</title>
+    <meta name="description" content="{{ noticia.resumen }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #1a1a1a; color: white; font-family: 'Roboto', sans-serif; }
-        .navbar { background-color: #ff8c00; }
-        .navbar-brand img { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; }
-        .noticia-img { width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 24px; }
-        .badge-cat { background-color: #ff8c00; font-size: 0.8rem; }
-        .contenido { font-size: 1.1rem; line-height: 1.8; color: #ddd; }
-        .meta-info { color: #aaa; font-size: 0.9rem; border-left: 3px solid #ff8c00; padding-left: 12px; margin-bottom: 24px; }
-        .footer { background: #111; color: #888; text-align: center; padding: 20px; margin-top: 40px; font-size: 0.85rem; }
+        .news-header { background: #f8f9fa; padding: 40px 0; border-bottom: 5px solid orange; }
+        .logo-container { position: absolute; top: 10px; left: 10px; z-index: 100; }
+        .badge-city { background-color: orange; color: white; font-weight: bold; }
+        .content img, .content video { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; }
+        h1 { font-family: 'Impact', sans-serif; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
-
-<nav class="navbar navbar-dark shadow-sm mb-4">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-            <img src="/static/logo.png" alt="El Farol">
-            <strong style="font-size:1.4rem;">EL FAROL AL DÍA</strong>
-        </a>
-        <span class="text-white" style="font-size:0.85rem;">📍 Mexicali, B.C.</span>
-    </div>
-</nav>
-
-<div class="container" style="max-width: 800px;">
-    <a href="/" class="btn btn-outline-warning btn-sm mb-4">← Volver al inicio</a>
-
-    {% if noticia.imagen_url %}
-    <img src="{{ noticia.imagen_url }}" class="noticia-img" alt="{{ noticia.titulo }}">
-    {% endif %}
-
-    <span class="badge badge-cat mb-3">{{ noticia.categoria }}</span>
-
-    <h1 style="font-family: Impact, sans-serif; font-size: 2rem; text-transform: uppercase; margin-bottom: 16px;">
-        {{ noticia.titulo }}
-    </h1>
-
-    <div class="meta-info">
-        📍 {{ noticia.ciudad }} &nbsp;|&nbsp;
-        👤 {{ noticia.protagonista }} &nbsp;|&nbsp;
-        🕐 {{ noticia.fecha.strftime('%d/%m/%Y %H:%M') }}
+    <div class="logo-container">
+        <img src="/static/logo_farol.png" alt="El Farol" style="width: 80px; background: orange; padding: 5px; border-radius: 5px;">
     </div>
 
-    <div class="contenido">
-        {{ noticia.contenido }}
-    </div>
+    <header class="news-header text-center">
+        <div class="container">
+            <span class="badge badge-city mb-2">{{ noticia.ciudad }}</span>
+            <h1 class="display-4">{{ noticia.titulo }}</h1>
+            <p class="text-muted">Por: {{ noticia.autor }} | {{ noticia.fecha.strftime('%d/%m/%Y') }}</p>
+        </div>
+    </header>
 
-    <hr style="border-color: #333; margin-top: 40px;">
-    <a href="/" class="btn btn-outline-warning btn-sm">← Volver al inicio</a>
-</div>
-
-<div class="footer">
-    🏮 El Farol Al Día · Mexicali, Baja California · Todos los derechos reservados
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 content">
+                {% if noticia.multimedia_url %}
+                    {% if noticia.tipo_multimedia == 'video' %}
+                        <video controls class="w-100 shadow"><source src="{{ url_for('uploaded_file', filename=noticia.multimedia_url) }}"></video>
+                    {% else %}
+                        <img src="{{ url_for('uploaded_file', filename=noticia.multimedia_url) }}" class="w-100 shadow" alt="{{ noticia.titulo }}">
+                    {% endif %}
+                {% endif %}
+                
+                <div class="mt-4 lead">{{ noticia.contenido | safe }}</div>
+                
+                <hr>
+                <p><strong>Protagonista:</strong> {{ noticia.protagonista or 'N/A' }}</p>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
