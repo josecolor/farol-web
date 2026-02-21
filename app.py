@@ -9,17 +9,17 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN DE PRODUCCIÓN ---
-# Recomendación: Mantener esta carpeta para que Gunicorn sirva imágenes y videos sin problemas.
+# --- CONFIGURACIÓN PARA NUBE (RAILWAY) ---
+# Recomendación: Static/uploads es la ruta más segura para persistencia temporal.
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Recomendación: 100MB para videos pesados.
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Base de Datos Adaptable (PostgreSQL en Railway / SQLite en local)
+# Base de Datos Adaptable
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -64,7 +64,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# --- RUTAS ---
+# --- RUTAS PÚBLICAS ---
 @app.route('/')
 def index():
     categoria = request.args.get('categoria')
@@ -83,6 +83,7 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# --- ACCESO ADMINISTRATIVO ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'): return redirect(url_for('admin'))
@@ -113,7 +114,7 @@ def admin():
             flash('Datos incompletos.', 'danger')
             return redirect(url_for('admin'))
 
-        # Lógica Multimedia
+        # Manejo de Archivos
         multimedia_url = request.form.get('multimedia', '')
         tipo = 'imagen'
         file = request.files.get('archivo')
@@ -124,7 +125,7 @@ def admin():
             multimedia_url = filename
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}: tipo = 'video'
 
-        # Slug SEO MXL Automático
+        # SEO Slug Automático (Ciudad-Titulo)
         base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
@@ -137,7 +138,7 @@ def admin():
             tipo_multimedia=tipo, categoria=request.form.get('categoria', 'Nacional')
         ))
         db.session.commit()
-        flash('¡Noticia lanzada con éxito!', 'success')
+        flash('Publicado.', 'success')
         return redirect(url_for('admin'))
     
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -151,5 +152,8 @@ def eliminar(id):
     db.session.commit()
     return redirect(url_for('admin'))
 
-# Recomendación: No usar app.run() en producción. 
-# Gunicorn se encarga de esto dinámicamente según el Procfile.
+# Recomendación: Dejar el inicio del servidor al Procfile.
+# Solo se incluye este bloque para compatibilidad en pruebas locales.
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
