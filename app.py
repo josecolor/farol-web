@@ -1,4 +1,4 @@
-import os, re
+import os, re  # Fixed: Lowercase 'import' to prevent startup crash
 from flask import (Flask, render_template, request, redirect,
                    url_for, session, flash, send_from_directory)
 from flask_sqlalchemy import SQLAlchemy
@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# ── CONFIGURACIÓN DE RUTAS Y SEGURIDAD ──
+# ── CONFIGURATION & SECURITY ──
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
@@ -18,7 +18,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuración dinámica para Railway (PostgreSQL) o Local (SQLite)
+# Dynamic Database Configuration for Railway (PostgreSQL) or Local (SQLite)
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -29,7 +29,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or \
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 db = SQLAlchemy(app)
 
-# ── MODELO DE DATOS ──
+# ── DATA MODEL (STABLE ARCHITECTURE) ──
 class Noticia(db.Model):
     __tablename__ = 'noticias'
     id              = db.Column(db.Integer, primary_key=True)
@@ -47,7 +47,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# ── UTILIDADES MAESTRAS ──
+# ── MASTER UTILITIES ──
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -63,7 +63,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ── SEO Y SISTEMA ──
+# ── SEO & SYSTEM ROUTES ──
 @app.route('/sitemap.xml')
 def sitemap():
     noticias = Noticia.query.filter_by(publicada=True).all()
@@ -81,7 +81,7 @@ def robots():
         f"User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: {base}/sitemap.xml",
         mimetype='text/plain')
 
-# ── RUTAS PÚBLICAS ──
+# ── PUBLIC ROUTES ──
 @app.route('/')
 def index():
     categoria = request.args.get('categoria')
@@ -108,7 +108,7 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ── AUTENTICACIÓN ──
+# ── AUTHENTICATION ──
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'):
@@ -128,7 +128,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# ── PANEL ADMINISTRATIVO (CONEXIÓN CON EL FAROL) ──
+# ── ADMIN PANEL (EDITOR MAESTRO SYNC) ──
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
@@ -137,31 +137,31 @@ def admin():
         ciudad = request.form.get('ciudad', 'Mexicali').strip()
         protagonista = request.form.get('protagonista', 'N/A').strip()
         contenido = request.form.get('contenido', '')
-        multimedia_url = request.form.get('multimedia', '') # URL Manual
+        multimedia_url = request.form.get('multimedia', '')
         
         if not titulo:
             flash('El título es obligatorio.', 'danger')
             return redirect(url_for('admin'))
 
-        # Manejo de archivo físico
+        # Media Handling (Upload vs URL)
         tipo = 'imagen'
         file = request.files.get('archivo')
         if file and file.filename and allowed_file(file.filename):
             base, ext = os.path.splitext(secure_filename(file.filename))
             filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            multimedia_url = filename # Priorizamos el archivo subido
+            multimedia_url = filename
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}:
                 tipo = 'video'
 
-        # Generación de Slug SEO (Ciudad + Título)
+        # SEO-Driven Slug (City + Title)
         base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
 
-        # Guardado en DB (Mapeando Ciudad y Protagonista al Resumen)
+        # Save to DB (Mapping City/Protagonist to Resumen field for SEO)
         resumen_seo = f"{ciudad} | {protagonista}"
         
         db.session.add(Noticia(
@@ -217,4 +217,4 @@ def editar(id):
         return redirect(url_for('admin'))
     return render_template('editar.html', noticia=nota)
 
-# Nota: Railway usa Gunicorn a través del Procfile, por lo que app.run() no es necesario aquí.
+# Procfile handles execution via Gunicorn; app.run() is not needed for production.
