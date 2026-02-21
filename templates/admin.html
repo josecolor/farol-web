@@ -1,51 +1,48 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel de Control | El Farol</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">EL FAROL - ADMIN</a>
-            <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Cerrar Sesión</a>
-        </div>
-    </nav>
+<script>
+// ─── MEJORA TÉCNICA: CONFIGURACIÓN PROFESIONAL DE TINYMCE ───
+tinymce.init({
+  selector: '#editor-blogger',
+  height: 480,
+  plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount emoticons',
+  toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist | removeformat | help',
+  skin: 'oxide-dark',
+  content_css: 'dark',
+  branding: false,
+  promotion: false,
+  setup: function(editor) {
+    editor.on('change', function() {
+      // Sincroniza el contenido con el campo oculto para que Python lo reciba
+      document.getElementById('contenido-hidden').value = editor.getContent();
+    });
+  }
+});
 
-    <div class="container mt-4">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white"><h5>Publicar Nueva Noticia</h5></div>
-            <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label>Título de la Noticia</label>
-                            <input type="text" name="titulo" class="form-control" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label>Ciudad</label>
-                            <input type="text" name="ciudad" class="form-control" value="Mexicali">
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label>Protagonista</label>
-                            <input type="text" name="protagonista" class="form-control">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label>Archivo (Imagen o Video)</label>
-                            <input type="file" name="archivo" class="form-control">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label>Contenido</label>
-                        <textarea name="contenido" class="form-control" rows="5"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">PUBLICAR AHORA</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+// ─── MEJORA TÉCNICA: GENERADOR DE SLUGS PARA SEO ───
+function onTitulo() {
+  const titulo = document.getElementById('titulo-input').value.trim();
+  const ciudad = document.getElementById('ciudad-input').value.trim();
+  
+  // Crea una URL amigable automáticamente
+  const slug = titulo.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s]/g,'')
+    .replace(/\s+/g,'-');
+
+  document.getElementById('seo-url').textContent = `elfarol.com > noticia > ${ciudad.toLowerCase()}-${slug}`;
+  document.getElementById('seo-title').textContent = titulo || "Tu titular aparecerá aquí...";
+  
+  // Contador de caracteres con color dinámico
+  const tc = titulo.length;
+  const counter = document.getElementById('titulo-chars');
+  counter.textContent = tc + ' / 100';
+  counter.className = 'char-counter ' + (tc > 80 ? 'bad' : tc > 60 ? 'warn' : 'ok');
+}
+
+// ─── MEJORA TÉCNICA: PREPARACIÓN ANTES DE ENVIAR ───
+document.getElementById('form-principal').onsubmit = function() {
+    // Asegura que el contenido del editor se guarde antes de enviar el formulario
+    const content = tinymce.get('editor-blogger').getContent();
+    document.getElementById('contenido-hidden').value = content;
+    return true; 
+};
+</script>
