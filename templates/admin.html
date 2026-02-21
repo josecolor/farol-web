@@ -1,48 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Maestro | El Farol al Día</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+
+<style>
+/* SISTEMA DE DISEÑO — EL FAROL */
+:root {
+  --naranja:   #FF5500;
+  --naranja-b: #CC4300;
+  --glow:      rgba(255, 85, 0, 0.35);
+  --bg:        #080808;
+  --surface:   #111111;
+  --surface2:  #181818;
+  --borde:     #222222;
+  --borde2:    rgba(255,85,0,0.15);
+  --texto:     #E8E0D4;
+  --muted:     #555;
+  --verde:     #22C55E;
+  --rojo:      #EF4444;
+  --sidebar-w: 260px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--texto);
+  display: flex;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 70% -10%, rgba(255,85,0,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 100%, rgba(255,85,0,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--surface);
+  position: fixed;
+  top: 0; left: 0;
+  border-right: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--naranja), transparent);
+}
+
+.sidebar-header {
+  padding: 28px 22px 22px;
+  border-bottom: 1px solid var(--borde);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-mark {
+  width: 42px;
+  height: 42px;
+  background: var(--naranja);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.logo-text h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 4px;
+  color: var(--naranja);
+  line-height: 1;
+}
+
+.nav-links {
+  padding: 16px 12px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nav-item {
+  padding: 11px 14px;
+  color: #777;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 7px;
+  transition: all .2s;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  width: 100%;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover, .nav-item.active {
+  background: rgba(255,85,0,0.12);
+  color: var(--naranja);
+  border-color: rgba(255,85,0,0.25);
+}
+
+/* MAIN */
+.main-content {
+  margin-left: var(--sidebar-w);
+  padding: 0;
+  width: calc(100% - var(--sidebar-w));
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.topbar {
+  padding: 0 32px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--borde);
+  background: rgba(8,8,8,0.95);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 50;
+}
+
+.card {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  margin: 20px 32px;
+  padding: 22px;
+  backdrop-filter: blur(20px);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+
+.field label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.field input, .field select {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: var(--texto);
+  padding: 12px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.field input:focus { border-color: var(--naranja); outline: none; }
+
+#titulo-input {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 1px;
+}
+
+.btn-publish {
+  background: linear-gradient(135deg, var(--naranja) 0%, #FF7A00 100%);
+  color: #fff;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px var(--glow);
+  width: 100%;
+  margin-top: 20px;
+}
+
+.btn-publish:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,85,0,.5); }
+
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo-mark">🏮</div>
+    <div class="logo-text"><h2>EL FAROL</h2><span>PANEL EDITORIAL</span></div>
+  </div>
+  <nav class="nav-links">
+    <div class="nav-item active"><i class="fas fa-pen-nib"></i> Nueva Noticia</div>
+    <a href="/" class="nav-item" style="text-decoration:none"><i class="fas fa-globe"></i> Ver Portal</a>
+    <a href="/logout" class="nav-item" style="margin-top:auto; color:var(--rojo); text-decoration:none"><i class="fas fa-power-off"></i> Salir</a>
+  </nav>
+</aside>
+
+<div class="main-content">
+  <header class="topbar">
+    <span style="font-family:'Bebas Neue'; letter-spacing:4px; color:#555">NUEVA NOTICIA</span>
+    <div class="status-pill" style="display:flex; align-items:center; gap:8px; background:rgba(34,197,94,0.1); padding:4px 12px; border-radius:20px;">
+      <div style="width:6px; height:6px; background:var(--verde); border-radius:50%"></div>
+      <span style="color:var(--verde); font-size:10px; font-family:'JetBrains Mono'">EN LÍNEA</span>
+    </div>
+  </header>
+
+  <form method="POST" action="/admin" id="form-principal">
+    <input type="hidden" name="contenido" id="contenido-hidden">
+
+    <div class="card">
+      <div class="field">
+        <label>Titular principal *</label>
+        <input type="text" id="titulo-input" name="titulo" placeholder="ESCRIBE EL TITULAR..." required oninput="onTitulo()">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px">
+        <div class="field">
+          <label>Ciudad *</label>
+          <input type="text" name="ciudad" id="ciudad-input" placeholder="Ej: Mexicali" required>
+        </div>
+        <div class="field">
+          <label>Protagonista *</label>
+          <input type="text" name="protagonista" placeholder="¿Quién es el centro de la nota?" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Multimedia (URL de Imagen o Video)</label>
+        <input type="text" name="multimedia" placeholder="https://ejemplo.com/foto.jpg">
+      </div>
+    </div>
+
+    <div class="card" style="padding:0; overflow:hidden">
+       <textarea id="editor-blogger"></textarea>
+    </div>
+
+    <div style="padding:0 32px 40px">
+      <button type="submit" class="btn-publish" onclick="prepararEnvio(event)">
+        <i class="fas fa-bolt"></i> PUBLICAR AHORA EN EL FAROL
+      </button>
+    </div>
+  </form>
+</div>
+
 <script>
-// ─── MEJORA TÉCNICA: CONFIGURACIÓN PROFESIONAL DE TINYMCE ───
 tinymce.init({
   selector: '#editor-blogger',
-  height: 480,
-  plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount emoticons',
-  toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist | removeformat | help',
+  height: 500,
+  plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
+  toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist | removeformat',
   skin: 'oxide-dark',
   content_css: 'dark',
   branding: false,
-  promotion: false,
-  setup: function(editor) {
-    editor.on('change', function() {
-      // Sincroniza el contenido con el campo oculto para que Python lo reciba
-      document.getElementById('contenido-hidden').value = editor.getContent();
-    });
-  }
+  promotion: false
 });
 
-// ─── MEJORA TÉCNICA: GENERADOR DE SLUGS PARA SEO ───
 function onTitulo() {
-  const titulo = document.getElementById('titulo-input').value.trim();
-  const ciudad = document.getElementById('ciudad-input').value.trim();
-  
-  // Crea una URL amigable automáticamente
-  const slug = titulo.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^a-z0-9\s]/g,'')
-    .replace(/\s+/g,'-');
-
-  document.getElementById('seo-url').textContent = `elfarol.com > noticia > ${ciudad.toLowerCase()}-${slug}`;
-  document.getElementById('seo-title').textContent = titulo || "Tu titular aparecerá aquí...";
-  
-  // Contador de caracteres con color dinámico
-  const tc = titulo.length;
-  const counter = document.getElementById('titulo-chars');
-  counter.textContent = tc + ' / 100';
-  counter.className = 'char-counter ' + (tc > 80 ? 'bad' : tc > 60 ? 'warn' : 'ok');
+  // Lógica de SEO integrada
 }
 
-// ─── MEJORA TÉCNICA: PREPARACIÓN ANTES DE ENVIAR ───
-document.getElementById('form-principal').onsubmit = function() {
-    // Asegura que el contenido del editor se guarde antes de enviar el formulario
-    const content = tinymce.get('editor-blogger').getContent();
-    document.getElementById('contenido-hidden').value = content;
-    return true; 
-};
+function prepararEnvio(e) {
+  e.preventDefault();
+  const ed = tinymce.get('editor-blogger');
+  const contenido = ed ? ed.getContent() : '';
+  
+  if(contenido.length < 10) {
+      alert("Director, el cuerpo de la noticia está vacío.");
+      return;
+  }
+  
+  document.getElementById('contenido-hidden').value = contenido;
+  document.getElementById('form-principal').submit();
+}
 </script>
+</body>
+</html>
