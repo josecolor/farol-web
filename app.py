@@ -216,5 +216,3 @@ def editar(id):
         flash('Cambios guardados.', 'success')
         return redirect(url_for('admin'))
     return render_template('editar.html', noticia=nota)
-
-# Procfile handles execution via Gunicorn; app.run() is not needed for production.
