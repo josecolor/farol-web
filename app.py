@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# ── CONFIGURACIÓN ──
+# ── CONFIGURACIÓN DE RUTAS Y SEGURIDAD ──
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
@@ -18,16 +18,18 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Configuración dinámica para Railway (PostgreSQL) o Local (SQLite)
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or \
     f"sqlite:///{os.path.join(os.path.abspath(os.path.dirname(__file__)), 'noticias.db')}"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 db = SQLAlchemy(app)
 
-# ── MODELO ──
+# ── MODELO DE DATOS ──
 class Noticia(db.Model):
     __tablename__ = 'noticias'
     id              = db.Column(db.Integer, primary_key=True)
@@ -45,7 +47,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# ── UTILIDADES ──
+# ── UTILIDADES MAESTRAS ──
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -61,7 +63,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ── SEO ──
+# ── SEO Y SISTEMA ──
 @app.route('/sitemap.xml')
 def sitemap():
     noticias = Noticia.query.filter_by(publicada=True).all()
@@ -106,14 +108,16 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ── AUTH ──
+# ── AUTENTICACIÓN ──
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'):
         return redirect(url_for('admin'))
     if request.method == 'POST':
-        if (request.form.get('usuario') == os.environ.get('ADMIN_USER', 'director') and
-                request.form.get('password') == os.environ.get('ADMIN_PASS', 'farol2026')):
+        user_env = os.environ.get('ADMIN_USER', 'director')
+        pass_env = os.environ.get('ADMIN_PASS', 'farol2026')
+        if (request.form.get('usuario') == user_env and
+                request.form.get('password') == pass_env):
             session['logged_in'] = True
             return redirect(url_for('admin'))
         flash('Credenciales incorrectas.', 'danger')
@@ -124,42 +128,55 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# ── ADMIN ──
+# ── PANEL ADMINISTRATIVO (CONEXIÓN CON EL FAROL) ──
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
     if request.method == 'POST':
         titulo = request.form.get('titulo', '').strip()
+        ciudad = request.form.get('ciudad', 'Mexicali').strip()
+        protagonista = request.form.get('protagonista', 'N/A').strip()
+        contenido = request.form.get('contenido', '')
+        multimedia_url = request.form.get('multimedia', '') # URL Manual
+        
         if not titulo:
             flash('El título es obligatorio.', 'danger')
             return redirect(url_for('admin'))
 
-        filename, tipo = '', 'imagen'
+        # Manejo de archivo físico
+        tipo = 'imagen'
         file = request.files.get('archivo')
         if file and file.filename and allowed_file(file.filename):
             base, ext = os.path.splitext(secure_filename(file.filename))
             filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            multimedia_url = filename # Priorizamos el archivo subido
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}:
                 tipo = 'video'
 
-        base_slug = slugify(titulo)
+        # Generación de Slug SEO (Ciudad + Título)
+        base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
 
+        # Guardado en DB (Mapeando Ciudad y Protagonista al Resumen)
+        resumen_seo = f"{ciudad} | {protagonista}"
+        
         db.session.add(Noticia(
-            titulo=titulo, slug=slug,
-            resumen=request.form.get('resumen', '')[:300],
-            contenido=request.form.get('contenido', ''),
-            multimedia_url=filename, tipo_multimedia=tipo,
-            categoria=request.form.get('categoria', '').strip() or None,
+            titulo=titulo, 
+            slug=slug,
+            resumen=resumen_seo,
+            contenido=contenido,
+            multimedia_url=multimedia_url, 
+            tipo_multimedia=tipo,
+            categoria=request.form.get('categoria', 'Nacional').strip() or 'Nacional',
             autor=request.form.get('autor', 'Redacción').strip(),
-            publicada=bool(request.form.get('publicada'))
+            publicada=True
         ))
         db.session.commit()
-        flash('Noticia publicada.', 'success')
+        flash('Noticia lanzada al aire con éxito.', 'success')
         return redirect(url_for('admin'))
 
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -169,13 +186,13 @@ def admin():
 @login_required
 def eliminar(id):
     nota = Noticia.query.get_or_404(id)
-    if nota.multimedia_url:
+    if nota.multimedia_url and not nota.multimedia_url.startswith('http'):
         ruta = os.path.join(app.config['UPLOAD_FOLDER'], nota.multimedia_url)
         if os.path.exists(ruta):
             os.remove(ruta)
     db.session.delete(nota)
     db.session.commit()
-    flash('Noticia eliminada.', 'info')
+    flash('Noticia eliminada del sistema.', 'info')
     return redirect(url_for('admin'))
 
 @app.route('/admin/editar/<int:id>', methods=['GET', 'POST'])
@@ -184,11 +201,9 @@ def editar(id):
     nota = Noticia.query.get_or_404(id)
     if request.method == 'POST':
         nota.titulo    = request.form.get('titulo', nota.titulo).strip()
-        nota.resumen   = request.form.get('resumen', '')[:300]
         nota.contenido = request.form.get('contenido', nota.contenido)
-        nota.categoria = request.form.get('categoria', '').strip() or None
         nota.autor     = request.form.get('autor', nota.autor).strip()
-        nota.publicada = bool(request.form.get('publicada'))
+        
         file = request.files.get('archivo')
         if file and file.filename and allowed_file(file.filename):
             base, ext = os.path.splitext(secure_filename(file.filename))
@@ -196,7 +211,10 @@ def editar(id):
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             nota.multimedia_url  = filename
             nota.tipo_multimedia = 'video' if ext.lower().lstrip('.') in {'mp4','mov','avi'} else 'imagen'
+        
         db.session.commit()
-        flash('Noticia actualizada.', 'success')
+        flash('Cambios guardados.', 'success')
         return redirect(url_for('admin'))
     return render_template('editar.html', noticia=nota)
+
+# Nota: Railway usa Gunicorn a través del Procfile, por lo que app.run() no es necesario aquí.
