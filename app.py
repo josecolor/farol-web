@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN DE NUBE (RAILWAY) ---
+# --- CONFIGURACIÓN DE NUBE ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
@@ -18,7 +18,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Gestión de Base de Datos
+# Base de Datos (Prioriza Railway PostgreSQL)
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -47,7 +47,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- UTILIDADES EDITORIALES (SEO MXL) ---
+# --- UTILIDADES SEO MXL ---
 def slugify(text):
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -63,7 +63,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# --- RUTAS PÚBLICAS ---
+# --- RUTAS ---
 @app.route('/')
 def index():
     categoria = request.args.get('categoria')
@@ -82,7 +82,6 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# --- PANEL DEL DIRECTOR ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'): return redirect(url_for('admin'))
@@ -110,10 +109,10 @@ def admin():
         contenido = request.form.get('contenido', '')
         
         if not titulo or not contenido:
-            flash('Campos obligatorios vacíos.', 'danger')
+            flash('Datos incompletos.', 'danger')
             return redirect(url_for('admin'))
 
-        # Procesar Multimedia
+        # Archivos
         multimedia_url = request.form.get('multimedia', '')
         tipo = 'imagen'
         file = request.files.get('archivo')
@@ -124,7 +123,7 @@ def admin():
             multimedia_url = filename
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}: tipo = 'video'
 
-        # SEO MXL: Slug automático
+        # SEO: Ciudad-Titulo
         base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
@@ -137,7 +136,7 @@ def admin():
             tipo_multimedia=tipo, categoria=request.form.get('categoria', 'Nacional')
         ))
         db.session.commit()
-        flash('Noticia enviada al aire.', 'success')
+        flash('Noticia en el aire.', 'success')
         return redirect(url_for('admin'))
     
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -151,5 +150,4 @@ def eliminar(id):
     db.session.commit()
     return redirect(url_for('admin'))
 
-# Recomendación: En producción Railway NO usa este bloque.
-# Gunicorn inicia la 'app' directamente desde el Procfile.
+# FINAL: No incluimos app.run() para evitar el choque de puertos con Railway.
