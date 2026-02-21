@@ -3,109 +3,253 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Editor Maestro | El Farol al Día</title>
+  <title>Central de Noticias | El Farol</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js"></script>
 
 <style>
-/* SISTEMA EL FAROL - OPTIMIZADO */
-:root { --naranja: #FF5500; --glow: rgba(255, 85, 0, 0.35); --bg: #080808; --surface: #111; --borde: #222; --texto: #E8E0D4; --muted: #555; --sidebar-w: 260px; }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--texto); display: flex; min-height: 100vh; overflow-x: hidden; }
-body::before { content: ''; position: fixed; inset: 0; background-image: radial-gradient(ellipse 80% 60% at 70% -10%, rgba(255,85,0,0.06) 0%, transparent 60%); pointer-events: none; z-index: 0; }
-.sidebar { width: var(--sidebar-w); height: 100vh; background: var(--surface); position: fixed; top: 0; left: 0; border-right: 1px solid var(--borde); display: flex; flex-direction: column; z-index: 100; }
-.logo-mark { width: 42px; height: 42px; background: var(--naranja); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 0 20px var(--glow); margin: 20px auto; }
-.main-content { margin-left: var(--sidebar-w); width: calc(100% - var(--sidebar-w)); position: relative; z-index: 1; }
-.card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; margin: 20px 32px; padding: 24px; backdrop-filter: blur(20px); }
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
-.field label { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; }
-.field input { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07); color: #fff; padding: 12px; border-radius: 8px; }
-#titulo-input { font-family: 'Bebas Neue'; font-size: 28px; color: var(--naranja); }
-.btn-publish { background: linear-gradient(135deg, var(--naranja) 0%, #FF7A00 100%); color: #fff; border: none; padding: 16px; border-radius: 10px; font-family: 'Bebas Neue'; font-size: 20px; letter-spacing: 2px; cursor: pointer; width: 100%; box-shadow: 0 4px 20px var(--glow); }
+:root {
+  --naranja: #FF5500;
+  --bg: #050505;
+  --surface: #0d0d0d;
+  --borde: #1a1a1a;
+  --texto: #f2f2f2;
+  --glow: 0 0 20px rgba(255, 85, 0, 0.2);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--texto);
+  display: grid;
+  grid-template-columns: 280px 1fr 320px; /* DISEÑO DE TRES COLUMNAS PROFESIONAL */
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* SIDEBAR IZQUIERDO */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--borde);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-container {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.logo-mark {
+  font-size: 40px;
+  filter: drop-shadow(0 0 10px var(--naranja));
+}
+
+/* COLUMNA CENTRAL (EDITOR) */
+.editor-zone {
+  overflow-y: auto;
+  padding: 30px;
+  background: linear-gradient(to bottom, #080808, #050505);
+}
+
+.card {
+  background: #111;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+input, select {
+  background: #000;
+  border: 1px solid #222;
+  color: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  width: 100%;
+  font-size: 14px;
+}
+
+#titulo-input {
+  font-family: 'Bebas Neue';
+  font-size: 32px;
+  letter-spacing: 1px;
+  border-left: 4px solid var(--naranja);
+}
+
+/* COLUMNA DERECHA (MÉTRICAS SEO) */
+.seo-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--borde);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.metric-box {
+  background: #000;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #222;
+}
+
+.metric-title {
+  font-size: 10px;
+  font-family: 'JetBrains Mono';
+  color: #555;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.score-bar {
+  height: 4px;
+  background: #222;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--naranja);
+  transition: width 0.5s;
+}
+
+.btn-publish {
+  background: var(--naranja);
+  color: #fff;
+  border: none;
+  padding: 18px;
+  border-radius: 8px;
+  font-family: 'Bebas Neue';
+  font-size: 22px;
+  cursor: pointer;
+  width: 100%;
+  transition: 0.3s;
+}
+
+.btn-publish:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px rgba(255, 85, 0, 0.4);
+}
 </style>
 </head>
 <body>
 
 <aside class="sidebar">
-  <div class="logo-mark">🏮</div>
-  <nav style="padding: 20px;">
-    <div style="color:var(--naranja); font-family:'Bebas Neue'; text-align:center; letter-spacing:2px;">EL FAROL MXL</div>
+  <div class="logo-container">
+    <div class="logo-mark">🏮</div>
+    <h2 style="font-family:'Bebas Neue'; letter-spacing:3px; color:var(--naranja)">EL FAROL</h2>
+  </div>
+  <nav>
+    <div style="color: #444; font-size: 11px; margin-bottom: 10px;">CENTRAL EDITORIAL</div>
+    <div style="color: var(--naranja); padding: 10px 0;"><i class="fas fa-plus-circle"></i> Nueva Nota</div>
+    <div style="color: #888; padding: 10px 0;"><i class="fas fa-file-alt"></i> Borradores</div>
+    <div style="color: #888; padding: 10px 0;"><i class="fas fa-chart-line"></i> Analytics</div>
   </nav>
 </aside>
 
-<div class="main-content">
-  <header style="padding: 20px 32px; border-bottom: 1px solid var(--borde);">
-    <span style="font-family:'Bebas Neue'; letter-spacing:4px; color:var(--muted)">PANEL DE CONTROL PROFESIONAL</span>
-  </header>
+<main class="editor-zone">
+  <form method="POST" action="/admin" id="main-form">
+    <input type="hidden" name="contenido" id="hidden-content">
+    
+    <div class="card">
+      <span class="metric-title">Encabezado H1 de Alto Impacto</span>
+      <input type="text" id="titulo-input" name="titulo" placeholder="TÍTULO QUE VENDA LA NOTICIA..." onkeyup="updateSEO()">
+    </div>
 
-  <form method="POST" action="/admin" id="form-principal">
-    <input type="hidden" name="contenido" id="contenido-hidden">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom: 20px;">
+      <div class="card" style="margin:0">
+        <span class="metric-title">Geolocalización</span>
+        <input type="text" name="ciudad" placeholder="Mexicali, B.C." required>
+      </div>
+      <div class="card" style="margin:0">
+        <span class="metric-title">TAG Protagonista</span>
+        <input type="text" name="protagonista" placeholder="Nombre Clave" required>
+      </div>
+    </div>
 
     <div class="card">
-      <div class="field">
-        <label>Titular Principal (Campo: titulo)</label>
-        <input type="text" id="titulo-input" name="titulo" placeholder="TÍTULO DE LA NOTICIA..." required>
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
-        <div class="field">
-          <label>Ciudad (Campo: ciudad)</label>
-          <input type="text" name="ciudad" placeholder="Mexicali" required>
-        </div>
-        <div class="field">
-          <label>Protagonista (Campo: protagonista)</label>
-          <input type="text" name="protagonista" placeholder="Nombre..." required>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>URL de Imagen (Campo: multimedia)</label>
-        <input type="text" name="multimedia" placeholder="https://...">
-      </div>
+      <span class="metric-title">URL Imagen Principal</span>
+      <input type="text" name="multimedia" placeholder="https://media.elfarol.com/..." required>
     </div>
 
-    <div class="card" style="padding:5px; background: #111;">
-       <textarea id="editor-blogger"></textarea>
-    </div>
-
-    <div style="padding:0 32px 50px">
-      <button type="submit" class="btn-publish" onclick="prepararEnvio(event)">
-        <i class="fas fa-bolt"></i> LANZAR NOTICIA AHORA
-      </button>
+    <div class="card" style="padding: 2px;">
+      <textarea id="full-editor"></textarea>
     </div>
   </form>
-</div>
+</main>
+
+<aside class="seo-panel">
+  <div class="metric-box">
+    <span class="metric-title">Calidad del Título</span>
+    <div id="titulo-status" style="font-size: 12px; margin-bottom: 5px;">Débil</div>
+    <div class="score-bar"><div id="title-bar" class="score-fill"></div></div>
+  </div>
+
+  <div class="metric-box">
+    <span class="metric-title">Optimización SEOacuerdate</span>
+    <div style="font-size: 18px; font-weight: bold;" id="word-count">0 Palabras</div>
+    <small style="color:#555">Meta: 300 palabras</small>
+  </div>
+
+  <div class="metric-box">
+    <span class="metric-title">Previsualización Google</span>
+    <div style="color:#8ab4f8; font-size:14px; text-decoration:underline;" id="google-preview">Título de la noticia...</div>
+    <div style="color:#009432; font-size:12px;">https://elfarol.com/noticia/mxl...</div>
+  </div>
+
+  <button type="submit" form="main-form" class="btn-publish" onclick="prepararEnvio(event)">
+    <i class="fas fa-paper-plane"></i> PUBLICAR AHORA
+  </button>
+</aside>
 
 <script>
 tinymce.init({
-  selector: '#editor-blogger',
-  height: 450,
+  selector: '#full-editor',
+  height: '55vh',
   skin: 'oxide-dark',
   content_css: 'dark',
   plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
   toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist | removeformat | code',
   branding: false,
-  promotion: false,
-  setup: function (editor) {
-    editor.on('change', function () { editor.save(); });
+  setup: function(ed) {
+    ed.on('keyup', function() {
+      const count = ed.plugins.wordcount.getCount();
+      document.getElementById('word-count').innerText = count + " Palabras";
+    });
   }
 });
 
+function updateSEO() {
+  const val = document.getElementById('titulo-input').value;
+  const bar = document.getElementById('title-bar');
+  const preview = document.getElementById('google-preview');
+  
+  preview.innerText = val || "Título de la noticia...";
+  let score = Math.min(val.length * 2, 100);
+  bar.style.width = score + "%";
+  
+  if(score > 60) bar.style.background = "#22C55E";
+  else bar.style.background = "#FF5500";
+}
+
 function prepararEnvio(e) {
   e.preventDefault();
-  const ed = tinymce.get('editor-blogger');
-  const contenidoHTML = ed ? ed.getContent() : '';
-  
-  if (contenidoHTML.length < 10) {
-    alert("Director, falta el contenido de la nota.");
+  const content = tinymce.get('full-editor').getContent();
+  if(content.length < 50) {
+    alert("Director, la noticia es demasiado corta para competir.");
     return;
   }
-
-  // SINCRONIZACIÓN FORZADA
-  document.getElementById('contenido-hidden').value = contenidoHTML;
-  document.getElementById('form-principal').submit();
+  document.getElementById('hidden-content').value = content;
+  document.getElementById('main-form').submit();
 }
 </script>
 </body>
