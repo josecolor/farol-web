@@ -13,12 +13,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
 
 <style>
-/* SISTEMA DE DISEÑO — EL FAROL */
+/* SISTEMA DE DISEÑO — EL FAROL 2026 */
 :root {
   --naranja:   #FF5500;
+  --naranja-b: #CC4300;
   --glow:      rgba(255, 85, 0, 0.35);
   --bg:        #080808;
   --surface:   #111111;
+  --surface2:  #181818;
   --borde:     #222222;
   --texto:     #E8E0D4;
   --muted:     #555;
@@ -38,7 +40,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Efecto de Luces de Fondo */
 body::before {
   content: '';
   position: fixed;
@@ -63,6 +64,14 @@ body::before {
   z-index: 100;
 }
 
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--naranja), transparent);
+}
+
 .sidebar-header {
   padding: 28px 22px;
   border-bottom: 1px solid var(--borde);
@@ -82,21 +91,22 @@ body::before {
 .logo-text h2 {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 20px; letter-spacing: 4px; color: var(--naranja);
+  line-height: 1;
 }
 
-.nav-links { padding: 20px 12px; flex-grow: 1; }
+.nav-links { padding: 16px 12px; flex-grow: 1; }
 
 .nav-item {
   padding: 12px 14px;
   color: #777;
   text-decoration: none;
   display: flex; align-items: center; gap: 12px;
-  border-radius: 8px; transition: 0.3s;
-  font-size: 14px; margin-bottom: 5px;
+  border-radius: 8px; transition: all .2s;
+  font-size: 13px; margin-bottom: 5px;
 }
 
-.nav-item:hover, .nav-item.active {
-  background: rgba(255,85,0,0.1);
+.nav-item.active, .nav-item:hover {
+  background: rgba(255,85,0,0.12);
   color: var(--naranja);
 }
 
@@ -113,44 +123,48 @@ body::before {
   height: 60px;
   display: flex; align-items: center; justify-content: space-between;
   border-bottom: 1px solid var(--borde);
-  background: rgba(8,8,8,0.8);
+  background: rgba(8,8,8,0.9);
   backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 50;
 }
 
 .card {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  margin: 25px 32px;
-  padding: 25px;
+  border-radius: 14px;
+  margin: 20px 32px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
 }
 
-.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-.field label { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.field label { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--muted); text-transform: uppercase; }
 
 .field input {
-  background: #000;
-  border: 1px solid var(--borde);
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.07);
   color: #fff;
-  padding: 14px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: 12px;
+  border-radius: 8px;
+  transition: 0.3s;
 }
+
+.field input:focus { border-color: var(--naranja); outline: none; background: rgba(0,0,0,0.6); }
 
 #titulo-input { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 1px; color: var(--naranja); }
 
 .btn-publish {
-  background: linear-gradient(135deg, var(--naranja) 0%, #FF8800 100%);
-  color: #fff; border: none; padding: 18px;
-  border-radius: 12px; font-family: 'Bebas Neue'; font-size: 20px;
+  background: linear-gradient(135deg, var(--naranja) 0%, #FF7A00 100%);
+  color: #fff; border: none; padding: 16px;
+  border-radius: 10px; font-family: 'Bebas Neue'; font-size: 20px;
   letter-spacing: 2px; cursor: pointer; width: 100%;
-  box-shadow: 0 5px 25px var(--glow); transition: 0.3s;
+  box-shadow: 0 4px 20px var(--glow); transition: 0.3s;
 }
 
-.btn-publish:hover { transform: translateY(-3px); box-shadow: 0 10px 35px rgba(255,85,0,0.5); }
+.btn-publish:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,85,0,0.4); }
 
-/* Ajuste específico para ocultar branding de TinyMCE */
-.tox-promotion, .tox-statusbar__branding { display: none !important; }
+/* Ajustes de UI para TinyMCE Dark */
+.tox-tinymce { border-radius: 10px !important; border: 1px solid var(--borde) !important; }
 </style>
 </head>
 <body>
@@ -158,19 +172,22 @@ body::before {
 <aside class="sidebar">
   <div class="sidebar-header">
     <div class="logo-mark">🏮</div>
-    <div class="logo-text"><h2>EL FAROL</h2><span>MEXICALI MXL</span></div>
+    <div class="logo-text"><h2>EL FAROL</h2><span>PANEL CONTROL</span></div>
   </div>
   <nav class="nav-links">
-    <a href="#" class="nav-item active"><i class="fas fa-edit"></i> Redactar</a>
-    <a href="/" class="nav-item"><i class="fas fa-home"></i> Ver Portal</a>
-    <a href="/logout" class="nav-item" style="color:var(--rojo); margin-top:20px;"><i class="fas fa-power-off"></i> Salir</a>
+    <div class="nav-item active"><i class="fas fa-pen-nib"></i> Redactar Nota</div>
+    <a href="/" class="nav-item" style="text-decoration:none"><i class="fas fa-eye"></i> Ver Web Publica</a>
+    <a href="/logout" class="nav-item" style="margin-top:20px; color:var(--rojo); text-decoration:none"><i class="fas fa-sign-out-alt"></i> Salir</a>
   </nav>
 </aside>
 
 <div class="main-content">
   <header class="topbar">
-    <span style="font-family:'Bebas Neue'; letter-spacing:3px; color:var(--muted)">SISTEMA EDITORIAL V1.0</span>
-    <div style="color:var(--verde); font-size:11px; font-family:'JetBrains Mono'"><i class="fas fa-circle" style="font-size:8px"></i> SERVIDOR ACTIVO</div>
+    <span style="font-family:'Bebas Neue'; letter-spacing:4px; color:var(--muted)">ESTACIÓN EDITORIAL</span>
+    <div style="display:flex; align-items:center; gap:8px; background:rgba(34,197,94,0.1); padding:5px 12px; border-radius:20px;">
+      <div style="width:6px; height:6px; background:var(--verde); border-radius:50%"></div>
+      <span style="color:var(--verde); font-size:10px; font-family:'JetBrains Mono'">CONECTADO A RAILWAY</span>
+    </div>
   </header>
 
   <form method="POST" action="/admin" id="form-principal">
@@ -178,48 +195,48 @@ body::before {
 
     <div class="card">
       <div class="field">
-        <label>Titular de la Noticia</label>
-        <input type="text" id="titulo-input" name="titulo" placeholder="ESCRIBA UN TITULAR DE IMPACTO..." required>
+        <label>Titular Principal</label>
+        <input type="text" id="titulo-input" name="titulo" placeholder="TÍTULO DE LA NOTICIA..." required>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px">
         <div class="field">
-          <label>Ubicación</label>
-          <input type="text" name="ciudad" placeholder="Ej: Mexicali, B.C.">
+          <label>Ciudad / Ubicación</label>
+          <input type="text" name="ciudad" id="ciudad-input" placeholder="Ej: Mexicali, B.C." required>
         </div>
         <div class="field">
-          <label>Protagonista</label>
-          <input type="text" name="protagonista" placeholder="Nombre o Institución">
+          <label>Protagonista de la Nota</label>
+          <input type="text" name="protagonista" placeholder="Ej: Seguridad Pública" required>
         </div>
       </div>
 
       <div class="field">
-        <label>Enlace de Imagen (URL)</label>
-        <input type="text" name="multimedia" placeholder="https://imagen.com/foto.jpg">
+        <label>URL de Imagen o Video</label>
+        <input type="text" name="multimedia" placeholder="https://ejemplo.com/foto.jpg">
       </div>
     </div>
 
-    <div class="card" style="padding:5px; background:#1a1a1a;">
-       <textarea id="editor-blogger" name="contenido_temp"></textarea>
+    <div class="card" style="padding:5px; background: #111;">
+       <textarea id="editor-blogger"></textarea>
     </div>
 
     <div style="padding:0 32px 50px">
       <button type="submit" class="btn-publish" onclick="prepararEnvio(event)">
-        <i class="fas fa-paper-plane"></i> PUBLICAR EN EL FAROL
+        <i class="fas fa-bolt"></i> LANZAR NOTICIA
       </button>
     </div>
   </form>
 </div>
 
 <script>
-// Configuración robusta de TinyMCE
+// Inicialización del Editor
 tinymce.init({
   selector: '#editor-blogger',
-  height: 500,
+  height: 450,
   skin: 'oxide-dark',
   content_css: 'dark',
   plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
-  toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | code',
+  toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist | removeformat | code',
   branding: false,
   promotion: false,
   setup: function (editor) {
@@ -229,20 +246,23 @@ tinymce.init({
   }
 });
 
+// Función Maestra de Envío
 function prepararEnvio(e) {
   e.preventDefault();
-  // Forzamos a TinyMCE a guardar el contenido en el textarea original
+  
+  // Extraemos el HTML del editor
   const contenidoHTML = tinymce.get('editor-blogger').getContent();
   
-  if (contenidoHTML.trim() === "") {
-    alert("Director, no puede publicar una noticia sin contenido.");
+  // Verificación de contenido
+  if (contenidoHTML.length < 10) {
+    alert("Director, el cuerpo de la noticia está vacío.");
     return;
   }
 
-  // Pasamos el contenido al input oculto que Python sí lee
+  // SINCRONIZACIÓN: Metemos el texto en el input que Flask espera ('contenido')
   document.getElementById('contenido-hidden').value = contenidoHTML;
   
-  // Enviamos el formulario
+  // ENVÍO AL SERVIDOR
   document.getElementById('form-principal').submit();
 }
 </script>
