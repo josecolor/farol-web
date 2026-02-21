@@ -9,17 +9,16 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# --- CONFIGURACIÓN PARA NUBE (RAILWAY) ---
-# Recomendación: Static/uploads es la ruta más segura para persistencia temporal.
+# --- CONFIGURACIÓN DE NUBE (RAILWAY) ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'farol_mxl_2026_secreto')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Base de Datos Adaptable
+# Gestión de Base de Datos
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -83,7 +82,7 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# --- ACCESO ADMINISTRATIVO ---
+# --- PANEL DEL DIRECTOR ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'): return redirect(url_for('admin'))
@@ -111,10 +110,10 @@ def admin():
         contenido = request.form.get('contenido', '')
         
         if not titulo or not contenido:
-            flash('Datos incompletos.', 'danger')
+            flash('Campos obligatorios vacíos.', 'danger')
             return redirect(url_for('admin'))
 
-        # Manejo de Archivos
+        # Procesar Multimedia
         multimedia_url = request.form.get('multimedia', '')
         tipo = 'imagen'
         file = request.files.get('archivo')
@@ -125,7 +124,7 @@ def admin():
             multimedia_url = filename
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}: tipo = 'video'
 
-        # SEO Slug Automático (Ciudad-Titulo)
+        # SEO MXL: Slug automático
         base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
@@ -138,7 +137,7 @@ def admin():
             tipo_multimedia=tipo, categoria=request.form.get('categoria', 'Nacional')
         ))
         db.session.commit()
-        flash('Publicado.', 'success')
+        flash('Noticia enviada al aire.', 'success')
         return redirect(url_for('admin'))
     
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -152,8 +151,5 @@ def eliminar(id):
     db.session.commit()
     return redirect(url_for('admin'))
 
-# Recomendación: Dejar el inicio del servidor al Procfile.
-# Solo se incluye este bloque para compatibilidad en pruebas locales.
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+# Recomendación: En producción Railway NO usa este bloque.
+# Gunicorn inicia la 'app' directamente desde el Procfile.
