@@ -9,16 +9,18 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# ── CONFIGURACIÓN DE NUBE ──
+# ── CONFIGURACIÓN DE PRODUCCIÓN ──
+# Recomendación: Mantener UPLOAD_FOLDER en 'static' para que Gunicorn sirva los archivos fácilmente.
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'mov', 'avi'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'el_farol_mxl_2026_secreto')
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Recomendación: 100MB para soportar video 4K.
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'farol_mxl_2026_default_key')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Base de Datos Adaptable (PostgreSQL Railway / SQLite Local)
+# ── GESTIÓN DE BASE DE DATOS ──
+# Recomendación: Railway usa 'postgresql://', pero SQLAlchemy requiere 'postgresql://' (con 'l').
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
@@ -35,20 +37,21 @@ class Noticia(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
     titulo          = db.Column(db.String(200), nullable=False)
     slug            = db.Column(db.String(220), unique=True, nullable=False)
-    resumen         = db.Column(db.String(300))
+    resumen         = db.Column(db.String(300)) # Aquí se guarda: Ciudad | Protagonista
     contenido       = db.Column(db.Text, nullable=False)
     multimedia_url  = db.Column(db.String(400))
     tipo_multimedia = db.Column(db.String(10))
     categoria       = db.Column(db.String(80))
-    autor           = db.Column(db.String(100), default='Redacción')
+    autor           = db.Column(db.String(100), default='Redacción El Farol')
     fecha           = db.Column(db.DateTime, default=datetime.utcnow)
     publicada       = db.Column(db.Boolean, default=True)
 
 with app.app_context():
     db.create_all()
 
-# ── UTILIDADES EDITORIALES ──
+# ── UTILIDADES EDITORIALES (SEO MXL) ──
 def slugify(text):
+    # Recomendación: Limpia caracteres especiales para evitar errores 404 en los links.
     text = normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii').lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
 
@@ -63,7 +66,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ── RUTAS PÚBLICAS ──
+# ── RUTAS DE VISUALIZACIÓN ──
 @app.route('/')
 def index():
     categoria = request.args.get('categoria')
@@ -83,17 +86,18 @@ def noticia_slug(slug):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# ── ACCESO DIRECTOR ──
+# ── SEGURIDAD (DIRECTOR) ──
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'): return redirect(url_for('admin'))
     if request.method == 'POST':
+        # Recomendación: Definir ADMIN_USER y ADMIN_PASS en el panel de Railway (Variables).
         u = os.environ.get('ADMIN_USER', 'director')
         p = os.environ.get('ADMIN_PASS', 'farol2026')
         if (request.form.get('usuario') == u and request.form.get('password') == p):
             session['logged_in'] = True
             return redirect(url_for('admin'))
-        flash('Acceso denegado.', 'danger')
+        flash('Credenciales incorrectas.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -101,7 +105,7 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# ── PANEL DE CONTROL (SEO MXL) ──
+# ── PANEL ADMINISTRATIVO (EDITOR MAESTRO) ──
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin():
@@ -112,21 +116,23 @@ def admin():
         contenido = request.form.get('contenido', '')
         
         if not titulo or not contenido:
-            flash('Datos incompletos.', 'danger')
+            flash('Faltan datos obligatorios.', 'danger')
             return redirect(url_for('admin'))
 
-        # Lógica Multimedia
+        # Procesamiento de Multimedia
         multimedia_url = request.form.get('multimedia', '')
         tipo = 'imagen'
         file = request.files.get('archivo')
+        
         if file and file.filename and allowed_file(file.filename):
+            # Recomendación: Usar timestamp para evitar que archivos con el mismo nombre se sobreescriban.
             base, ext = os.path.splitext(secure_filename(file.filename))
             filename = f"{base}_{int(datetime.utcnow().timestamp())}{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             multimedia_url = filename
             if ext.lower().lstrip('.') in {'mp4', 'mov', 'avi'}: tipo = 'video'
 
-        # Slug SEO MXL
+        # Generación de Slug (SEO MXL: Ciudad + Título)
         base_slug = slugify(f"{ciudad} {titulo}")
         slug, counter = base_slug, 1
         while Noticia.query.filter_by(slug=slug).first():
@@ -139,7 +145,7 @@ def admin():
             tipo_multimedia=tipo, categoria=request.form.get('categoria', 'Nacional')
         ))
         db.session.commit()
-        flash('¡Lanzado!', 'success')
+        flash('Noticia publicada exitosamente.', 'success')
         return redirect(url_for('admin'))
     
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -149,8 +155,17 @@ def admin():
 @login_required
 def eliminar(id):
     nota = Noticia.query.get_or_404(id)
+    # Recomendación: Eliminar el archivo físico de la carpeta uploads al borrar la noticia.
+    if nota.multimedia_url and not nota.multimedia_url.startswith('http'):
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], nota.multimedia_url))
+        except: pass
     db.session.delete(nota)
     db.session.commit()
     return redirect(url_for('admin'))
 
-# NOTA: En Railway no se usa app.run(), Gunicorn maneja el puerto automáticamente.
+# Recomendación: En producción, Railway usa Gunicorn a través del Procfile.
+# Este bloque if __name__ solo se activa si corres el script localmente.
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
