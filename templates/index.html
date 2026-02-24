@@ -3,85 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Farol | Noticias Mexicali</title>
+    <title>El Farol | Periodismo Digital</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #111; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-brand { font-family: 'Impact', sans-serif; color: #ff8c00 !important; font-size: 2rem; }
-        .nav-link { color: #ccc !important; }
-        .nav-link.active { background-color: #ff8c00 !important; color: black !important; border: none !important; }
-        .btn-warning { background-color: #ff8c00 !important; font-weight: bold; }
-        /* Efecto de Blur 20% solicitado */
-        .card-noticia { backdrop-filter: blur(5px); background: rgba(255, 255, 255, 0.05); border: 1px solid #333; }
+        body { background-color: #0a0a0a; color: #e0e0e0; font-family: 'Roboto', sans-serif; }
+        .navbar { border-bottom: 2px solid #ff8c00; background-color: #000 !important; }
+        .navbar-brand { font-family: 'Playfair Display', serif; color: #ff8c00 !important; font-size: 2.2rem; letter-spacing: -1px; }
+        
+        /* Estilo de Tarjetas Mejorado */
+        .card-noticia { 
+            background: #1a1a1a; 
+            border: none; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            transition: transform 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .card-noticia:hover { transform: translateY(-5px); }
+        
+        .img-contenedor { height: 200px; overflow: hidden; background: #222; }
+        .img-contenedor img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .card-title { font-family: 'Playfair Display', serif; color: #fff; font-size: 1.4rem; line-height: 1.2; margin-bottom: 10px; }
+        .btn-leer { border-radius: 20px; font-weight: bold; border-color: #ff8c00; color: #ff8c00; }
+        .btn-leer:hover { background: #ff8c00; color: #000; }
+        
+        .badge-categoria { background: #ff8c00; color: #000; font-weight: bold; text-transform: uppercase; font-size: 0.7rem; padding: 5px 10px; border-radius: 4px; position: absolute; top: 10px; left: 10px; }
+        
+        .seccion-titulo { border-left: 4px solid #ff8c00; padding-left: 15px; margin-bottom: 30px; font-family: 'Playfair Display', serif; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark mb-4 shadow">
+<nav class="navbar navbar-dark sticky-top mb-5 shadow-lg">
     <div class="container">
         <a class="navbar-brand" href="/">🏮 EL FAROL</a>
+        <span class="text-muted small d-none d-md-inline">Periodismo Independiente</span>
     </div>
 </nav>
 
 <div class="container">
-    <ul class="nav nav-tabs mb-0" id="fuentesTabs">
-        <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-local">
-                🏮 Redacción El Farol
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-externos">
-                🚀 Multi-Plataforma
-            </button>
-        </li>
-    </ul>
+    <div class="seccion-titulo">
+        <h2 class="mb-0">Últimas Noticias</h2>
+        <p class="text-muted small">Actualizado en tiempo real</p>
+    </div>
 
-    <div class="tab-content border border-top-0 p-4" style="background: #222; border-color: #ff8c00 !important; border-radius: 0 0 8px 8px;">
-        
-        <div class="tab-pane fade show active" id="tab-local">
-            <div class="row">
-                {% if noticias %}
-                    {% for noticia in noticias %}
-                        <div class="col-md-4 mb-4">
-                            <div class="card card-noticia text-white h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ noticia.titulo }}</h5>
-                                    <p class="card-text small text-muted">{{ noticia.resumen }}</p>
-                                    <a href="/noticia/{{ noticia.slug }}" class="btn btn-sm btn-outline-warning">Leer más</a>
+    <div class="row">
+        {% if noticias %}
+            {% for noticia in noticias %}
+                <div class="col-md-4 mb-4">
+                    <div class="card card-noticia h-100">
+                        <div class="img-contenedor position-relative">
+                            <span class="badge-categoria">{{ noticia.categoria }}</span>
+                            {% if noticia.multimedia_url %}
+                                <img src="/uploads/{{ noticia.multimedia_url }}" alt="Imagen de la noticia">
+                            {% else %}
+                                <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                    <span>Sin imagen</span>
                                 </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ noticia.titulo }}</h5>
+                            <p class="card-text text-muted small">{{ noticia.resumen }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="text-warning smaller" style="font-size: 0.75rem;">{{ noticia.fecha.strftime('%d %b, %Y') }}</span>
+                                <a href="/noticia/{{ noticia.slug }}" class="btn btn-sm btn-leer">Leer Crónica</a>
                             </div>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center py-5">
-                        <p class="text-muted">Esperando la primera exclusiva de Mexicali...</p>
-                        <a href="/admin" class="btn btn-warning">Ir al Panel de Control</a>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="tab-pane fade" id="tab-externos">
-            <div class="row text-center">
-                <div class="col-md-6 mb-3">
-                    <div class="p-4" style="background:#2b2b2b; border-radius:10px;">
-                        <h4>Blogger</h4>
-                        <p class="small text-muted">Ideal para columnas de opinión.</p>
-                        <a href="https://www.blogger.com" target="_blank" class="btn btn-outline-warning w-100">Abrir Editor ↗</a>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <div class="p-4" style="background:#2b2b2b; border-radius:10px;">
-                        <h4>WordPress</h4>
-                        <p class="small text-muted">Reportajes y multimedia pesada.</p>
-                        <a href="https://wordpress.com" target="_blank" class="btn btn-outline-warning w-100">Abrir Panel ↗</a>
-                    </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <div class="p-5 border border-secondary rounded" style="background: #111;">
+                    <h3 class="text-muted">Esperando la primera exclusiva...</h3>
+                    <p>Mande una foto a su Bot de Telegram para publicar.</p>
+                    <a href="/admin" class="btn btn-outline-warning mt-3">Panel de Redacción</a>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 </div>
+
+<footer class="mt-5 py-4 border-top border-secondary text-center">
+    <p class="text-muted small">&copy; 2026 El Farol - Dirección General: Jose Color</p>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
