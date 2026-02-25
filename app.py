@@ -6,14 +6,14 @@ import os
 app = Flask(__name__)
 app.secret_key = 'farol_ultra_secreto_2026'
 
-# CONFIGURACIÓN
+# CONFIGURACIÓN DE CARPETAS Y BASE DE DATOS
 UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///farol.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# MODELOS
+# MODELOS DE DATOS
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -25,12 +25,13 @@ class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
     resumen = db.Column(db.Text, nullable=False)
-    keywords = db.Column(db.String(200), default="noticia, el farol") # NUEVO CAMPO
+    keywords = db.Column(db.String(200), default="noticia, el farol")
     multimedia_url = db.Column(db.String(400))
     autor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'))
     autor = db.relationship('Usuario', backref='noticias')
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
 
+# CREACIÓN DE ACCESOS (USTED + 4)
 with app.app_context():
     db.create_all()
     if not Usuario.query.filter_by(username='director').first():
@@ -39,6 +40,7 @@ with app.app_context():
             db.session.add(Usuario(username=f'reportero{i}', password=f'farol{i}', nombre_publico=f'Reportero {i}'))
         db.session.commit()
 
+# RUTAS
 @app.route('/')
 def index():
     noticias = Noticia.query.order_by(Noticia.fecha.desc()).all()
@@ -59,6 +61,7 @@ def admin():
 def panel():
     if 'user_id' not in session: return redirect(url_for('admin'))
     u = Usuario.query.get(session['user_id'])
+    
     if request.method == 'POST':
         if 'update_profile' in request.form:
             u.nombre_publico = request.form.get('nombre')
@@ -71,7 +74,7 @@ def panel():
         else:
             titulo = request.form.get('titulo')
             resumen = request.form.get('resumen')
-            keyw = request.form.get('keywords') # CAPTURA KEYWORDS
+            keyw = request.form.get('keywords')
             foto_n = request.files.get('foto_noticia')
             if foto_n:
                 fname_n = f"n_{datetime.utcnow().timestamp()}.jpg"
@@ -86,7 +89,7 @@ def panel():
 def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-# --- DISEÑOS ---
+# --- DISEÑOS HTML ---
 
 html_portada = '''
 <!DOCTYPE html>
@@ -98,9 +101,9 @@ html_portada = '''
     <style>
         body { background-color: #0a0a0a; color: #e0e0e0; }
         .navbar { border-bottom: 2px solid #ff8c00; background-color: #000 !important; }
-        .navbar-brand { color: #ff8c00 !important; font-size: 2.2rem; font-weight: bold; }
+        .navbar-brand { color: #ff8c00 !important; font-size: 2rem; font-weight: bold; }
         .card-noticia { background: #1a1a1a; border: none; border-radius: 12px; margin-bottom: 25px; }
-        .badge-seo { background: #333; color: #ff8c00; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; border: 1px solid #444; }
+        .badge-seo { background: #333; color: #ff8c00; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -110,14 +113,12 @@ html_portada = '''
         {% if noticias %}
             {% for noticia in noticias %}
                 <div class="col-md-4">
-                    <div class="card card-noticia h-100">
+                    <div class="card card-noticia">
                         <img src="/uploads/{{ noticia.multimedia_url }}" class="card-img-top" style="height:200px; object-fit:cover; border-radius: 12px 12px 0 0;">
                         <div class="card-body">
                             <h5 class="card-title text-white">{{ noticia.titulo }}</h5>
                             <div class="mb-2">
-                                {% for word in noticia.keywords.split(',') %}
-                                    <span class="badge-seo">#{{ word.strip() }}</span>
-                                {% endfor %}
+                                {% for word in noticia.keywords.split(',') %}<span class="badge-seo">#{{ word.strip() }}</span>{% endfor %}
                             </div>
                             <div class="card-text text-muted small">{{ noticia.resumen|safe }}</div>
                             <hr style="border-color:#333;">
@@ -157,23 +158,31 @@ html_panel = '''
         <h2 style="color:#ff8c00;">Panel de {{ u.nombre_publico }}</h2>
         
         <form method="post" enctype="multipart/form-data" style="background:#1a1a1a; padding:25px; border-radius:15px; border:2px solid #ff8c00;">
-            <label style="color:#ff8c00; font-weight:bold;">TÍTULO DE LA NOTICIA</label>
-            <input name="titulo" placeholder="Ej: Gran Incendio en el Centro" required style="width:100%; padding:12px; margin-bottom:15px; border-radius:5px; border:1px solid #444; background:#222; color:white;">
+            <label style="color:#ff8c00; font-weight:bold;">TÍTULO</label>
+            <input name="titulo" required style="width:100%; padding:10px; margin-bottom:15px; background:#222; color:white; border:1px solid #444;">
             
             <label style="color:#ff8c00; font-weight:bold;">PALABRAS CLAVE (SEO)</label>
-            <p style="font-size:0.7rem; color:#888; margin:0;">Separa las palabras por comas (ejemplo: política, deportes, moca)</p>
-            <input name="keywords" placeholder="palabra1, palabra2, palabra3" style="width:100%; padding:10px; margin-bottom:20px; border-radius:5px; border:1px solid #ff8c00; background:#000; color:#ff8c00; font-weight:bold;">
+            <input name="keywords" placeholder="ej: noticia, moca, transito" style="width:100%; padding:10px; margin-bottom:15px; background:#000; color:#ff8c00; border:1px solid #ff8c00;">
 
-            <label style="color:#ff8c00; font-weight:bold;">CUERPO DE LA NOTICIA</label>
-            <textarea name="resumen" id="editor1"></textarea><br>
-            <script>CKEDITOR.replace('editor1');</script>
+            <label style="color:#ff8c00; font-weight:bold;">NOTICIA</label>
+            <textarea name="resumen" id="editor1"></textarea>
+            <script>
+                CKEDITOR.replace('editor1', { versionCheck: false });
+            </script>
             
-            <div style="background:#222; padding:15px; border-radius:8px; margin-bottom:15px;">
-                <label>Subir Imagen:</label>
+            <div style="margin-top:15px; background:#222; padding:10px; border-radius:5px;">
+                <label>Foto de la noticia:</label>
                 <input type="file" name="foto_noticia" accept="image/*" required>
             </div>
             
-            <button type="submit" style="width:100%; padding:15px; background:#ff8c00; color:black; font-weight:bold; font-size:1.2rem; border-radius:10px; border:none; cursor:pointer;">LANZAR NOTICIA 🔥</button>
+            <button type="submit" style="width:100%; padding:15px; margin-top:15px; background:#ff8c00; color:black; font-weight:bold; border:none; border-radius:10px; cursor:pointer;">LANZAR AHORA 🔥</button>
+        </form>
+
+        <form method="post" enctype="multipart/form-data" style="margin-top:20px; background:#111; padding:15px; border-radius:10px;">
+            <h5 style="margin:0 0 10px 0;">Mi Perfil (Nombre y Foto)</h5>
+            <input name="nombre" value="{{ u.nombre_publico }}" style="width:70%; padding:5px;">
+            <input type="file" name="foto_perfil" accept="image/*" style="font-size:0.7rem;">
+            <button name="update_profile" type="submit" style="background:#444; color:white; border:none; padding:5px 10px;">Guardar</button>
         </form>
     </div>
 </body>
