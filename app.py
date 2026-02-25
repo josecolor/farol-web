@@ -6,7 +6,10 @@ import os
 app = Flask(__name__)
 app.secret_key = 'farol_olimpo_final_2026'
 
-# --- INFRAESTRUCTURA DE ARCHIVOS Y BASE DE DATOS ---
+# --- CREDENCIALES DE SUPABASE (GUARDADAS EN CAJA FUERTE) ---
+# URL: https://gqxlmgguteofoordmcop.supabase.co
+# KEY: sb_publishable_rW0ArorYkHUuaEOXjLkuxg_01VKFMHd
+
 UPLOAD_FOLDER = 'static/uploads'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -16,7 +19,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'fa
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- MODELO DE DATOS (ESTRUCTURA DE NOTICIA) ---
 class Noticia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200))
@@ -28,7 +30,7 @@ class Noticia(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- PANEL DE REDACCIÓN ELITE (DISEÑO CORREGIDO PARA ICONOS) ---
+# --- PANEL DE REDACCIÓN CON ICONOS BRILLANTES ---
 html_panel = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -37,110 +39,76 @@ html_panel = '''
     <title>The Lantern | Admin</title>
     <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; padding: 0; margin: 0; }
+        body { background: #000; color: #fff; font-family: sans-serif; padding: 0; margin: 0; }
         .nav { background: #111; padding: 15px; border-bottom: 2px solid #ff8c00; text-align: center; }
-        .nav a { color: #ff8c00; text-decoration: none; font-weight: bold; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
-        .container { max-width: 900px; margin: 20px auto; padding: 10px; box-sizing: border-box; }
-        .card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #ff8c00; box-shadow: 0 0 20px rgba(255,140,0,0.1); }
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; box-sizing: border-box; font-size: 1rem; }
-        .btn { background: #ff8c00; color: #000; font-weight: bold; width: 100%; padding: 20px; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; margin-top: 20px; font-size: 1.2rem; transition: 0.3s; }
-        .btn:hover { background: #ffa500; transform: scale(1.01); }
-        label { color: #ff8c00; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .nav a { color: #ff8c00; text-decoration: none; font-weight: bold; }
+        .container { max-width: 900px; margin: 20px auto; padding: 10px; }
+        .card { background: #111; padding: 25px; border-radius: 15px; border: 2px solid #ff8c00; }
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; box-sizing: border-box; }
+        .btn { background: #ff8c00; color: #000; font-weight: bold; width: 100%; padding: 20px; border: none; border-radius: 10px; cursor: pointer; text-transform: uppercase; margin-top: 20px; font-size: 1.2rem; }
+        label { color: #ff8c00; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
 
-        /* --- CORRECCIÓN DE ICONOS OSCUROS --- */
-        /* Invertimos el color de los iconos para que sean blancos y brillantes */
-        .cke_button_icon { 
-            filter: invert(1) brightness(2) contrast(1.2) !important; 
-        }
-        .cke_toolbar_separator {
-            background-color: #555 !important;
-            height: 18px !important;
-            margin: 6px 4px !important;
-        }
-        .cke_top { 
-            background: #2a2a2a !important; 
-            border-bottom: 1px solid #444 !important; 
-            padding: 8px !important;
-        }
-        .cke_bottom { 
-            background: #2a2a2a !important; 
-            border-top: 1px solid #444 !important;
-        }
-        .cke_chrome {
-            border: 1px solid #333 !important;
-            border-radius: 8px !important;
-            overflow: hidden !important;
-        }
+        /* ICONOS BRILLANTES PARA EL DIRECTOR */
+        .cke_button_icon { filter: invert(1) brightness(2) !important; }
+        .cke_top { background: #2a2a2a !important; border-bottom: 1px solid #444 !important; }
+        .cke_bottom { background: #2a2a2a !important; }
     </style>
 </head>
 <body>
-    <div class="nav"><a href="/">👁️ VIEW PUBLIC SITE (LIVE)</a></div>
+    <div class="nav"><a href="/">👁️ IR A LA WEB</a></div>
     <div class="container">
         <form method="post" enctype="multipart/form-data" class="card">
-            <h2 style="color:#ff8c00; margin-top:0; text-align:center; font-family: Impact; letter-spacing: 2px;">🏮 ELITE NEWSROOM</h2>
-            
-            <label>Headline</label>
-            <input type="text" name="titulo" placeholder="Headline..." required>
-            
-            <label>Location</label>
-            <input type="text" name="location" placeholder="📍 City, Country">
-            
-            <label>News Content (Blogger Style)</label>
+            <h2 style="color:#ff8c00; text-align:center; font-family: Impact;">🏮 REDACCIÓN ELITE</h2>
+            <label>Titular</label>
+            <input type="text" name="titulo" placeholder="Escribe el titular..." required>
+            <label>Ubicación</label>
+            <input type="text" name="location" placeholder="📍 Ciudad, País">
+            <label>Cuerpo de la Noticia</label>
             <textarea name="resumen" id="editor_pro"></textarea>
-            
-            <label style="display:block; margin-top:25px;">Cover Photo</label>
-            <input type="file" name="foto" required style="border:none; color:#fff; padding:10px 0;">
-            
-            <button type="submit" class="btn">PUBLISH STORY 🔥</button>
+            <label style="display:block; margin-top:25px;">Imagen de Portada</label>
+            <input type="file" name="foto" required style="color:#fff;">
+            <button type="submit" class="btn">PUBLICAR EXCLUSIVA 🔥</button>
         </form>
     </div>
     <script>
         CKEDITOR.replace('editor_pro', {
             uiColor: '#1a1a1a',
-            height: 450,
-            removeButtons: 'About,Maximize,Source',
+            height: 400,
             versionCheck: false,
-            // Aseguramos que el texto dentro del editor sea legible
-            contentsCss: ['body { background-color: #ffffff; color: #000000; font-family: sans-serif; font-size: 16px; padding: 15px; }']
+            contentsCss: ['body { background-color: #fff; color: #000; padding: 15px; }']
         });
     </script>
 </body>
 </html>
 '''
 
-# --- PORTADA PÚBLICA (WEB FRONT) ---
 html_portada = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Lantern | World News</title>
+    <title>The Lantern</title>
     <style>
-        body { background: #000; color: #eee; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
-        .header { border-bottom: 5px solid #ff8c00; padding: 40px 20px; text-align: center; background: #000; }
-        .container { max-width: 850px; margin: auto; padding: 15px; }
-        .news-card { background: #111; border-radius: 20px; margin-bottom: 50px; border: 1px solid #222; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.7); }
-        .news-card img { width: 100%; border-bottom: 4px solid #ff8c00; display: block; }
-        .info { padding: 30px; }
-        .meta { color: #ff8c00; font-weight: bold; font-size: 0.9rem; margin-bottom: 15px; text-transform: uppercase; }
-        h1 { margin: 0 0 20px 0; font-size: 2.6rem; color: #fff; line-height: 1.1; }
-        .content { line-height: 1.8; font-size: 1.15rem; color: #ccc; }
-        .admin-btn { position: fixed; top: 15px; right: 15px; background: #ff8c00; color: #000; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 0.75rem; z-index: 1000; }
+        body { background: #000; color: #eee; font-family: sans-serif; margin: 0; }
+        .header { border-bottom: 5px solid #ff8c00; padding: 40px; text-align: center; }
+        .container { max-width: 800px; margin: auto; padding: 15px; }
+        .news-card { background: #111; border-radius: 20px; margin-bottom: 40px; border: 1px solid #222; overflow: hidden; }
+        .news-card img { width: 100%; border-bottom: 4px solid #ff8c00; }
+        .info { padding: 25px; }
+        h1 { color: #fff; margin: 0 0 15px 0; }
+        .meta { color: #ff8c00; font-weight: bold; }
     </style>
 </head>
 <body>
-    <a href="/panel" class="admin-btn">🔐 ADMIN</a>
-    <div class="header">
-        <h1 style="color:#ff8c00; font-family:Impact; font-size:3.8rem; margin:0; letter-spacing: 2px;">🏮 THE LANTERN</h1>
-    </div>
+    <div class="header"><h1 style="color:#ff8c00; font-family:Impact; font-size:3.5rem;">🏮 THE LANTERN</h1></div>
     <div class="container">
         {% for n in noticias %}
         <div class="news-card">
             <img src="/uploads/{{ n.multimedia_url }}">
             <div class="info">
-                <div class="meta">📍 {{ n.location }} | 📅 {{ n.date.strftime('%b %d, %Y') }}</div>
+                <div class="meta">📍 {{ n.location }} | 📅 {{ n.date.strftime('%d %b, %Y') }}</div>
                 <h1>{{ n.titulo }}</h1>
-                <div class="content">{{ n.resumen|safe }}</div>
+                <div style="line-height:1.7;">{{ n.resumen|safe }}</div>
             </div>
         </div>
         {% endfor %}
