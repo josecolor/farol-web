@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin
+Disallow: /panel
+Allow: /
+Sitemap: https://farol-web-production.up.railway.app/sitemap.xml
