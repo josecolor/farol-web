@@ -27,25 +27,9 @@ app.secret_key = os.environ.get('SECRET_KEY', 'farol_olimpo_final_2026_' + os.ur
 
 # ============= CONFIGURACIÓN DE SEGURIDAD =============
 Talisman(app, 
-    force_https=True,
-    strict_transport_security=True,
-    strict_transport_security_max_age=31536000,
-    strict_transport_security_include_subdomains=True,
-    content_security_policy={
-        'default-src': "'self'",
-        'script-src': ["'self'", 'cdn.ckeditor.com', 'www.googletagmanager.com', 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'],
-        'style-src': ["'self'", 'cdnjs.cloudflare.com', "'unsafe-inline'"],
-        'img-src': ["'self'", 'data:', 'www.google-analytics.com'],
-        'frame-ancestors': "'none'",
-        'base-uri': "'self'",
-        'form-action': "'self'"
-    },
-    referrer_policy='strict-origin-when-cross-origin',
-    permissions_policy={
-        'geolocation': "();",
-        'microphone': "();",
-        'camera': "();"
-    }
+    force_https=False,
+    strict_transport_security=False,
+    content_security_policy=False
 )
 
 # Rate Limiting
@@ -61,10 +45,15 @@ UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///farol_limpio.db')
+# FIX PARA RAILWAY CON POSTGRESQL
+db_url = os.environ.get('DATABASE_URL')
+if db_url and db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///farol_limpio.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
@@ -123,7 +112,6 @@ class AuditLog(db.Model):
 # ============= CREAR TABLAS =============
 with app.app_context():
     db.create_all()
-    # Crear usuario por defecto si no existe
     if not Usuario.query.filter_by(username='director').first():
         user = Usuario(
             username='director',
