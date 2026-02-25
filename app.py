@@ -5,22 +5,27 @@ from datetime import datetime
 import os
 
 app = Flask(__name__)
-# Llave maestra optimizada
-app.secret_key = os.environ.get('SECRET_KEY', 'farol_fuerza_2026')
+app.secret_key = os.environ.get('SECRET_KEY', 'farol_ultra_2026')
 
-# --- CONEXIÓN OPTIMIZADA ---
+# --- CONFIGURACIÓN DE ALTA EFICIENCIA ---
 uri = os.environ.get('DATABASE_URL')
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Añadimos límites para no saturar el servidor
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "pool_recycle": 280}
+# Configuración para que el servidor no se fatigue
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 5,
+    "max_overflow": 2,
+    "pool_timeout": 30,
+    "pool_recycle": 1800,
+    "pool_pre_ping": True,
+}
 
 db = SQLAlchemy(app)
 
-# --- MODELOS ---
+# --- MODELOS SIMPLIFICADOS ---
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100))
@@ -36,7 +41,7 @@ class Noticia(db.Model):
     location = db.Column(db.String(100))
     autor = db.Column(db.String(100))
     date = db.Column(db.DateTime, default=datetime.utcnow)
-    comentarios = db.relationship('Comentario', backref='noticia', lazy='dynamic')
+    comentarios = db.relationship('Comentario', backref='noticia', lazy='joined')
 
 class Comentario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -47,7 +52,7 @@ class Comentario(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- VISTA ÚNICA (MÁS RÁPIDA) ---
+# --- INTERFAZ MÓVIL OPTIMIZADA ---
 @app.route('/')
 def index():
     noticias = Noticia.query.order_by(Noticia.date.desc()).all()
@@ -55,23 +60,26 @@ def index():
         <!DOCTYPE html>
         <html lang="es">
         <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <title>FAROL AL DÍA</title>
             <style>
-                body { background:#000; color:#eee; font-family:sans-serif; margin:0; }
-                header { border-bottom:4px solid #ff8c00; padding:15px; text-align:center; background:#0a0a0a; }
-                h1 { color:#ff8c00; font-family:Impact; margin:0; font-size:2rem; }
-                .nav { margin-top:10px; font-size:0.8rem; }
-                .nav a { color:#ff8c00; text-decoration:none; border:1px solid #333; padding:4px 8px; border-radius:4px; }
+                body { background:#000; color:#eee; font-family:sans-serif; margin:0; padding-bottom:50px; }
+                header { border-bottom:4px solid #ff8c00; padding:15px; text-align:center; background:#0a0a0a; sticky; top:0; z-index:100; }
+                h1 { color:#ff8c00; font-family:Impact; margin:0; font-size:1.8rem; letter-spacing:1px; }
+                .nav { margin-top:8px; font-size:0.75rem; font-weight:bold; }
+                .nav a { color:#ff8c00; text-decoration:none; padding:5px 10px; border:1px solid #333; border-radius:20px; margin:0 3px; }
                 .container { max-width:500px; margin:auto; padding:10px; }
-                .card { background:#111; border-radius:10px; margin-bottom:20px; border:1px solid #222; overflow:hidden; }
-                .img-news { width:100%; height:auto; display:block; }
+                .card { background:#111; border-radius:12px; margin-bottom:25px; border:1px solid #222; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+                .img-news { width:100%; height:auto; display:block; background:#1a1a1a; }
                 .content { padding:15px; }
-                .com-section { background:#0a0a0a; padding:10px; border-top:1px solid #222; font-size:0.85rem; }
-                .com { margin-bottom:5px; border-bottom:1px solid #1a1a1a; padding-bottom:3px; }
-                .com b { color:#ff8c00; }
-                input { background:#1a1a1a; border:1px solid #333; color:#fff; padding:5px; border-radius:4px; width:70%; }
-                button { background:#ff8c00; border:none; padding:6px; font-weight:bold; border-radius:4px; }
+                .meta { color:#ff8c00; font-size:0.7rem; text-transform:uppercase; font-weight:bold; }
+                h2 { margin:8px 0; font-size:1.3rem; color:#fff; line-height:1.2; }
+                .com-box { background:#0a0a0a; padding:12px; border-top:1px solid #222; }
+                .com-item { font-size:0.8rem; margin-bottom:6px; border-bottom:1px solid #1a1a1a; padding-bottom:4px; }
+                .com-item b { color:#ff8c00; }
+                .in-com { background:#1a1a1a; border:1px solid #333; color:#fff; padding:8px; border-radius:6px; width:70%; font-size:0.8rem; }
+                .btn-com { background:#ff8c00; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; font-size:0.8rem; }
             </style>
         </head>
         <body>
@@ -79,31 +87,31 @@ def index():
                 <h1>🏮 FAROL AL DÍA</h1>
                 <div class="nav">
                     {% if session.get('user_id') %}
-                        <span>Hola, {{ session.user_nombre }}</span> | 
-                        {% if session.es_staff %}<a href="/panel">REDACTAR</a> | {% endif %}
+                        <span style="color:#aaa;">👤 {{ session.user_nombre }}</span> |
+                        {% if session.es_staff %}<a href="/panel" style="background:#ff8c00; color:#000;">REDACTAR</a>{% endif %}
                         <a href="/logout">SALIR</a>
                     {% else %}
-                        <a href="/login">ENTRAR</a> | <a href="/register">REGISTRARSE</a>
+                        <a href="/login">ENTRAR</a> <a href="/register">UNIRSE</a>
                     {% endif %}
                 </div>
             </header>
             <div class="container">
                 {% for n in noticias %}
                 <div class="card">
-                    {% if n.imagen_url %}<img src="{{ n.imagen_url }}" class="img-news">{% endif %}
+                    {% if n.imagen_url %}<img src="{{ n.imagen_url }}" class="img-news" loading="lazy">{% endif %}
                     <div class="content">
-                        <small style="color:#ff8c00;">📍 {{ n.location }}</small>
-                        <h2 style="margin:5px 0; font-size:1.4rem;">{{ n.titulo }}</h2>
-                        <div style="color:#ccc;">{{ n.resumen|safe }}</div>
+                        <div class="meta">📍 {{ n.location }} | {{ n.autor }}</div>
+                        <h2>{{ n.titulo }}</h2>
+                        <div style="color:#ccc; font-size:0.95rem; line-height:1.5;">{{ n.resumen|safe }}</div>
                     </div>
-                    <div class="com-section">
+                    <div class="com-box">
                         {% for c in n.comentarios %}
-                            <div class="com"><b>{{ c.autor_nombre }}:</b> {{ c.texto }}</div>
+                            <div class="com-item"><b>{{ c.autor_nombre }}</b> {{ c.texto }}</div>
                         {% endfor %}
                         {% if session.get('user_id') %}
-                            <form action="/comentar/{{ n.id }}" method="post" style="margin-top:10px;">
-                                <input type="text" name="texto" placeholder="Comentar..." required>
-                                <button type="submit">Enviar</button>
+                            <form action="/comentar/{{ n.id }}" method="post" style="display:flex; gap:5px; margin-top:10px;">
+                                <input type="text" name="texto" class="in-com" placeholder="Escribe algo..." required>
+                                <button type="submit" class="btn-com">Pulsar</button>
                             </form>
                         {% endif %}
                     </div>
@@ -117,9 +125,7 @@ def index():
 @app.route('/comentar/<int:noticia_id>', methods=['POST'])
 def comentar(noticia_id):
     if 'user_id' in session:
-        nuevo = Comentario(texto=request.form.get('texto'), 
-                           autor_nombre=session['user_nombre'], 
-                           noticia_id=noticia_id)
+        nuevo = Comentario(texto=request.form.get('texto'), autor_nombre=session['user_nombre'], noticia_id=noticia_id)
         db.session.add(nuevo)
         db.session.commit()
     return redirect('/')
@@ -134,7 +140,7 @@ def register():
         db.session.add(u)
         db.session.commit()
         return redirect('/login')
-    return '<body><form method="post"><h2>Registro</h2><input name="nombre" placeholder="Nombre"><br><input name="email" placeholder="Email"><br><input type="password" name="password" placeholder="Pass"><br><button>Unirse</button></form></body>'
+    return '<body style="background:#000;color:#fff;padding:20px;font-family:sans-serif;"><form method="post"><h2>Registro</h2><input name="nombre" placeholder="Nombre" style="width:100%;padding:10px;margin-bottom:10px;"><br><input name="email" placeholder="Email" style="width:100%;padding:10px;margin-bottom:10px;"><br><input type="password" name="password" placeholder="Pass" style="width:100%;padding:10px;margin-bottom:10px;"><br><button style="width:100%;padding:10px;background:#ff8c00;">UNIRSE</button></form></body>'
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -145,7 +151,7 @@ def login():
             session['user_nombre'] = u.nombre
             session['es_staff'] = u.es_staff
             return redirect('/')
-    return '<body><form method="post"><h2>Login</h2><input name="email" placeholder="Email"><br><input type="password" name="password" placeholder="Pass"><br><button>Entrar</button></form></body>'
+    return '<body style="background:#000;color:#fff;padding:20px;font-family:sans-serif;"><form method="post"><h2>Entrar</h2><input name="email" placeholder="Email" style="width:100%;padding:10px;margin-bottom:10px;"><br><input type="password" name="password" placeholder="Pass" style="width:100%;padding:10px;margin-bottom:10px;"><br><button style="width:100%;padding:10px;background:#ff8c00;">ENTRAR</button></form></body>'
 
 @app.route('/logout')
 def logout():
@@ -162,7 +168,8 @@ def panel():
         db.session.add(n)
         db.session.commit()
         return redirect('/')
-    return '<body><form method="post"><h2>Nueva Noticia</h2><input name="titulo" placeholder="Título"><br><input name="location" placeholder="📍"><br><input name="imagen_url" placeholder="URL Foto"><br><textarea name="resumen"></textarea><br><button>Publicar</button></form></body>'
+    return '<body style="background:#000;color:#fff;padding:20px;font-family:sans-serif;"><form method="post"><h2>Nueva Noticia</h2><input name="titulo" placeholder="Título" style="width:100%;padding:10px;margin-bottom:10px;"><br><input name="location" placeholder="📍 Ubicación" style="width:100%;padding:10px;margin-bottom:10px;"><br><input name="imagen_url" placeholder="URL Foto" style="width:100%;padding:10px;margin-bottom:10px;"><br><textarea name="resumen" style="width:100%;height:150px;margin-bottom:10px;"></textarea><br><button style="width:100%;padding:15px;background:#ff8c00;font-weight:bold;">PUBLICAR</button></form></body>'
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+
