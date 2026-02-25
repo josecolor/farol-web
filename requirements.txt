@@ -1,6 +1,5 @@
 flask
 flask-sqlalchemy
-gunicorn
 psycopg2-binary
-werkzeug
-requests
+gunicorn
+
