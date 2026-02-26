@@ -6,8 +6,8 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../'))); 
 
-// CONEXIÓN AUTOMÁTICA: Railway llenará esto solo
-const mongoURI = process.env.MONGO_URL || process.env.MONGODB_URI;
+// URL DIRECTA (Sin depender de variables de Railway)
+const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqnAgQhUz@shinkansen.proxy.rlwy.net:12973";
 
 mongoose.connect(mongoURI)
   .then(() => console.log("🔥 Farol conectado con éxito"))
@@ -18,18 +18,22 @@ const News = mongoose.model('News', new mongoose.Schema({
 }));
 
 app.get('/api/news', async (req, res) => {
-    const news = await News.find().sort({ date: -1 });
-    res.json(news);
+    try {
+        const news = await News.find().sort({ date: -1 });
+        res.json(news);
+    } catch (e) { res.status(500).json([]); }
 });
 
 app.post('/api/news', async (req, res) => {
-    const newReport = new News(req.body);
-    await newReport.save();
-    res.json({ success: true });
+    try {
+        const newReport = new News(req.body);
+        await newReport.save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../../index.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../../admin.html')));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
+const PORT = process.env.PORT || 311; 
+app.listen(PORT, () => console.log(`🚀 Farol encendido en puerto ${PORT}`));
