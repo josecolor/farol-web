@@ -14,6 +14,7 @@
         .btn-admin { position: fixed; bottom: 20px; right: 20px; background: var(--naranja); border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 99; }
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--negro); z-index: 100; padding-top: 20px; overflow-y: auto; }
         input { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; }
+        .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -32,29 +33,26 @@
         <div class="container">
             <button onclick="document.getElementById('modal').style.display='none'" style="color: var(--naranja); background: none; border: none; font-size: 20px; cursor:pointer;">✕ Cerrar</button>
             <h2 style="color: var(--naranja);">NUEVO REPORTE</h2>
-            <input type="text" id="title" placeholder="Headline">
-            <input type="text" id="loc" placeholder="Location">
+            <input type="text" id="title" placeholder="Título de la noticia">
+            <input type="text" id="loc" placeholder="Ubicación">
             <textarea id="editor"></textarea>
+            
+            <input type="password" id="pin" class="pin-field" placeholder="INTRODUCE EL PIN PARA PUBLICAR">
+            
             <button onclick="publish()" style="width:100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; margin-top: 15px; border-radius: 10px; cursor:pointer;">PUBLISH NOW 🔥</button>
         </div>
     </div>
 
     <script>
-        // CONFIGURACIÓN PARA SUBIR MULTIMEDIA
         tinymce.init({ 
             selector: '#editor', 
             skin: "oxide-dark", 
             content_css: "dark", 
             height: 350, 
             menubar: false, 
-            plugins: 'emoticons image media link lists', 
-            toolbar: 'bold italic | emoticons image media | bullist numlist',
-            language: 'es',
-            images_upload_handler: (blobInfo) => new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.readAsDataURL(blobInfo.blob());
-              reader.onload = () => resolve(reader.result);
-            })
+            plugins: 'image media emoticons link lists', 
+            toolbar: 'bold italic | image media emoticons | bullist numlist',
+            language: 'es'
         });
 
         async function loadNews() {
@@ -70,12 +68,20 @@
         }
 
         async function publish() {
+            const pinAcceso = "311"; // <--- ESTE ES EL PIN. CÁMBIALO SI QUIERES.
+            const userPin = document.getElementById('pin').value;
+
+            if(userPin !== pinAcceso) {
+                return alert("PIN INCORRECTO. Solo personal de Farol al Día puede publicar.");
+            }
+
             const body = {
                 title: document.getElementById('title').value,
                 location: document.getElementById('loc').value,
                 content: tinymce.get('editor').getContent()
             };
-            if(!body.title) return alert("Pon un título");
+
+            if(!body.title || !body.content) return alert("Completa el título y el contenido");
             
             await fetch('/api/news', {
                 method: 'POST',
