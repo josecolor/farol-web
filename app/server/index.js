@@ -1,48 +1,35 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farol al Día | Noticias</title>
-    <style>
-        :root { --naranja: #FF8C00; --negro: #000; --gris: #121212; }
-        body { background: var(--negro); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
-        header { text-align: center; padding: 40px 20px; border-bottom: 3px solid var(--naranja); background: var(--gris); }
-        .container { padding: 20px; max-width: 700px; margin: auto; }
-        .card { background: var(--gris); padding: 25px; border-radius: 15px; margin-bottom: 30px; border-left: 6px solid var(--naranja); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        h2 { color: var(--naranja); margin: 10px 0; font-size: 1.8em; }
-        small { color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-        .news-content { color: #ccc; line-height: 1.7; font-size: 1.1em; }
-        .news-content img { max-width: 100%; border-radius: 10px; margin: 15px 0; border: 1px solid #333; }
-    </style>
-</head>
-<body>
-    <header>
-        <h1 style="color: var(--naranja); margin: 0; font-size: 2.8em; letter-spacing: -1px;">🏮 FAROL AL DÍA</h1>
-        <p style="color: #888; margin-top: 10px;">Noticias en tiempo real desde el corazón de la acción.</p>
-    </header>
+const express = require('express');
+const mongoose = require('mongoose');
+const path = require('path');
+const app = express();
 
-    <div class="container" id="news-list">
-        <p style="text-align: center; color: #444;">Cargando últimas noticias...</p>
-    </div>
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../../client'))); 
 
-    <script>
-        async function loadNews() {
-            try {
-                const res = await fetch('/api/news');
-                const data = await res.json();
-                document.getElementById('news-list').innerHTML = data.reverse().map(n => `
-                    <div class="card">
-                        <small>📍 ${n.location}</small>
-                        <h2>${n.title}</h2>
-                        <div class="news-content">${n.content}</div>
-                    </div>
-                `).join('') || '<p style="text-align:center; color:#555;">No hay reportes disponibles.</p>';
-            } catch (e) {
-                document.getElementById('news-list').innerHTML = '<p style="text-align:center; color:red;">Error al cargar noticias.</p>';
-            }
-        }
-        loadNews();
-    </script>
-</body>
-</html>
+// Conexión a MongoDB (Usa la variable de Railway)
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log("🔥 Farol conectado"))
+  .catch(err => console.error("❌ Error DB:", err));
+
+const News = mongoose.model('News', new mongoose.Schema({
+    title: String, location: String, content: String, date: { type: Date, default: Date.now }
+}));
+
+// API para noticias
+app.get('/api/news', async (req, res) => {
+    const news = await News.find().sort({ date: -1 });
+    res.json(news);
+});
+
+app.post('/api/news', async (req, res) => {
+    const newReport = new News(req.body);
+    await newReport.save();
+    res.json({ success: true });
+});
+
+// RUTAS PARA LAS PÁGINAS
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../../client/index.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../../client/admin.html')));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Puerto ${PORT}`));
