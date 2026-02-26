@@ -6,12 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../'))); 
 
-// Esta es la URL pública que sacamos de tu captura de Railway
-const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqnAgQhUz@shinkansen.proxy.rlwy.net:12973";
+// USANDO LA CONEXIÓN INTERNA (Más segura y rápida en Railway)
+const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqnAgQhUz@mongodb.railway.internal:27017/test";
 
 mongoose.connect(mongoURI)
-  .then(() => console.log("🔥 Farol conectado a MongoDB con ÉXITO"))
-  .catch(err => console.error("❌ Error de autenticación:", err));
+  .then(() => console.log("🔥 Farol conectado internamente con éxito"))
+  .catch(err => console.error("❌ Error de autenticación interna:", err));
 
 const News = mongoose.model('News', new mongoose.Schema({
     title: String, location: String, content: String, date: { type: Date, default: Date.now }
