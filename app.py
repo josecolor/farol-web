@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.secret_key = "farol_mxl_security_2026"  # Llave de seguridad del búnker
 
 # --- 1. CONFIGURACIÓN DE BASE DE DATOS ---
-# Detecta si estamos en Railway (Postgres) o local (SQLite)
+# Detecta si estamos en Railway (DATABASE_URL) o local (SQLite)
 uri = os.environ.get('DATABASE_URL', 'sqlite:///farol_pro.db')
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -107,9 +107,8 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# --- 5. ARRANQUE DEL SERVIDOR ---
+# --- 5. ARRANQUE DEL SERVIDOR (ESTÁNDAR RAILWAY) ---
 if __name__ == "__main__":
-    # Importante para Railway: usar el puerto que asigne el sistema
-    port = int(os.environ.get("PORT", 5000))
+    # Importante: Railway usa el puerto que asigne el sistema
+    port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
-
