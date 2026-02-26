@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farol Solution | Automatización y Noticias</title>
+    <meta name="description" content="Expertos en automatización de procesos y noticias de actualidad en Farol al Día.">
+    <style>
+        :root { --naranja: #ff8c00; --fondo: #000; --gris: #111; }
+        body { background: var(--fondo); color: #eee; font-family: sans-serif; margin: 0; text-align: center; }
+        header { padding: 40px 20px; border-bottom: 3px solid var(--naranja); background: #0a0a0a; }
+        .logo-text { font-size: 2.2rem; font-family: Impact; color: var(--naranja); margin: 0; letter-spacing: 2px; }
+        .btn-wa { background: var(--naranja); color: #000; padding: 20px; border-radius: 12px; display: block; text-decoration: none; font-weight: 900; margin: 25px auto; width: 85%; max-width: 350px; font-size: 1.2rem; box-shadow: 0 5px 15px rgba(255,140,0,0.3); }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .card { background: var(--gris); border-radius: 15px; margin-bottom: 25px; border: 1px solid #222; overflow: hidden; text-align: left; }
+        .card img { width: 100%; height: 200px; object-fit: cover; }
+        .card-content { padding: 15px; }
+        h2 { color: #fff; margin: 0 0 10px 0; font-size: 1.4rem; }
+        .footer { padding: 40px; font-size: 0.8rem; color: #333; }
+        a.leer-mas { color: var(--naranja); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-text">🏮 FAROL SOLUTION</div>
+        <p style="color:#aaa; margin-top:5px; font-size: 0.9rem;">AUTOMATIZACIÓN & PERIODISMO ÉLITE</p>
+    </header>
+
+    <div class="container">
+        <a href="https://wa.me/18093041128?text=Hola%20mxl,%20necesito%20una%20automatización" class="btn-wa">SOLICITAR AUTOMATIZACIÓN 📱</a>
+
+        <h3 style="border-left: 4px solid var(--naranja); padding-left: 10px; text-align: left; margin-top: 40px;">FAROL AL DÍA</h3>
+        
+        {% for n in noticias %}
+        <div class="card">
+            {% if n.imagen %}<img src="{{ n.imagen }}" alt="{{ n.titulo }}">{% endif %}
+            <div class="card-content">
+                <small style="color:var(--naranja); font-weight: bold;">{{ n.categoria }}</small>
+                <h2>{{ n.titulo }}</h2>
+                <a href="/nota/{{ n.slug }}" class="leer-mas">Leer noticia completa →</a>
+            </div>
+        </div>
+        {% else %}
+        <p style="color: #444; margin-top: 20px;">No hay noticias lanzadas todavía.</p>
+        {% endfor %}
+    </div>
+
+    <footer class="footer">
+        <a href="/login" style="color:#222; text-decoration:none;">Acceso Staff</a>
+    </footer>
+</body>
+</html>
+
