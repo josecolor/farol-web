@@ -5,44 +5,33 @@ const app = express();
 
 app.use(express.json());
 
-// Servir archivos estáticos desde la raíz del proyecto
+// 1. Servir archivos desde la raíz principal
 app.use(express.static(path.join(__dirname, '../../'))); 
 
-// Conexión a MongoDB (Usa la variable de Railway)
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log("🔥 Farol conectado correctamente"))
+// 2. Conexión Flexible (Prueba MONGO_URL, MONGODB_URI o la URL directa)
+const mongoURI = process.env.MONGO_URL || process.env.MONGODB_URI || "mongodb://mongo:vYIDpXInHlXJvOnTjDkGZitZitWqAUnA@mongodb.railway.internal:27017";
+
+mongoose.connect(mongoURI)
+  .then(() => console.log("🔥 Farol conectado a MongoDB"))
   .catch(err => console.error("❌ Error de conexión DB:", err));
 
-// Esquema de Noticias
 const News = mongoose.model('News', new mongoose.Schema({
-    title: String, 
-    location: String, 
-    content: String, 
-    date: { type: Date, default: Date.now }
+    title: String, location: String, content: String, date: { type: Date, default: Date.now }
 }));
 
-// API para obtener noticias
+// API
 app.get('/api/news', async (req, res) => {
-    try {
-        const news = await News.find().sort({ date: -1 });
-        res.json(news);
-    } catch (error) {
-        res.status(500).json({ error: "Error al cargar noticias" });
-    }
+    const news = await News.find().sort({ date: -1 });
+    res.json(news);
 });
 
-// API para publicar noticias
 app.post('/api/news', async (req, res) => {
-    try {
-        const newReport = new News(req.body);
-        await newReport.save();
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: "Error al guardar noticia" });
-    }
+    const newReport = new News(req.body);
+    await newReport.save();
+    res.json({ success: true });
 });
 
-// RUTAS PARA LAS PÁGINAS (Corregidas para buscar en la raíz)
+// 3. RUTAS DE PÁGINAS (Corregidas para Railway)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../../index.html'));
 });
