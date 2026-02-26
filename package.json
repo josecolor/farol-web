@@ -2,9 +2,9 @@
   "name": "farol-al-dia",
   "version": "1.0.0",
   "description": "Periódico Profesional Farol al Día",
-  "main": "server/index.js",
+  "main": "client/server.js",
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node client/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
