@@ -1,6 +1,7 @@
 {
   "name": "farol-al-dia",
   "version": "1.0.0",
+  "description": "Periódico Profesional Farol al Día",
   "main": "client/server.js",
   "scripts": {
     "start": "node client/server.js"
@@ -10,5 +11,8 @@
     "mongoose": "^7.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
