@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farol al Día</title>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <style>
+        :root { --naranja: #FF8C00; --negro: #000; --gris: #121212; }
+        body { background: var(--negro); color: white; font-family: sans-serif; margin: 0; }
+        header { text-align: center; padding: 20px; border-bottom: 2px solid var(--naranja); background: var(--gris); }
+        .container { padding: 20px; max-width: 600px; margin: auto; }
+        .card { background: var(--gris); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid var(--naranja); }
+        .btn-admin { position: fixed; bottom: 20px; right: 20px; background: var(--naranja); border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; }
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--negro); z-index: 100; padding-top: 50px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 style="color: var(--naranja); margin: 0;">🏮 FAROL AL DÍA</h1>
+        <small>Noticias desde el corazón del bosque</small>
+    </header>
+
+    <div class="container" id="news-list">
+        <p style="text-align:center; color: #444;">Esperando el primer reporte...</p>
+    </div>
+
+    <button class="btn-admin" onclick="document.getElementById('modal').style.display='block'">+</button>
+
+    <div id="modal">
+        <div class="container">
+            <button onclick="document.getElementById('modal').style.display='none'" style="color: var(--naranja); background: none; border: none; font-size: 20px; cursor:pointer;">✕ Cerrar</button>
+            <h2 style="color: var(--naranja);">NUEVO REPORTE</h2>
+            <input type="text" id="title" placeholder="Headline">
+            <input type="text" id="loc" placeholder="Location">
+            <textarea id="editor"></textarea>
+            <button onclick="publish()" style="width:100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; margin-top: 15px; border-radius: 10px; cursor:pointer;">PUBLISH NOW 🔥</button>
+        </div>
+    </div>
+
+    <script>
+        tinymce.init({ selector: '#editor', skin: "oxide-dark", content_css: "dark", height: 250, menubar: false, plugins: 'emoticons', toolbar: 'bold italic | emoticons' });
+
+        async function loadNews() {
+            const res = await fetch('/api/news');
+            const data = await res.json();
+            document.getElementById('news-list').innerHTML = data.map(n => `
+                <div class="card">
+                    <small style="color: #888; text-transform: uppercase;">${n.location}</small>
+                    <h2 style="color: var(--naranja); margin: 5px 0;">${n.title}</h2>
+                    <div style="color: #ccc; line-height: 1.5;">${n.content}</div>
+                </div>
+            `).join('') || '<p style="text-align:center; color:#555;">No hay noticias publicadas aún.</p>';
+        }
+
+        async function publish() {
+            const body = {
+                title: document.getElementById('title').value,
+                location: document.getElementById('loc').value,
+                content: tinymce.get('editor').getContent()
+            };
+            if(!body.title) return alert("Pon un título");
+            
+            await fetch('/api/news', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            location.reload();
+        }
+        loadNews();
+    </script>
+</body>
+</html>
