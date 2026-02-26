@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node server/index.js",
+    "startCommand": "node app/server/index.js",
     "restartPolicyType": "ON_FAILURE"
   }
 }
