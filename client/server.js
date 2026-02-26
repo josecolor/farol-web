@@ -14,10 +14,7 @@ mongoose.connect(mongoURI)
 
 // 2. MODELO DE NOTICIAS
 const News = mongoose.model('News', new mongoose.Schema({
-    title: String, 
-    location: String, 
-    content: String, 
-    date: { type: Date, default: Date.now }
+    title: String, location: String, content: String, date: { type: Date, default: Date.now }
 }));
 
 // 3. CARPETA PÚBLICA: Servir todo desde la nueva ubicación 'client'
