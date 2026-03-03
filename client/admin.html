@@ -24,6 +24,9 @@
 
         <label>Nombre del Redactor</label>
         <input type="text" id="reporter" placeholder="Su nombre y apellido">
+
+        <label>Palabra Clave (Ubicación)</label>
+        <input type="text" id="location" placeholder="Ej: Santo Domingo, Herrera, etc.">
         
         <label>Foto de la Noticia</label>
         <label class="file-label" for="imageInput">📸 TOCAR PARA SUBIR FOTO</label>
@@ -55,20 +58,18 @@
 
         async function publish() {
             const userPin = document.getElementById('pin').value;
-            const reporterName = document.getElementById('reporter').value;
-            
             if(userPin !== "311") return alert("PIN INCORRECTO");
-            if(!reporterName) return alert("Por favor, ponga su nombre de redactor");
 
             const body = {
                 titulo: document.getElementById('title').value,
-                ubicacion: reporterName, // Usamos el campo ubicación para mostrar el nombre del redactor
+                redactor: document.getElementById('reporter').value,
+                ubicacion: document.getElementById('location').value,
                 contenido: document.getElementById('content').value,
                 imagen: base64Image,
                 pin: userPin
             };
 
-            if(!body.titulo || !body.contenido) return alert("Falta información");
+            if(!body.titulo || !body.contenido || !body.redactor) return alert("Falta información esencial");
 
             const res = await fetch('/publicar', {
                 method: 'POST',
@@ -77,7 +78,7 @@
             });
 
             if(res.ok) {
-                alert("¡PUBLICADO CON ÉXITO, " + reporterName + "! 🔥");
+                alert("¡NOTICIA PUBLICADA! 🔥");
                 location.reload();
             } else {
                 alert("Error al subir. Intente de nuevo.");
