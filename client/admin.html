@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción Pro | Farol</title>
+    <title>Redacción Oficial | Farol</title>
     <style>
         :root { --naranja: #FF8C00; --negro: #000; }
         body { background: var(--negro); color: white; font-family: sans-serif; padding: 15px; margin: 0; }
         .container { max-width: 500px; margin: auto; }
         input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .file-label { display: block; background: #333; padding: 15px; text-align: center; border-radius: 8px; border: 1px dashed var(--naranja); cursor: pointer; margin: 10px 0; }
-        .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; }
-        button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; }
-        #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; }
+        .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; font-size: 20px; }
+        button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; margin-top: 10px; }
+        #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; border: 1px solid var(--naranja); }
     </style>
 </head>
 <body>
@@ -22,19 +22,19 @@
         <label>Título de la Noticia</label>
         <input type="text" id="title" placeholder="¿Qué pasó?">
 
-        <label>Nombre del Redactor</label>
-        <input type="text" id="reporter" placeholder="Su nombre y apellido">
+        <label>Nombre del Periodista</label>
+        <input type="text" id="reporter" placeholder="¿Quién escribe?">
 
         <label>Palabra Clave (Ubicación)</label>
-        <input type="text" id="location" placeholder="Ej: Santo Domingo, Herrera, etc.">
+        <input type="text" id="location" placeholder="Ej: Santo Domingo Este">
         
         <label>Foto de la Noticia</label>
         <label class="file-label" for="imageInput">📸 TOCAR PARA SUBIR FOTO</label>
         <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImg(this)">
         <img id="preview">
         
-        <label>Reporte</label>
-        <textarea id="content" rows="6" placeholder="Escriba la noticia aquí..."></textarea>
+        <label>Cuerpo de la Noticia</label>
+        <textarea id="content" rows="6" placeholder="Escriba el reporte detallado..."></textarea>
         
         <label>PIN de Seguridad</label>
         <input type="password" id="pin" class="pin-field" placeholder="****">
@@ -69,7 +69,9 @@
                 pin: userPin
             };
 
-            if(!body.titulo || !body.contenido || !body.redactor) return alert("Falta información esencial");
+            if(!body.titulo || !body.contenido || !body.redactor) {
+                return alert("Falta información (Título, Nombre o Reporte)");
+            }
 
             const res = await fetch('/publicar', {
                 method: 'POST',
@@ -78,10 +80,10 @@
             });
 
             if(res.ok) {
-                alert("¡NOTICIA PUBLICADA! 🔥");
+                alert("¡PUBLICADO CON ÉXITO! 🔥");
                 location.reload();
             } else {
-                alert("Error al subir. Intente de nuevo.");
+                alert("Error al conectar con Railway. Intente de nuevo.");
             }
         }
     </script>
