@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción Farol | Panel</title>
+    <title>Redacción Pro | Farol</title>
     <style>
         :root { --naranja: #FF8C00; --negro: #000; }
         body { background: var(--negro); color: white; font-family: sans-serif; padding: 15px; margin: 0; }
         .container { max-width: 500px; margin: auto; }
         input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .file-label { display: block; background: #222; padding: 15px; text-align: center; border-radius: 8px; border: 1px dashed var(--naranja); cursor: pointer; margin: 10px 0; color: var(--naranja); font-weight: bold; }
+        .file-label { display: block; background: #333; padding: 15px; text-align: center; border-radius: 8px; border: 1px dashed var(--naranja); cursor: pointer; margin: 10px 0; }
         .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; }
-        button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; margin-top: 10px; }
-        #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; border: 1px solid #444; }
-        small { color: #888; font-size: 0.8em; }
+        button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; }
+        #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -21,19 +20,18 @@
         <h1 style="color: var(--naranja); text-align: center;">🏮 REDACCIÓN</h1>
         
         <label>Título de la Noticia</label>
-        <input type="text" id="title" placeholder="¿Qué está pasando?">
+        <input type="text" id="title" placeholder="¿Qué pasó?">
+
+        <label>Nombre del Redactor</label>
+        <input type="text" id="reporter" placeholder="Su nombre y apellido">
         
-        <label>Foto (Galería o Cámara)</label>
-        <label class="file-label" for="imageInput">📸 SELECCIONAR IMAGEN</label>
+        <label>Foto de la Noticia</label>
+        <label class="file-label" for="imageInput">📸 TOCAR PARA SUBIR FOTO</label>
         <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImg(this)">
         <img id="preview">
         
-        <label>Palabras Clave</label>
-        <input type="text" id="tags" placeholder="Ej: robo, policia, nacional">
-        <small>Separe las palabras con comas</small>
-
-        <label style="display:block; margin-top:10px;">Reporte</label>
-        <textarea id="content" rows="6" placeholder="Escriba los detalles aquí..."></textarea>
+        <label>Reporte</label>
+        <textarea id="content" rows="6" placeholder="Escriba la noticia aquí..."></textarea>
         
         <label>PIN de Seguridad</label>
         <input type="password" id="pin" class="pin-field" placeholder="****">
@@ -57,17 +55,20 @@
 
         async function publish() {
             const userPin = document.getElementById('pin').value;
+            const reporterName = document.getElementById('reporter').value;
+            
             if(userPin !== "311") return alert("PIN INCORRECTO");
+            if(!reporterName) return alert("Por favor, ponga su nombre de redactor");
 
             const body = {
                 titulo: document.getElementById('title').value,
+                ubicacion: reporterName, // Usamos el campo ubicación para mostrar el nombre del redactor
                 contenido: document.getElementById('content').value,
                 imagen: base64Image,
-                tags: document.getElementById('tags').value, // Aquí se guardan las palabras clave
                 pin: userPin
             };
 
-            if(!body.titulo || !body.contenido) return alert("Por favor complete el título y el reporte");
+            if(!body.titulo || !body.contenido) return alert("Falta información");
 
             const res = await fetch('/publicar', {
                 method: 'POST',
@@ -76,10 +77,10 @@
             });
 
             if(res.ok) {
-                alert("¡NOTICIA ENVIADA CON ÉXITO! 🔥");
+                alert("¡PUBLICADO CON ÉXITO, " + reporterName + "! 🔥");
                 location.reload();
             } else {
-                alert("Error al conectar con el servidor.");
+                alert("Error al subir. Intente de nuevo.");
             }
         }
     </script>
