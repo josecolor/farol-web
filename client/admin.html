@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Periodistas | Farol</title>
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <style>
         :root { --naranja: #FF8C00; --negro: #000; --gris: #121212; }
         body { background: var(--negro); color: white; font-family: sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: auto; }
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; }
         .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-size: 1.2em; letter-spacing: 5px; }
-        button { width:100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; margin-top: 15px; border-radius: 10px; cursor:pointer; font-size: 1.1em; }
+        button { width:100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; margin-top: 15px; border-radius: 10px; cursor:pointer; font-size: 1.1em; color: black; }
+        label { font-weight: bold; color: #888; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -36,38 +37,49 @@
     </div>
 
     <script>
+        // INICIALIZACIÓN DEL EDITOR MULTIMEDIA
         tinymce.init({ 
             selector: '#editor', 
             height: 400, 
             menubar: false, 
+            skin: 'oxide-dark',
+            content_css: 'dark',
             plugins: 'image media emoticons link lists', 
             toolbar: 'bold italic | image media emoticons | bullist numlist',
-            language: 'es'
+            language: 'es',
+            setup: function (editor) {
+                editor.on('init', function () {
+                    editor.setContent('<p>Escriba su noticia aquí...</p>');
+                });
+            }
         });
 
         async function publish() {
             const userPin = document.getElementById('pin').value;
+            // Verificación con su PIN 311 de socio
             if(userPin !== "311") return alert("PIN INCORRECTO");
 
             const body = {
-                title: document.getElementById('title').value,
-                location: document.getElementById('loc').value,
-                content: tinymce.get('editor').getContent()
+                titulo: document.getElementById('title').value,
+                ubicacion: document.getElementById('loc').value,
+                contenido: tinymce.get('editor').getContent(),
+                pin: userPin
             };
 
-            if(!body.title || !body.content) return alert("Falta título o contenido");
+            if(!body.titulo || !body.contenido) return alert("Falta título o contenido");
 
-            const res = await fetch('/api/news', {
+            // Ruta ajustada a nuestro servidor de Railway
+            const res = await fetch('/publicar', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(body)
             });
 
             if(res.ok) {
-                alert("¡PUBLICADO CON ÉXITO!");
-                location.href = "/";
+                alert("¡PUBLICADO CON ÉXITO! 🔥");
+                location.reload();
             } else {
-                alert("Error al publicar. Revisa la conexión.");
+                alert("Error al publicar. El servidor no respondió.");
             }
         }
     </script>
