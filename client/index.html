@@ -3,55 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farol al Día | Noticias</title>
+    <title>Farol Al Día | Noticias en Tiempo Real</title>
     <style>
         :root { --naranja: #FF8C00; --negro: #000; --gris: #121212; }
-        body { background: var(--negro); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
-        header { text-align: center; padding: 40px 20px; border-bottom: 3px solid var(--naranja); background: var(--gris); }
-        .container { padding: 20px; max-width: 700px; margin: auto; }
-        .card { background: var(--gris); padding: 25px; border-radius: 15px; margin-bottom: 30px; border-left: 6px solid var(--naranja); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        h2 { color: var(--naranja); margin: 10px 0; font-size: 1.8em; }
-        small { color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-        .news-content { color: #ccc; line-height: 1.7; font-size: 1.1em; }
-        /* Estilo para las fotos que suban los periodistas */
-        .news-content img { max-width: 100%; border-radius: 10px; margin: 15px 0; border: 1px solid #333; }
-        .news-content iframe { width: 100%; border-radius: 10px; margin: 15px 0; }
+        body { background: var(--negro); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        
+        /* CABECERA CON LOGOTIPO */
+        header { background: var(--gris); padding: 25px; text-align: center; border-bottom: 3px solid var(--naranja); }
+        .logo { font-size: 2.2em; font-weight: bold; color: var(--naranja); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        .container { max-width: 800px; margin: auto; padding: 15px; }
+        
+        /* DISEÑO DE LAS NOTICIAS (BANNER) */
+        .noticia { background: #1a1a1a; margin-bottom: 25px; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
+        .noticia img { width: 100%; height: auto; max-height: 400px; object-fit: cover; display: block; }
+        .noticia-cuerpo { padding: 20px; }
+        .noticia-titulo { color: var(--naranja); font-size: 1.6em; margin: 0 0 10px 0; }
+        .noticia-info { color: #888; font-size: 0.9em; margin-bottom: 15px; }
+        .noticia-texto { line-height: 1.6; color: #ddd; font-size: 1.1em; }
+
+        #lista-noticias { min-height: 200px; }
+        .loader { text-align: center; color: var(--naranja); padding: 50px; font-weight: bold; }
     </style>
 </head>
 <body>
+
     <header>
-        <h1 style="color: var(--naranja); margin: 0; font-size: 2.8em; letter-spacing: -1px;">🏮 FAROL AL DÍA</h1>
-        <p style="color: #888; margin-top: 10px;">Noticias en tiempo real desde el corazón de la acción.</p>
+        <div class="logo">🏮 FAROL AL DÍA</div>
+        <p style="margin: 5px 0 0 0; color: #888;">Desde el corazón de la acción</p>
     </header>
 
-    <div class="container" id="news-list">
-        <p style="text-align: center; color: #444;">Cargando últimas noticias...</p>
+    <div class="container">
+        <div id="lista-noticias">
+            <div class="loader">Cargando noticias de última hora...</div>
+        </div>
     </div>
 
     <script>
-        async function loadNews() {
+        async function cargarNoticias() {
             try {
-                const res = await fetch('/api/news');
-                const data = await res.json();
+                const res = await fetch('/api/noticias');
+                const noticias = await res.json();
+                const contenedor = document.getElementById('lista-noticias');
                 
-                if (data.length === 0) {
-                    document.getElementById('news-list').innerHTML = '<p style="text-align:center; color:#555;">No hay reportes disponibles hoy.</p>';
+                if (noticias.length === 0) {
+                    contenedor.innerHTML = '<p style="text-align:center; color:#555;">No hay noticias publicadas todavía.</p>';
                     return;
                 }
 
-                document.getElementById('news-list').innerHTML = data.reverse().map(n => `
-                    <div class="card">
-                        <small>📍 ${n.location || 'SIN UBICACIÓN'}</small>
-                        <h2>${n.title}</h2>
-                        <div class="news-content">${n.content}</div>
-                    </div>
+                contenedor.innerHTML = noticias.map(n => `
+                    <article class="noticia">
+                        ${n.imagen ? `<img src="${n.imagen}" alt="Imagen de la noticia">` : ''}
+                        <div class="noticia-cuerpo">
+                            <h2 class="noticia-titulo">${n.titulo}</h2>
+                            <div class="noticia-info">📍 ${n.ubicacion || 'República Dominicana'} | 📅 ${new Date(n.fecha).toLocaleDateString()}</div>
+                            <div class="noticia-texto">${n.contenido}</div>
+                        </div>
+                    </article>
                 `).join('');
-            } catch (e) {
-                document.getElementById('news-list').innerHTML = '<p style="text-align:center; color:red;">Error al cargar noticias. Intenta de nuevo.</p>';
+            } catch (error) {
+                document.getElementById('lista-noticias').innerHTML = 
+                '<p style="text-align:center; color:red;">⚠️ Error al conectar con el servidor.</p>';
             }
         }
+
         // Cargar noticias al abrir la página
-        loadNews();
+        cargarNoticias();
+        // Recargar cada 30 segundos automáticamente
+        setInterval(cargarNoticias, 30000);
     </script>
 </body>
 </html>
