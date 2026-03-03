@@ -1,12 +1,22 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
+// Puerto 8080 verificado para el tren de Railway
 const PORT = process.env.PORT || 8080; 
 
-// 1. CONEXIÓN A BASE DE DATOS
+// 1. ACTIVACIÓN DE MULTIMEDIA Y SEGURIDAD
+// Esto arregla los botones de fotos/videos y el cuadro de texto vacío
+app.use(cors());
+app.use((req, res, next) => {
+    res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; worker-src * blob:;");
+    next();
+});
+
+// 2. CONEXIÓN A BASE DE DATOS (Verificada en logs)
 mongoose.connect(process.env.MONGODB_URL)
     .then(() => console.log('🔥 Farol conectado con éxito a MongoDB'))
     .catch(err => console.error('❌ Error de conexión:', err));
@@ -14,13 +24,13 @@ mongoose.connect(process.env.MONGODB_URL)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 2. EL RASTREADOR INTELIGENTE (Esto mata el error ENOENT)
-// Buscamos en 'public', en 'client/public' y en la raíz al mismo tiempo
+// 3. RASTREADOR DE ARCHIVOS (Evita el error ENOENT / Not Found)
+// Busca en todas las carpetas posibles del servidor
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'client', 'public')));
 app.use(express.static(__dirname));
 
-// 3. RUTAS CON BUSQUEDA TRIPLE
+// 4. RUTAS CON BUSQUEDA TRIPLE
 app.get('/', (req, res) => {
     const paths = [
         path.join(__dirname, 'public', 'index.html'),
@@ -37,7 +47,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/admin', (req, res) => {
-    // Este bloque asegura que el panel de redacción CARGUE SÍ O SÍ
+    // Asegura que el búnker de redacción abra sin importar la carpeta
     const paths = [
         path.join(__dirname, 'public', 'admin.html'),
         path.join(__dirname, 'client', 'public', 'admin.html'),
@@ -52,17 +62,20 @@ app.get('/admin', (req, res) => {
     });
 });
 
-// 4. PUBLICACIÓN (PIN 311)
+// 5. PUBLICACIÓN OFICIAL (PIN 311)
 app.post('/publicar', (req, res) => {
     const { titulo, pin } = req.body;
+    // Su PIN secreto para seguridad del equipo
     if (pin === "311") {
+        console.log(`✅ Noticia: ${titulo} - Lanzada por Director mxl`);
         res.status(200).send("Noticia en el aire 🔥");
     } else {
+        console.log("⚠️ Intento de publicación fallido: PIN incorrecto");
         res.status(403).send("PIN incorrecto");
     }
 });
 
-// 5. ARRANQUE GLOBAL
+// 6. ARRANQUE GLOBAL
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏮 El Farol brillando en puerto ${PORT}`);
 });
