@@ -4,61 +4,64 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
-
-// 1. CONFIGURACIÓN DE PUERTO
+// Railway nos obliga a usar el puerto que ellos digan, casi siempre 8080
 const PORT = process.env.PORT || 8080; 
 
-// 2. CONEXIÓN A LA BASE DE DATOS
-const mongoURI = process.env.MONGODB_URL;
-
-mongoose.connect(mongoURI)
+// 1. CONEXIÓN SEGURA A LA BASE DE DATOS
+mongoose.connect(process.env.MONGODB_URL)
     .then(() => console.log('🔥 Farol conectado con éxito a MongoDB'))
     .catch(err => console.error('❌ Error de conexión:', err));
 
-// 3. MIDDLEWARE
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. ARCHIVOS ESTÁTICOS (Rastreador Flexible)
-// Esto busca los archivos CSS/JS tanto en 'public' como en la raíz
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+// 2. EL ARREGLO MAESTRO PARA LOS ARCHIVOS (Soluciona el error ENOENT)
+// Buscamos en todas las rutas posibles para que nunca diga "Not Found"
+const publicPath = path.join(__dirname, 'public');
+const rootPath = __dirname;
+const clientPublicPath = path.join(__dirname, 'client', 'public');
 
-// 5. RUTAS DEL SISTEMA (Con corrector de rutas para evitar el Error ENOENT)
+app.use(express.static(publicPath));
+app.use(express.static(rootPath));
+app.use(express.static(clientPublicPath));
+
+// 3. RUTAS INTELIGENTES
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'), err => {
-        if (err) res.sendFile(path.join(__dirname, 'index.html'));
+    // Intenta cargar la portada desde cualquier ubicación
+    res.sendFile(path.join(publicPath, 'index.html'), err => {
+        if (err) res.sendFile(path.join(rootPath, 'index.html'), err2 => {
+            if (err2) res.status(404).send("Error: No se encuentra la portada del periódico.");
+        });
     });
 });
 
 app.get('/admin', (req, res) => {
-    // Si falla al buscar en /public/admin.html, intenta en la raíz /admin.html
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'), err => {
+    // Esto es lo que fallaba antes. Ahora busca en 3 sitios distintos.
+    res.sendFile(path.join(publicPath, 'admin.html'), err => {
         if (err) {
-            res.sendFile(path.join(__dirname, 'admin.html'), err2 => {
+            res.sendFile(path.join(clientPublicPath, 'admin.html'), err2 => {
                 if (err2) {
-                    console.error("❌ Error: No se encontró admin.html en ninguna carpeta.");
-                    res.status(404).send("El búnker de redacción no fue encontrado en el servidor.");
+                    res.sendFile(path.join(rootPath, 'admin.html'), err3 => {
+                        if (err3) res.status(404).send("Error: El panel de redacción no está en el servidor.");
+                    });
                 }
             });
         }
     });
 });
 
-// 6. LÓGICA DE PUBLICACIÓN (PIN 311)
+// 4. PUBLICACIÓN CON SU PIN 311
 app.post('/publicar', (req, res) => {
-    const { titulo, contenido, pin } = req.body;
-    
+    const { titulo, pin } = req.body;
     if (pin === "311") {
-        console.log(`✅ Noticia publicada con éxito: ${titulo}`);
+        console.log(`✅ Noticia: ${titulo} - Publicada por Director mxl`);
         res.status(200).send("Noticia en el aire 🔥");
     } else {
-        console.log("⚠️ Intento de publicación con PIN incorrecto");
-        res.status(403).send("PIN de seguridad inválido");
+        res.status(403).send("PIN de seguridad incorrecto");
     }
 });
 
-// 7. ARRANQUE DEL SERVIDOR
+// 5. ARRANQUE GLOBAL
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🏮 El Farol está brillando en el puerto ${PORT}`);
+    console.log(`🏮 El Farol brillando en puerto ${PORT}`);
 });
