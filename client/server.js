@@ -1,21 +1,56 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+require('dotenv').config();
+
 const app = express();
+
+// 1. CONFIGURACIÓN DE PUERTO (Prioridad Railway)
+// Usamos 8080 para que el "tren" llegue a la estación sin problemas
+const PORT = process.env.PORT || 8080; 
+
+// 2. CONEXIÓN A LA BASE DE DATOS
+// Usa la variable MONGODB_URL que configuramos hoy
+const mongoURI = process.env.MONGODB_URL;
+
+mongoose.connect(mongoURI)
+    .then(() => console.log('🔥 Farol conectado con éxito a MongoDB'))
+    .catch(err => console.error('❌ Error de conexión:', err));
+
+// 3. MIDDLEWARE
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Conexión Maestra Railway
-const mongoURI = process.env.MONGODB_URL || "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqnAgQhUz@mongodb.railway.internal:27017/farol?authSource=admin";
-mongoose.connect(mongoURI).then(() => console.log("🔥 Farol conectado con éxito"));
+// 4. ARCHIVOS ESTÁTICOS
+// Servimos el CSS, imágenes y JS del panel de redacción
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Servir archivos desde la misma carpeta
-app.use(express.static(__dirname));
+// 5. RUTAS DEL SISTEMA
+// Ruta principal del periódico
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-// Rutas de API y Navegación
-app.get('/api/news', async (req, res) => { /* ... */ });
-app.post('/api/news', async (req, res) => { /* ... */ });
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+// Ruta del Panel de Redacción (Admin)
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Periódico vivo en puerto ${PORT}`));
+// 6. LÓGICA DE PUBLICACIÓN (PIN 311)
+app.post('/publicar', (req, res) => {
+    const { titulo, contenido, pin } = req.body;
+    
+    // Verificación del PIN de seguridad que usted definió
+    if (pin === "311") {
+        console.log(`✅ Noticia publicada: ${titulo}`);
+        res.status(200).send("Noticia en el aire 🔥");
+    } else {
+        console.log("⚠️ Intento de publicación con PIN incorrecto");
+        res.status(403).send("PIN de seguridad inválido");
+    }
+});
+
+// 7. ARRANQUE DEL SERVIDOR
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🏮 El Farol está brillando en el puerto ${PORT}`);
+});
