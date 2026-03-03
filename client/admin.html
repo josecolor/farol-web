@@ -3,50 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Redacción | Farol</title>
+    <title>Redacción Pro | Farol</title>
     <style>
         :root { --naranja: #FF8C00; --negro: #000; }
-        body { background: var(--negro); color: white; font-family: sans-serif; padding: 20px; margin: 0; }
+        body { background: var(--negro); color: white; font-family: sans-serif; padding: 15px; margin: 0; }
         .container { max-width: 500px; margin: auto; }
-        input, textarea { width: 100%; padding: 15px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .file-label { display: block; background: #333; padding: 15px; text-align: center; border-radius: 8px; border: 1px dashed var(--naranja); cursor: pointer; margin: 10px 0; }
         .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; }
-        button { width: 100%; padding: 20px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; margin-top: 10px; }
+        button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; }
+        #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 style="color: var(--naranja); text-align: center;">🏮 REDACCIÓN</h1>
+        
         <label>Título</label>
-        <input type="text" id="title" placeholder="Título de la noticia">
-        <label>Ubicación</label>
-        <input type="text" id="loc" placeholder="Ej: Santo Domingo">
+        <input type="text" id="title" placeholder="¿Qué pasó?">
+        
+        <label>Foto de la Noticia</label>
+        <label class="file-label" for="imageInput">📸 TOCAR PARA SUBIR FOTO</label>
+        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImg(this)">
+        <img id="preview">
+        
         <label>Reporte</label>
-        <textarea id="content" rows="10" placeholder="Escriba aquí la noticia..."></textarea>
+        <textarea id="content" rows="6" placeholder="Escriba la noticia aquí..."></textarea>
+        
         <label>PIN de Seguridad</label>
         <input type="password" id="pin" class="pin-field" placeholder="****">
+        
         <button onclick="publish()">PUBLICAR AHORA 🔥</button>
     </div>
+
     <script>
+        let base64Image = "";
+
+        // Función para ver la foto antes de enviarla
+        function previewImg(input) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('preview');
+                img.src = e.target.result;
+                img.style.display = "block";
+                base64Image = e.target.result; // Aquí se guarda la foto para el servidor
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+
         async function publish() {
             const userPin = document.getElementById('pin').value;
             if(userPin !== "311") return alert("PIN INCORRECTO");
+
             const body = {
                 titulo: document.getElementById('title').value,
-                ubicacion: document.getElementById('loc').value,
+                ubicacion: "Santo Domingo",
                 contenido: document.getElementById('content').value,
+                imagen: base64Image, // La foto de su celular va aquí
                 pin: userPin
             };
+
             if(!body.titulo || !body.contenido) return alert("Falta información");
+
             const res = await fetch('/publicar', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(body)
             });
+
             if(res.ok) {
-                alert("¡NOTICIA PUBLICADA! 🔥");
+                alert("¡PUBLICADO CON FOTO! 🔥");
                 location.reload();
             } else {
-                alert("Error en el servidor.");
+                alert("Error al subir. Intente con una foto más pequeña.");
             }
         }
     </script>
