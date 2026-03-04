@@ -4,14 +4,14 @@ const cors = require('cors');
 const path = require('path');
 const app = express();
 
-// Optimizamos para que el servidor no se sofoque
-app.use(express.json({ limit: '10mb' })); 
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// Optimizamos para que el servidor no se sofoque desde el cel
+app.use(express.json({ limit: '15mb' })); 
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-// ENLACE DIRECTO (Copia esto tal cual, es tu búnker oficial)
-const mongoURI = "mongodb://mongo:vSInmYfSIsYfXmRAsmYkUvUqFfIDVvWb@mongodb.railway.internal:27017";
+// ENLACE CORREGIDO: Usamos la variable de entorno para que Railway conecte solo
+const mongoURI = process.env.MONGO_URL || "mongodb://mongo:vSInmYfSIsYfXmRAsmYkUvUqFfIDVvWb@mongodb.railway.internal:27017";
 
 mongoose.connect(mongoURI)
   .then(() => console.log('Búnker conectado con éxito ✅'))
@@ -22,15 +22,17 @@ const noticiaSchema = new mongoose.Schema({
   contenido: { type: String, required: true },
   ubicacion: String,
   redactor: String,
-  foto: String,
+  imagen: String, // Cambiado de 'foto' a 'imagen' para que coincida con tu index.html
   fecha: { type: Date, default: Date.now }
 });
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
+// Rutas de archivos
 app.get('/redaccion', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'redaccion.html'));
+  res.sendFile(path.join(__dirname, 'public', 'admin.html')); // Asegúrate que el archivo se llame admin.html
 });
 
+// PUBLICAR NOTICIA
 app.post('/publicar', async (req, res) => {
   const { pin, titulo, contenido, ubicacion, redactor, imagen } = req.body;
   
@@ -38,17 +40,19 @@ app.post('/publicar', async (req, res) => {
 
   try {
     const nuevaNoticia = new Noticia({ 
-      titulo, contenido, ubicacion, redactor, foto: imagen 
+      titulo, contenido, ubicacion, redactor, imagen 
     });
     await nuevaNoticia.save();
     console.log("🔥 Noticia publicada por: " + redactor);
     res.status(200).send("Publicado con éxito 🏮");
   } catch (error) {
+    console.error(error);
     res.status(500).send("Error al guardar");
   }
 });
 
-app.get('/api/noticias', async (req, res) => {
+// OBTENER NOTICIAS (Sincronizado con tu index.html)
+app.get('/noticias', async (req, res) => {
   try {
     const noticias = await Noticia.find().sort({ fecha: -1 }).limit(20);
     res.json(noticias);
