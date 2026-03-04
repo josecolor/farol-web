@@ -1,81 +1,61 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const path = require('path');
 const cors = require('cors');
-require('dotenv').config();
-
+const path = require('path');
 const app = express();
-// Puerto 8080 verificado para el tren de Railway
-const PORT = process.env.PORT || 8080; 
 
-// 1. ACTIVACIÓN DE MULTIMEDIA Y SEGURIDAD
-// Esto arregla los botones de fotos/videos y el cuadro de texto vacío
+// --- CORRECCIÓN DE ERROR DE TAMAÑO DE FOTO ---
+// Aumentamos el límite a 10mb para que soporte fotos de alta resolución
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// ---------------------------------------------
+
 app.use(cors());
-app.use((req, res, next) => {
-    res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; worker-src * blob:;");
-    next();
+app.use(express.static('public'));
+
+// Conexión a MongoDB (Railway)
+mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost/farol_db')
+  .then(() => console.log('Búnker conectado a la base de datos'))
+  .catch(err => console.error('Error de conexión:', err));
+
+// Esquema de Noticias
+const noticiaSchema = new mongoose.Schema({
+  titulo: String,
+  contenido: String,
+  ubicacion: String,
+  redactor: String,
+  foto: String, // Aquí se guarda la imagen en Base64
+  fecha: { type: Date, default: Date.now }
 });
 
-// 2. CONEXIÓN A BASE DE DATOS (Verificada en logs)
-mongoose.connect(process.env.MONGODB_URL)
-    .then(() => console.log('🔥 Farol conectado con éxito a MongoDB'))
-    .catch(err => console.error('❌ Error de conexión:', err));
+const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Ruta para recibir noticias desde el panel
+app.post('/noticias', async (req, res) => {
+  const { pin, titulo, contenido, ubicacion, redactor, foto } = req.body;
 
-// 3. RASTREADOR DE ARCHIVOS (Evita el error ENOENT / Not Found)
-// Busca en todas las carpetas posibles del servidor
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'client', 'public')));
-app.use(express.static(__dirname));
+  // Verificación de seguridad con su PIN 311
+  if (pin !== "311") {
+    return res.status(403).send("PIN incorrecto");
+  }
 
-// 4. RUTAS CON BUSQUEDA TRIPLE
-app.get('/', (req, res) => {
-    const paths = [
-        path.join(__dirname, 'public', 'index.html'),
-        path.join(__dirname, 'client', 'public', 'index.html'),
-        path.join(__dirname, 'index.html')
-    ];
-    res.sendFile(paths[0], err => {
-        if (err) res.sendFile(paths[1], err2 => {
-            if (err2) res.sendFile(paths[2], err3 => {
-                if (err3) res.status(404).send("No se encuentra la portada.");
-            });
-        });
-    });
+  try {
+    const nuevaNoticia = new Noticia({ titulo, contenido, ubicacion, redactor, foto });
+    await nuevaNoticia.save();
+    res.status(200).send("Noticia publicada con éxito en Farol Al Día 🏮");
+  } catch (error) {
+    res.status(500).send("Error al guardar en el búnker");
+  }
 });
 
-app.get('/admin', (req, res) => {
-    // Asegura que el búnker de redacción abra sin importar la carpeta
-    const paths = [
-        path.join(__dirname, 'public', 'admin.html'),
-        path.join(__dirname, 'client', 'public', 'admin.html'),
-        path.join(__dirname, 'admin.html')
-    ];
-    res.sendFile(paths[0], err => {
-        if (err) res.sendFile(paths[1], err2 => {
-            if (err2) res.sendFile(paths[2], err3 => {
-                if (err3) res.status(404).send("Error: El búnker no aparece en el servidor.");
-            });
-        });
-    });
+// Ruta para mostrar las noticias en la web
+app.get('/api/noticias', async (req, res) => {
+  const noticias = await Noticia.find().sort({ fecha: -1 });
+  res.json(noticias);
 });
 
-// 5. PUBLICACIÓN OFICIAL (PIN 311)
-app.post('/publicar', (req, res) => {
-    const { titulo, pin } = req.body;
-    // Su PIN secreto para seguridad del equipo
-    if (pin === "311") {
-        console.log(`✅ Noticia: ${titulo} - Lanzada por Director mxl`);
-        res.status(200).send("Noticia en el aire 🔥");
-    } else {
-        console.log("⚠️ Intento de publicación fallido: PIN incorrecto");
-        res.status(403).send("PIN incorrecto");
-    }
-});
-
-// 6. ARRANQUE GLOBAL
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🏮 El Farol brillando en puerto ${PORT}`);
+// Iniciar servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Farol Al Día encendido en puerto ${PORT}`);
 });
