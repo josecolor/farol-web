@@ -3,29 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farol Al Día 🏮 | Noticias en Vivo</title>
+    <title>Farol Al Día 🏮 | Noticias en Vivo RD</title>
+    <meta name="description" content="Noticias de última hora, Trap y Deportes en República Dominicana.">
+    
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-P8V8JK5M"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GT-P8V8JK5M');
+    </script>
+
     <style>
-        :root { --naranja: #FF8C00; --negro: #000; }
-        body { background: var(--negro); color: white; font-family: sans-serif; margin: 0; padding: 10px; }
-        .header { text-align: center; padding: 20px; border-bottom: 2px solid var(--naranja); }
-        .canal-btn { 
-            display: block; background: #25D366; color: white; text-align: center; 
-            padding: 15px; margin: 15px 0; border-radius: 10px; font-weight: bold; 
-            text-decoration: none; font-size: 1.1em; border: 2px solid white;
+        :root { 
+            --naranja: #FF8C00; 
+            --negro: #0b0b0b; 
+            --gris-oscuro: #1a1a1a;
+            --whatsapp: #25D366;
+            --blanco: #f4f4f4;
         }
-        .noticia { background: #1a1a1a; margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
-        .noticia img { width: 100%; height: auto; display: block; }
-        .noticia-body { padding: 15px; }
-        .tag { color: var(--naranja); font-weight: bold; font-size: 0.9em; text-transform: uppercase; }
-        .titulo { font-size: 1.5em; margin: 10px 0; line-height: 1.2; }
-        .meta { color: #888; font-size: 0.85em; margin-bottom: 10px; }
-        .contenido { color: #ccc; line-height: 1.5; }
+        body { 
+            background: var(--negro); 
+            color: var(--blanco); 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 10px;
+            line-height: 1.6;
+        }
+        .header { 
+            text-align: center; 
+            padding: 30px 10px; 
+            border-bottom: 3px solid var(--naranja);
+            background: linear-gradient(to bottom, #1a1a1a, var(--negro));
+            margin-bottom: 15px;
+        }
+        .header h1 { font-size: 2.2em; letter-spacing: 1px; margin: 0; }
+        
+        .canal-btn { 
+            display: block; 
+            background: var(--whatsapp); 
+            color: white; 
+            text-align: center; 
+            padding: 16px; 
+            margin: 10px 5px 25px 5px; 
+            border-radius: 50px; 
+            font-weight: 800; 
+            text-decoration: none; 
+            font-size: 1.1em; 
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+            transition: transform 0.2s;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .canal-btn:active { transform: scale(0.96); }
+
+        .noticia { 
+            background: var(--gris-oscuro); 
+            margin-bottom: 30px; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            border: 1px solid #2a2a2a;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.7);
+        }
+        .noticia img { 
+            width: 100%; 
+            max-height: 450px;
+            object-fit: cover; 
+            display: block; 
+            border-bottom: 3px solid var(--naranja);
+        }
+        .noticia-body { padding: 20px; }
+        .tag { 
+            display: inline-block;
+            background: rgba(255, 140, 0, 0.15);
+            color: var(--naranja); 
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-weight: bold; 
+            font-size: 0.8em; 
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+        }
+        .titulo { 
+            font-size: 1.7em; 
+            margin: 5px 0 15px 0; 
+            line-height: 1.2;
+            font-weight: 800;
+            color: #fff;
+        }
+        .meta { 
+            color: #aaa; 
+            font-size: 0.85em; 
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .contenido { 
+            color: #e0e0e0; 
+            font-size: 1.1em; 
+            white-space: pre-wrap; /* Mantiene los saltos de línea que hagas en el búnker */
+        }
+        
+        .loading { 
+            text-align: center; 
+            padding: 50px; 
+            color: var(--naranja); 
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        /* Estilo para celulares: optimiza el espacio */
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.8em; }
+            .titulo { font-size: 1.4em; }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1 style="margin:0;">FAROL AL DÍA 🏮</h1>
-        <p style="color: var(--naranja); margin:5px 0;">Iluminando la Verdad</p>
+        <h1>FAROL AL DÍA 🏮</h1>
+        <p style="color: var(--naranja); margin:8px 0; font-weight: 900; text-transform: uppercase; font-size: 0.9em; letter-spacing: 2px;">Iluminando la Verdad</p>
     </div>
 
     <a href="https://whatsapp.com/channel/0029Vb7TMgWGk1Fw3lINT03G" class="canal-btn">
@@ -33,7 +133,7 @@
     </a>
 
     <div id="noticias-container">
-        <p style="text-align:center; color:#555;">Esperando primicias del búnker...</p>
+        <div class="loading">Conectando con el búnker de noticias...</div>
     </div>
 
     <script>
@@ -42,26 +142,35 @@
                 const res = await fetch('/noticias');
                 const noticias = await res.json();
                 const container = document.getElementById('noticias-container');
-                container.innerHTML = "";
-
+                
+                let htmlContent = "";
+                // Invertimos para que la última noticia publicada salga primero
                 noticias.reverse().forEach(n => {
-                    container.innerHTML += `
-                        <div class="noticia">
-                            ${n.imagen ? `<img src="${n.imagen}">` : ''}
+                    htmlContent += `
+                        <article class="noticia">
+                            ${n.imagen ? `<img src="${n.imagen}" alt="${n.titulo}" loading="lazy">` : ''}
                             <div class="noticia-body">
-                                <span class="tag">📍 ${n.ubicacion || 'General'}</span>
+                                <span class="tag">📍 ${n.ubicacion || 'RD'}</span>
                                 <h2 class="titulo">${n.titulo}</h2>
-                                <div class="meta">Por: <b>${n.redactor}</b> | Farol Al Día</div>
+                                <div class="meta">
+                                    <span>✍️ Por: <b>${n.redactor}</b></span> 
+                                    <span style="margin-left:auto;">🏮 Farol Al Día</span>
+                                </div>
                                 <p class="contenido">${n.contenido}</p>
                             </div>
-                        </div>
+                        </article>
                     `;
                 });
+                
+                container.innerHTML = htmlContent || '<p style="text-align:center; padding:20px;">No hay primicias en este momento.</p>';
             } catch (e) {
-                console.log("Esperando datos...");
+                console.log("Error de conexión con el búnker...");
+                container.innerHTML = '<p style="text-align:center; color:orange;">Reconectando señal...</p>';
             }
         }
-        setInterval(cargarNoticias, 5000);
+
+        // Actualiza cada 30 segundos para ahorrar tus datos y batería
+        setInterval(cargarNoticias, 30000); 
         cargarNoticias();
     </script>
 </body>
