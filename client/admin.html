@@ -3,125 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción Oficial | Farol</title>
+    <title>Búnker de Redacción 🏮 | Admin</title>
     <style>
-        :root { --naranja: #FF8C00; --negro: #000; }
-        body { background: var(--negro); color: white; font-family: sans-serif; padding: 15px; margin: 0; }
-        .container { max-width: 500px; margin: auto; }
-        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .file-label { display: block; background: #333; padding: 15px; text-align: center; border-radius: 8px; border: 1px dashed var(--naranja); cursor: pointer; margin: 10px 0; }
-        .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; font-size: 20px; }
-        button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; margin-top: 10px; }
-        button:disabled { background: #555; cursor: not-allowed; }
-        #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; border: 1px solid var(--naranja); }
-        .loading { display: none; text-align: center; color: var(--naranja); font-weight: bold; margin: 10px 0; }
+        :root { 
+            --naranja: #FF8C00; 
+            --negro: #0b0b0b; 
+            --gris: #1a1a1a; 
+        }
+        body { 
+            background: var(--negro); 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding: 15px; 
+            margin: 0;
+        }
+        .panel { 
+            background: var(--gris); 
+            padding: 25px; 
+            border-radius: 25px; 
+            border: 2px solid var(--naranja);
+            max-width: 500px;
+            margin: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 { text-align: center; color: var(--naranja); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        label { display: block; margin: 10px 0 5px; color: var(--naranja); font-weight: bold; font-size: 0.9em; }
+        
+        input, textarea { 
+            width: 100%; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 12px; 
+            border: 1px solid #333; 
+            background: #222; 
+            color: white; 
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+
+        .file-label {
+            display: block;
+            background: #333;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 2px dashed var(--naranja);
+            margin-bottom: 15px;
+        }
+
+        #preview { 
+            width: 100%; 
+            margin-top: 10px; 
+            border-radius: 15px; 
+            display: none; 
+            border: 1px solid #444;
+        }
+
+        .btn-publicar { 
+            background: var(--naranja); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            width: 100%; 
+            border-radius: 50px; 
+            font-weight: 900; 
+            font-size: 1.2em; 
+            cursor: pointer; 
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+            margin-top: 10px;
+        }
+        .btn-publicar:active { transform: scale(0.96); }
+        
+        .loader { display: none; text-align: center; color: var(--naranja); font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 style="color: var(--naranja); text-align: center;">🏮 REDACCIÓN</h1>
+    <div class="panel">
+        <h2>BÚNKER DE REDACCIÓN 🏮</h2>
         
-        <label>Título de la Noticia</label>
-        <input type="text" id="title" placeholder="¿Qué pasó?">
-
-        <label>Nombre del Periodista</label>
-        <input type="text" id="reporter" placeholder="¿Quién escribe?">
-
-        <label>Palabra Clave (Ubicación)</label>
-        <input type="text" id="location" placeholder="Ej: Herrera, SDE">
+        <label>TÍTULO DE LA PRIMICIA</label>
+        <input type="text" id="titulo" placeholder="¿Qué está pasando?">
         
-        <label>Foto de la Noticia</label>
-        <label class="file-label" for="imageInput" id="labelFoto">📸 TOCAR PARA SUBIR FOTO</label>
-        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="processImg(this)">
+        <label>REDACTOR</label>
+        <input type="text" id="redactor" value="mxl">
+        
+        <label>UBICACIÓN</label>
+        <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este">
+        
+        <label>CUERPO DE LA NOTICIA</label>
+        <textarea id="contenido" rows="6" placeholder="Escribe los detalles aquí..."></textarea>
+        
+        <label class="file-label" for="foto" id="labelFoto">📸 TOCAR PARA SUBIR FOTO</label>
+        <input type="file" id="foto" accept="image/*" style="display:none">
         <img id="preview">
+
+        <label>PIN DE SEGURIDAD</label>
+        <input type="password" id="pin" placeholder="Introduce el PIN (311)">
         
-        <label>Cuerpo de la Noticia</label>
-        <textarea id="content" rows="6" placeholder="Escriba el reporte detallado..."></textarea>
-        
-        <label>PIN de Seguridad</label>
-        <input type="password" id="pin" class="pin-field" placeholder="****">
-        
-        <div id="loader" class="loading">PROCESANDO ENVÍO... ESPERE ⏳</div>
-        <button id="btnPublicar" onclick="publish()">PUBLICAR AHORA 🔥</button>
+        <div id="loader" class="loader">ENVIANDO AL BÚNKER... 🚀</div>
+        <button id="btnPublicar" class="btn-publicar" onclick="enviarNoticia()">🚀 PUBLICAR AHORA</button>
     </div>
 
     <script>
-        let base64Image = "";
+        const fotoInput = document.getElementById('foto');
+        const preview = document.getElementById('preview');
+        const labelFoto = document.getElementById('labelFoto');
+        let imagenBase64 = "";
 
-        // FUNCIÓN CLAVE: Comprime la foto antes de enviarla
-        function processImg(input) {
-            const file = input.files[0];
-            if (!file) return;
-
+        // Función de compresión para celular (mantiene tu lógica original)
+        fotoInput.onchange = e => {
+            const file = e.target.files[0];
+            if(!file) return;
+            
             const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function (event) {
+            reader.onload = (event) => {
                 const img = new Image();
                 img.src = event.target.result;
-                img.onload = function () {
+                img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    
-                    // Redimensionamos a un tamaño máximo de 800px para ahorrar memoria
                     const maxWidth = 800;
                     const scale = maxWidth / img.width;
                     canvas.width = maxWidth;
                     canvas.height = img.height * scale;
-
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    // Convertimos a JPG con calidad media (0.7) para que pese poquísimo
-                    base64Image = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    const preview = document.getElementById('preview');
-                    preview.src = base64Image;
+                    imagenBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    preview.src = imagenBase64;
                     preview.style.display = "block";
-                    document.getElementById('labelFoto').innerText = "✅ FOTO LISTA";
-                }
-            }
-        }
+                    labelFoto.innerText = "✅ FOTO LISTA";
+                };
+            };
+            reader.readAsDataURL(file);
+        };
 
-        async function publish() {
-            const userPin = document.getElementById('pin').value;
-            if(userPin !== "311") return alert("PIN INCORRECTO");
-
+        async function enviarNoticia() {
+            const pin = document.getElementById('pin').value;
             const btn = document.getElementById('btnPublicar');
             const loader = document.getElementById('loader');
 
-            const body = {
-                titulo: document.getElementById('title').value,
-                redactor: document.getElementById('reporter').value,
-                ubicacion: document.getElementById('location').value,
-                contenido: document.getElementById('content').value,
-                imagen: base64Image,
-                pin: userPin
+            const data = {
+                titulo: document.getElementById('titulo').value,
+                redactor: document.getElementById('redactor').value,
+                ubicacion: document.getElementById('ubicacion').value,
+                contenido: document.getElementById('contenido').value,
+                imagen: imagenBase64,
+                pin: pin
             };
 
-            if(!body.titulo || !body.contenido || !body.redactor || !body.imagen) {
-                return alert("Falta información o la foto.");
+            if(!data.titulo || pin !== '311') {
+                return alert("Revisa el título y el PIN 311");
             }
 
-            // Bloqueamos botón para evitar doble envío
-            btn.disabled = true;
+            btn.style.display = "none";
             loader.style.display = "block";
 
             try {
                 const res = await fetch('/publicar', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
+                    body: JSON.stringify(data)
                 });
 
                 if(res.ok) {
-                    alert("¡PUBLICADO CON ÉXITO! 🔥");
+                    alert("¡NOTICIA PUBLICADA CON ÉXITO! 🏮");
                     location.reload();
                 } else {
-                    alert("Error en el servidor. Quizás Railway está saturado.");
+                    alert("Error en el servidor");
                 }
-            } catch (error) {
-                alert("Error de conexión. Revisa tu internet.");
+            } catch (e) {
+                alert("Error de conexión");
             } finally {
-                btn.disabled = false;
+                btn.style.display = "block";
                 loader.style.display = "none";
             }
         }
