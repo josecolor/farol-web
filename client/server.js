@@ -10,8 +10,8 @@ app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-// ENLACE CORREGIDO: Usamos la variable de entorno para que Railway conecte solo
-const mongoURI = process.env.MONGO_URL || "mongodb://mongo:vSInmYfSIsYfXmRAsmYkUvUqFfIDVvWb@mongodb.railway.internal:27017";
+// LLAVE MAESTRA ACTUALIZADA (Copiada de tus variables de Railway)
+const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
 mongoose.connect(mongoURI)
   .then(() => console.log('Búnker conectado con éxito ✅'))
@@ -22,14 +22,14 @@ const noticiaSchema = new mongoose.Schema({
   contenido: { type: String, required: true },
   ubicacion: String,
   redactor: String,
-  imagen: String, // Cambiado de 'foto' a 'imagen' para que coincida con tu index.html
+  imagen: String, 
   fecha: { type: Date, default: Date.now }
 });
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
 // Rutas de archivos
 app.get('/redaccion', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html')); // Asegúrate que el archivo se llame admin.html
+  res.sendFile(path.join(__dirname, 'public', 'admin.html')); 
 });
 
 // PUBLICAR NOTICIA
