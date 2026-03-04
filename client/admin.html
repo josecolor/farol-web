@@ -12,7 +12,9 @@
         .file-label { display: block; background: #333; padding: 15px; text-align: center; border-radius: 8px; border: 1px dashed var(--naranja); cursor: pointer; margin: 10px 0; }
         .pin-field { border: 2px solid var(--naranja) !important; text-align: center; font-weight: bold; font-size: 20px; }
         button { width: 100%; padding: 18px; background: var(--naranja); border: none; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 1.1em; color: black; margin-top: 10px; }
+        button:disabled { background: #555; cursor: not-allowed; }
         #preview { width: 100%; border-radius: 8px; display: none; margin-bottom: 10px; border: 1px solid var(--naranja); }
+        .loading { display: none; text-align: center; color: var(--naranja); font-weight: bold; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -26,11 +28,11 @@
         <input type="text" id="reporter" placeholder="¿Quién escribe?">
 
         <label>Palabra Clave (Ubicación)</label>
-        <input type="text" id="location" placeholder="Ej: Santo Domingo Este">
+        <input type="text" id="location" placeholder="Ej: Herrera, SDE">
         
         <label>Foto de la Noticia</label>
-        <label class="file-label" for="imageInput">📸 TOCAR PARA SUBIR FOTO</label>
-        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImg(this)">
+        <label class="file-label" for="imageInput" id="labelFoto">📸 TOCAR PARA SUBIR FOTO</label>
+        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="processImg(this)">
         <img id="preview">
         
         <label>Cuerpo de la Noticia</label>
@@ -39,26 +41,52 @@
         <label>PIN de Seguridad</label>
         <input type="password" id="pin" class="pin-field" placeholder="****">
         
-        <button onclick="publish()">PUBLICAR AHORA 🔥</button>
+        <div id="loader" class="loading">PROCESANDO ENVÍO... ESPERE ⏳</div>
+        <button id="btnPublicar" onclick="publish()">PUBLICAR AHORA 🔥</button>
     </div>
 
     <script>
         let base64Image = "";
 
-        function previewImg(input) {
+        // FUNCIÓN CLAVE: Comprime la foto antes de enviarla
+        function processImg(input) {
+            const file = input.files[0];
+            if (!file) return;
+
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById('preview');
-                img.src = e.target.result;
-                img.style.display = "block";
-                base64Image = e.target.result;
+            reader.readAsDataURL(file);
+            reader.onload = function (event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Redimensionamos a un tamaño máximo de 800px para ahorrar memoria
+                    const maxWidth = 800;
+                    const scale = maxWidth / img.width;
+                    canvas.width = maxWidth;
+                    canvas.height = img.height * scale;
+
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Convertimos a JPG con calidad media (0.7) para que pese poquísimo
+                    base64Image = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    const preview = document.getElementById('preview');
+                    preview.src = base64Image;
+                    preview.style.display = "block";
+                    document.getElementById('labelFoto').innerText = "✅ FOTO LISTA";
+                }
             }
-            reader.readAsDataURL(input.files[0]);
         }
 
         async function publish() {
             const userPin = document.getElementById('pin').value;
             if(userPin !== "311") return alert("PIN INCORRECTO");
+
+            const btn = document.getElementById('btnPublicar');
+            const loader = document.getElementById('loader');
 
             const body = {
                 titulo: document.getElementById('title').value,
@@ -69,21 +97,32 @@
                 pin: userPin
             };
 
-            if(!body.titulo || !body.contenido || !body.redactor) {
-                return alert("Falta información (Título, Nombre o Reporte)");
+            if(!body.titulo || !body.contenido || !body.redactor || !body.imagen) {
+                return alert("Falta información o la foto.");
             }
 
-            const res = await fetch('/publicar', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-            });
+            // Bloqueamos botón para evitar doble envío
+            btn.disabled = true;
+            loader.style.display = "block";
 
-            if(res.ok) {
-                alert("¡PUBLICADO CON ÉXITO! 🔥");
-                location.reload();
-            } else {
-                alert("Error al conectar con Railway. Intente de nuevo.");
+            try {
+                const res = await fetch('/publicar', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+
+                if(res.ok) {
+                    alert("¡PUBLICADO CON ÉXITO! 🔥");
+                    location.reload();
+                } else {
+                    alert("Error en el servidor. Quizás Railway está saturado.");
+                }
+            } catch (error) {
+                alert("Error de conexión. Revisa tu internet.");
+            } finally {
+                btn.disabled = false;
+                loader.style.display = "none";
             }
         }
     </script>
