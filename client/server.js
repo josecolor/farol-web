@@ -4,13 +4,13 @@ const cors = require('cors');
 const path = require('path');
 const app = express();
 
-// Optimizamos para que el servidor no se sofoque desde el cel
 app.use(express.json({ limit: '15mb' })); 
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// CORRECCIÓN 1: Tus archivos están en la carpeta 'client', no en 'public'
+app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
-// LLAVE MAESTRA ACTUALIZADA (Copiada de tus variables de Railway)
 const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
 mongoose.connect(mongoURI)
@@ -27,12 +27,11 @@ const noticiaSchema = new mongoose.Schema({
 });
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-// Rutas de archivos
+// CORRECCIÓN 2: La ruta debe buscar 'redaccion.html' dentro de 'client'
 app.get('/redaccion', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html')); 
+  res.sendFile(path.join(__dirname, 'client', 'redaccion.html')); 
 });
 
-// PUBLICAR NOTICIA
 app.post('/publicar', async (req, res) => {
   const { pin, titulo, contenido, ubicacion, redactor, imagen } = req.body;
   
@@ -51,7 +50,6 @@ app.post('/publicar', async (req, res) => {
   }
 });
 
-// OBTENER NOTICIAS (Sincronizado con tu index.html)
 app.get('/noticias', async (req, res) => {
   try {
     const noticias = await Noticia.find().sort({ fecha: -1 }).limit(20);
