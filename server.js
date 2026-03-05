@@ -2,7 +2,7 @@
  * 🏮 FAROL AL DÍA - Servidor Express
  * Bunker de noticias - República Dominicana
  * 
- * VERSIÓN CORREGIDA CON:
+ * VERSIÓN CON:
  * ✅ Validación robusta de PIN
  * ✅ Validación de campos obligatorios
  * ✅ Manejo de errores en todas las rutas
@@ -11,6 +11,9 @@
  * ✅ Logging detallado
  * ✅ Responses en JSON consistente
  * ✅ Cierre graceful del servidor
+ * ✅ NAVEGACIÓN POR SECCIONES
+ * ✅ NOTICIAS INDIVIDUALES
+ * ✅ BÚSQUEDA DE NOTICIAS
  */
 
 const express = require('express');
@@ -34,11 +37,9 @@ app.use(cors());
 
 // ==================== CONEXIÓN A BASE DE DATOS ====================
 
-// CORRECCIÓN #5: Usar variables de entorno
 const mongoURI = process.env.MONGO_URI || 
   "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
-// Conectar a MongoDB
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -49,13 +50,12 @@ mongoose.connect(mongoURI, {
   })
   .catch(err => {
     console.error('❌ Error de conexión a MongoDB:', err.message);
-    process.exit(1); // Detener si no hay conexión
+    process.exit(1);
   });
 
 // ==================== ESQUEMA Y MODELO ====================
 
 const noticiaSchema = new mongoose.Schema({
-  // CORRECCIÓN #1 y #2: Agregar validaciones al schema
   titulo: {
     type: String,
     required: [true, 'El título es obligatorio'],
@@ -65,7 +65,7 @@ const noticiaSchema = new mongoose.Schema({
   seccion: {
     type: String,
     required: [true, 'La sección es obligatoria'],
-    enum: ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos'],
+    enum: ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'],
     trim: true
   },
   contenido: {
@@ -99,8 +99,7 @@ const Noticia = mongoose.model('Noticia', noticiaSchema);
 // ==================== RUTAS - GET ====================
 
 /**
- * GET / - Servir la página principal (index.html)
- * CORRECCIÓN #3: Agregar manejo de errores en sendFile
+ * GET / - Servir la página principal
  */
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'index.html'), (err) => {
@@ -113,7 +112,6 @@ app.get('/', (req, res) => {
 
 /**
  * GET /redaccion - Servir el panel de redacción
- * CORRECCIÓN #3: Agregar manejo de errores en sendFile
  */
 app.get('/redaccion', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'redaccion.html'), (err) => {
@@ -126,16 +124,13 @@ app.get('/redaccion', (req, res) => {
 
 /**
  * GET /noticias - Obtener todas las noticias con paginación
- * CORRECCIÓN #8: Agregar soporte para paginación
  * Query params: limit, skip
  */
 app.get('/noticias', async (req, res) => {
   try {
-    // CORRECCIÓN #8: Implementar paginación
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100); // Máximo 100
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = parseInt(req.query.skip) || 0;
 
-    // Validar que los parámetros sean números válidos
     if (isNaN(limit) || isNaN(skip) || skip < 0) {
       return res.status(400).json({
         error: 'Parámetros de paginación inválidos',
@@ -147,11 +142,10 @@ app.get('/noticias', async (req, res) => {
       .sort({ fecha: -1 })
       .limit(limit)
       .skip(skip)
-      .lean(); // CORRECCIÓN: Usar lean() para mejor performance
+      .lean();
 
     const total = await Noticia.countDocuments();
 
-    // CORRECCIÓN #6: Respuesta consistente en JSON
     res.json({
       success: true,
       total: total,
@@ -162,7 +156,6 @@ app.get('/noticias', async (req, res) => {
     });
 
   } catch (error) {
-    // CORRECCIÓN #9: Loguear el error completo
     console.error('❌ Error al obtener noticias:', error.message);
     res.status(500).json({
       success: false,
@@ -172,19 +165,55 @@ app.get('/noticias', async (req, res) => {
   }
 });
 
+// ==================== RUTAS DE NAVEGACIÓN ====================
+
 /**
- * GET /noticias/:id - Obtener una noticia por su ID
- * CORRECCIÓN #10: Validar ObjectId antes de consultar
+ * GET /seccion/:nombre - Obtener noticias por sección
  */
-app.get('/noticias/:id', async (req, res) => {
+app.get('/seccion/:nombre', async (req, res) => {
+  try {
+    const nombre = req.params.nombre;
+    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
+
+    if (!seccionesValidas.includes(nombre)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Sección inválida'
+      });
+    }
+
+    const noticias = await Noticia.find({ seccion: nombre })
+      .sort({ fecha: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({
+      success: true,
+      seccion: nombre,
+      total: noticias.length,
+      noticias: noticias
+    });
+
+  } catch (error) {
+    console.error('❌ Error en /seccion/:nombre:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener noticias de la sección'
+    });
+  }
+});
+
+/**
+ * GET /noticia/:id - Obtener una noticia por ID
+ */
+app.get('/noticia/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // CORRECCIÓN #10: Validar que el ID sea un ObjectId válido
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        error: 'ID de noticia inválido'
+        error: 'ID inválido'
       });
     }
 
@@ -203,11 +232,50 @@ app.get('/noticias/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error al obtener noticia por ID:', error.message);
+    console.error('❌ Error en /noticia/:id:', error.message);
     res.status(500).json({
       success: false,
-      error: 'Error al obtener noticia',
-      detalles: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'Error al obtener la noticia'
+    });
+  }
+});
+
+/**
+ * GET /buscar?q=palabra - Buscar noticias
+ */
+app.get('/buscar', async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ingresa una palabra de búsqueda'
+      });
+    }
+
+    const noticias = await Noticia.find({
+      $or: [
+        { titulo: { $regex: q, $options: 'i' } },
+        { contenido: { $regex: q, $options: 'i' } }
+      ]
+    })
+    .sort({ fecha: -1 })
+    .limit(50)
+    .lean();
+
+    res.json({
+      success: true,
+      busqueda: q,
+      total: noticias.length,
+      noticias: noticias
+    });
+
+  } catch (error) {
+    console.error('❌ Error en /buscar:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al buscar noticias'
     });
   }
 });
@@ -216,14 +284,12 @@ app.get('/noticias/:id', async (req, res) => {
 
 /**
  * POST /publicar - Publicar una nueva noticia
- * Requiere: PIN, título, contenido
- * Opcionales: ubicación, redactor, imagen
  */
 app.post('/publicar', async (req, res) => {
   try {
     const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
 
-    // ============ CORRECCIÓN #1: Validar PIN completo ============
+    // Validar PIN
     if (!pin) {
       return res.status(400).json({
         success: false,
@@ -239,7 +305,7 @@ app.post('/publicar', async (req, res) => {
       });
     }
 
-    // ============ CORRECCIÓN #2: Validar campos obligatorios ============
+    // Validar campos obligatorios
     if (!titulo) {
       return res.status(400).json({
         success: false,
@@ -247,7 +313,6 @@ app.post('/publicar', async (req, res) => {
       });
     }
 
-    // ✨ NUEVA VALIDACIÓN: SECCIÓN OBLIGATORIA
     if (!seccion) {
       return res.status(400).json({
         success: false,
@@ -255,8 +320,7 @@ app.post('/publicar', async (req, res) => {
       });
     }
 
-    // Validar que la sección sea válida
-    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos'];
+    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
     if (!seccionesValidas.includes(seccion)) {
       return res.status(400).json({
         success: false,
@@ -300,10 +364,10 @@ app.post('/publicar', async (req, res) => {
       });
     }
 
-    // ============ CORRECCIÓN #7: Validar tamaño de imagen ============
+    // Validar tamaño de imagen
     if (imagen && typeof imagen === 'string') {
       const imagenSizeKB = (imagen.length / 1024).toFixed(2);
-      if (imagenSizeKB > 15 * 1024) { // 15MB en KB
+      if (imagenSizeKB > 15 * 1024) {
         return res.status(413).json({
           success: false,
           error: `Imagen muy grande: ${imagenSizeKB}KB. Máximo: 15MB`
@@ -314,7 +378,7 @@ app.post('/publicar', async (req, res) => {
     // Crear la nueva noticia
     const nuevaNoticia = new Noticia({
       titulo: titulo.trim(),
-      seccion: seccion,  // ← AGREGAR SECCIÓN
+      seccion: seccion,
       contenido: contenido.trim(),
       ubicacion: ubicacion ? ubicacion.trim() : '',
       redactor: redactor ? redactor.trim() : '',
@@ -324,33 +388,30 @@ app.post('/publicar', async (req, res) => {
     // Guardar en la base de datos
     const noticiaSaved = await nuevaNoticia.save();
 
-    // CORRECCIÓN #9: Loguear el éxito
     console.log('📰 Nueva noticia publicada:', {
       id: noticiaSaved._id,
       titulo: noticiaSaved.titulo,
+      seccion: noticiaSaved.seccion,
       timestamp: new Date().toISOString()
     });
 
-    // CORRECCIÓN #6: Respuesta consistente en JSON
     res.status(201).json({
       success: true,
       message: 'Publicado con éxito 🏮',
       noticia: {
         id: noticiaSaved._id,
         titulo: noticiaSaved.titulo,
+        seccion: noticiaSaved.seccion,
         fecha: noticiaSaved.fecha
       }
     });
 
   } catch (error) {
-    // CORRECCIÓN #9: Loguear el error completo
     console.error('❌ Error al publicar noticia:', {
       message: error.message,
-      stack: error.stack,
       timestamp: new Date().toISOString()
     });
 
-    // Manejar errores de validación de Mongoose
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors)
         .map(err => err.message)
@@ -373,7 +434,7 @@ app.post('/publicar', async (req, res) => {
 // ==================== MIDDLEWARE DE ERROR GLOBAL ====================
 
 /**
- * CORRECCIÓN #4: Middleware para rutas no encontradas
+ * Middleware para rutas no encontradas
  */
 app.use((req, res) => {
   console.warn(`⚠️ Ruta no encontrada: ${req.method} ${req.path}`);
@@ -386,13 +447,11 @@ app.use((req, res) => {
 });
 
 /**
- * CORRECCIÓN #4: Middleware para manejo global de errores
- * Nota: Debe ser el último middleware
+ * Middleware para manejo global de errores
  */
 app.use((err, req, res, next) => {
   console.error('❌ Error no capturado:', {
     message: err.message,
-    stack: err.stack,
     timestamp: new Date().toISOString()
   });
 
@@ -418,15 +477,14 @@ const server = app.listen(PORT, () => {
 ║ 📡 URL: http://localhost:${PORT}           ║
 ║ 🔐 Admin: http://localhost:${PORT}/redaccion ║
 ║ 📰 Noticias: http://localhost:${PORT}/noticias ║
+║ 📌 Secciones: http://localhost:${PORT}/seccion/:nombre ║
+║ 🔍 Búsqueda: http://localhost:${PORT}/buscar?q=palabra ║
 ╚════════════════════════════════════════════╝
   `);
 });
 
 // ==================== MANEJO DE CIERRE GRACEFUL ====================
 
-/**
- * CORRECCIÓN: Manejar cierre del servidor correctamente
- */
 process.on('SIGTERM', () => {
   console.log('\n⏹️ Señal SIGTERM recibida. Cerrando servidor gracefully...');
   
@@ -439,7 +497,6 @@ process.on('SIGTERM', () => {
     });
   });
 
-  // Si no cierra en 10 segundos, forzar cierre
   setTimeout(() => {
     console.error('⚠️ Timeout. Forzando cierre...');
     process.exit(1);
@@ -451,18 +508,14 @@ process.on('SIGINT', () => {
   process.emit('SIGTERM');
 });
 
-// Manejar excepciones no capturadas
 process.on('uncaughtException', (err) => {
   console.error('💥 Excepción no capturada:', err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Promesa rechazada no manejada:', {
-    reason: reason,
-    promise: promise
-  });
+  console.error('💥 Promesa rechazada no manejada:', reason);
 });
 
-module.exports = app; // Para testing
+module.exports = app;
 
