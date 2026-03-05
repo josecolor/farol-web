@@ -2,622 +2,409 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Búnker de Redacción 🏮 | Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Redacción Móvil 🏮</title>
     <style>
-        :root {
-            --naranja: #FF8C00;
-            --negro: #0b0b0b;
-            --gris: #1a1a1a;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background: var(--negro);
+            background: #0b0b0b;
             color: white;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 15px;
+            padding: 12px;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
         }
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--naranja);
-            padding-bottom: 10px;
+        /* BOTONES GIGANTES PARA PULGAR */
+        .btn-gigante {
+            width: 100%;
+            padding: 22px;
+            font-size: 1.4em;
+            font-weight: bold;
+            border: none;
+            border-radius: 60px;
+            background: linear-gradient(145deg, #FF8C00, #ff6b35);
+            color: white;
+            margin: 15px 0;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(255, 140, 0, 0.4);
+            transition: transform 0.1s ease;
+            letter-spacing: 1px;
         }
 
-        .tab-btn {
-            padding: 10px 20px;
+        .btn-gigante:active {
+            transform: scale(0.97);
+        }
+
+        .btn-gigante:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
+
+        .btn-secundario {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.2em;
+            border: 2px solid #FF8C00;
+            border-radius: 50px;
             background: transparent;
-            color: white;
-            border: none;
+            color: #FF8C00;
+            margin: 8px 0;
             cursor: pointer;
             font-weight: bold;
-            text-transform: uppercase;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
         }
 
-        .tab-btn.active {
-            color: var(--naranja);
-            border-bottom-color: var(--naranja);
+        /* CAMPOS GIGANTES */
+        input, textarea, select {
+            width: 100%;
+            padding: 18px 20px;
+            font-size: 1.2em;
+            border-radius: 30px;
+            border: 2px solid #333;
+            background: #1a1a1a;
+            color: white;
+            margin: 8px 0;
+            -webkit-appearance: none;
         }
 
-        .tab-btn:hover {
-            color: var(--naranja);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .panel {
-            background: var(--gris);
-            padding: 20px;
+        textarea {
+            min-height: 200px;
             border-radius: 25px;
-            border: 2px solid var(--naranja);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--naranja);
-        }
-
-        h2 {
-            color: var(--naranja);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 1.6em;
-        }
-
-        .subtitle {
-            color: #aaa;
-            font-size: 0.85em;
-            margin-top: 5px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
+            font-size: 1.2em;
+            line-height: 1.5;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            color: var(--naranja);
+            font-size: 1.1em;
+            color: #FF8C00;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            margin-top: 20px;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        /* SUBIDA DE ARCHIVOS - ÁREA GIGANTE */
+        .file-area {
+            border: 3px dashed #FF8C00;
+            border-radius: 40px;
+            padding: 30px 20px;
+            text-align: center;
+            background: #1a1a1a;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+
+        .file-area span {
+            display: block;
+            font-size: 1.3em;
+            color: #FF8C00;
+            margin-bottom: 10px;
+        }
+
+        .file-area small {
+            color: #888;
             font-size: 0.9em;
         }
 
-        input[type="text"],
-        input[type="password"],
-        input[type="file"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 12px 15px;
-            border-radius: 12px;
-            border: 1px solid #333;
-            background: #222;
-            color: white;
-            font-size: 1em;
-            font-family: inherit;
-            transition: all 0.3s ease;
-        }
-
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--naranja);
-            box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
-            background: #2a2a2a;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 20px;
-            padding-right: 40px;
-        }
-
-        .file-label {
-            display: block;
-            background: #333;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            border-radius: 12px;
-            cursor: pointer;
-            border: 2px dashed var(--naranja);
-            margin-bottom: 10px;
-            transition: all 0.3s ease;
-            font-weight: bold;
-        }
-
-        .file-label:hover {
-            background: #404040;
-            border-color: #ff9d1f;
-        }
-
-        #preview, #previewEditar {
+        #preview, #previewVideo {
             width: 100%;
             max-height: 300px;
-            margin-top: 10px;
-            border-radius: 12px;
+            border-radius: 25px;
+            margin: 15px 0;
             display: none;
-            border: 1px solid #444;
-            object-fit: cover;
+            background: #000;
         }
 
-        #previewVideo, #previewVideoEditar {
-            width: 100%;
-            max-height: 300px;
-            margin-top: 10px;
-            border-radius: 12px;
-            display: none;
-            border: 1px solid #444;
-        }
-
-        .file-info {
-            font-size: 0.85em;
-            color: #888;
-            margin-top: 5px;
-        }
-
+        /* CONTADOR DE CARACTERES */
         .char-count {
-            font-size: 0.8em;
+            text-align: right;
             color: #888;
-            margin-top: 4px;
+            font-size: 0.9em;
+            margin-top: 5px;
+            margin-bottom: 10px;
         }
 
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-limpiar {
-            flex: 1;
-            border: none;
-            padding: 16px;
-            border-radius: 50px;
-            font-weight: 900;
-            font-size: 1em;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-publicar {
-            background: linear-gradient(135deg, var(--naranja), #ff6b35);
-            color: white;
-        }
-
-        .btn-publicar:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6);
-        }
-
-        .btn-actualizar {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-actualizar:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
-        }
-
-        .btn-eliminar {
-            background: #f44336;
-            color: white;
-        }
-
-        .btn-eliminar:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(244, 67, 54, 0.6);
-        }
-
-        .btn-limpiar {
-            background: #666;
-            color: white;
-        }
-
-        .btn-limpiar:hover:not(:disabled) {
-            transform: translateY(-2px);
-        }
-
-        .loader {
-            display: none;
-            text-align: center;
-            color: var(--naranja);
-            font-weight: bold;
-            margin-top: 15px;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
+        /* ALERTAS */
         .alert {
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 30px;
+            margin: 15px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: center;
             display: none;
-            border-left: 4px solid;
         }
 
         .alert.success {
-            background: rgba(76, 175, 80, 0.1);
-            border-left-color: #4caf50;
-            color: #4caf50;
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+            color: #4CAF50;
         }
 
         .alert.error {
-            background: rgba(244, 67, 54, 0.1);
-            border-left-color: #f44336;
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
             color: #ff6b6b;
         }
 
-        .info-box {
-            background: #2a4a2a;
-            border: 1px solid #4caf50;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            color: #4caf50;
+        /* AUTO-GUARDADO INDICADOR */
+        .autosave {
+            text-align: center;
+            color: #4CAF50;
             font-size: 0.9em;
+            margin: 10px 0;
+            display: none;
         }
 
-        @media (max-width: 480px) {
-            .panel {
-                padding: 15px;
-            }
+        /* HEADER */
+        h1 {
+            text-align: center;
+            color: #FF8C00;
+            font-size: 2.2em;
+            margin: 20px 0;
+            text-shadow: 0 0 15px rgba(255, 140, 0, 0.5);
+        }
 
-            h2 {
-                font-size: 1.3em;
-            }
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 25px;
+        }
 
-            .button-group {
-                flex-direction: column;
-            }
+        /* GRID PARA BOTONES PEQUEÑOS */
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 20px 0;
+        }
 
-            .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-limpiar {
-                font-size: 0.9em;
-                padding: 14px;
-            }
+        .button-grid button {
+            padding: 15px;
+            font-size: 1.1em;
+            border-radius: 40px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- TABS -->
-        <div class="tabs">
-            <button class="tab-btn active" id="btnPublicar" onclick="cambiarTab('publicar')">🚀 Publicar Nueva</button>
-            <button class="tab-btn" id="btnEditar" onclick="cambiarTab('editar')">✏️ Editar</button>
-        </div>
+        <h1>🏮 REDACCIÓN</h1>
+        <p class="subtitle">Toca cualquier campo - Todo es gigante</p>
 
-        <!-- TAB 1: PUBLICAR NUEVA -->
-        <div id="tab-publicar" class="tab-content active">
-            <div class="panel">
-                <div class="header">
-                    <h2>🏮 PUBLICAR NOTICIA</h2>
-                    <p class="subtitle">Redacción Multimedia Profesional</p>
-                </div>
+        <!-- AUTO-GUARDADO INDICADOR -->
+        <div id="autosaveIndicator" class="autosave">✅ Borrador guardado</div>
 
-                <div id="alert" class="alert"></div>
+        <!-- ALERTAS -->
+        <div id="alert" class="alert"></div>
 
-                <form id="formulario" onsubmit="event.preventDefault(); publicarNoticia();">
-                    <div class="form-group">
-                        <label for="seccion">📰 SECCIÓN *</label>
-                        <select id="seccion" required>
-                            <option value="">-- Selecciona una sección --</option>
-                            <option value="Nacionales">🇩🇴 Nacionales</option>
-                            <option value="Deportes">⚽ Deportes</option>
-                            <option value="Internacionales">🌍 Internacionales</option>
-                            <option value="Espectáculos">🎬 Espectáculos</option>
-                            <option value="Economía">💼 Economía</option>
-                        </select>
-                    </div>
+        <!-- FORMULARIO PRINCIPAL -->
+        <form id="formulario" onsubmit="event.preventDefault(); publicarNoticia();">
+            <label>📰 SECCIÓN</label>
+            <select id="seccion" required>
+                <option value="Nacionales">🇩🇴 Nacionales</option>
+                <option value="Deportes">⚽ Deportes</option>
+                <option value="Internacionales">🌍 Internacionales</option>
+                <option value="Espectáculos">🎬 Espectáculos</option>
+                <option value="Economía">💼 Economía</option>
+            </select>
 
-                    <div class="form-group">
-                        <label for="titulo">📝 TÍTULO *</label>
-                        <input type="text" id="titulo" placeholder="Título principal" maxlength="200" required>
-                        <div class="char-count"><span id="tituloCount">0</span>/200</div>
-                    </div>
+            <label>📝 TÍTULO</label>
+            <input type="text" id="titulo" placeholder="Título de la noticia" maxlength="200">
+            <div class="char-count"><span id="tituloCount">0</span>/200</div>
 
-                    <div class="form-group">
-                        <label for="redactor">👤 REDACTOR</label>
-                        <input type="text" id="redactor" value="mxl" placeholder="Tu nombre" maxlength="50">
-                    </div>
+            <label>✍️ CONTENIDO</label>
+            <textarea id="contenido" placeholder="Escribe la noticia aquí..." maxlength="10000"></textarea>
+            <div class="char-count"><span id="contenidoCount">0</span>/10000</div>
 
-                    <div class="form-group">
-                        <label for="ubicacion">📍 UBICACIÓN</label>
-                        <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este" maxlength="100">
-                    </div>
+            <label>📍 UBICACIÓN (opcional)</label>
+            <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este">
 
-                    <div class="form-group">
-                        <label for="contenido">✍️ CONTENIDO *</label>
-                        <textarea id="contenido" placeholder="Cuerpo de la noticia" maxlength="5000" required></textarea>
-                        <div class="char-count"><span id="contenidoCount">0</span>/5000</div>
-                    </div>
+            <label>👤 REDACTOR</label>
+            <input type="text" id="redactor" value="mxl">
 
-                    <div class="form-group">
-                        <label>🎬 MULTIMEDIA (Video MP4 o Imagen)</label>
-                        <label class="file-label" for="multimedia" id="labelMultimedia">
-                            🎥 TOCA PARA SUBIR VIDEO O IMAGEN
-                        </label>
-                        <input type="file" id="multimedia" accept="video/mp4,image/*" style="display: none;">
-                        <img id="preview">
-                        <video id="previewVideo" controls style="display: none;"></video>
-                        <div class="file-info" id="fileInfo"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="pin">🔐 PIN *</label>
-                        <input type="password" id="pin" placeholder="Introduce el PIN" maxlength="6" required>
-                    </div>
-
-                    <div id="loader" class="loader">⏳ PUBLICANDO...</div>
-
-                    <div class="button-group">
-                        <button id="btnPublicarNueva" class="btn-publicar" type="submit">🚀 PUBLICAR</button>
-                    </div>
-                </form>
+            <!-- ÁREA DE SUBIDA GIGANTE -->
+            <label>🎬 MULTIMEDIA</label>
+            <div class="file-area" id="fileArea">
+                <span>📸 + 🎥</span>
+                <small>Toca para elegir foto o video<br>Se comprime automáticamente</small>
             </div>
-        </div>
+            <input type="file" id="multimedia" accept="image/*,video/mp4" style="display: none;">
+            
+            <!-- PREVIEWS -->
+            <img id="preview">
+            <video id="previewVideo" controls></video>
+            <div id="fileInfo" style="color: #888; text-align: center; margin: 10px;"></div>
 
-        <!-- TAB 2: EDITAR -->
-        <div id="tab-editar" class="tab-content">
-            <div class="panel">
-                <div class="header">
-                    <h2>✏️ EDITAR NOTICIA</h2>
-                    <p class="subtitle">Modificar noticia ya publicada</p>
-                </div>
+            <label>🔐 PIN</label>
+            <input type="password" id="pin" placeholder="311" maxlength="6" value="311">
 
-                <div id="alertEditar" class="alert"></div>
+            <!-- BOTÓN GIGANTE DE PUBLICAR -->
+            <button id="btnPublicar" class="btn-gigante" type="submit">🚀 PUBLICAR AHORA</button>
 
-                <div class="info-box" id="infoBox" style="display: none;">
-                    ✅ Noticia cargada: <span id="noticiaInfo"></span>
-                </div>
-
-                <!-- FORMULARIO DE EDICIÓN (OCULTO HASTA CARGAR) -->
-                <form id="formularioEditar" onsubmit="event.preventDefault(); actualizarNoticia();" style="display: none;">
-                    <div class="form-group">
-                        <label for="seccionEditar">📰 SECCIÓN *</label>
-                        <select id="seccionEditar" required>
-                            <option value="Nacionales">🇩🇴 Nacionales</option>
-                            <option value="Deportes">⚽ Deportes</option>
-                            <option value="Internacionales">🌍 Internacionales</option>
-                            <option value="Espectáculos">🎬 Espectáculos</option>
-                            <option value="Economía">💼 Economía</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="tituloEditar">📝 TÍTULO *</label>
-                        <input type="text" id="tituloEditar" maxlength="200" required>
-                        <div class="char-count"><span id="tituloEditarCount">0</span>/200</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="redactorEditar">👤 REDACTOR</label>
-                        <input type="text" id="redactorEditar" maxlength="50">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="ubicacionEditar">📍 UBICACIÓN</label>
-                        <input type="text" id="ubicacionEditar" maxlength="100">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="contenidoEditar">✍️ CONTENIDO *</label>
-                        <textarea id="contenidoEditar" maxlength="5000" required></textarea>
-                        <div class="char-count"><span id="contenidoEditarCount">0</span>/5000</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>🎬 MULTIMEDIA (Opcional)</label>
-                        <label class="file-label" for="multimediaEditar" id="labelMultimediaEditar">
-                            🎥 TOCA PARA CAMBIAR MULTIMEDIA
-                        </label>
-                        <input type="file" id="multimediaEditar" accept="video/mp4,image/*" style="display: none;">
-                        <img id="previewEditar">
-                        <video id="previewVideoEditar" controls style="display: none;"></video>
-                        <div class="file-info" id="fileInfoEditar"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="pinEditar">🔐 PIN *</label>
-                        <input type="password" id="pinEditar" placeholder="Introduce el PIN" maxlength="6" required>
-                    </div>
-
-                    <div id="loaderEditar" class="loader">⏳ ACTUALIZANDO...</div>
-
-                    <div class="button-group">
-                        <button id="btnActualizar" class="btn-actualizar" type="submit">✏️ ACTUALIZAR</button>
-                        <button id="btnEliminar" class="btn-eliminar" type="button" onclick="eliminarNoticia()">🗑️ ELIMINAR</button>
-                        <button id="btnLimpiar" class="btn-limpiar" type="button" onclick="limpiarEdicion()">🔄 LIMPIAR</button>
-                    </div>
-                </form>
+            <!-- BOTONES SECUNDARIOS -->
+            <div class="button-grid">
+                <button class="btn-secundario" type="button" onclick="cargarBorrador()">📂 Cargar</button>
+                <button class="btn-secundario" type="button" onclick="limpiarFormulario()">🗑️ Limpiar</button>
             </div>
+        </form>
+
+        <!-- LISTA DE NOTICIAS RECIENTES PARA EDITAR -->
+        <div style="margin-top: 40px;">
+            <h2 style="color: #FF8C00; margin-bottom: 20px;">✏️ EDITAR RÁPIDO</h2>
+            <div id="noticiasRecientes"></div>
         </div>
     </div>
 
     <script>
+        // ==================== VARIABLES ====================
         let multimediaBase64 = "";
-        let multimediaBase64Editar = "";
-        let noticiaEditarId = null;
+        const STORAGE_KEY = 'borrador_noticia';
 
-        // ==================== TABS ====================
-        function cambiarTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-            if (tab === 'publicar') document.getElementById('btnPublicar').classList.add('active');
-            if (tab === 'editar') document.getElementById('btnEditar').classList.add('active');
+        // ==================== AUTO-GUARDADO ====================
+        function autoGuardar() {
+            const borrador = {
+                seccion: document.getElementById('seccion').value,
+                titulo: document.getElementById('titulo').value,
+                contenido: document.getElementById('contenido').value,
+                ubicacion: document.getElementById('ubicacion').value,
+                redactor: document.getElementById('redactor').value,
+                timestamp: new Date().getTime()
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(borrador));
+            
+            // Mostrar indicador
+            document.getElementById('autosaveIndicator').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('autosaveIndicator').style.display = 'none';
+            }, 2000);
         }
 
-        // ==================== AUTO-CARGA POR URL ====================
-        function cargarParametroURL() {
-            const params = new URLSearchParams(window.location.search);
-            const editId = params.get('edit');
-
-            if (editId) {
-                cambiarTab('editar');
-                cargarNoticiaParaEditar(editId);
+        // Cargar borrador automático
+        function cargarBorrador() {
+            const guardado = localStorage.getItem(STORAGE_KEY);
+            if (guardado) {
+                try {
+                    const borrador = JSON.parse(guardado);
+                    document.getElementById('seccion').value = borrador.seccion || '';
+                    document.getElementById('titulo').value = borrador.titulo || '';
+                    document.getElementById('contenido').value = borrador.contenido || '';
+                    document.getElementById('ubicacion').value = borrador.ubicacion || '';
+                    document.getElementById('redactor').value = borrador.redactor || 'mxl';
+                    
+                    mostrarAlerta('✅ Borrador cargado', 'success');
+                } catch (e) {
+                    console.error('Error cargando borrador');
+                }
+            } else {
+                mostrarAlerta('❌ No hay borrador guardado', 'error');
             }
         }
 
-        // ==================== CARGAR NOTICIA POR ID ====================
-        async function cargarNoticiaParaEditar(id) {
-            try {
-                const res = await fetch(`/noticia/${id}`);
-                const data = await res.json();
-
-                if (!data.success) {
-                    mostrarAlerta('❌ Noticia no encontrada', 'error', 'editar');
-                    return;
-                }
-
-                const noticia = data.noticia;
-                noticiaEditarId = id;
-
-                // Llenar campos
-                document.getElementById('tituloEditar').value = noticia.titulo;
-                document.getElementById('seccionEditar').value = noticia.seccion;
-                document.getElementById('contenidoEditar').value = noticia.contenido;
-                document.getElementById('redactorEditar').value = noticia.redactor || '';
-                document.getElementById('ubicacionEditar').value = noticia.ubicacion || '';
-
-                // Mostrar multimedia
-                if (noticia.imagen) {
-                    multimediaBase64Editar = noticia.imagen;
-                    if (noticia.imagen.includes('data:video') || noticia.imagen.endsWith('.mp4')) {
-                        document.getElementById('previewVideoEditar').src = noticia.imagen;
-                        document.getElementById('previewVideoEditar').style.display = 'block';
-                        document.getElementById('previewEditar').style.display = 'none';
-                    } else {
-                        document.getElementById('previewEditar').src = noticia.imagen;
-                        document.getElementById('previewEditar').style.display = 'block';
-                        document.getElementById('previewVideoEditar').style.display = 'none';
-                    }
-                }
-
-                // Mostrar formulario
-                document.getElementById('formularioEditar').style.display = 'block';
-                document.getElementById('infoBox').style.display = 'block';
-                document.getElementById('noticiaInfo').textContent = `"${noticia.titulo}"`;
-
-                mostrarAlerta(`✅ Listo para editar`, 'success', 'editar');
-
-            } catch (error) {
-                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
-            }
-        }
+        // Event listeners para auto-guardado
+        ['titulo', 'contenido', 'ubicacion', 'redactor', 'seccion'].forEach(id => {
+            document.getElementById(id).addEventListener('input', autoGuardar);
+        });
 
         // ==================== CONTADORES ====================
         document.getElementById('titulo').addEventListener('input', (e) => {
             document.getElementById('tituloCount').textContent = e.target.value.length;
+            autoGuardar();
         });
 
         document.getElementById('contenido').addEventListener('input', (e) => {
             document.getElementById('contenidoCount').textContent = e.target.value.length;
+            autoGuardar();
         });
 
-        document.getElementById('tituloEditar').addEventListener('input', (e) => {
-            document.getElementById('tituloEditarCount').textContent = e.target.value.length;
+        // ==================== SUBIDA MULTIMEDIA ====================
+        document.getElementById('fileArea').addEventListener('click', () => {
+            document.getElementById('multimedia').click();
         });
 
-        document.getElementById('contenidoEditar').addEventListener('input', (e) => {
-            document.getElementById('contenidoEditarCount').textContent = e.target.value.length;
-        });
-
-        // ==================== MULTIMEDIA ====================
         document.getElementById('multimedia').addEventListener('change', async (e) => {
-            await procesarArchivo(e.target.files[0], 'publicar');
-        });
-
-        document.getElementById('multimediaEditar').addEventListener('change', async (e) => {
-            await procesarArchivo(e.target.files[0], 'editar');
-        });
-
-        async function procesarArchivo(file, tipo) {
+            const file = e.target.files[0];
             if (!file) return;
 
             try {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const base64 = event.target.result;
-                    const sizeMB = (base64.length / (1024 * 1024)).toFixed(2);
-
-                    if (tipo === 'publicar') {
-                        multimediaBase64 = base64;
-                        if (file.type.startsWith('video/')) {
-                            document.getElementById('preview').style.display = 'none';
-                            document.getElementById('previewVideo').src = base64;
-                            document.getElementById('previewVideo').style.display = 'block';
-                            document.getElementById('labelMultimedia').innerHTML = '✅ VIDEO LISTO';
-                        } else {
-                            document.getElementById('previewVideo').style.display = 'none';
-                            document.getElementById('preview').src = base64;
-                            document.getElementById('preview').style.display = 'block';
-                            document.getElementById('labelMultimedia').innerHTML = '✅ IMAGEN LISTA';
-                        }
-                        document.getElementById('fileInfo').innerHTML = `✅ ${file.type} | ${sizeMB}MB`;
-                    } else {
-                        multimediaBase64Editar = base64;
-                        if (file.type.startsWith('video/')) {
-                            document.getElementById('previewEditar').style.display = 'none';
-                            document.getElementById('previewVideoEditar').src = base64;
-                            document.getElementById('previewVideoEditar').style.display = 'block';
-                            document.getElementById('labelMultimediaEditar').innerHTML = '✅ VIDEO LISTO';
-                        } else {
-                            document.getElementById('previewVideoEditar').style.display = 'none';
-                            document.getElementById('previewEditar').src = base64;
-                            document.getElementById('previewEditar').style.display = 'block';
-                            document.getElementById('labelMultimediaEditar').innerHTML = '✅ IMAGEN LISTA';
-                        }
-                        document.getElementById('fileInfoEditar').innerHTML = `✅ ${file.type} | ${sizeMB}MB`;
-                    }
-                };
-                reader.readAsDataURL(file);
+                document.getElementById('fileInfo').textContent = '⏳ Comprimiendo...';
+                
+                // Comprimir según tipo
+                if (file.type.startsWith('video/')) {
+                    multimediaBase64 = await comprimirVideo(file);
+                    document.getElementById('preview').style.display = 'none';
+                    document.getElementById('previewVideo').src = multimediaBase64;
+                    document.getElementById('previewVideo').style.display = 'block';
+                } else {
+                    multimediaBase64 = await comprimirImagen(file);
+                    document.getElementById('previewVideo').style.display = 'none';
+                    document.getElementById('preview').src = multimediaBase64;
+                    document.getElementById('preview').style.display = 'block';
+                }
+                
+                const sizeMB = (multimediaBase64.length / (1024 * 1024)).toFixed(2);
+                document.getElementById('fileInfo').textContent = `✅ Listo | ${sizeMB}MB`;
             } catch (error) {
                 mostrarAlerta('❌ Error: ' + error.message, 'error');
+                document.getElementById('fileInfo').textContent = '';
             }
+        });
+
+        // ==================== COMPRESIÓN ====================
+        function comprimirImagen(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        // Reducir a máximo 720p
+                        if (width > 720) {
+                            height = (height * 720) / width;
+                            width = 720;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convertir a WebP con calidad 0.8
+                        canvas.toBlob((blob) => {
+                            const reader2 = new FileReader();
+                            reader2.onload = () => resolve(reader2.result);
+                            reader2.readAsDataURL(blob);
+                        }, 'image/webp', 0.8);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function comprimirVideo(file) {
+            return new Promise((resolve) => {
+                // Por ahora solo leer el video directamente
+                // En producción usarías FFmpeg.js o similar
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
         }
 
         // ==================== PUBLICAR ====================
@@ -625,204 +412,143 @@
             const titulo = document.getElementById('titulo').value.trim();
             const seccion = document.getElementById('seccion').value;
             const contenido = document.getElementById('contenido').value.trim();
-            const redactor = document.getElementById('redactor').value.trim();
             const ubicacion = document.getElementById('ubicacion').value.trim();
+            const redactor = document.getElementById('redactor').value.trim();
             const pin = document.getElementById('pin').value;
 
             if (!titulo || !seccion || !contenido) {
-                mostrarAlerta('❌ Faltan campos obligatorios', 'error', 'publicar');
+                mostrarAlerta('❌ Faltan campos obligatorios', 'error');
                 return;
             }
 
             if (pin !== '311') {
-                mostrarAlerta('❌ PIN incorrecto', 'error', 'publicar');
+                mostrarAlerta('❌ PIN incorrecto', 'error');
                 return;
             }
 
-            document.getElementById('btnPublicarNueva').disabled = true;
-            document.getElementById('loader').style.display = 'block';
+            document.getElementById('btnPublicar').disabled = true;
+            document.getElementById('btnPublicar').textContent = '⏳ PUBLICANDO...';
 
             try {
                 const res = await fetch('/publicar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        titulo,
-                        seccion,
-                        contenido,
-                        redactor,
-                        ubicacion,
-                        imagen: multimediaBase64,
-                        pin
+                        titulo, seccion, contenido, ubicacion, redactor,
+                        imagen: multimediaBase64, pin
                     })
                 });
 
                 const data = await res.json();
 
                 if (data.success) {
-                    mostrarAlerta('✅ NOTICIA PUBLICADA 🏮', 'success', 'publicar');
+                    mostrarAlerta('✅ ¡PUBLICADO! 🏮', 'success');
+                    // Limpiar auto-guardado
+                    localStorage.removeItem(STORAGE_KEY);
                     setTimeout(() => {
-                        limpiarFormulario();
-                    }, 1500);
+                        window.location.href = '/';
+                    }, 2000);
                 } else {
-                    mostrarAlerta('❌ Error: ' + data.error, 'error', 'publicar');
+                    mostrarAlerta('❌ Error: ' + data.error, 'error');
                 }
             } catch (error) {
-                mostrarAlerta('❌ Error: ' + error.message, 'error', 'publicar');
+                mostrarAlerta('❌ Error de red', 'error');
             } finally {
-                document.getElementById('btnPublicarNueva').disabled = false;
-                document.getElementById('loader').style.display = 'none';
+                document.getElementById('btnPublicar').disabled = false;
+                document.getElementById('btnPublicar').textContent = '🚀 PUBLICAR AHORA';
             }
         }
 
+        // ==================== CARGAR NOTICIAS RECIENTES ====================
+        async function cargarNoticiasRecientes() {
+            try {
+                const res = await fetch('/noticias?limit=5');
+                const data = await res.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('noticiasRecientes');
+                    container.innerHTML = '';
+                    
+                    data.noticias.forEach(noticia => {
+                        const card = document.createElement('div');
+                        card.style.cssText = `
+                            background: #1a1a1a;
+                            border-radius: 30px;
+                            padding: 18px;
+                            margin-bottom: 12px;
+                            border-left: 5px solid #FF8C00;
+                        `;
+                        
+                        const fecha = new Date(noticia.fecha).toLocaleDateString();
+                        
+                        card.innerHTML = `
+                            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;">
+                                ${noticia.titulo.substring(0, 50)}${noticia.titulo.length > 50 ? '...' : ''}
+                            </div>
+                            <div style="color: #888; margin-bottom: 12px;">
+                                ${noticia.seccion} | ${fecha} | 👁️ ${noticia.vistas || 0}
+                            </div>
+                            <button class="btn-secundario" style="padding: 12px;" 
+                                    onclick="editarNoticia('${noticia._id}')">
+                                ✏️ Editar
+                            </button>
+                        `;
+                        
+                        container.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando noticias');
+            }
+        }
+
+        function editarNoticia(id) {
+            window.location.href = '/redaccion?edit=' + id;
+        }
+
+        // ==================== LIMPIAR ====================
         function limpiarFormulario() {
             document.getElementById('titulo').value = '';
-            document.getElementById('seccion').value = '';
             document.getElementById('contenido').value = '';
-            document.getElementById('redactor').value = 'mxl';
             document.getElementById('ubicacion').value = '';
-            document.getElementById('pin').value = '';
             document.getElementById('multimedia').value = '';
             document.getElementById('preview').style.display = 'none';
             document.getElementById('previewVideo').style.display = 'none';
-            document.getElementById('labelMultimedia').innerHTML = '🎥 TOCA PARA SUBIR VIDEO O IMAGEN';
             document.getElementById('fileInfo').textContent = '';
             multimediaBase64 = '';
             document.getElementById('tituloCount').textContent = '0';
             document.getElementById('contenidoCount').textContent = '0';
-        }
-
-        // ==================== EDITAR ====================
-        async function actualizarNoticia() {
-            const titulo = document.getElementById('tituloEditar').value.trim();
-            const seccion = document.getElementById('seccionEditar').value;
-            const contenido = document.getElementById('contenidoEditar').value.trim();
-            const redactor = document.getElementById('redactorEditar').value.trim();
-            const ubicacion = document.getElementById('ubicacionEditar').value.trim();
-            const pin = document.getElementById('pinEditar').value;
-
-            if (!titulo || !seccion || !contenido) {
-                mostrarAlerta('❌ Faltan campos obligatorios', 'error', 'editar');
-                return;
-            }
-
-            if (pin !== '311') {
-                mostrarAlerta('❌ PIN incorrecto', 'error', 'editar');
-                return;
-            }
-
-            document.getElementById('btnActualizar').disabled = true;
-            document.getElementById('loaderEditar').style.display = 'block';
-
-            try {
-                const res = await fetch(`/noticia/${noticiaEditarId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        titulo,
-                        seccion,
-                        contenido,
-                        redactor,
-                        ubicacion,
-                        imagen: multimediaBase64Editar,
-                        pin
-                    })
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    mostrarAlerta('✅ NOTICIA ACTUALIZADA ✏️', 'success', 'editar');
-                    setTimeout(() => {
-                        limpiarEdicion();
-                        window.location.href = '/';
-                    }, 2000);
-                } else {
-                    mostrarAlerta('❌ Error: ' + data.error, 'error', 'editar');
-                }
-            } catch (error) {
-                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
-            } finally {
-                document.getElementById('btnActualizar').disabled = false;
-                document.getElementById('loaderEditar').style.display = 'none';
-            }
-        }
-
-        async function eliminarNoticia() {
-            if (!confirm('⚠️ ¿Estás seguro de eliminar esta noticia?')) {
-                return;
-            }
-
-            const pin = document.getElementById('pinEditar').value;
-
-            if (pin !== '311') {
-                mostrarAlerta('❌ PIN incorrecto', 'error', 'editar');
-                return;
-            }
-
-            document.getElementById('btnEliminar').disabled = true;
-
-            try {
-                const res = await fetch(`/noticia/${noticiaEditarId}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pin })
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    mostrarAlerta('✅ NOTICIA ELIMINADA 🗑️', 'success', 'editar');
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 2000);
-                } else {
-                    mostrarAlerta('❌ Error: ' + data.error, 'error', 'editar');
-                }
-            } catch (error) {
-                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
-            } finally {
-                document.getElementById('btnEliminar').disabled = false;
-            }
-        }
-
-        function limpiarEdicion() {
-            document.getElementById('formularioEditar').style.display = 'none';
-            document.getElementById('infoBox').style.display = 'none';
-            document.getElementById('tituloEditar').value = '';
-            document.getElementById('seccionEditar').value = '';
-            document.getElementById('contenidoEditar').value = '';
-            document.getElementById('redactorEditar').value = '';
-            document.getElementById('ubicacionEditar').value = '';
-            document.getElementById('pinEditar').value = '';
-            document.getElementById('previewEditar').style.display = 'none';
-            document.getElementById('previewVideoEditar').style.display = 'none';
-            document.getElementById('labelMultimediaEditar').innerHTML = '🎥 TOCA PARA CAMBIAR MULTIMEDIA';
-            document.getElementById('fileInfoEditar').textContent = '';
-            multimediaBase64Editar = '';
-            noticiaEditarId = null;
-            document.getElementById('tituloEditarCount').textContent = '0';
-            document.getElementById('contenidoEditarCount').textContent = '0';
+            
+            mostrarAlerta('🧹 Formulario limpio', 'success');
         }
 
         // ==================== ALERTAS ====================
-        function mostrarAlerta(mensaje, tipo, tab = 'publicar') {
-            const alertBox = document.getElementById(tab === 'editar' ? 'alertEditar' : 'alert');
+        function mostrarAlerta(mensaje, tipo) {
+            const alertBox = document.getElementById('alert');
             alertBox.textContent = mensaje;
             alertBox.className = `alert ${tipo}`;
             alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 3000);
+        }
 
-            if (tipo === 'success') {
-                setTimeout(() => alertBox.style.display = 'none', 3000);
+        // ==================== CARGAR PARÁMETRO EDIT ====================
+        function cargarParametroURL() {
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get('edit');
+            
+            if (editId) {
+                cargarNoticiaParaEditar(editId);
             }
         }
 
-        // ==================== INICIALIZAR ====================
-        window.addEventListener('load', () => {
-            cargarParametroURL();
-            console.log('✅ Búnker de Redacción cargado');
-        });
-    </script>
-</body>
-</html>
-
+        async function cargarNoticiaParaEditar(id) {
+            try {
+                const res = await fetch(`/noticia/${id}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    const n = data.noticia;
+                    document.getElementById
