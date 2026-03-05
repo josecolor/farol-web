@@ -21,17 +21,12 @@ app.use(cors());
 
 // ==================== VALIDACIÓN ESTRICTA DE MONGO_URI ====================
 
-const MONGODB_URI = process.env.MONGO_URI;
+const MONGODB_URI = process.env.MONGO_URL || 
+    "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
 if (!MONGODB_URI) {
-    console.error('\n❌ ERROR CRÍTICO: MONGO_URI no está definida');
+    console.error('\n❌ ERROR CRÍTICO: MONGO_URL no está definida');
     console.error('🔴 El búnker no puede arrancar sin la base de datos');
-    console.error('\n📌 Solución inmediata:');
-    console.error('   1. Ve a Railway Dashboard → Variables');
-    console.error('   2. Agrega una nueva variable:');
-    console.error('      NAME: MONGO_URI');
-    console.error('      VALUE: mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017');
-    console.error('   3. Espera el redeploy automático\n');
     process.exit(1);
 }
 
