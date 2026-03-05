@@ -4,49 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     
-    <!-- ==================== META TAGS (GENERADOS POR SERVIDOR) ==================== -->
-    <title>{{TITULO}} - El Farol al Día</title>
+    <title id="page-title">El Farol al Día 🏮</title>
     
-    <!-- Open Graph / Facebook / WhatsApp -->
-    <meta property="og:title" content="{{TITULO}}">
-    <meta property="og:description" content="{{DESCRIPCION}}">
-    <meta property="og:image" content="{{IMAGEN}}">
-    <meta property="og:url" content="{{URL}}">
+    <!-- META TAGS DINÁMICOS -->
+    <meta property="og:title" id="og-title" content="">
+    <meta property="og:description" id="og-description" content="">
+    <meta property="og:image" id="og-image" content="">
+    <meta property="og:url" id="og-url" content="">
     <meta property="og:type" content="article">
-    <meta property="og:site_name" content="El Farol al Día">
-    
-    <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{TITULO}}">
-    <meta name="twitter:description" content="{{DESCRIPCION}}">
-    <meta name="twitter:image" content="{{IMAGEN}}">
-    
-    <!-- SEO -->
-    <meta name="description" content="{{DESCRIPCION}}">
-    
-    <!-- Schema.org para Google -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
-        "headline": "{{TITULO}}",
-        "image": "{{IMAGEN}}",
-        "datePublished": "{{FECHA_ISO}}",
-        "description": "{{DESCRIPCION}}",
-        "author": {
-            "@type": "Person",
-            "name": "{{REDACTOR}}"
-        },
-        "publisher": {
-            "@type": "Organization",
-            "name": "El Farol al Día",
-            "logo": {
-                "@type": "ImageObject",
-                "url": "https://elfarolaldia.com/logo.png"
-            }
-        }
-    }
-    </script>
+    <meta name="twitter:title" id="twitter-title" content="">
+    <meta name="twitter:description" id="twitter-description" content="">
+    <meta name="twitter:image" id="twitter-image" content="">
     
     <style>
         * {
@@ -76,6 +45,7 @@
             position: relative;
         }
         
+        /* ICONO DE COMPARTIR GRANDE */
         .share-icon-large {
             position: absolute;
             top: 20px;
@@ -98,6 +68,7 @@
             transform: scale(0.9);
         }
         
+        /* MENÚ DE COMPARTIR */
         .share-menu {
             display: none;
             position: absolute;
@@ -138,6 +109,20 @@
         .share-tg { color: #0088cc; }
         .share-link { color: #aaa; }
         
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 15;
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+        
         .noticia-fecha {
             color: #888;
             font-size: 0.9em;
@@ -151,7 +136,6 @@
             color: #FF8C00;
             margin-bottom: 15px;
             padding-right: 70px;
-            line-height: 1.3;
         }
         
         .noticia-meta {
@@ -193,24 +177,6 @@
             margin-top: 20px;
         }
         
-        .volver-btn:active {
-            background: rgba(255,140,0,0.1);
-        }
-        
-        .menu-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 15;
-        }
-        
-        .menu-overlay.active {
-            display: block;
-        }
-        
         .admin-link {
             position: fixed;
             bottom: 20px;
@@ -225,7 +191,6 @@
             color: black;
             text-decoration: none;
             opacity: 0;
-            transition: opacity 0.3s;
             z-index: 100;
             font-size: 1.5em;
         }
@@ -233,57 +198,61 @@
         .admin-link.visible {
             opacity: 1;
         }
+        
+        .loader {
+            text-align: center;
+            padding: 50px;
+            color: #FF8C00;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="noticia-completa">
-            
-            <!-- ICONO DE COMPARTIR -->
-            <div class="share-icon-large" id="shareIcon">📤</div>
-            
-            <!-- MENÚ DE COMPARTIR -->
-            <div class="share-menu" id="shareMenu">
-                <div class="share-menu-item share-wa" id="shareWa">📱 WhatsApp</div>
-                <div class="share-menu-item share-fb" id="shareFb">📘 Facebook</div>
-                <div class="share-menu-item share-tw" id="shareTw">𝕏 Twitter</div>
-                <div class="share-menu-item share-tg" id="shareTg">✈️ Telegram</div>
-                <div class="share-menu-item share-link" id="shareLink">🔗 Copiar enlace</div>
+        <div id="loader" class="loader">⏳ Cargando...</div>
+        
+        <div id="noticia-container" style="display: none;">
+            <div class="noticia-completa">
+                
+                <div class="share-icon-large" id="shareIcon">📤</div>
+                
+                <div class="share-menu" id="shareMenu">
+                    <div class="share-menu-item share-wa" id="shareWa">📱 WhatsApp</div>
+                    <div class="share-menu-item share-fb" id="shareFb">📘 Facebook</div>
+                    <div class="share-menu-item share-tw" id="shareTw">𝕏 Twitter</div>
+                    <div class="share-menu-item share-tg" id="shareTg">✈️ Telegram</div>
+                    <div class="share-menu-item share-link" id="shareLink">🔗 Copiar enlace</div>
+                </div>
+                
+                <div class="noticia-fecha" id="noticia-fecha"></div>
+                <h1 class="noticia-titulo" id="noticia-titulo"></h1>
+                
+                <div class="noticia-meta">
+                    <span id="noticia-seccion"></span>
+                    <span id="noticia-ubicacion"></span>
+                    <span id="noticia-redactor"></span>
+                    <span id="noticia-vistas"></span>
+                </div>
+                
+                <div id="noticia-multimedia"></div>
+                
+                <div class="noticia-contenido" id="noticia-contenido"></div>
+                
+                <a href="/" class="volver-btn">← VOLVER A PORTADA</a>
             </div>
-            
-            <!-- FECHA -->
-            <div class="noticia-fecha">{{FECHA_FORMATEADA}}</div>
-            
-            <!-- TÍTULO -->
-            <h1 class="noticia-titulo">{{TITULO}}</h1>
-            
-            <!-- META INFO -->
-            <div class="noticia-meta">
-                <span>📰 {{SECCION}}</span>
-                <span>📍 {{UBICACION}}</span>
-                <span>👤 {{REDACTOR}}</span>
-                <span>👁️ {{VISTAS}}</span>
-            </div>
-            
-            <!-- MULTIMEDIA -->
-            {{MULTIMEDIA}}
-            
-            <!-- CONTENIDO -->
-            <div class="noticia-contenido">{{{CONTENIDO}}}</div>
-            
-            <!-- BOTÓN VOLVER -->
-            <a href="/" class="volver-btn">← VOLVER A PORTADA</a>
         </div>
         
-        <!-- Overlay para cerrar menú -->
         <div class="menu-overlay" id="menuOverlay" onclick="cerrarMenu()"></div>
-        
-        <!-- Botón admin invisible -->
         <a href="/redaccion" class="admin-link" id="adminBtn">🏮</a>
     </div>
 
     <script>
-        // ==================== FUNCIONES PARA COMPARTIR ====================
+        let noticiaActual = null;
+        
+        function getNoticiaId() {
+            return window.location.pathname.split('/').pop();
+        }
+        
+        // ==================== FUNCIONES DE COMPARTIR ====================
         function cerrarMenu() {
             document.getElementById('shareMenu').classList.remove('active');
             document.getElementById('menuOverlay').classList.remove('active');
@@ -305,8 +274,7 @@
         }
         
         function compartirTwitter() {
-            const texto = encodeURIComponent(document.querySelector('h1').textContent);
-            window.open(`https://twitter.com/intent/tweet?text=${texto}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}`, '_blank');
             cerrarMenu();
         }
         
@@ -324,30 +292,91 @@
             cerrarMenu();
         }
         
-        // ==================== ADMIN CON DOBLE TAP ====================
+        // ==================== CARGAR NOTICIA ====================
+        async function cargarNoticia() {
+            const id = getNoticiaId();
+            
+            try {
+                const res = await fetch(`/noticia/${id}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    noticiaActual = data.noticia;
+                    mostrarNoticia(noticiaActual);
+                    actualizarMetaTags(noticiaActual);
+                } else {
+                    document.getElementById('loader').innerHTML = '❌ Noticia no encontrada';
+                }
+            } catch (error) {
+                document.getElementById('loader').innerHTML = '❌ Error';
+            }
+        }
+        
+        function mostrarNoticia(noticia) {
+            const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO', {
+                weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            document.getElementById('noticia-fecha').textContent = fecha;
+            document.getElementById('noticia-titulo').textContent = noticia.titulo;
+            document.getElementById('noticia-seccion').innerHTML = `📰 ${noticia.seccion}`;
+            document.getElementById('noticia-ubicacion').innerHTML = `📍 ${noticia.ubicacion || 'Santo Domingo'}`;
+            document.getElementById('noticia-redactor').innerHTML = `👤 ${noticia.redactor || 'mxl'}`;
+            document.getElementById('noticia-vistas').innerHTML = `👁️ ${noticia.vistas || 0}`;
+            document.getElementById('noticia-contenido').innerHTML = noticia.contenido.replace(/\n/g, '<br>');
+            
+            const multimediaDiv = document.getElementById('noticia-multimedia');
+            if (noticia.imagen) {
+                if (noticia.imagen.includes('video')) {
+                    multimediaDiv.innerHTML = `<video class="noticia-imagen" src="${noticia.imagen}" controls></video>`;
+                } else {
+                    multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${noticia.imagen}">`;
+                }
+            }
+            
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('noticia-container').style.display = 'block';
+        }
+        
+        function actualizarMetaTags(noticia) {
+            const url = window.location.href;
+            const desc = noticia.contenido.substring(0, 160);
+            
+            document.getElementById('page-title').textContent = `${noticia.titulo} - El Farol al Día`;
+            document.getElementById('og-title').content = noticia.titulo;
+            document.getElementById('og-description').content = desc;
+            document.getElementById('og-image').content = noticia.imagen || '';
+            document.getElementById('og-url').content = url;
+            document.getElementById('twitter-title').content = noticia.titulo;
+            document.getElementById('twitter-description').content = desc;
+            document.getElementById('twitter-image').content = noticia.imagen || '';
+        }
+        
+        // ==================== ADMIN ====================
         let lastTap = 0;
         document.addEventListener('touchend', function(e) {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            if (tapLength < 500 && tapLength > 0) {
+            const now = new Date().getTime();
+            if (now - lastTap < 500) {
                 const pin = prompt('🔐 PIN:');
                 if (pin === '311') {
                     document.getElementById('adminBtn').classList.add('visible');
-                    alert('✅ Acceso concedido');
-                } else if (pin !== null) {
-                    alert('❌ PIN incorrecto');
                 }
             }
-            lastTap = currentTime;
+            lastTap = now;
         });
         
-        // ==================== ASIGNAR EVENTOS ====================
-        document.getElementById('shareIcon').addEventListener('click', abrirMenu);
-        document.getElementById('shareWa').addEventListener('click', compartirWhatsApp);
-        document.getElementById('shareFb').addEventListener('click', compartirFacebook);
-        document.getElementById('shareTw').addEventListener('click', compartirTwitter);
-        document.getElementById('shareTg').addEventListener('click', compartirTelegram);
-        document.getElementById('shareLink').addEventListener('click', copiarLink);
+        // ==================== INICIALIZAR ====================
+        window.addEventListener('load', () => {
+            cargarNoticia();
+            
+            document.getElementById('shareIcon').addEventListener('click', abrirMenu);
+            document.getElementById('shareWa').addEventListener('click', compartirWhatsApp);
+            document.getElementById('shareFb').addEventListener('click', compartirFacebook);
+            document.getElementById('shareTw').addEventListener('click', compartirTwitter);
+            document.getElementById('shareTg').addEventListener('click', compartirTelegram);
+            document.getElementById('shareLink').addEventListener('click', copiarLink);
+        });
     </script>
 </body>
 </html>
