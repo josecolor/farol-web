@@ -69,6 +69,7 @@
             position: relative;
         }
         
+        /* ICONO DE COMPARTIR - CADA NOTICIA TIENE EL SUYO */
         .share-icon {
             position: absolute;
             top: 18px;
@@ -84,6 +85,65 @@
             cursor: pointer;
             z-index: 10;
             border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(255,140,0,0.5);
+        }
+        
+        .share-icon:active {
+            transform: scale(0.9);
+        }
+        
+        /* MENÚ DE COMPARTIR */
+        .share-menu {
+            display: none;
+            position: absolute;
+            top: 70px;
+            right: 18px;
+            background: #222;
+            border-radius: 20px;
+            padding: 12px;
+            z-index: 20;
+            border: 2px solid #FF8C00;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            min-width: 200px;
+        }
+        
+        .share-menu.active {
+            display: block;
+        }
+        
+        .share-menu-item {
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin: 5px 0;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .share-menu-item:active {
+            background: #333;
+        }
+        
+        .share-wa { color: #25D366; }
+        .share-fb { color: #1877F2; }
+        .share-tw { color: #1DA1F2; }
+        .share-tg { color: #0088cc; }
+        .share-link { color: #aaa; }
+        
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 15;
+        }
+        
+        .menu-overlay.active {
+            display: block;
         }
         
         .noticia-titulo {
@@ -131,6 +191,7 @@
             text-decoration: none;
             opacity: 0;
             z-index: 100;
+            font-size: 1.5em;
         }
         
         .admin-link.visible {
@@ -156,9 +217,13 @@
         <div id="noticias-container"></div>
         
         <a href="/redaccion" class="admin-link" id="adminBtn">🏮</a>
+        <div class="menu-overlay" id="menuOverlay" onclick="cerrarTodosMenus()"></div>
     </div>
 
     <script>
+        let menuAbiertoId = null;
+        
+        // ==================== CARGAR NOTICIAS ====================
         async function cargarTodas() {
             const res = await fetch('/noticias?limit=30');
             const data = await res.json();
@@ -185,17 +250,26 @@
                 let multimedia = '';
                 if (n.imagen) {
                     if (n.imagen.includes('video')) {
-                        multimedia = `<video class="noticia-imagen" src="${n.imagen}" controls></video>`;
+                        multimedia = `<video class="noticia-imagen" src="${n.imagen}" controls onclick="abrirNoticia('${n._id}')"></video>`;
                     } else {
-                        multimedia = `<img class="noticia-imagen" src="${n.imagen}">`;
+                        multimedia = `<img class="noticia-imagen" src="${n.imagen}" onclick="abrirNoticia('${n._id}')">`;
                     }
                 }
                 
                 card.innerHTML = `
-                    <div class="share-icon" onclick="compartir('${n._id}', event)">📤</div>
+                    <div class="share-icon" onclick="abrirMenuCompartir('${n._id}', event)">📤</div>
+                    
+                    <div class="share-menu" id="share-menu-${n._id}">
+                        <div class="share-menu-item share-wa" onclick="compartirWhatsApp('${n._id}', event)">📱 WhatsApp</div>
+                        <div class="share-menu-item share-fb" onclick="compartirFacebook('${n._id}', event)">📘 Facebook</div>
+                        <div class="share-menu-item share-tw" onclick="compartirTwitter('${n._id}', event)">𝕏 Twitter</div>
+                        <div class="share-menu-item share-tg" onclick="compartirTelegram('${n._id}', event)">✈️ Telegram</div>
+                        <div class="share-menu-item share-link" onclick="copiarLink('${n._id}', event)">🔗 Copiar</div>
+                    </div>
+                    
                     ${multimedia}
-                    <div class="noticia-titulo" onclick="abrir('${n._id}')">${n.titulo}</div>
-                    <div class="noticia-contenido" onclick="abrir('${n._id}')">${n.contenido.substring(0, 100)}...</div>
+                    <div class="noticia-titulo" onclick="abrirNoticia('${n._id}')">${n.titulo}</div>
+                    <div class="noticia-contenido" onclick="abrirNoticia('${n._id}')">${n.contenido.substring(0, 100)}...</div>
                     <div class="noticia-meta">
                         <span>📰 ${n.seccion}</span>
                         <span>👁️ ${n.vistas || 0}</span>
@@ -206,26 +280,76 @@
             });
         }
         
-        function compartir(id, event) {
+        // ==================== FUNCIONES DE COMPARTIR ====================
+        function abrirMenuCompartir(id, event) {
             event.stopPropagation();
-            const url = window.location.origin + '/noticia/' + id;
-            if (navigator.share) {
-                navigator.share({ url: url });
-            } else {
-                prompt('📋 Copia este link:', url);
+            cerrarTodosMenus();
+            
+            const menu = document.getElementById(`share-menu-${id}`);
+            if (menu) {
+                menu.classList.add('active');
+                document.getElementById('menuOverlay').classList.add('active');
+                menuAbiertoId = id;
             }
         }
         
-        function abrir(id) {
+        function cerrarTodosMenus() {
+            document.querySelectorAll('.share-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+            document.getElementById('menuOverlay').classList.remove('active');
+            menuAbiertoId = null;
+        }
+        
+        function compartirWhatsApp(id, event) {
+            event.stopPropagation();
+            const url = window.location.origin + '/noticia/' + id;
+            window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
+            cerrarTodosMenus();
+        }
+        
+        function compartirFacebook(id, event) {
+            event.stopPropagation();
+            const url = window.location.origin + '/noticia/' + id;
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+            cerrarTodosMenus();
+        }
+        
+        function compartirTwitter(id, event) {
+            event.stopPropagation();
+            const url = window.location.origin + '/noticia/' + id;
+            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`, '_blank');
+            cerrarTodosMenus();
+        }
+        
+        function compartirTelegram(id, event) {
+            event.stopPropagation();
+            const url = window.location.origin + '/noticia/' + id;
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}`, '_blank');
+            cerrarTodosMenus();
+        }
+        
+        function copiarLink(id, event) {
+            event.stopPropagation();
+            const url = window.location.origin + '/noticia/' + id;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ Link copiado');
+            }).catch(() => {
+                prompt('📋 Copia este link:', url);
+            });
+            cerrarTodosMenus();
+        }
+        
+        function abrirNoticia(id) {
             window.location.href = '/noticia/' + id;
         }
         
-        // Admin con doble tap
+        // ==================== ADMIN CON DOBLE TAP ====================
         let lastTap = 0;
         document.addEventListener('touchend', function(e) {
             const now = new Date().getTime();
             if (now - lastTap < 500) {
-                const pin = prompt('PIN:');
+                const pin = prompt('🔐 PIN:');
                 if (pin === '311') {
                     document.getElementById('adminBtn').classList.add('visible');
                 }
