@@ -1,12 +1,10 @@
 /**
- * 🏮 FAROL AL DÍA - SERVIDOR COMPLETO
- * Sistema profesional de noticias con:
- * ✅ Autenticación (registro/login)
- * ✅ Navegación por secciones
- * ✅ Noticias individuales
- * ✅ Búsqueda
- * ✅ Compartir en redes
- * ✅ Usuarios registrados
+ * 🏮 FAROL AL DÍA - SERVIDOR CON EDICIÓN
+ * ✅ Videos funcionales
+ * ✅ Editar noticias
+ * ✅ Eliminar noticias
+ * ✅ Autenticación
+ * ✅ Navegación
  */
 
 const express = require('express');
@@ -19,8 +17,10 @@ const app = express();
 
 // ==================== CONFIGURACIÓN ====================
 
-app.use(express.json({ limit: '15mb' }));
-app.use(express.urlencoded({ limit: '15mb', extended: true }));
+// AUMENTAR LÍMITE A 50MB PARA VIDEOS
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
@@ -35,6 +35,7 @@ mongoose.connect(mongoURI, {
 })
   .then(() => {
     console.log('✅ Búnker conectado con éxito');
+    console.log('🎬 Soporte de video: ACTIVADO (50MB)');
   })
   .catch(err => {
     console.error('❌ Error MongoDB:', err.message);
@@ -43,7 +44,6 @@ mongoose.connect(mongoURI, {
 
 // ==================== ESQUEMAS ====================
 
-// SCHEMA NOTICIAS
 const noticiaSchema = new mongoose.Schema({
   titulo: {
     type: String,
@@ -79,10 +79,13 @@ const noticiaSchema = new mongoose.Schema({
   fecha: {
     type: Date,
     default: Date.now
+  },
+  fechaActualizacion: {
+    type: Date,
+    default: Date.now
   }
 });
 
-// SCHEMA USUARIOS
 const usuarioSchema = new mongoose.Schema({
   nombre: {
     type: String,
@@ -108,18 +111,15 @@ const usuarioSchema = new mongoose.Schema({
   }
 });
 
-// MODELS
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 const Usuario = mongoose.model('Usuario', usuarioSchema);
 
 // ==================== FUNCIONES UTILITARIAS ====================
 
-// Hash de contraseña simple (NO usar en producción)
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Generar token simple
 function generarToken(usuarioId) {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -160,7 +160,6 @@ app.get('/noticias', async (req, res) => {
   }
 });
 
-// Obtener noticias por sección
 app.get('/seccion/:nombre', async (req, res) => {
   try {
     const nombre = req.params.nombre;
@@ -186,7 +185,6 @@ app.get('/seccion/:nombre', async (req, res) => {
   }
 });
 
-// Obtener noticia por ID
 app.get('/noticia/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -207,7 +205,6 @@ app.get('/noticia/:id', async (req, res) => {
   }
 });
 
-// Buscar noticias
 app.get('/buscar', async (req, res) => {
   try {
     const { q } = req.query;
@@ -239,12 +236,10 @@ app.get('/buscar', async (req, res) => {
 
 // ==================== RUTAS AUTENTICACIÓN ====================
 
-// Registro
 app.post('/auth/registro', async (req, res) => {
   try {
     const { nombre, email, password } = req.body;
 
-    // Validar
     if (!nombre || !email || !password) {
       return res.status(400).json({ success: false, error: 'Faltan datos' });
     }
@@ -253,13 +248,11 @@ app.post('/auth/registro', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Contraseña muy corta' });
     }
 
-    // Verificar si existe
     const existe = await Usuario.findOne({ email: email.toLowerCase() });
     if (existe) {
       return res.status(400).json({ success: false, error: 'El email ya está registrado' });
     }
 
-    // Crear usuario
     const usuario = new Usuario({
       nombre: nombre.trim(),
       email: email.toLowerCase().trim(),
@@ -287,7 +280,6 @@ app.post('/auth/registro', async (req, res) => {
   }
 });
 
-// Login
 app.post('/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -296,7 +288,6 @@ app.post('/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Faltan credenciales' });
     }
 
-    // Buscar usuario
     const usuario = await Usuario.findOne({ email: email.toLowerCase() });
 
     if (!usuario || usuario.password !== hashPassword(password)) {
@@ -324,17 +315,14 @@ app.post('/auth/login', async (req, res) => {
 
 // ==================== RUTAS POST ====================
 
-// Publicar noticia
 app.post('/publicar', async (req, res) => {
   try {
     const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
 
-    // Validar PIN
     if (pin !== "311") {
       return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     }
 
-    // Validar campos
     if (!titulo || !seccion || !contenido) {
       return res.status(400).json({ success: false, error: 'Faltan campos obligatorios' });
     }
@@ -344,7 +332,6 @@ app.post('/publicar', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Sección inválida' });
     }
 
-    // Crear noticia
     const noticia = new Noticia({
       titulo: titulo.trim(),
       seccion,
@@ -375,6 +362,109 @@ app.post('/publicar', async (req, res) => {
   }
 });
 
+// ==================== RUTAS PUT (ACTUALIZAR) ====================
+
+app.put('/noticia/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
+
+    // Validar PIN
+    if (pin !== "311") {
+      return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    }
+
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: 'ID inválido' });
+    }
+
+    // Validar campos
+    if (!titulo || !seccion || !contenido) {
+      return res.status(400).json({ success: false, error: 'Faltan campos' });
+    }
+
+    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
+    if (!seccionesValidas.includes(seccion)) {
+      return res.status(400).json({ success: false, error: 'Sección inválida' });
+    }
+
+    // Actualizar
+    const noticia = await Noticia.findByIdAndUpdate(
+      id,
+      {
+        titulo: titulo.trim(),
+        seccion,
+        contenido: contenido.trim(),
+        ubicacion: ubicacion ? ubicacion.trim() : '',
+        redactor: redactor ? redactor.trim() : '',
+        imagen: imagen || null,
+        fechaActualizacion: new Date()
+      },
+      { new: true }
+    );
+
+    if (!noticia) {
+      return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
+    }
+
+    console.log('✏️ Noticia actualizada:', noticia.titulo);
+
+    res.json({
+      success: true,
+      message: 'Noticia actualizada ✏️',
+      noticia: {
+        id: noticia._id,
+        titulo: noticia.titulo,
+        seccion: noticia.seccion,
+        fecha: noticia.fechaActualizacion
+      }
+    });
+
+  } catch (error) {
+    console.error('Error actualizar:', error.message);
+    res.status(500).json({ success: false, error: 'Error al actualizar' });
+  }
+});
+
+// ==================== RUTAS DELETE ====================
+
+app.delete('/noticia/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin } = req.body;
+
+    // Validar PIN
+    if (pin !== "311") {
+      return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    }
+
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: 'ID inválido' });
+    }
+
+    // Eliminar
+    const noticia = await Noticia.findByIdAndDelete(id);
+
+    if (!noticia) {
+      return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
+    }
+
+    console.log('🗑️ Noticia eliminada:', noticia.titulo);
+
+    res.json({
+      success: true,
+      message: 'Noticia eliminada 🗑️',
+      id: noticia._id
+    });
+
+  } catch (error) {
+    console.error('Error eliminar:', error.message);
+    res.status(500).json({ success: false, error: 'Error al eliminar' });
+  }
+});
+
 // ==================== ERRORES ====================
 
 app.use((req, res) => {
@@ -395,22 +485,20 @@ const server = app.listen(PORT, () => {
 ╔════════════════════════════════════════╗
 ║   🏮 EL FAROL AL DÍA - COMPLETO 🏮    ║
 ╠════════════════════════════════════════╣
-║ ✅ Servidor iniciado en puerto ${PORT}     ║
-║ 📡 URL: http://localhost:${PORT}        ║
-║ 🔐 Autenticación: ACTIVADA             ║
-║ 📰 Secciones: FUNCIONANDO              ║
-║ 🔄 Compartir redes: ACTIVADO           ║
+║ ✅ Servidor iniciado en puerto ${PORT}   ║
+║ 🎬 VIDEOS: ACTIVADOS (50MB)           ║
+║ ✏️ EDITAR: ACTIVADO                    ║
+║ 🗑️ ELIMINAR: ACTIVADO                 ║
+║ 🔐 Autenticación: ACTIVADA            ║
+║ 📰 Navegación: FUNCIONANDO            ║
 ╚════════════════════════════════════════╝
   `);
 });
 
-// Cierre graceful
 process.on('SIGTERM', () => {
   console.log('⏹️ Cerrando servidor...');
   server.close(() => {
-    console.log('🔌 Servidor cerrado');
     mongoose.connection.close(false, () => {
-      console.log('📊 MongoDB cerrado');
       process.exit(0);
     });
   });
