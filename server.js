@@ -4,14 +4,23 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const app = express();  // ← IMPORTANTE: esto faltaba
+const app = express();
 
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
 
-// ================= CONEXIÓN MONGODB =================
-const mongodb = process.env.MONGO_URI || 'mongodb://localhost:27017/mongodb';
+// ================= CONEXIÓN MONGODB - CORREGIDA =================
+// AHORA SOLO usa la variable de entorno, NO permite localhost
+const mongodb = process.env.MONGO_URI;
+
+if (!mongodb) {
+    console.error('❌ ERROR CRÍTICO: MONGO_URI no está definida en Railway');
+    console.error('👉 Ve a Railway Dashboard → Variables → Agrega MONGO_URI');
+    process.exit(1);
+}
+
+console.log('📡 Conectando a MongoDB...');
 
 mongoose.connect(mongodb, {
   useNewUrlParser: true,
@@ -19,7 +28,7 @@ mongoose.connect(mongodb, {
 })
 .then(() => {
   console.log('🟢 BÚNKER CONECTADO!');
-  console.log('Meta tags en servidor: ACTIVADO');
+  console.log('📱 Meta tags en servidor: ACTIVADO');
 })
 .catch(err => {
   console.error('❌ Error MongoDB:', err.message);
