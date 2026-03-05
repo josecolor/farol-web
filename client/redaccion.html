@@ -64,6 +64,10 @@
             font-weight: bold;
         }
 
+        .btn-secundario:active {
+            background: rgba(255, 140, 0, 0.1);
+        }
+
         /* CAMPOS GIGANTES */
         input, textarea, select {
             width: 100%;
@@ -94,7 +98,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* SUBIDA DE ARCHIVOS - ÁREA GIGANTE */
+        /* SUBIDA DE ARCHIVOS - ÁREA GIGANTE (para multimedia) */
         .file-area {
             border: 3px dashed #FF8C00;
             border-radius: 40px;
@@ -103,6 +107,11 @@
             background: #1a1a1a;
             margin: 15px 0;
             cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .file-area:active {
+            background: #2a2a2a;
         }
 
         .file-area span {
@@ -117,6 +126,7 @@
             font-size: 0.9em;
         }
 
+        /* PREVIEW MULTIMEDIA */
         #preview, #previewVideo {
             width: 100%;
             max-height: 300px;
@@ -124,6 +134,43 @@
             margin: 15px 0;
             display: none;
             background: #000;
+        }
+
+        /* SECCIÓN FOTO DEL PERIODISTA */
+        .redactor-foto-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        .redactor-foto-preview {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #333;
+            border: 3px solid #FF8C00;
+            object-fit: cover;
+            display: none;
+        }
+        .redactor-foto-placeholder {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #333;
+            border: 3px dashed #FF8C00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FF8C00;
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+        #redactorFotoInput {
+            display: none;
+        }
+        .redactor-foto-info {
+            color: #888;
+            font-size: 0.85em;
         }
 
         /* CONTADOR DE CARACTERES */
@@ -165,6 +212,9 @@
             font-size: 0.9em;
             margin: 10px 0;
             display: none;
+            padding: 10px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 40px;
         }
 
         /* HEADER */
@@ -194,6 +244,28 @@
             padding: 15px;
             font-size: 1.1em;
             border-radius: 40px;
+        }
+
+        /* NOTICIAS RECIENTES */
+        .noticia-reciente {
+            background: #1a1a1a;
+            border-radius: 30px;
+            padding: 18px;
+            margin-bottom: 12px;
+            border-left: 5px solid #FF8C00;
+        }
+
+        .noticia-titulo-reciente {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #FF8C00;
+        }
+
+        .noticia-meta-reciente {
+            color: #888;
+            margin-bottom: 12px;
+            font-size: 0.9em;
         }
     </style>
 </head>
@@ -230,10 +302,23 @@
             <label>📍 UBICACIÓN (opcional)</label>
             <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este">
 
+            <!-- CAMPOS DEL REDACTOR (nombre + foto) -->
             <label>👤 REDACTOR</label>
-            <input type="text" id="redactor" value="mxl">
+            <input type="text" id="redactor" value="mxl" placeholder="Nombre del periodista">
 
-            <!-- ÁREA DE SUBIDA GIGANTE -->
+            <div style="margin-top: 10px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <!-- Foto preview -->
+                    <img id="redactorFotoPreview" class="redactor-foto-preview" src="" alt="Foto periodista">
+                    <div id="redactorFotoPlaceholder" class="redactor-foto-placeholder" onclick="document.getElementById('redactorFotoInput').click()">
+                        📸
+                    </div>
+                    <input type="file" id="redactorFotoInput" accept="image/*" style="display: none;">
+                    <div class="redactor-foto-info" id="redactorFotoInfo">Toca para añadir foto</div>
+                </div>
+            </div>
+
+            <!-- ÁREA DE SUBIDA GIGANTE (multimedia de la noticia) -->
             <label>🎬 MULTIMEDIA</label>
             <div class="file-area" id="fileArea">
                 <span>📸 + 🎥</span>
@@ -241,7 +326,7 @@
             </div>
             <input type="file" id="multimedia" accept="image/*,video/mp4" style="display: none;">
             
-            <!-- PREVIEWS -->
+            <!-- PREVIEWS MULTIMEDIA -->
             <img id="preview">
             <video id="previewVideo" controls></video>
             <div id="fileInfo" style="color: #888; text-align: center; margin: 10px;"></div>
@@ -269,6 +354,7 @@
     <script>
         // ==================== VARIABLES ====================
         let multimediaBase64 = "";
+        let redactorFotoBase64 = "";  // Foto del periodista
         const STORAGE_KEY = 'borrador_noticia';
 
         // ==================== AUTO-GUARDADO ====================
@@ -279,6 +365,8 @@
                 contenido: document.getElementById('contenido').value,
                 ubicacion: document.getElementById('ubicacion').value,
                 redactor: document.getElementById('redactor').value,
+                redactorFoto: redactorFotoBase64,   // Guardamos la foto
+                multimedia: multimediaBase64,        // Guardamos la multimedia
                 timestamp: new Date().getTime()
             };
             
@@ -291,21 +379,44 @@
             }, 2000);
         }
 
-        // Cargar borrador automático
+        // Cargar borrador
         function cargarBorrador() {
             const guardado = localStorage.getItem(STORAGE_KEY);
             if (guardado) {
                 try {
                     const borrador = JSON.parse(guardado);
-                    document.getElementById('seccion').value = borrador.seccion || '';
+                    document.getElementById('seccion').value = borrador.seccion || 'Nacionales';
                     document.getElementById('titulo').value = borrador.titulo || '';
                     document.getElementById('contenido').value = borrador.contenido || '';
                     document.getElementById('ubicacion').value = borrador.ubicacion || '';
                     document.getElementById('redactor').value = borrador.redactor || 'mxl';
                     
+                    // Restaurar foto del periodista
+                    if (borrador.redactorFoto) {
+                        redactorFotoBase64 = borrador.redactorFoto;
+                        document.getElementById('redactorFotoPreview').src = redactorFotoBase64;
+                        document.getElementById('redactorFotoPreview').style.display = 'block';
+                        document.getElementById('redactorFotoPlaceholder').style.display = 'none';
+                        document.getElementById('redactorFotoInfo').textContent = '✅ Foto lista';
+                    }
+                    
+                    // Restaurar multimedia
+                    if (borrador.multimedia) {
+                        multimediaBase64 = borrador.multimedia;
+                        if (borrador.multimedia.startsWith('data:video')) {
+                            document.getElementById('previewVideo').src = borrador.multimedia;
+                            document.getElementById('previewVideo').style.display = 'block';
+                        } else {
+                            document.getElementById('preview').src = borrador.multimedia;
+                            document.getElementById('preview').style.display = 'block';
+                        }
+                        const sizeMB = (borrador.multimedia.length / (1024 * 1024)).toFixed(2);
+                        document.getElementById('fileInfo').textContent = `✅ Multimedia | ${sizeMB}MB`;
+                    }
+                    
                     mostrarAlerta('✅ Borrador cargado', 'success');
                 } catch (e) {
-                    console.error('Error cargando borrador');
+                    mostrarAlerta('❌ Error al cargar borrador', 'error');
                 }
             } else {
                 mostrarAlerta('❌ No hay borrador guardado', 'error');
@@ -313,19 +424,38 @@
         }
 
         // Event listeners para auto-guardado
-        ['titulo', 'contenido', 'ubicacion', 'redactor', 'seccion'].forEach(id => {
-            document.getElementById(id).addEventListener('input', autoGuardar);
-        });
+        document.getElementById('titulo').addEventListener('input', autoGuardar);
+        document.getElementById('contenido').addEventListener('input', autoGuardar);
+        document.getElementById('ubicacion').addEventListener('input', autoGuardar);
+        document.getElementById('redactor').addEventListener('input', autoGuardar);
+        document.getElementById('seccion').addEventListener('change', autoGuardar);
 
         // ==================== CONTADORES ====================
         document.getElementById('titulo').addEventListener('input', (e) => {
             document.getElementById('tituloCount').textContent = e.target.value.length;
-            autoGuardar();
         });
 
         document.getElementById('contenido').addEventListener('input', (e) => {
             document.getElementById('contenidoCount').textContent = e.target.value.length;
-            autoGuardar();
+        });
+
+        // ==================== SUBIDA FOTO PERIODISTA ====================
+        document.getElementById('redactorFotoInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                document.getElementById('redactorFotoInfo').textContent = '⏳ Comprimiendo...';
+                redactorFotoBase64 = await comprimirImagen(file, 200); // Tamaño pequeño para foto de perfil
+                document.getElementById('redactorFotoPreview').src = redactorFotoBase64;
+                document.getElementById('redactorFotoPreview').style.display = 'block';
+                document.getElementById('redactorFotoPlaceholder').style.display = 'none';
+                document.getElementById('redactorFotoInfo').textContent = '✅ Foto lista';
+                autoGuardar(); // Guardar después de cambiar
+            } catch (error) {
+                mostrarAlerta('❌ Error con la foto', 'error');
+                document.getElementById('redactorFotoInfo').textContent = 'Error, intenta de nuevo';
+            }
         });
 
         // ==================== SUBIDA MULTIMEDIA ====================
@@ -340,14 +470,13 @@
             try {
                 document.getElementById('fileInfo').textContent = '⏳ Comprimiendo...';
                 
-                // Comprimir según tipo
                 if (file.type.startsWith('video/')) {
                     multimediaBase64 = await comprimirVideo(file);
                     document.getElementById('preview').style.display = 'none';
                     document.getElementById('previewVideo').src = multimediaBase64;
                     document.getElementById('previewVideo').style.display = 'block';
                 } else {
-                    multimediaBase64 = await comprimirImagen(file);
+                    multimediaBase64 = await comprimirImagen(file, 720); // 720p para la noticia
                     document.getElementById('previewVideo').style.display = 'none';
                     document.getElementById('preview').src = multimediaBase64;
                     document.getElementById('preview').style.display = 'block';
@@ -355,6 +484,7 @@
                 
                 const sizeMB = (multimediaBase64.length / (1024 * 1024)).toFixed(2);
                 document.getElementById('fileInfo').textContent = `✅ Listo | ${sizeMB}MB`;
+                autoGuardar();
             } catch (error) {
                 mostrarAlerta('❌ Error: ' + error.message, 'error');
                 document.getElementById('fileInfo').textContent = '';
@@ -362,7 +492,7 @@
         });
 
         // ==================== COMPRESIÓN ====================
-        function comprimirImagen(file) {
+        function comprimirImagen(file, maxWidth = 720) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -372,10 +502,9 @@
                         let width = img.width;
                         let height = img.height;
                         
-                        // Reducir a máximo 720p
-                        if (width > 720) {
-                            height = (height * 720) / width;
-                            width = 720;
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
                         }
                         
                         canvas.width = width;
@@ -384,7 +513,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Convertir a WebP con calidad 0.8
                         canvas.toBlob((blob) => {
                             const reader2 = new FileReader();
                             reader2.onload = () => resolve(reader2.result);
@@ -399,8 +527,6 @@
 
         function comprimirVideo(file) {
             return new Promise((resolve) => {
-                // Por ahora solo leer el video directamente
-                // En producción usarías FFmpeg.js o similar
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
                 reader.readAsDataURL(file);
@@ -435,7 +561,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         titulo, seccion, contenido, ubicacion, redactor,
-                        imagen: multimediaBase64, pin
+                        imagen: multimediaBase64,
+                        redactorFoto: redactorFotoBase64,  // Nuevo campo
+                        pin
                     })
                 });
 
@@ -443,7 +571,6 @@
 
                 if (data.success) {
                     mostrarAlerta('✅ ¡PUBLICADO! 🏮', 'success');
-                    // Limpiar auto-guardado
                     localStorage.removeItem(STORAGE_KEY);
                     setTimeout(() => {
                         window.location.href = '/';
@@ -471,21 +598,15 @@
                     
                     data.noticias.forEach(noticia => {
                         const card = document.createElement('div');
-                        card.style.cssText = `
-                            background: #1a1a1a;
-                            border-radius: 30px;
-                            padding: 18px;
-                            margin-bottom: 12px;
-                            border-left: 5px solid #FF8C00;
-                        `;
+                        card.className = 'noticia-reciente';
                         
                         const fecha = new Date(noticia.fecha).toLocaleDateString();
                         
                         card.innerHTML = `
-                            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 8px;">
+                            <div class="noticia-titulo-reciente">
                                 ${noticia.titulo.substring(0, 50)}${noticia.titulo.length > 50 ? '...' : ''}
                             </div>
-                            <div style="color: #888; margin-bottom: 12px;">
+                            <div class="noticia-meta-reciente">
                                 ${noticia.seccion} | ${fecha} | 👁️ ${noticia.vistas || 0}
                             </div>
                             <button class="btn-secundario" style="padding: 12px;" 
@@ -511,11 +632,20 @@
             document.getElementById('titulo').value = '';
             document.getElementById('contenido').value = '';
             document.getElementById('ubicacion').value = '';
+            document.getElementById('redactor').value = 'mxl';
             document.getElementById('multimedia').value = '';
             document.getElementById('preview').style.display = 'none';
             document.getElementById('previewVideo').style.display = 'none';
             document.getElementById('fileInfo').textContent = '';
             multimediaBase64 = '';
+            
+            // Limpiar foto del periodista
+            document.getElementById('redactorFotoInput').value = '';
+            document.getElementById('redactorFotoPreview').style.display = 'none';
+            document.getElementById('redactorFotoPlaceholder').style.display = 'flex';
+            document.getElementById('redactorFotoInfo').textContent = 'Toca para añadir foto';
+            redactorFotoBase64 = '';
+            
             document.getElementById('tituloCount').textContent = '0';
             document.getElementById('contenidoCount').textContent = '0';
             
@@ -557,6 +687,15 @@
                     document.getElementById('ubicacion').value = n.ubicacion || '';
                     document.getElementById('redactor').value = n.redactor || 'mxl';
                     
+                    // Si el servidor devuelve redactorFoto, cargarla
+                    if (n.redactorFoto) {
+                        redactorFotoBase64 = n.redactorFoto;
+                        document.getElementById('redactorFotoPreview').src = n.redactorFoto;
+                        document.getElementById('redactorFotoPreview').style.display = 'block';
+                        document.getElementById('redactorFotoPlaceholder').style.display = 'none';
+                        document.getElementById('redactorFotoInfo').textContent = '✅ Foto lista';
+                    }
+                    
                     if (n.imagen) {
                         multimediaBase64 = n.imagen;
                         if (n.imagen.includes('video')) {
@@ -566,9 +705,10 @@
                             document.getElementById('preview').src = n.imagen;
                             document.getElementById('preview').style.display = 'block';
                         }
+                        const sizeMB = (n.imagen.length / (1024 * 1024)).toFixed(2);
+                        document.getElementById('fileInfo').textContent = `✅ Multimedia | ${sizeMB}MB`;
                     }
                     
-                    // Cambiar botón a modo edición
                     document.getElementById('btnPublicar').textContent = '✏️ ACTUALIZAR NOTICIA';
                     document.getElementById('btnPublicar').onclick = actualizarNoticia;
                     
@@ -609,7 +749,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         titulo, seccion, contenido, ubicacion, redactor,
-                        imagen: multimediaBase64, pin
+                        imagen: multimediaBase64,
+                        redactorFoto: redactorFotoBase64,
+                        pin
                     })
                 });
 
@@ -636,7 +778,7 @@
             cargarParametroURL();
             cargarNoticiasRecientes();
             
-            // Cargar borrador automático
+            // Intentar cargar borrador automático
             cargarBorrador();
         });
     </script>
