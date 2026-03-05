@@ -24,13 +24,54 @@
             padding: 15px;
         }
 
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--naranja);
+            padding-bottom: 10px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .tab-btn.active {
+            color: var(--naranja);
+            border-bottom-color: var(--naranja);
+        }
+
+        .tab-btn:hover {
+            color: var(--naranja);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .panel {
             background: var(--gris);
             padding: 20px;
             border-radius: 25px;
             border: 2px solid var(--naranja);
-            max-width: 600px;
-            margin: 0 auto;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
@@ -163,20 +204,28 @@
             color: #ff9d1f;
         }
 
-        .btn-publicar {
-            background: linear-gradient(135deg, var(--naranja), #ff6b35);
-            color: white;
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-cargar, .btn-limpiar {
+            flex: 1;
             border: none;
             padding: 16px;
-            width: 100%;
             border-radius: 50px;
             font-weight: 900;
-            font-size: 1.1em;
+            font-size: 1em;
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.3s ease;
-            margin-top: 20px;
+        }
+
+        .btn-publicar {
+            background: linear-gradient(135deg, var(--naranja), #ff6b35);
+            color: white;
         }
 
         .btn-publicar:hover:not(:disabled) {
@@ -184,13 +233,44 @@
             box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6);
         }
 
-        .btn-publicar:active:not(:disabled) {
-            transform: translateY(0);
+        .btn-actualizar {
+            background: #4CAF50;
+            color: white;
         }
 
-        .btn-publicar:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .btn-actualizar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+
+        .btn-eliminar {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-eliminar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(244, 67, 54, 0.6);
+        }
+
+        .btn-cargar {
+            background: var(--naranja);
+            color: white;
+        }
+
+        .btn-cargar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6);
+        }
+
+        .btn-limpiar {
+            background: #666;
+            color: white;
+        }
+
+        .btn-limpiar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(100, 100, 100, 0.6);
         }
 
         .loader {
@@ -233,21 +313,14 @@
             color: #ffc107;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: #333;
-            border-radius: 2px;
-            margin-top: 10px;
-            overflow: hidden;
-            display: none;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--naranja), #ff6b35);
-            width: 0%;
-            transition: width 0.3s ease;
+        .info-box {
+            background: #1a3a1a;
+            border: 1px solid #4caf50;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #4caf50;
+            font-size: 0.9em;
         }
 
         @media (max-width: 480px) {
@@ -259,200 +332,521 @@
                 font-size: 1.3em;
             }
 
-            .btn-publicar {
-                font-size: 1em;
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-cargar, .btn-limpiar {
+                font-size: 0.9em;
                 padding: 14px;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                font-size: 0.8em;
+                padding: 8px 12px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="panel">
-        <div class="header">
-            <h2>🏮 BÚNKER 2.0</h2>
-            <p class="subtitle">Redacción Multimedia Profesional</p>
+    <div class="container">
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarTab('publicar')">🚀 Publicar Nueva</button>
+            <button class="tab-btn" onclick="cambiarTab('editar')">✏️ Editar Publicada</button>
         </div>
 
-        <div id="alert" class="alert"></div>
-
-        <form id="formulario" onsubmit="event.preventDefault(); enviarNoticia();">
-            <!-- SECCIÓN -->
-            <div class="form-group">
-                <label for="seccion">📰 SECCIÓN *</label>
-                <select id="seccion" required>
-                    <option value="">-- Selecciona una sección --</option>
-                    <option value="Nacionales">🇩🇴 Nacionales</option>
-                    <option value="Deportes">⚽ Deportes</option>
-                    <option value="Internacionales">🌍 Internacionales</option>
-                    <option value="Espectáculos">🎬 Espectáculos</option>
-                </select>
-            </div>
-
-            <!-- TÍTULO -->
-            <div class="form-group">
-                <label for="titulo">📝 TÍTULO *</label>
-                <input type="text" id="titulo" placeholder="Título principal" maxlength="200" required>
-                <div class="char-count"><span id="tituloCount">0</span>/200</div>
-            </div>
-
-            <!-- REDACTOR -->
-            <div class="form-group">
-                <label for="redactor">👤 REDACTOR</label>
-                <input type="text" id="redactor" value="mxl" placeholder="Tu nombre" maxlength="50">
-            </div>
-
-            <!-- UBICACIÓN -->
-            <div class="form-group">
-                <label for="ubicacion">📍 UBICACIÓN</label>
-                <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este" maxlength="100">
-            </div>
-
-            <!-- CONTENIDO -->
-            <div class="form-group">
-                <label for="contenido">✍️ CONTENIDO *</label>
-                <textarea id="contenido" placeholder="Cuerpo de la noticia" maxlength="5000" required></textarea>
-                <div class="char-count"><span id="contenidoCount">0</span>/5000</div>
-            </div>
-
-            <!-- MULTIMEDIA (VIDEO O IMAGEN) -->
-            <div class="form-group">
-                <label>🎬 MULTIMEDIA (Video MP4 o Imagen)</label>
-                <label class="file-label" for="multimedia" id="labelMultimedia">
-                    🎥 TOCA PARA SUBIR VIDEO O IMAGEN
-                </label>
-                <input type="file" id="multimedia" accept="video/mp4,image/*" style="display: none;">
-                
-                <!-- Preview Imagen -->
-                <img id="preview">
-
-                <!-- Preview Video -->
-                <video id="previewVideo" controls style="display: none;"></video>
-
-                <!-- Info archivo -->
-                <div class="file-info" id="fileInfo"></div>
-
-                <!-- Barra de progreso -->
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-fill" id="progressFill"></div>
+        <!-- TAB 1: PUBLICAR NUEVA -->
+        <div id="tab-publicar" class="tab-content active">
+            <div class="panel">
+                <div class="header">
+                    <h2>🏮 PUBLICAR NOTICIA</h2>
+                    <p class="subtitle">Redacción Multimedia Profesional</p>
                 </div>
-            </div>
 
-            <!-- PIN -->
-            <div class="form-group">
-                <label for="pin">🔐 PIN *</label>
-                <input type="password" id="pin" placeholder="Introduce el PIN" maxlength="6" required>
-            </div>
+                <div id="alert" class="alert"></div>
 
-            <!-- BOTÓN PUBLICAR -->
-            <div id="loader" class="loader">⏳ COMPRIMIENDO Y PUBLICANDO...</div>
-            <button id="btnPublicar" class="btn-publicar" type="submit">🚀 PUBLICAR</button>
-        </form>
+                <form id="formulario" onsubmit="event.preventDefault(); publicarNoticia();">
+                    <!-- SECCIÓN -->
+                    <div class="form-group">
+                        <label for="seccion">📰 SECCIÓN *</label>
+                        <select id="seccion" required>
+                            <option value="">-- Selecciona una sección --</option>
+                            <option value="Nacionales">🇩🇴 Nacionales</option>
+                            <option value="Deportes">⚽ Deportes</option>
+                            <option value="Internacionales">🌍 Internacionales</option>
+                            <option value="Espectáculos">🎬 Espectáculos</option>
+                            <option value="Economía">💼 Economía</option>
+                        </select>
+                    </div>
+
+                    <!-- TÍTULO -->
+                    <div class="form-group">
+                        <label for="titulo">📝 TÍTULO *</label>
+                        <input type="text" id="titulo" placeholder="Título principal" maxlength="200" required>
+                        <div class="char-count"><span id="tituloCount">0</span>/200</div>
+                    </div>
+
+                    <!-- REDACTOR -->
+                    <div class="form-group">
+                        <label for="redactor">👤 REDACTOR</label>
+                        <input type="text" id="redactor" value="mxl" placeholder="Tu nombre" maxlength="50">
+                    </div>
+
+                    <!-- UBICACIÓN -->
+                    <div class="form-group">
+                        <label for="ubicacion">📍 UBICACIÓN</label>
+                        <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este" maxlength="100">
+                    </div>
+
+                    <!-- CONTENIDO -->
+                    <div class="form-group">
+                        <label for="contenido">✍️ CONTENIDO *</label>
+                        <textarea id="contenido" placeholder="Cuerpo de la noticia" maxlength="5000" required></textarea>
+                        <div class="char-count"><span id="contenidoCount">0</span>/5000</div>
+                    </div>
+
+                    <!-- MULTIMEDIA -->
+                    <div class="form-group">
+                        <label>🎬 MULTIMEDIA (Video MP4 o Imagen)</label>
+                        <label class="file-label" for="multimedia" id="labelMultimedia">
+                            🎥 TOCA PARA SUBIR VIDEO O IMAGEN
+                        </label>
+                        <input type="file" id="multimedia" accept="video/mp4,image/*" style="display: none;">
+                        
+                        <img id="preview">
+                        <video id="previewVideo" controls style="display: none;"></video>
+
+                        <div class="file-info" id="fileInfo"></div>
+                    </div>
+
+                    <!-- PIN -->
+                    <div class="form-group">
+                        <label for="pin">🔐 PIN *</label>
+                        <input type="password" id="pin" placeholder="Introduce el PIN" maxlength="6" required>
+                    </div>
+
+                    <div id="loader" class="loader">⏳ PUBLICANDO...</div>
+
+                    <div class="button-group">
+                        <button id="btnPublicar" class="btn-publicar" type="submit">🚀 PUBLICAR</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 2: EDITAR PUBLICADA -->
+        <div id="tab-editar" class="tab-content">
+            <div class="panel">
+                <div class="header">
+                    <h2>✏️ EDITAR NOTICIA</h2>
+                    <p class="subtitle">Modificar noticia ya publicada</p>
+                </div>
+
+                <div id="alertEditar" class="alert"></div>
+
+                <div class="info-box">
+                    ℹ️ Para editar una noticia publicada, ingresa su ID y haz clic en "Cargar"
+                </div>
+
+                <!-- CARGAR NOTICIA PARA EDITAR -->
+                <div class="form-group">
+                    <label for="noticiaId">🔍 ID DE LA NOTICIA</label>
+                    <input type="text" id="noticiaId" placeholder="Ej: 507f1f77bcf86cd799439011">
+                </div>
+
+                <button class="btn-cargar" onclick="cargarNoticiaParaEditar()" style="width: 100%; margin-bottom: 20px;">📂 CARGAR NOTICIA</button>
+
+                <!-- FORMULARIO DE EDICIÓN -->
+                <form id="formularioEditar" onsubmit="event.preventDefault(); actualizarNoticia();" style="display: none;">
+                    <!-- SECCIÓN -->
+                    <div class="form-group">
+                        <label for="seccionEditar">📰 SECCIÓN *</label>
+                        <select id="seccionEditar" required>
+                            <option value="Nacionales">🇩🇴 Nacionales</option>
+                            <option value="Deportes">⚽ Deportes</option>
+                            <option value="Internacionales">🌍 Internacionales</option>
+                            <option value="Espectáculos">🎬 Espectáculos</option>
+                            <option value="Economía">💼 Economía</option>
+                        </select>
+                    </div>
+
+                    <!-- TÍTULO -->
+                    <div class="form-group">
+                        <label for="tituloEditar">📝 TÍTULO *</label>
+                        <input type="text" id="tituloEditar" maxlength="200" required>
+                        <div class="char-count"><span id="tituloEditarCount">0</span>/200</div>
+                    </div>
+
+                    <!-- REDACTOR -->
+                    <div class="form-group">
+                        <label for="redactorEditar">👤 REDACTOR</label>
+                        <input type="text" id="redactorEditar" maxlength="50">
+                    </div>
+
+                    <!-- UBICACIÓN -->
+                    <div class="form-group">
+                        <label for="ubicacionEditar">📍 UBICACIÓN</label>
+                        <input type="text" id="ubicacionEditar" maxlength="100">
+                    </div>
+
+                    <!-- CONTENIDO -->
+                    <div class="form-group">
+                        <label for="contenidoEditar">✍️ CONTENIDO *</label>
+                        <textarea id="contenidoEditar" maxlength="5000" required></textarea>
+                        <div class="char-count"><span id="contenidoEditarCount">0</span>/5000</div>
+                    </div>
+
+                    <!-- MULTIMEDIA -->
+                    <div class="form-group">
+                        <label>🎬 MULTIMEDIA (Opcional)</label>
+                        <label class="file-label" for="multimediaEditar" id="labelMultimediaEditar">
+                            🎥 TOCA PARA CAMBIAR MULTIMEDIA
+                        </label>
+                        <input type="file" id="multimediaEditar" accept="video/mp4,image/*" style="display: none;">
+                        
+                        <img id="previewEditar">
+                        <video id="previewVideoEditar" controls style="display: none;"></video>
+
+                        <div class="file-info" id="fileInfoEditar"></div>
+                    </div>
+
+                    <!-- PIN -->
+                    <div class="form-group">
+                        <label for="pinEditar">🔐 PIN *</label>
+                        <input type="password" id="pinEditar" placeholder="Introduce el PIN" maxlength="6" required>
+                    </div>
+
+                    <div id="loaderEditar" class="loader">⏳ ACTUALIZANDO...</div>
+
+                    <div class="button-group">
+                        <button id="btnActualizar" class="btn-actualizar" type="submit">✏️ ACTUALIZAR</button>
+                        <button id="btnEliminar" class="btn-eliminar" type="button" onclick="eliminarNoticia()">🗑️ ELIMINAR</button>
+                        <button id="btnLimpiar" class="btn-limpiar" type="button" onclick="limpiarEdicion()">🔄 LIMPIAR</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <!-- Motor de Compresión -->
-    <script src="motor-compresion.js"></script>
-
     <script>
-        // ==================== ELEMENTOS ====================
-        const formulario = document.getElementById('formulario');
-        const seccionInput = document.getElementById('seccion');
-        const tituloInput = document.getElementById('titulo');
-        const contenidoInput = document.getElementById('contenido');
-        const redactorInput = document.getElementById('redactor');
-        const ubicacionInput = document.getElementById('ubicacion');
-        const multimediaInput = document.getElementById('multimedia');
-        const labelMultimedia = document.getElementById('labelMultimedia');
-        const preview = document.getElementById('preview');
-        const previewVideo = document.getElementById('previewVideo');
-        const fileInfo = document.getElementById('fileInfo');
-        const progressBar = document.getElementById('progressBar');
-        const progressFill = document.getElementById('progressFill');
-        const pinInput = document.getElementById('pin');
-        const btnPublicar = document.getElementById('btnPublicar');
-        const loader = document.getElementById('loader');
-        const alertBox = document.getElementById('alert');
-        const tituloCount = document.getElementById('tituloCount');
-        const contenidoCount = document.getElementById('contenidoCount');
-
-        let multimediaBase64 = "";
+        // ==================== TABS ====================
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+        }
 
         // ==================== CONTADORES ====================
-        tituloInput.addEventListener('input', () => {
-            tituloCount.textContent = tituloInput.value.length;
-            if (tituloInput.value.length > 150) {
-                tituloCount.parentElement.classList.add('warning');
-            } else {
-                tituloCount.parentElement.classList.remove('warning');
-            }
+        document.getElementById('titulo').addEventListener('input', (e) => {
+            document.getElementById('tituloCount').textContent = e.target.value.length;
         });
 
-        contenidoInput.addEventListener('input', () => {
-            contenidoCount.textContent = contenidoInput.value.length;
-            if (contenidoInput.value.length > 4500) {
-                contenidoCount.parentElement.classList.add('warning');
-            } else {
-                contenidoCount.parentElement.classList.remove('warning');
-            }
+        document.getElementById('contenido').addEventListener('input', (e) => {
+            document.getElementById('contenidoCount').textContent = e.target.value.length;
         });
 
-        // ==================== MANEJO DE MULTIMEDIA ====================
-        multimediaInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
+        document.getElementById('tituloEditar').addEventListener('input', (e) => {
+            document.getElementById('tituloEditarCount').textContent = e.target.value.length;
+        });
+
+        document.getElementById('contenidoEditar').addEventListener('input', (e) => {
+            document.getElementById('contenidoEditarCount').textContent = e.target.value.length;
+        });
+
+        // ==================== MULTIMEDIA ====================
+        let multimediaBase64 = "";
+        let multimediaBase64Editar = "";
+
+        document.getElementById('multimedia').addEventListener('change', async (e) => {
+            await procesarArchivo(e.target.files[0], 'publicar');
+        });
+
+        document.getElementById('multimediaEditar').addEventListener('change', async (e) => {
+            await procesarArchivo(e.target.files[0], 'editar');
+        });
+
+        async function procesarArchivo(file, tipo) {
             if (!file) return;
 
             try {
-                // Obtener info
-                const info = window.motorCompresion.obtenerInfoArchivo(file);
-                console.log('📁 Archivo:', info);
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64 = event.target.result;
+                    const sizeMB = (base64.length / (1024 * 1024)).toFixed(2);
 
-                // Validar tamaño inicial
-                if (info.sizeMB > 15) {
-                    mostrarAlerta(`⚠️ Archivo grande: ${info.sizeMB}MB. Comprimiendo...`, 'warning');
+                    if (tipo === 'publicar') {
+                        multimediaBase64 = base64;
+                        if (file.type.startsWith('video/')) {
+                            document.getElementById('preview').style.display = 'none';
+                            document.getElementById('previewVideo').src = base64;
+                            document.getElementById('previewVideo').style.display = 'block';
+                            document.getElementById('labelMultimedia').innerHTML = '✅ VIDEO LISTO';
+                        } else {
+                            document.getElementById('previewVideo').style.display = 'none';
+                            document.getElementById('preview').src = base64;
+                            document.getElementById('preview').style.display = 'block';
+                            document.getElementById('labelMultimedia').innerHTML = '✅ IMAGEN LISTA';
+                        }
+                        document.getElementById('fileInfo').innerHTML = `✅ ${file.type} | ${sizeMB}MB`;
+                    } else {
+                        multimediaBase64Editar = base64;
+                        if (file.type.startsWith('video/')) {
+                            document.getElementById('previewEditar').style.display = 'none';
+                            document.getElementById('previewVideoEditar').src = base64;
+                            document.getElementById('previewVideoEditar').style.display = 'block';
+                            document.getElementById('labelMultimediaEditar').innerHTML = '✅ VIDEO LISTO';
+                        } else {
+                            document.getElementById('previewVideoEditar').style.display = 'none';
+                            document.getElementById('previewEditar').src = base64;
+                            document.getElementById('previewEditar').style.display = 'block';
+                            document.getElementById('labelMultimediaEditar').innerHTML = '✅ IMAGEN LISTA';
+                        }
+                        document.getElementById('fileInfoEditar').innerHTML = `✅ ${file.type} | ${sizeMB}MB`;
+                    }
+                };
+                reader.readAsDataURL(file);
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error', 'publicar');
+            }
+        }
+
+        // ==================== PUBLICAR ====================
+        async function publicarNoticia() {
+            const titulo = document.getElementById('titulo').value.trim();
+            const seccion = document.getElementById('seccion').value;
+            const contenido = document.getElementById('contenido').value.trim();
+            const redactor = document.getElementById('redactor').value.trim();
+            const ubicacion = document.getElementById('ubicacion').value.trim();
+            const pin = document.getElementById('pin').value;
+
+            if (!titulo || !seccion || !contenido) {
+                mostrarAlerta('❌ Faltan campos obligatorios', 'error', 'publicar');
+                return;
+            }
+
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error', 'publicar');
+                return;
+            }
+
+            document.getElementById('btnPublicar').disabled = true;
+            document.getElementById('loader').style.display = 'block';
+
+            try {
+                const res = await fetch('/publicar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        titulo,
+                        seccion,
+                        contenido,
+                        redactor,
+                        ubicacion,
+                        imagen: multimediaBase64,
+                        pin
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta('✅ NOTICIA PUBLICADA 🏮', 'success', 'publicar');
+                    limpiarFormulario();
+                } else {
+                    mostrarAlerta('❌ Error: ' + data.error, 'error', 'publicar');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error', 'publicar');
+            } finally {
+                document.getElementById('btnPublicar').disabled = false;
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('titulo').value = '';
+            document.getElementById('seccion').value = '';
+            document.getElementById('contenido').value = '';
+            document.getElementById('redactor').value = 'mxl';
+            document.getElementById('ubicacion').value = '';
+            document.getElementById('pin').value = '';
+            document.getElementById('multimedia').value = '';
+            document.getElementById('preview').style.display = 'none';
+            document.getElementById('previewVideo').style.display = 'none';
+            document.getElementById('labelMultimedia').innerHTML = '🎥 TOCA PARA SUBIR VIDEO O IMAGEN';
+            document.getElementById('fileInfo').textContent = '';
+            multimediaBase64 = '';
+            document.getElementById('tituloCount').textContent = '0';
+            document.getElementById('contenidoCount').textContent = '0';
+        }
+
+        // ==================== EDITAR ====================
+        async function cargarNoticiaParaEditar() {
+            const id = document.getElementById('noticiaId').value.trim();
+
+            if (!id) {
+                mostrarAlerta('❌ Ingresa un ID válido', 'error', 'editar');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/noticia/${id}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    mostrarAlerta('❌ Noticia no encontrada', 'error', 'editar');
+                    return;
                 }
 
-                // Mostrar progreso
-                progressBar.style.display = 'block';
-                progressFill.style.width = '0%';
+                const noticia = data.noticia;
+                window.noticiaEditarId = id;
 
-                // Comprimir y convertir
-                const base64 = await window.motorCompresion.mediaABase64(file, 15);
-                multimediaBase64 = base64;
+                document.getElementById('tituloEditar').value = noticia.titulo;
+                document.getElementById('seccionEditar').value = noticia.seccion;
+                document.getElementById('contenidoEditar').value = noticia.contenido;
+                document.getElementById('redactorEditar').value = noticia.redactor || '';
+                document.getElementById('ubicacionEditar').value = noticia.ubicacion || '';
 
-                // Actualizar UI
-                progressFill.style.width = '100%';
-
-                if (info.esVideo) {
-                    // Video
-                    preview.style.display = 'none';
-                    previewVideo.src = base64;
-                    previewVideo.style.display = 'block';
-                    labelMultimedia.innerHTML = '✅ VIDEO LISTO';
-                } else if (info.esImagen) {
-                    // Imagen
-                    previewVideo.style.display = 'none';
-                    preview.src = base64;
-                    preview.style.display = 'block';
-                    labelMultimedia.innerHTML = '✅ IMAGEN LISTA';
+                // Mostrar imagen/video si existe
+                if (noticia.imagen) {
+                    if (noticia.imagen.includes('data:video') || noticia.imagen.endsWith('.mp4')) {
+                        document.getElementById('previewVideoEditar').src = noticia.imagen;
+                        document.getElementById('previewVideoEditar').style.display = 'block';
+                        document.getElementById('previewEditar').style.display = 'none';
+                    } else {
+                        document.getElementById('previewEditar').src = noticia.imagen;
+                        document.getElementById('previewEditar').style.display = 'block';
+                        document.getElementById('previewVideoEditar').style.display = 'none';
+                    }
+                    multimediaBase64Editar = noticia.imagen;
                 }
 
-                const finalSizeMB = (base64.length / (1024 * 1024)).toFixed(2);
-                fileInfo.innerHTML = `✅ ${info.tipo} | ${finalSizeMB}MB | ${info.extension.toUpperCase()}`;
-
-                setTimeout(() => {
-                    progressBar.style.display = 'none';
-                }, 2000);
+                document.getElementById('formularioEditar').style.display = 'block';
+                mostrarAlerta(`✅ Noticia cargada: "${noticia.titulo}"`, 'success', 'editar');
 
             } catch (error) {
-                mostrarAlerta(`❌ Error: ${error.message}`, 'error');
-                multimediaInput.value = '';
-                labelMultimedia.innerHTML = '🎥 TOCA PARA SUBIR VIDEO O IMAGEN';
-                previewVideo.style.display = 'none';
-                preview.style.display = 'none';
+                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
             }
-        });
+        }
 
-        // ==================== MOSTRAR ALERTAS ====================
-        function mostrarAlerta(mensaje, tipo = 'success') {
+        async function actualizarNoticia() {
+            const id = window.noticiaEditarId;
+            const titulo = document.getElementById('tituloEditar').value.trim();
+            const seccion = document.getElementById('seccionEditar').value;
+            const contenido = document.getElementById('contenidoEditar').value.trim();
+            const redactor = document.getElementById('redactorEditar').value.trim();
+            const ubicacion = document.getElementById('ubicacionEditar').value.trim();
+            const pin = document.getElementById('pinEditar').value;
+
+            if (!titulo || !seccion || !contenido) {
+                mostrarAlerta('❌ Faltan campos obligatorios', 'error', 'editar');
+                return;
+            }
+
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error', 'editar');
+                return;
+            }
+
+            document.getElementById('btnActualizar').disabled = true;
+            document.getElementById('loaderEditar').style.display = 'block';
+
+            try {
+                const res = await fetch(`/noticia/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        titulo,
+                        seccion,
+                        contenido,
+                        redactor,
+                        ubicacion,
+                        imagen: multimediaBase64Editar,
+                        pin
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta('✅ NOTICIA ACTUALIZADA ✏️', 'success', 'editar');
+                    setTimeout(() => limpiarEdicion(), 2000);
+                } else {
+                    mostrarAlerta('❌ Error: ' + data.error, 'error', 'editar');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
+            } finally {
+                document.getElementById('btnActualizar').disabled = false;
+                document.getElementById('loaderEditar').style.display = 'none';
+            }
+        }
+
+        async function eliminarNoticia() {
+            if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar esta noticia?\nEsta acción NO se puede deshacer.')) {
+                return;
+            }
+
+            const id = window.noticiaEditarId;
+            const pin = document.getElementById('pinEditar').value;
+
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error', 'editar');
+                return;
+            }
+
+            document.getElementById('btnEliminar').disabled = true;
+
+            try {
+                const res = await fetch(`/noticia/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta('✅ NOTICIA ELIMINADA 🗑️', 'success', 'editar');
+                    setTimeout(() => limpiarEdicion(), 2000);
+                } else {
+                    mostrarAlerta('❌ Error: ' + data.error, 'error', 'editar');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
+            } finally {
+                document.getElementById('btnEliminar').disabled = false;
+            }
+        }
+
+        function limpiarEdicion() {
+            document.getElementById('noticiaId').value = '';
+            document.getElementById('formularioEditar').style.display = 'none';
+            document.getElementById('tituloEditar').value = '';
+            document.getElementById('seccionEditar').value = '';
+            document.getElementById('contenidoEditar').value = '';
+            document.getElementById('redactorEditar').value = '';
+            document.getElementById('ubicacionEditar').value = '';
+            document.getElementById('pinEditar').value = '';
+            document.getElementById('previewEditar').style.display = 'none';
+            document.getElementById('previewVideoEditar').style.display = 'none';
+            document.getElementById('labelMultimediaEditar').innerHTML = '🎥 TOCA PARA CAMBIAR MULTIMEDIA';
+            document.getElementById('fileInfoEditar').textContent = '';
+            multimediaBase64Editar = '';
+            window.noticiaEditarId = null;
+            document.getElementById('tituloEditarCount').textContent = '0';
+            document.getElementById('contenidoEditarCount').textContent = '0';
+        }
+
+        // ==================== ALERTAS ====================
+        function mostrarAlerta(mensaje, tipo, tab) {
+            const alertBox = document.getElementById(tab === 'editar' ? 'alertEditar' : 'alert');
             alertBox.textContent = mensaje;
             alertBox.className = `alert ${tipo}`;
             alertBox.style.display = 'block';
@@ -462,102 +856,9 @@
             }
         }
 
-        // ==================== VALIDACIONES ====================
-        async function enviarNoticia() {
-            try {
-                // Validar sección
-                if (!seccionInput.value) {
-                    mostrarAlerta('Debes seleccionar una sección', 'error');
-                    seccionInput.focus();
-                    return;
-                }
-
-                // Validar título
-                if (!tituloInput.value.trim()) {
-                    mostrarAlerta('El título es obligatorio', 'error');
-                    tituloInput.focus();
-                    return;
-                }
-
-                // Validar contenido
-                if (!contenidoInput.value.trim()) {
-                    mostrarAlerta('El contenido es obligatorio', 'error');
-                    contenidoInput.focus();
-                    return;
-                }
-
-                // Validar PIN
-                if (!pinInput.value) {
-                    mostrarAlerta('El PIN es obligatorio', 'error');
-                    pinInput.focus();
-                    return;
-                }
-
-                if (pinInput.value !== '311') {
-                    mostrarAlerta('PIN incorrecto', 'error');
-                    pinInput.focus();
-                    return;
-                }
-
-                // Datos a enviar
-                const data = {
-                    titulo: tituloInput.value.trim(),
-                    seccion: seccionInput.value,
-                    contenido: contenidoInput.value.trim(),
-                    redactor: redactorInput.value.trim(),
-                    ubicacion: ubicacionInput.value.trim(),
-                    imagen: multimediaBase64,
-                    pin: pinInput.value
-                };
-
-                // Mostrar loader
-                btnPublicar.disabled = true;
-                loader.style.display = 'block';
-
-                // Enviar
-                const res = await fetch('/publicar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const resultado = await res.json();
-
-                if (res.ok) {
-                    mostrarAlerta('✅ NOTICIA PUBLICADA 🏮', 'success');
-
-                    // Limpiar formulario
-                    setTimeout(() => {
-                        tituloInput.value = '';
-                        contenidoInput.value = '';
-                        seccionInput.value = '';
-                        ubicacionInput.value = '';
-                        multimediaInput.value = '';
-                        preview.style.display = 'none';
-                        previewVideo.style.display = 'none';
-                        labelMultimedia.innerHTML = '🎥 TOCA PARA SUBIR VIDEO O IMAGEN';
-                        fileInfo.textContent = '';
-                        multimediaBase64 = '';
-                        tituloCount.textContent = '0';
-                        contenidoCount.textContent = '0';
-                        tituloInput.focus();
-                    }, 1500);
-                } else {
-                    mostrarAlerta(`❌ Error: ${resultado.error}`, 'error');
-                }
-
-            } catch (error) {
-                mostrarAlerta(`❌ Error de conexión: ${error.message}`, 'error');
-            } finally {
-                btnPublicar.disabled = false;
-                loader.style.display = 'none';
-            }
-        }
-
-        // ==================== INICIALIZACIÓN ====================
+        // ==================== INICIALIZAR ====================
         window.addEventListener('load', () => {
-            tituloInput.focus();
-            console.log('✅ Redacción BÚNKER 2.0 lista');
+            console.log('✅ Búnker de Redacción 2.0 cargado');
         });
     </script>
 </body>
