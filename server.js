@@ -62,6 +62,12 @@ const noticiaSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'El título no puede exceder 200 caracteres']
   },
+  seccion: {
+    type: String,
+    required: [true, 'La sección es obligatoria'],
+    enum: ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos'],
+    trim: true
+  },
   contenido: {
     type: String,
     required: [true, 'El contenido es obligatorio'],
@@ -215,7 +221,7 @@ app.get('/noticias/:id', async (req, res) => {
  */
 app.post('/publicar', async (req, res) => {
   try {
-    const { pin, titulo, contenido, ubicacion, redactor, imagen } = req.body;
+    const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
 
     // ============ CORRECCIÓN #1: Validar PIN completo ============
     if (!pin) {
@@ -238,6 +244,23 @@ app.post('/publicar', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'El título es obligatorio'
+      });
+    }
+
+    // ✨ NUEVA VALIDACIÓN: SECCIÓN OBLIGATORIA
+    if (!seccion) {
+      return res.status(400).json({
+        success: false,
+        error: 'La sección es obligatoria'
+      });
+    }
+
+    // Validar que la sección sea válida
+    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos'];
+    if (!seccionesValidas.includes(seccion)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Sección inválida'
       });
     }
 
@@ -291,6 +314,7 @@ app.post('/publicar', async (req, res) => {
     // Crear la nueva noticia
     const nuevaNoticia = new Noticia({
       titulo: titulo.trim(),
+      seccion: seccion,  // ← AGREGAR SECCIÓN
       contenido: contenido.trim(),
       ubicacion: ubicacion ? ubicacion.trim() : '',
       redactor: redactor ? redactor.trim() : '',
