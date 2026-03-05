@@ -1,7 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR COMPLETO FINAL
+ * 🏮 EL FAROL AL DÍA - SERVIDOR COMPLETO CORREGIDO
  * Búnker PRO con Panel de Control Maestro + Verificación Token
- * LISTA PARA COPIAR Y PEGAR EN GITHUB
+ * ✅ FIX: Conexiones MongoDB cerradas correctamente
  */
 
 const express = require('express');
@@ -116,39 +116,28 @@ const usuarioSchema = new mongoose.Schema({
 
 // Schema Configuración
 const configuracionSchema = new mongoose.Schema({
-  // SITIO
   nombreSitio: { type: String, default: 'El Farol al Día' },
   tagline: { type: String, default: 'Diario Digital de Noticias en Vivo' },
   colorPrincipal: { type: String, default: '#FF8C00' },
   emailContacto: String,
   ubicacionSitio: String,
   descripcionSitio: String,
-
-  // REDES SOCIALES
   facebook: String,
   instagram: String,
   twitter: String,
   whatsapp: String,
   telegram: String,
   whatsappCanal: String,
-
-  // MONETIZACIÓN
   amazonId: String,
   googleAdsense: String,
   stripeId: String,
   linkDonacion: String,
-
-  // ANALÍTICA
   googleAnalytics: String,
   mostrarVistas: { type: Boolean, default: true },
-
-  // SEO
   metaKeywords: String,
   robotsTxt: String,
   googleVerification: String,
   activarOpenGraph: { type: Boolean, default: true },
-
-  // METADATA
   fechaActualizacion: { type: Date, default: Date.now },
   actualizadoPor: String
 });
@@ -168,7 +157,7 @@ function generarToken(usuarioId) {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Token admin secreto (CÁMBIALO EN PRODUCCIÓN)
+// Token admin secreto
 const ADMIN_TOKEN_SECRETO = process.env.ADMIN_TOKEN || 'bunker_admin_seguro_2026';
 
 // ==================== RUTAS GET ====================
@@ -284,8 +273,6 @@ app.get('/buscar', async (req, res) => {
     res.status(500).json({ success: false, error: 'Error al buscar' });
   }
 });
-
-// RUTAS API - CONFIGURACIÓN
 
 app.get('/api/configuracion', async (req, res) => {
   try {
@@ -523,8 +510,6 @@ app.post('/api/configuracion', async (req, res) => {
   }
 });
 
-// ==================== VERIFICACIÓN DE TOKEN (OPCIÓN 3) ====================
-
 app.post('/api/verificar-token', async (req, res) => {
   try {
     const { token } = req.body;
@@ -536,8 +521,6 @@ app.post('/api/verificar-token', async (req, res) => {
       });
     }
 
-    // Verificar contra token secreto en servidor
-    // MÁS SEGURO: imposible hackear desde frontend
     if (token === ADMIN_TOKEN_SECRETO) {
       console.log('✅ Token ADMIN verificado correctamente');
       return res.json({ 
@@ -545,13 +528,6 @@ app.post('/api/verificar-token', async (req, res) => {
         message: 'Token válido - Acceso como ADMIN' 
       });
     }
-
-    // También verificar si es token de usuario registrado
-    // Los tokens de usuarios tienen formato diferente
-    const usuario = await Usuario.findOne({ 
-      // Buscar por token si lo guardaste en el modelo
-      // Esta es una opción adicional
-    });
 
     return res.status(401).json({ 
       success: false, 
@@ -669,7 +645,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Error interno' });
 });
 
-// ==================== INICIAR SERVIDOR ====================
+// ==================== INICIAR SERVIDOR CON CIERRE CORREGIDO ====================
 
 const PORT = process.env.PORT || 8080;
 
@@ -679,31 +655,52 @@ const server = app.listen(PORT, () => {
 ║   🏮 EL FAROL AL DÍA - BÚNKER PRO 2.0 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor iniciado en puerto ${PORT}             ║
-║ 📡 URL: http://localhost:${PORT}                  ║
+║ ✅ FIX: Conexiones MongoDB cerradas con PROMESAS  ║
 ║ 🏮 Portada: http://localhost:${PORT}              ║
 ║ ✏️ Redacción: http://localhost:${PORT}/redaccion  ║
-║ 🎛️ Panel de Ajustes: http://localhost:${PORT}/ajustes ║
-║ 🎬 Videos: ACTIVADOS (50MB)                       ║
-║ ✏️ Editar noticias: ACTIVADO                      ║
-║ 🗑️ Eliminar noticias: ACTIVADO                    ║
-║ 🔐 Autenticación: ACTIVADA (3 opciones)           ║
-║ 📊 Analítica: ACTIVADA                            ║
-║ 🔧 Panel de Control: ACTIVADO                     ║
-║ 🔒 Verificación Token: ACTIVADA (Backend)         ║
+║ 🎛️ Panel: http://localhost:${PORT}/ajustes        ║
 ╚════════════════════════════════════════════════════╝
   `);
 });
 
-process.on('SIGTERM', () => {
-  console.log('⏹️ Cerrando servidor...');
+// ==================== CIERRE CORREGIDO (CON PROMESAS) ====================
+
+// Para SIGTERM (Railway apagando)
+process.on('SIGTERM', async () => {
+  console.log('\n⏹️ Señal SIGTERM recibida - Cerrando servidor...');
+  
+  // Cerrar servidor HTTP primero
   server.close(() => {
-    console.log('🔌 Servidor cerrado');
-    mongoose.connection.close(false, () => {
-      console.log('📊 MongoDB cerrado');
-      process.exit(0);
-    });
+    console.log('🔌 Servidor HTTP cerrado');
   });
+  
+  try {
+    // Cerrar MongoDB con PROMESA (NO callback)
+    await mongoose.connection.close();
+    console.log('📊 MongoDB cerrado correctamente');
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Error cerrando MongoDB:', err.message);
+    process.exit(1);
+  }
+});
+
+// Para SIGINT (Ctrl+C en terminal)
+process.on('SIGINT', async () => {
+  console.log('\n⏹️ Ctrl+C detectado - Cerrando servidor...');
+  
+  server.close(() => {
+    console.log('🔌 Servidor HTTP cerrado');
+  });
+  
+  try {
+    await mongoose.connection.close();
+    console.log('📊 MongoDB cerrado correctamente');
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ Error:', err.message);
+    process.exit(1);
+  }
 });
 
 module.exports = app;
-
