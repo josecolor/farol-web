@@ -551,4 +551,94 @@
                 
                 if (data.success) {
                     const n = data.noticia;
-                    document.getElementById
+                    document.getElementById('titulo').value = n.titulo;
+                    document.getElementById('seccion').value = n.seccion;
+                    document.getElementById('contenido').value = n.contenido;
+                    document.getElementById('ubicacion').value = n.ubicacion || '';
+                    document.getElementById('redactor').value = n.redactor || 'mxl';
+                    
+                    if (n.imagen) {
+                        multimediaBase64 = n.imagen;
+                        if (n.imagen.includes('video')) {
+                            document.getElementById('previewVideo').src = n.imagen;
+                            document.getElementById('previewVideo').style.display = 'block';
+                        } else {
+                            document.getElementById('preview').src = n.imagen;
+                            document.getElementById('preview').style.display = 'block';
+                        }
+                    }
+                    
+                    // Cambiar botón a modo edición
+                    document.getElementById('btnPublicar').textContent = '✏️ ACTUALIZAR NOTICIA';
+                    document.getElementById('btnPublicar').onclick = actualizarNoticia;
+                    
+                    mostrarAlerta('✅ Noticia cargada para editar', 'success');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error cargando noticia', 'error');
+            }
+        }
+
+        async function actualizarNoticia() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('edit');
+            
+            const titulo = document.getElementById('titulo').value.trim();
+            const seccion = document.getElementById('seccion').value;
+            const contenido = document.getElementById('contenido').value.trim();
+            const ubicacion = document.getElementById('ubicacion').value.trim();
+            const redactor = document.getElementById('redactor').value.trim();
+            const pin = document.getElementById('pin').value;
+
+            if (!titulo || !seccion || !contenido) {
+                mostrarAlerta('❌ Faltan campos', 'error');
+                return;
+            }
+
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error');
+                return;
+            }
+
+            document.getElementById('btnPublicar').disabled = true;
+            document.getElementById('btnPublicar').textContent = '⏳ ACTUALIZANDO...';
+
+            try {
+                const res = await fetch(`/noticia/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        titulo, seccion, contenido, ubicacion, redactor,
+                        imagen: multimediaBase64, pin
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta('✅ ¡ACTUALIZADO! ✏️', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    mostrarAlerta('❌ Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error de red', 'error');
+            } finally {
+                document.getElementById('btnPublicar').disabled = false;
+                document.getElementById('btnPublicar').textContent = '✏️ ACTUALIZAR NOTICIA';
+            }
+        }
+
+        // ==================== INICIALIZAR ====================
+        window.addEventListener('load', () => {
+            cargarParametroURL();
+            cargarNoticiasRecientes();
+            
+            // Cargar borrador automático
+            cargarBorrador();
+        });
+    </script>
+</body>
+</html>
