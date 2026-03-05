@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Búnker de Redacción 2.0 🏮 | Admin Multimedia</title>
+    <title>Búnker de Redacción 🏮 | Admin</title>
     <style>
         :root {
             --naranja: #FF8C00;
@@ -169,7 +169,7 @@
             border-color: #ff9d1f;
         }
 
-        #preview {
+        #preview, #previewEditar {
             width: 100%;
             max-height: 300px;
             margin-top: 10px;
@@ -179,7 +179,7 @@
             object-fit: cover;
         }
 
-        #previewVideo {
+        #previewVideo, #previewVideoEditar {
             width: 100%;
             max-height: 300px;
             margin-top: 10px;
@@ -200,17 +200,13 @@
             margin-top: 4px;
         }
 
-        .char-count.warning {
-            color: #ff9d1f;
-        }
-
         .button-group {
             display: flex;
             gap: 10px;
             margin-top: 20px;
         }
 
-        .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-cargar, .btn-limpiar {
+        .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-limpiar {
             flex: 1;
             border: none;
             padding: 16px;
@@ -253,16 +249,6 @@
             box-shadow: 0 8px 20px rgba(244, 67, 54, 0.6);
         }
 
-        .btn-cargar {
-            background: var(--naranja);
-            color: white;
-        }
-
-        .btn-cargar:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6);
-        }
-
         .btn-limpiar {
             background: #666;
             color: white;
@@ -270,7 +256,6 @@
 
         .btn-limpiar:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(100, 100, 100, 0.6);
         }
 
         .loader {
@@ -307,14 +292,8 @@
             color: #ff6b6b;
         }
 
-        .alert.warning {
-            background: rgba(255, 193, 7, 0.1);
-            border-left-color: #ffc107;
-            color: #ffc107;
-        }
-
         .info-box {
-            background: #1a3a1a;
+            background: #2a4a2a;
             border: 1px solid #4caf50;
             padding: 12px;
             border-radius: 8px;
@@ -336,18 +315,9 @@
                 flex-direction: column;
             }
 
-            .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-cargar, .btn-limpiar {
+            .btn-publicar, .btn-actualizar, .btn-eliminar, .btn-limpiar {
                 font-size: 0.9em;
                 padding: 14px;
-            }
-
-            .tabs {
-                flex-wrap: wrap;
-            }
-
-            .tab-btn {
-                font-size: 0.8em;
-                padding: 8px 12px;
             }
         }
     </style>
@@ -356,8 +326,8 @@
     <div class="container">
         <!-- TABS -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="cambiarTab('publicar')">🚀 Publicar Nueva</button>
-            <button class="tab-btn" onclick="cambiarTab('editar')">✏️ Editar Publicada</button>
+            <button class="tab-btn active" id="btnPublicar" onclick="cambiarTab('publicar')">🚀 Publicar Nueva</button>
+            <button class="tab-btn" id="btnEditar" onclick="cambiarTab('editar')">✏️ Editar</button>
         </div>
 
         <!-- TAB 1: PUBLICAR NUEVA -->
@@ -371,7 +341,6 @@
                 <div id="alert" class="alert"></div>
 
                 <form id="formulario" onsubmit="event.preventDefault(); publicarNoticia();">
-                    <!-- SECCIÓN -->
                     <div class="form-group">
                         <label for="seccion">📰 SECCIÓN *</label>
                         <select id="seccion" required>
@@ -384,47 +353,39 @@
                         </select>
                     </div>
 
-                    <!-- TÍTULO -->
                     <div class="form-group">
                         <label for="titulo">📝 TÍTULO *</label>
                         <input type="text" id="titulo" placeholder="Título principal" maxlength="200" required>
                         <div class="char-count"><span id="tituloCount">0</span>/200</div>
                     </div>
 
-                    <!-- REDACTOR -->
                     <div class="form-group">
                         <label for="redactor">👤 REDACTOR</label>
                         <input type="text" id="redactor" value="mxl" placeholder="Tu nombre" maxlength="50">
                     </div>
 
-                    <!-- UBICACIÓN -->
                     <div class="form-group">
                         <label for="ubicacion">📍 UBICACIÓN</label>
                         <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este" maxlength="100">
                     </div>
 
-                    <!-- CONTENIDO -->
                     <div class="form-group">
                         <label for="contenido">✍️ CONTENIDO *</label>
                         <textarea id="contenido" placeholder="Cuerpo de la noticia" maxlength="5000" required></textarea>
                         <div class="char-count"><span id="contenidoCount">0</span>/5000</div>
                     </div>
 
-                    <!-- MULTIMEDIA -->
                     <div class="form-group">
                         <label>🎬 MULTIMEDIA (Video MP4 o Imagen)</label>
                         <label class="file-label" for="multimedia" id="labelMultimedia">
                             🎥 TOCA PARA SUBIR VIDEO O IMAGEN
                         </label>
                         <input type="file" id="multimedia" accept="video/mp4,image/*" style="display: none;">
-                        
                         <img id="preview">
                         <video id="previewVideo" controls style="display: none;"></video>
-
                         <div class="file-info" id="fileInfo"></div>
                     </div>
 
-                    <!-- PIN -->
                     <div class="form-group">
                         <label for="pin">🔐 PIN *</label>
                         <input type="password" id="pin" placeholder="Introduce el PIN" maxlength="6" required>
@@ -433,13 +394,13 @@
                     <div id="loader" class="loader">⏳ PUBLICANDO...</div>
 
                     <div class="button-group">
-                        <button id="btnPublicar" class="btn-publicar" type="submit">🚀 PUBLICAR</button>
+                        <button id="btnPublicarNueva" class="btn-publicar" type="submit">🚀 PUBLICAR</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- TAB 2: EDITAR PUBLICADA -->
+        <!-- TAB 2: EDITAR -->
         <div id="tab-editar" class="tab-content">
             <div class="panel">
                 <div class="header">
@@ -449,21 +410,12 @@
 
                 <div id="alertEditar" class="alert"></div>
 
-                <div class="info-box">
-                    ℹ️ Para editar una noticia publicada, ingresa su ID y haz clic en "Cargar"
+                <div class="info-box" id="infoBox" style="display: none;">
+                    ✅ Noticia cargada: <span id="noticiaInfo"></span>
                 </div>
 
-                <!-- CARGAR NOTICIA PARA EDITAR -->
-                <div class="form-group">
-                    <label for="noticiaId">🔍 ID DE LA NOTICIA</label>
-                    <input type="text" id="noticiaId" placeholder="Ej: 507f1f77bcf86cd799439011">
-                </div>
-
-                <button class="btn-cargar" onclick="cargarNoticiaParaEditar()" style="width: 100%; margin-bottom: 20px;">📂 CARGAR NOTICIA</button>
-
-                <!-- FORMULARIO DE EDICIÓN -->
+                <!-- FORMULARIO DE EDICIÓN (OCULTO HASTA CARGAR) -->
                 <form id="formularioEditar" onsubmit="event.preventDefault(); actualizarNoticia();" style="display: none;">
-                    <!-- SECCIÓN -->
                     <div class="form-group">
                         <label for="seccionEditar">📰 SECCIÓN *</label>
                         <select id="seccionEditar" required>
@@ -475,47 +427,39 @@
                         </select>
                     </div>
 
-                    <!-- TÍTULO -->
                     <div class="form-group">
                         <label for="tituloEditar">📝 TÍTULO *</label>
                         <input type="text" id="tituloEditar" maxlength="200" required>
                         <div class="char-count"><span id="tituloEditarCount">0</span>/200</div>
                     </div>
 
-                    <!-- REDACTOR -->
                     <div class="form-group">
                         <label for="redactorEditar">👤 REDACTOR</label>
                         <input type="text" id="redactorEditar" maxlength="50">
                     </div>
 
-                    <!-- UBICACIÓN -->
                     <div class="form-group">
                         <label for="ubicacionEditar">📍 UBICACIÓN</label>
                         <input type="text" id="ubicacionEditar" maxlength="100">
                     </div>
 
-                    <!-- CONTENIDO -->
                     <div class="form-group">
                         <label for="contenidoEditar">✍️ CONTENIDO *</label>
                         <textarea id="contenidoEditar" maxlength="5000" required></textarea>
                         <div class="char-count"><span id="contenidoEditarCount">0</span>/5000</div>
                     </div>
 
-                    <!-- MULTIMEDIA -->
                     <div class="form-group">
                         <label>🎬 MULTIMEDIA (Opcional)</label>
                         <label class="file-label" for="multimediaEditar" id="labelMultimediaEditar">
                             🎥 TOCA PARA CAMBIAR MULTIMEDIA
                         </label>
                         <input type="file" id="multimediaEditar" accept="video/mp4,image/*" style="display: none;">
-                        
                         <img id="previewEditar">
                         <video id="previewVideoEditar" controls style="display: none;"></video>
-
                         <div class="file-info" id="fileInfoEditar"></div>
                     </div>
 
-                    <!-- PIN -->
                     <div class="form-group">
                         <label for="pinEditar">🔐 PIN *</label>
                         <input type="password" id="pinEditar" placeholder="Introduce el PIN" maxlength="6" required>
@@ -534,12 +478,75 @@
     </div>
 
     <script>
+        let multimediaBase64 = "";
+        let multimediaBase64Editar = "";
+        let noticiaEditarId = null;
+
         // ==================== TABS ====================
         function cambiarTab(tab) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + tab).classList.add('active');
-            event.target.classList.add('active');
+            if (tab === 'publicar') document.getElementById('btnPublicar').classList.add('active');
+            if (tab === 'editar') document.getElementById('btnEditar').classList.add('active');
+        }
+
+        // ==================== AUTO-CARGA POR URL ====================
+        function cargarParametroURL() {
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get('edit');
+
+            if (editId) {
+                cambiarTab('editar');
+                cargarNoticiaParaEditar(editId);
+            }
+        }
+
+        // ==================== CARGAR NOTICIA POR ID ====================
+        async function cargarNoticiaParaEditar(id) {
+            try {
+                const res = await fetch(`/noticia/${id}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    mostrarAlerta('❌ Noticia no encontrada', 'error', 'editar');
+                    return;
+                }
+
+                const noticia = data.noticia;
+                noticiaEditarId = id;
+
+                // Llenar campos
+                document.getElementById('tituloEditar').value = noticia.titulo;
+                document.getElementById('seccionEditar').value = noticia.seccion;
+                document.getElementById('contenidoEditar').value = noticia.contenido;
+                document.getElementById('redactorEditar').value = noticia.redactor || '';
+                document.getElementById('ubicacionEditar').value = noticia.ubicacion || '';
+
+                // Mostrar multimedia
+                if (noticia.imagen) {
+                    multimediaBase64Editar = noticia.imagen;
+                    if (noticia.imagen.includes('data:video') || noticia.imagen.endsWith('.mp4')) {
+                        document.getElementById('previewVideoEditar').src = noticia.imagen;
+                        document.getElementById('previewVideoEditar').style.display = 'block';
+                        document.getElementById('previewEditar').style.display = 'none';
+                    } else {
+                        document.getElementById('previewEditar').src = noticia.imagen;
+                        document.getElementById('previewEditar').style.display = 'block';
+                        document.getElementById('previewVideoEditar').style.display = 'none';
+                    }
+                }
+
+                // Mostrar formulario
+                document.getElementById('formularioEditar').style.display = 'block';
+                document.getElementById('infoBox').style.display = 'block';
+                document.getElementById('noticiaInfo').textContent = `"${noticia.titulo}"`;
+
+                mostrarAlerta(`✅ Listo para editar`, 'success', 'editar');
+
+            } catch (error) {
+                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
+            }
         }
 
         // ==================== CONTADORES ====================
@@ -560,9 +567,6 @@
         });
 
         // ==================== MULTIMEDIA ====================
-        let multimediaBase64 = "";
-        let multimediaBase64Editar = "";
-
         document.getElementById('multimedia').addEventListener('change', async (e) => {
             await procesarArchivo(e.target.files[0], 'publicar');
         });
@@ -612,7 +616,7 @@
                 };
                 reader.readAsDataURL(file);
             } catch (error) {
-                mostrarAlerta('❌ Error: ' + error.message, 'error', 'publicar');
+                mostrarAlerta('❌ Error: ' + error.message, 'error');
             }
         }
 
@@ -635,7 +639,7 @@
                 return;
             }
 
-            document.getElementById('btnPublicar').disabled = true;
+            document.getElementById('btnPublicarNueva').disabled = true;
             document.getElementById('loader').style.display = 'block';
 
             try {
@@ -657,14 +661,16 @@
 
                 if (data.success) {
                     mostrarAlerta('✅ NOTICIA PUBLICADA 🏮', 'success', 'publicar');
-                    limpiarFormulario();
+                    setTimeout(() => {
+                        limpiarFormulario();
+                    }, 1500);
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error', 'publicar');
                 }
             } catch (error) {
                 mostrarAlerta('❌ Error: ' + error.message, 'error', 'publicar');
             } finally {
-                document.getElementById('btnPublicar').disabled = false;
+                document.getElementById('btnPublicarNueva').disabled = false;
                 document.getElementById('loader').style.display = 'none';
             }
         }
@@ -687,56 +693,7 @@
         }
 
         // ==================== EDITAR ====================
-        async function cargarNoticiaParaEditar() {
-            const id = document.getElementById('noticiaId').value.trim();
-
-            if (!id) {
-                mostrarAlerta('❌ Ingresa un ID válido', 'error', 'editar');
-                return;
-            }
-
-            try {
-                const res = await fetch(`/noticia/${id}`);
-                const data = await res.json();
-
-                if (!data.success) {
-                    mostrarAlerta('❌ Noticia no encontrada', 'error', 'editar');
-                    return;
-                }
-
-                const noticia = data.noticia;
-                window.noticiaEditarId = id;
-
-                document.getElementById('tituloEditar').value = noticia.titulo;
-                document.getElementById('seccionEditar').value = noticia.seccion;
-                document.getElementById('contenidoEditar').value = noticia.contenido;
-                document.getElementById('redactorEditar').value = noticia.redactor || '';
-                document.getElementById('ubicacionEditar').value = noticia.ubicacion || '';
-
-                // Mostrar imagen/video si existe
-                if (noticia.imagen) {
-                    if (noticia.imagen.includes('data:video') || noticia.imagen.endsWith('.mp4')) {
-                        document.getElementById('previewVideoEditar').src = noticia.imagen;
-                        document.getElementById('previewVideoEditar').style.display = 'block';
-                        document.getElementById('previewEditar').style.display = 'none';
-                    } else {
-                        document.getElementById('previewEditar').src = noticia.imagen;
-                        document.getElementById('previewEditar').style.display = 'block';
-                        document.getElementById('previewVideoEditar').style.display = 'none';
-                    }
-                    multimediaBase64Editar = noticia.imagen;
-                }
-
-                document.getElementById('formularioEditar').style.display = 'block';
-                mostrarAlerta(`✅ Noticia cargada: "${noticia.titulo}"`, 'success', 'editar');
-
-            } catch (error) {
-                mostrarAlerta('❌ Error: ' + error.message, 'error', 'editar');
-            }
-        }
-
         async function actualizarNoticia() {
-            const id = window.noticiaEditarId;
             const titulo = document.getElementById('tituloEditar').value.trim();
             const seccion = document.getElementById('seccionEditar').value;
             const contenido = document.getElementById('contenidoEditar').value.trim();
@@ -758,7 +715,7 @@
             document.getElementById('loaderEditar').style.display = 'block';
 
             try {
-                const res = await fetch(`/noticia/${id}`, {
+                const res = await fetch(`/noticia/${noticiaEditarId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -776,7 +733,10 @@
 
                 if (data.success) {
                     mostrarAlerta('✅ NOTICIA ACTUALIZADA ✏️', 'success', 'editar');
-                    setTimeout(() => limpiarEdicion(), 2000);
+                    setTimeout(() => {
+                        limpiarEdicion();
+                        window.location.href = '/';
+                    }, 2000);
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error', 'editar');
                 }
@@ -789,11 +749,10 @@
         }
 
         async function eliminarNoticia() {
-            if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar esta noticia?\nEsta acción NO se puede deshacer.')) {
+            if (!confirm('⚠️ ¿Estás seguro de eliminar esta noticia?')) {
                 return;
             }
 
-            const id = window.noticiaEditarId;
             const pin = document.getElementById('pinEditar').value;
 
             if (pin !== '311') {
@@ -804,7 +763,7 @@
             document.getElementById('btnEliminar').disabled = true;
 
             try {
-                const res = await fetch(`/noticia/${id}`, {
+                const res = await fetch(`/noticia/${noticiaEditarId}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pin })
@@ -814,7 +773,9 @@
 
                 if (data.success) {
                     mostrarAlerta('✅ NOTICIA ELIMINADA 🗑️', 'success', 'editar');
-                    setTimeout(() => limpiarEdicion(), 2000);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error', 'editar');
                 }
@@ -826,8 +787,8 @@
         }
 
         function limpiarEdicion() {
-            document.getElementById('noticiaId').value = '';
             document.getElementById('formularioEditar').style.display = 'none';
+            document.getElementById('infoBox').style.display = 'none';
             document.getElementById('tituloEditar').value = '';
             document.getElementById('seccionEditar').value = '';
             document.getElementById('contenidoEditar').value = '';
@@ -839,13 +800,13 @@
             document.getElementById('labelMultimediaEditar').innerHTML = '🎥 TOCA PARA CAMBIAR MULTIMEDIA';
             document.getElementById('fileInfoEditar').textContent = '';
             multimediaBase64Editar = '';
-            window.noticiaEditarId = null;
+            noticiaEditarId = null;
             document.getElementById('tituloEditarCount').textContent = '0';
             document.getElementById('contenidoEditarCount').textContent = '0';
         }
 
         // ==================== ALERTAS ====================
-        function mostrarAlerta(mensaje, tipo, tab) {
+        function mostrarAlerta(mensaje, tipo, tab = 'publicar') {
             const alertBox = document.getElementById(tab === 'editar' ? 'alertEditar' : 'alert');
             alertBox.textContent = mensaje;
             alertBox.className = `alert ${tipo}`;
@@ -858,7 +819,8 @@
 
         // ==================== INICIALIZAR ====================
         window.addEventListener('load', () => {
-            console.log('✅ Búnker de Redacción 2.0 cargado');
+            cargarParametroURL();
+            console.log('✅ Búnker de Redacción cargado');
         });
     </script>
 </body>
