@@ -2,81 +2,83 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Búnker de Redacción 🏮 | Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Búnker de Redacción 2.0 🏮 | Admin Multimedia</title>
     <style>
-        :root { 
-            --naranja: #FF8C00; 
-            --negro: #0b0b0b; 
-            --gris: #1a1a1a; 
+        :root {
+            --naranja: #FF8C00;
+            --negro: #0b0b0b;
+            --gris: #1a1a1a;
         }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
-        body { 
-            background: var(--negro); 
-            color: white; 
-            font-family: 'Segoe UI', sans-serif; 
-            padding: 15px; 
+
+        body {
+            background: var(--negro);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 15px;
         }
-        
-        .panel { 
-            background: var(--gris); 
-            padding: 25px; 
-            border-radius: 25px; 
+
+        .panel {
+            background: var(--gris);
+            padding: 20px;
+            border-radius: 25px;
             border: 2px solid var(--naranja);
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 25px;
             padding-bottom: 20px;
             border-bottom: 2px solid var(--naranja);
         }
-        
-        h2 { 
-            color: var(--naranja); 
-            text-transform: uppercase; 
+
+        h2 {
+            color: var(--naranja);
+            text-transform: uppercase;
             letter-spacing: 2px;
-            font-size: 1.8em;
-            text-shadow: 0 2px 10px rgba(255, 140, 0, 0.3);
+            font-size: 1.6em;
         }
-        
+
         .subtitle {
             color: #aaa;
             font-size: 0.85em;
             margin-top: 5px;
         }
-        
+
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 15px;
         }
-        
-        label { 
-            display: block; 
-            margin-bottom: 8px; 
-            color: var(--naranja); 
-            font-weight: bold; 
-            font-size: 0.95em;
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--naranja);
+            font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-size: 0.9em;
         }
-        
+
         input[type="text"],
         input[type="password"],
-        textarea { 
-            width: 100%; 
-            padding: 12px 15px; 
-            border-radius: 12px; 
-            border: 1px solid #333; 
-            background: #222; 
-            color: white; 
+        input[type="file"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            background: #222;
+            color: white;
             font-size: 1em;
             font-family: inherit;
             transition: all 0.3s ease;
@@ -84,16 +86,27 @@
 
         input[type="text"]:focus,
         input[type="password"]:focus,
-        textarea:focus {
+        textarea:focus,
+        select:focus {
             outline: none;
             border-color: var(--naranja);
             box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
             background: #2a2a2a;
         }
 
-        textarea { 
+        textarea {
             resize: vertical;
             min-height: 100px;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3e%3cpath d='M6 9l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding-right: 40px;
         }
 
         .file-label {
@@ -105,7 +118,7 @@
             border-radius: 12px;
             cursor: pointer;
             border: 2px dashed var(--naranja);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             transition: all 0.3s ease;
             font-weight: bold;
         }
@@ -115,31 +128,55 @@
             border-color: #ff9d1f;
         }
 
-        #preview { 
-            width: 100%; 
-            margin-top: 10px; 
-            border-radius: 15px; 
-            display: none; 
-            border: 1px solid #444;
+        #preview {
+            width: 100%;
             max-height: 300px;
+            margin-top: 10px;
+            border-radius: 12px;
+            display: none;
+            border: 1px solid #444;
             object-fit: cover;
         }
 
-        .btn-publicar { 
+        #previewVideo {
+            width: 100%;
+            max-height: 300px;
+            margin-top: 10px;
+            border-radius: 12px;
+            display: none;
+            border: 1px solid #444;
+        }
+
+        .file-info {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .char-count {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .char-count.warning {
+            color: #ff9d1f;
+        }
+
+        .btn-publicar {
             background: linear-gradient(135deg, var(--naranja), #ff6b35);
-            color: white; 
-            border: none; 
-            padding: 16px; 
-            width: 100%; 
-            border-radius: 50px; 
-            font-weight: 900; 
-            font-size: 1.1em; 
-            cursor: pointer; 
-            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.4);
-            margin-top: 15px;
+            color: white;
+            border: none;
+            padding: 16px;
+            width: 100%;
+            border-radius: 50px;
+            font-weight: 900;
+            font-size: 1.1em;
+            cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: all 0.3s ease;
+            margin-top: 20px;
         }
 
         .btn-publicar:hover:not(:disabled) {
@@ -147,20 +184,20 @@
             box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6);
         }
 
-        .btn-publicar:active:not(:disabled) { 
-            transform: translateY(0); 
+        .btn-publicar:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .btn-publicar:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        
-        .loader { 
-            display: none; 
-            text-align: center; 
-            color: var(--naranja); 
-            font-weight: bold; 
+
+        .loader {
+            display: none;
+            text-align: center;
+            color: var(--naranja);
+            font-weight: bold;
             margin-top: 15px;
             animation: pulse 1s infinite;
         }
@@ -176,7 +213,6 @@
             margin-bottom: 15px;
             display: none;
             border-left: 4px solid;
-            font-weight: 500;
         }
 
         .alert.success {
@@ -197,23 +233,35 @@
             color: #ffc107;
         }
 
-        .char-count {
-            font-size: 0.8em;
-            color: #888;
-            margin-top: 4px;
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
         }
 
-        .char-count.warning {
-            color: #ff9d1f;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--naranja), #ff6b35);
+            width: 0%;
+            transition: width 0.3s ease;
         }
 
         @media (max-width: 480px) {
             .panel {
-                padding: 20px;
-                border-radius: 15px;
+                padding: 15px;
             }
+
             h2 {
-                font-size: 1.4em;
+                font-size: 1.3em;
+            }
+
+            .btn-publicar {
+                font-size: 1em;
+                padding: 14px;
             }
         }
     </style>
@@ -221,36 +269,17 @@
 <body>
     <div class="panel">
         <div class="header">
-            <h2>🏮 BÚNKER DE REDACCIÓN 🏮</h2>
-            <p class="subtitle">Farol al Día - Noticias en Vivo</p>
+            <h2>🏮 BÚNKER 2.0</h2>
+            <p class="subtitle">Redacción Multimedia Profesional</p>
         </div>
 
         <div id="alert" class="alert"></div>
-        
+
         <form id="formulario" onsubmit="event.preventDefault(); enviarNoticia();">
-            <!-- TÍTULO -->
-            <div class="form-group">
-                <label for="titulo">📝 TITULAR DE LA NOTICIA</label>
-                <input 
-                    type="text" 
-                    id="titulo" 
-                    placeholder="¿Qué está pasando?" 
-                    maxlength="200"
-                    required
-                >
-                <div class="char-count">
-                    <span id="tituloCount">0</span>/200
-                </div>
-            </div>
-            
-            <!-- SECCIÓN (OBLIGATORIO) -->
+            <!-- SECCIÓN -->
             <div class="form-group">
                 <label for="seccion">📰 SECCIÓN *</label>
-                <select 
-                    id="seccion" 
-                    required
-                    style="width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid #333; background: #222; color: white; font-size: 1em; font-family: inherit; transition: all 0.3s ease; cursor: pointer;"
-                >
+                <select id="seccion" required>
                     <option value="">-- Selecciona una sección --</option>
                     <option value="Nacionales">🇩🇴 Nacionales</option>
                     <option value="Deportes">⚽ Deportes</option>
@@ -259,85 +288,85 @@
                 </select>
             </div>
 
+            <!-- TÍTULO -->
+            <div class="form-group">
+                <label for="titulo">📝 TÍTULO *</label>
+                <input type="text" id="titulo" placeholder="Título principal" maxlength="200" required>
+                <div class="char-count"><span id="tituloCount">0</span>/200</div>
+            </div>
+
             <!-- REDACTOR -->
             <div class="form-group">
                 <label for="redactor">👤 REDACTOR</label>
-                <input 
-                    type="text" 
-                    id="redactor" 
-                    value="mxl"
-                    placeholder="Tu nombre"
-                    maxlength="50"
-                >
+                <input type="text" id="redactor" value="mxl" placeholder="Tu nombre" maxlength="50">
             </div>
-            
+
             <!-- UBICACIÓN -->
             <div class="form-group">
                 <label for="ubicacion">📍 UBICACIÓN</label>
-                <input 
-                    type="text" 
-                    id="ubicacion" 
-                    placeholder="Ej: Santo Domingo Este"
-                    maxlength="100"
-                >
+                <input type="text" id="ubicacion" placeholder="Ej: Santo Domingo Este" maxlength="100">
             </div>
-            
+
             <!-- CONTENIDO -->
             <div class="form-group">
-                <label for="contenido">✍️ CUERPO DE LA NOTICIA</label>
-                <textarea 
-                    id="contenido" 
-                    placeholder="Escribe los detalles aquí..."
-                    maxlength="5000"
-                    required
-                ></textarea>
-                <div class="char-count">
-                    <span id="contenidoCount">0</span>/5000
-                </div>
+                <label for="contenido">✍️ CONTENIDO *</label>
+                <textarea id="contenido" placeholder="Cuerpo de la noticia" maxlength="5000" required></textarea>
+                <div class="char-count"><span id="contenidoCount">0</span>/5000</div>
             </div>
-            
-            <!-- FOTO -->
+
+            <!-- MULTIMEDIA (VIDEO O IMAGEN) -->
             <div class="form-group">
-                <label class="file-label" for="foto" id="labelFoto">📸 TOCAR PARA SUBIR FOTO</label>
-                <input 
-                    type="file" 
-                    id="foto" 
-                    accept="image/*" 
-                    style="display:none"
-                >
+                <label>🎬 MULTIMEDIA (Video MP4 o Imagen)</label>
+                <label class="file-label" for="multimedia" id="labelMultimedia">
+                    🎥 TOCA PARA SUBIR VIDEO O IMAGEN
+                </label>
+                <input type="file" id="multimedia" accept="video/mp4,image/*" style="display: none;">
+                
+                <!-- Preview Imagen -->
                 <img id="preview">
-                <div id="fotoInfo" style="font-size: 0.85em; color: #888; margin-top: 5px;"></div>
+
+                <!-- Preview Video -->
+                <video id="previewVideo" controls style="display: none;"></video>
+
+                <!-- Info archivo -->
+                <div class="file-info" id="fileInfo"></div>
+
+                <!-- Barra de progreso -->
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
             </div>
 
             <!-- PIN -->
             <div class="form-group">
-                <label for="pin">🔐 PIN DE SEGURIDAD</label>
-                <input 
-                    type="password" 
-                    id="pin" 
-                    placeholder="Introduce el PIN"
-                    maxlength="6"
-                    required
-                >
+                <label for="pin">🔐 PIN *</label>
+                <input type="password" id="pin" placeholder="Introduce el PIN" maxlength="6" required>
             </div>
-            
-            <!-- BOTONES -->
-            <div id="loader" class="loader">⏳ ENVIANDO AL BÚNKER...</div>
-            <button id="btnPublicar" class="btn-publicar" type="submit">🚀 PUBLICAR AHORA</button>
+
+            <!-- BOTÓN PUBLICAR -->
+            <div id="loader" class="loader">⏳ COMPRIMIENDO Y PUBLICANDO...</div>
+            <button id="btnPublicar" class="btn-publicar" type="submit">🚀 PUBLICAR</button>
         </form>
     </div>
 
+    <!-- Motor de Compresión -->
+    <script src="motor-compresion.js"></script>
+
     <script>
-        // ==================== ELEMENTOS DEL DOM ====================
+        // ==================== ELEMENTOS ====================
         const formulario = document.getElementById('formulario');
+        const seccionInput = document.getElementById('seccion');
         const tituloInput = document.getElementById('titulo');
         const contenidoInput = document.getElementById('contenido');
         const redactorInput = document.getElementById('redactor');
         const ubicacionInput = document.getElementById('ubicacion');
-        const fotoInput = document.getElementById('foto');
+        const multimediaInput = document.getElementById('multimedia');
+        const labelMultimedia = document.getElementById('labelMultimedia');
         const preview = document.getElementById('preview');
-        const labelFoto = document.getElementById('labelFoto');
-        const fotoInfo = document.getElementById('fotoInfo');
+        const previewVideo = document.getElementById('previewVideo');
+        const fileInfo = document.getElementById('fileInfo');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
         const pinInput = document.getElementById('pin');
         const btnPublicar = document.getElementById('btnPublicar');
         const loader = document.getElementById('loader');
@@ -345,9 +374,9 @@
         const tituloCount = document.getElementById('tituloCount');
         const contenidoCount = document.getElementById('contenidoCount');
 
-        let imagenBase64 = "";
+        let multimediaBase64 = "";
 
-        // ==================== CONTADORES DE CARACTERES ====================
+        // ==================== CONTADORES ====================
         tituloInput.addEventListener('input', () => {
             tituloCount.textContent = tituloInput.value.length;
             if (tituloInput.value.length > 150) {
@@ -366,63 +395,61 @@
             }
         });
 
-        // ==================== MANEJO DE FOTO ====================
-        fotoInput.onchange = e => {
+        // ==================== MANEJO DE MULTIMEDIA ====================
+        multimediaInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
-            if(!file) return;
-            
-            // Validar tipo de archivo
-            if (!file.type.startsWith('image/')) {
-                mostrarAlerta('Solo se permiten imágenes', 'error');
-                fotoInput.value = '';
-                return;
-            }
+            if (!file) return;
 
-            // Validar tamaño inicial
-            const initialSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            if (initialSizeMB > 15) {
-                mostrarAlerta(`Imagen muy grande: ${initialSizeMB}MB (máximo 15MB)`, 'error');
-                fotoInput.value = '';
-                return;
+            try {
+                // Obtener info
+                const info = window.motorCompresion.obtenerInfoArchivo(file);
+                console.log('📁 Archivo:', info);
+
+                // Validar tamaño inicial
+                if (info.sizeMB > 15) {
+                    mostrarAlerta(`⚠️ Archivo grande: ${info.sizeMB}MB. Comprimiendo...`, 'warning');
+                }
+
+                // Mostrar progreso
+                progressBar.style.display = 'block';
+                progressFill.style.width = '0%';
+
+                // Comprimir y convertir
+                const base64 = await window.motorCompresion.mediaABase64(file, 15);
+                multimediaBase64 = base64;
+
+                // Actualizar UI
+                progressFill.style.width = '100%';
+
+                if (info.esVideo) {
+                    // Video
+                    preview.style.display = 'none';
+                    previewVideo.src = base64;
+                    previewVideo.style.display = 'block';
+                    labelMultimedia.innerHTML = '✅ VIDEO LISTO';
+                } else if (info.esImagen) {
+                    // Imagen
+                    previewVideo.style.display = 'none';
+                    preview.src = base64;
+                    preview.style.display = 'block';
+                    labelMultimedia.innerHTML = '✅ IMAGEN LISTA';
+                }
+
+                const finalSizeMB = (base64.length / (1024 * 1024)).toFixed(2);
+                fileInfo.innerHTML = `✅ ${info.tipo} | ${finalSizeMB}MB | ${info.extension.toUpperCase()}`;
+
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 2000);
+
+            } catch (error) {
+                mostrarAlerta(`❌ Error: ${error.message}`, 'error');
+                multimediaInput.value = '';
+                labelMultimedia.innerHTML = '🎥 TOCA PARA SUBIR VIDEO O IMAGEN';
+                previewVideo.style.display = 'none';
+                preview.style.display = 'none';
             }
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const maxWidth = 800;
-                    const scale = maxWidth / img.width;
-                    canvas.width = maxWidth;
-                    canvas.height = img.height * scale;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    imagenBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    // CORRECCIÓN: Validar tamaño comprimido
-                    const compressedSizeMB = (imagenBase64.length / (1024 * 1024)).toFixed(2);
-                    if (compressedSizeMB > 15) {
-                        mostrarAlerta(`Imagen aún muy grande: ${compressedSizeMB}MB (máximo 15MB)`, 'error');
-                        preview.style.display = 'none';
-                        fotoInput.value = '';
-                        imagenBase64 = '';
-                        fotoInfo.textContent = '';
-                        return;
-                    }
-                    
-                    preview.src = imagenBase64;
-                    preview.style.display = "block";
-                    labelFoto.innerText = "✅ FOTO LISTA";
-                    fotoInfo.textContent = `Tamaño: ${compressedSizeMB}MB`;
-                };
-            };
-            reader.onerror = () => {
-                mostrarAlerta('Error al leer la imagen', 'error');
-                fotoInput.value = '';
-            };
-            reader.readAsDataURL(file);
-        };
+        });
 
         // ==================== MOSTRAR ALERTAS ====================
         function mostrarAlerta(mensaje, tipo = 'success') {
@@ -435,102 +462,92 @@
             }
         }
 
-        // ==================== ENVIAR NOTICIA ====================
+        // ==================== VALIDACIONES ====================
         async function enviarNoticia() {
-            // ==================== VALIDAR TODOS LOS CAMPOS ====================
-            if (!tituloInput.value.trim()) {
-                mostrarAlerta('El título es obligatorio', 'error');
-                tituloInput.focus();
-                return;
-            }
-
-            if (!contenidoInput.value.trim()) {
-                mostrarAlerta('El contenido es obligatorio', 'error');
-                contenidoInput.focus();
-                return;
-            }
-
-            // NUEVA VALIDACIÓN: SECCIÓN OBLIGATORIA
-            const seccionInput = document.getElementById('seccion');
-            if (!seccionInput.value) {
-                mostrarAlerta('Debes seleccionar una sección', 'error');
-                seccionInput.focus();
-                return;
-            }
-
-            if (tituloInput.value.length > 200) {
-                mostrarAlerta('El título no puede exceder 200 caracteres', 'error');
-                return;
-            }
-
-            if (contenidoInput.value.length > 5000) {
-                mostrarAlerta('El contenido no puede exceder 5000 caracteres', 'error');
-                return;
-            }
-
-            // VALIDAR PIN PRIMERO
-            if (!pinInput.value) {
-                mostrarAlerta('El PIN es obligatorio', 'error');
-                pinInput.focus();
-                return;
-            }
-
-            if (pinInput.value !== '311') {
-                mostrarAlerta('PIN incorrecto', 'error');
-                pinInput.focus();
-                return;
-            }
-
-            // Datos a enviar (AHORA CON SECCIÓN)
-            const data = {
-                titulo: tituloInput.value.trim(),
-                contenido: contenidoInput.value.trim(),
-                seccion: document.getElementById('seccion').value,  // ← NUEVA
-                redactor: redactorInput.value.trim(),
-                ubicacion: ubicacionInput.value.trim(),
-                imagen: imagenBase64,
-                pin: pinInput.value
-            };
-
-            // Mostrar loader y deshabilitar botón
-            btnPublicar.disabled = true;
-            loader.style.display = 'block';
-
             try {
+                // Validar sección
+                if (!seccionInput.value) {
+                    mostrarAlerta('Debes seleccionar una sección', 'error');
+                    seccionInput.focus();
+                    return;
+                }
+
+                // Validar título
+                if (!tituloInput.value.trim()) {
+                    mostrarAlerta('El título es obligatorio', 'error');
+                    tituloInput.focus();
+                    return;
+                }
+
+                // Validar contenido
+                if (!contenidoInput.value.trim()) {
+                    mostrarAlerta('El contenido es obligatorio', 'error');
+                    contenidoInput.focus();
+                    return;
+                }
+
+                // Validar PIN
+                if (!pinInput.value) {
+                    mostrarAlerta('El PIN es obligatorio', 'error');
+                    pinInput.focus();
+                    return;
+                }
+
+                if (pinInput.value !== '311') {
+                    mostrarAlerta('PIN incorrecto', 'error');
+                    pinInput.focus();
+                    return;
+                }
+
+                // Datos a enviar
+                const data = {
+                    titulo: tituloInput.value.trim(),
+                    seccion: seccionInput.value,
+                    contenido: contenidoInput.value.trim(),
+                    redactor: redactorInput.value.trim(),
+                    ubicacion: ubicacionInput.value.trim(),
+                    imagen: multimediaBase64,
+                    pin: pinInput.value
+                };
+
+                // Mostrar loader
+                btnPublicar.disabled = true;
+                loader.style.display = 'block';
+
+                // Enviar
                 const res = await fetch('/publicar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
 
-                // CORRECCIÓN: Mostrar error específico del servidor
+                const resultado = await res.json();
+
                 if (res.ok) {
-                    mostrarAlerta('¡NOTICIA PUBLICADA CON ÉXITO! 🏮', 'success');
-                    
-                    // CORRECCIÓN: No hacer reload, limpiar solamente
+                    mostrarAlerta('✅ NOTICIA PUBLICADA 🏮', 'success');
+
+                    // Limpiar formulario
                     setTimeout(() => {
                         tituloInput.value = '';
                         contenidoInput.value = '';
+                        seccionInput.value = '';
                         ubicacionInput.value = '';
-                        document.getElementById('seccion').value = '';
-                        fotoInput.value = '';
+                        multimediaInput.value = '';
                         preview.style.display = 'none';
-                        labelFoto.innerText = "📸 TOCAR PARA SUBIR FOTO";
-                        fotoInfo.textContent = '';
-                        imagenBase64 = '';
+                        previewVideo.style.display = 'none';
+                        labelMultimedia.innerHTML = '🎥 TOCA PARA SUBIR VIDEO O IMAGEN';
+                        fileInfo.textContent = '';
+                        multimediaBase64 = '';
                         tituloCount.textContent = '0';
                         contenidoCount.textContent = '0';
                         tituloInput.focus();
                     }, 1500);
                 } else {
-                    // CORRECCIÓN: Mostrar error específico
-                    const errorData = await res.json();
-                    const errorMsg = errorData.error || 'Error desconocido';
-                    mostrarAlerta(`❌ Error: ${errorMsg}`, 'error');
+                    mostrarAlerta(`❌ Error: ${resultado.error}`, 'error');
                 }
-            } catch (e) {
-                mostrarAlerta(`❌ Error de conexión: ${e.message}`, 'error');
-                console.error('Error:', e);
+
+            } catch (error) {
+                mostrarAlerta(`❌ Error de conexión: ${error.message}`, 'error');
             } finally {
                 btnPublicar.disabled = false;
                 loader.style.display = 'none';
@@ -540,14 +557,7 @@
         // ==================== INICIALIZACIÓN ====================
         window.addEventListener('load', () => {
             tituloInput.focus();
-            
-            // Prevenir cerrar accidentalmente si hay cambios
-            window.addEventListener('beforeunload', (e) => {
-                if (tituloInput.value || contenidoInput.value) {
-                    e.preventDefault();
-                    e.returnValue = '';
-                }
-            });
+            console.log('✅ Redacción BÚNKER 2.0 lista');
         });
     </script>
 </body>
