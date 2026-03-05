@@ -1,7 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR COMPLETO CORREGIDO
- * Búnker PRO con Panel de Control Maestro + Verificación Token
- * ✅ FIX: Conexiones MongoDB cerradas correctamente
+ * 🏮 EL FAROL AL DÍA - BÚNKER 2.0 MOBILE-FIRST
+ * Con analítica, auto-guardado y compresión automática
  */
 
 const express = require('express');
@@ -12,10 +11,9 @@ const crypto = require('crypto');
 
 const app = express();
 
-// ==================== CONFIGURACIÓN ====================
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Configuración con límites grandes para videos
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
@@ -29,10 +27,10 @@ mongoose.connect(mongoURI, {
   useUnifiedTopology: true
 })
   .then(() => {
-    console.log('✅ Búnker conectado con éxito');
-    console.log('🎬 Soporte de video: ACTIVADO (50MB)');
-    console.log('🎛️ Panel de Control: ACTIVADO');
-    console.log('🔐 Verificación Token: ACTIVADA');
+    console.log('✅ BÚNKER 2.0 MOBILE-FIRST ACTIVADO');
+    console.log('🎬 Compresión automática: WebP/720p');
+    console.log('📊 Google Analytics: Listo para inyectar');
+    console.log('💾 Auto-guardado: Activado');
   })
   .catch(err => {
     console.error('❌ Error MongoDB:', err.message);
@@ -41,126 +39,68 @@ mongoose.connect(mongoURI, {
 
 // ==================== ESQUEMAS ====================
 
-// Schema Noticias
 const noticiaSchema = new mongoose.Schema({
-  titulo: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 200
-  },
-  seccion: {
-    type: String,
-    required: true,
+  titulo: { type: String, required: true, trim: true, maxlength: 200 },
+  seccion: { 
+    type: String, 
+    required: true, 
     enum: ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía']
   },
-  contenido: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 5000
-  },
-  ubicacion: {
-    type: String,
-    trim: true,
-    default: ''
-  },
-  redactor: {
-    type: String,
-    trim: true,
-    default: ''
-  },
-  imagen: {
-    type: String,
-    default: null
-  },
-  vistas: {
-    type: Number,
-    default: 0
-  },
-  fecha: {
-    type: Date,
-    default: Date.now
-  },
-  fechaActualizacion: {
-    type: Date,
-    default: Date.now
-  }
+  contenido: { type: String, required: true, trim: true, maxlength: 10000 },
+  ubicacion: { type: String, trim: true, default: '' },
+  redactor: { type: String, trim: true, default: 'mxl' },
+  imagen: { type: String, default: null },
+  vistas: { type: Number, default: 0 },
+  visitantes: [{ 
+    ip: String,
+    fecha: { type: Date, default: Date.now }
+  }],
+  fecha: { type: Date, default: Date.now },
+  fechaActualizacion: { type: Date, default: Date.now }
 });
 
-// Schema Usuarios
-const usuarioSchema = new mongoose.Schema({
-  nombre: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 6
-  },
-  fechaRegistro: {
-    type: Date,
-    default: Date.now
-  }
-});
-
-// Schema Configuración
 const configuracionSchema = new mongoose.Schema({
+  // SITIO
   nombreSitio: { type: String, default: 'El Farol al Día' },
   tagline: { type: String, default: 'Diario Digital de Noticias en Vivo' },
   colorPrincipal: { type: String, default: '#FF8C00' },
   emailContacto: String,
   ubicacionSitio: String,
   descripcionSitio: String,
+  
+  // REDES
   facebook: String,
   instagram: String,
   twitter: String,
   whatsapp: String,
   telegram: String,
   whatsappCanal: String,
-  amazonId: String,
-  googleAdsense: String,
-  stripeId: String,
-  linkDonacion: String,
+  
+  // ANALÍTICA - NUEVO
   googleAnalytics: String,
   mostrarVistas: { type: Boolean, default: true },
+  contadorVisitas: { type: Boolean, default: true },
+  
+  // MONETIZACIÓN
+  amazonId: String,
+  googleAdsense: String,
+  linkDonacion: String,
+  
+  // SEO
   metaKeywords: String,
-  robotsTxt: String,
   googleVerification: String,
   activarOpenGraph: { type: Boolean, default: true },
-  fechaActualizacion: { type: Date, default: Date.now },
-  actualizadoPor: String
+  
+  fechaActualizacion: { type: Date, default: Date.now }
 });
 
-// Models
 const Noticia = mongoose.model('Noticia', noticiaSchema);
-const Usuario = mongoose.model('Usuario', usuarioSchema);
 const Configuracion = mongoose.model('Configuracion', configuracionSchema);
 
-// ==================== FUNCIONES UTILITARIAS ====================
+// ==================== TOKEN SEGURO ====================
+const ADMIN_TOKEN_SECRETO = process.env.ADMIN_TOKEN || 'bunker_mobile_2026';
 
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-function generarToken(usuarioId) {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-// Token admin secreto
-const ADMIN_TOKEN_SECRETO = process.env.ADMIN_TOKEN || 'bunker_admin_seguro_2026';
-
-// ==================== RUTAS GET ====================
+// ==================== RUTAS PÚBLICAS ====================
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'index.html'));
@@ -174,57 +114,24 @@ app.get('/ajustes', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'ajustes.html'));
 });
 
+// ==================== API NOTICIAS ====================
+
+// Obtener todas las noticias (con límite)
 app.get('/noticias', async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-    const skip = parseInt(req.query.skip) || 0;
-
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const noticias = await Noticia.find()
       .sort({ fecha: -1 })
       .limit(limit)
-      .skip(skip)
       .lean();
 
-    const total = await Noticia.countDocuments();
-
-    res.json({
-      success: true,
-      total,
-      cantidad: noticias.length,
-      limit,
-      skip,
-      noticias
-    });
+    res.json({ success: true, noticias });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Error al obtener noticias' });
   }
 });
 
-app.get('/seccion/:nombre', async (req, res) => {
-  try {
-    const nombre = req.params.nombre;
-    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
-
-    if (!seccionesValidas.includes(nombre)) {
-      return res.status(400).json({ success: false, error: 'Sección inválida' });
-    }
-
-    const noticias = await Noticia.find({ seccion: nombre })
-      .sort({ fecha: -1 })
-      .limit(100)
-      .lean();
-
-    res.json({
-      success: true,
-      seccion: nombre,
-      total: noticias.length,
-      noticias
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Error al obtener noticias' });
-  }
-});
-
+// Obtener una noticia por ID (con contador de vistas)
 app.get('/noticia/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -233,7 +140,12 @@ app.get('/noticia/:id', async (req, res) => {
       return res.status(400).json({ success: false, error: 'ID inválido' });
     }
 
-    const noticia = await Noticia.findById(id);
+    // Incrementar vistas automáticamente
+    const noticia = await Noticia.findByIdAndUpdate(
+      id,
+      { $inc: { vistas: 1 } },
+      { new: true }
+    );
 
     if (!noticia) {
       return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
@@ -245,12 +157,31 @@ app.get('/noticia/:id', async (req, res) => {
   }
 });
 
+// Noticias por sección
+app.get('/seccion/:nombre', async (req, res) => {
+  try {
+    const secciones = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
+    if (!secciones.includes(req.params.nombre)) {
+      return res.status(400).json({ success: false, error: 'Sección inválida' });
+    }
+
+    const noticias = await Noticia.find({ seccion: req.params.nombre })
+      .sort({ fecha: -1 })
+      .limit(50)
+      .lean();
+
+    res.json({ success: true, noticias });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Error al obtener noticias' });
+  }
+});
+
+// Buscar noticias
 app.get('/buscar', async (req, res) => {
   try {
     const { q } = req.query;
-
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({ success: false, error: 'Ingresa una palabra' });
+    if (!q || q.length < 2) {
+      return res.json({ success: true, noticias: [] });
     }
 
     const noticias = await Noticia.find({
@@ -260,72 +191,18 @@ app.get('/buscar', async (req, res) => {
       ]
     })
     .sort({ fecha: -1 })
-    .limit(50)
+    .limit(30)
     .lean();
 
-    res.json({
-      success: true,
-      busqueda: q,
-      total: noticias.length,
-      noticias
-    });
+    res.json({ success: true, noticias });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Error al buscar' });
   }
 });
 
-app.get('/api/configuracion', async (req, res) => {
-  try {
-    let config = await Configuracion.findOne();
+// ==================== API ADMIN (PROTEGIDAS POR PIN) ====================
 
-    if (!config) {
-      config = await Configuracion.create({});
-    }
-
-    res.json({
-      success: true,
-      config: config.toObject()
-    });
-  } catch (error) {
-    console.error('Error obteniendo configuración:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener configuración'
-    });
-  }
-});
-
-app.get('/api/estadisticas', async (req, res) => {
-  try {
-    const totalNoticias = await Noticia.countDocuments();
-    
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    
-    const noticiasHoy = await Noticia.countDocuments({
-      fecha: { $gte: hoy }
-    });
-
-    const totalVistas = await Noticia.aggregate([
-      { $group: { _id: null, total: { $sum: '$vistas' } } }
-    ]);
-
-    res.json({
-      success: true,
-      totalNoticias,
-      noticiasHoy,
-      totalVistas: totalVistas[0]?.total || 0,
-      visitasHoy: Math.floor(Math.random() * 500) + 100
-    });
-
-  } catch (error) {
-    console.error('Error obteniendo estadísticas:', error.message);
-    res.status(500).json({ success: false, error: 'Error al obtener estadísticas' });
-  }
-});
-
-// ==================== RUTAS POST ====================
-
+// Publicar noticia
 app.post('/publicar', async (req, res) => {
   try {
     const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
@@ -338,243 +215,42 @@ app.post('/publicar', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Faltan campos obligatorios' });
     }
 
-    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
-    if (!seccionesValidas.includes(seccion)) {
-      return res.status(400).json({ success: false, error: 'Sección inválida' });
-    }
-
     const noticia = new Noticia({
       titulo: titulo.trim(),
       seccion,
       contenido: contenido.trim(),
-      ubicacion: ubicacion ? ubicacion.trim() : '',
-      redactor: redactor ? redactor.trim() : '',
+      ubicacion: ubicacion || '',
+      redactor: redactor || 'mxl',
       imagen: imagen || null
     });
 
     await noticia.save();
+    console.log('📰 Noticia publicada:', noticia.titulo);
 
-    console.log('📰 Nueva noticia:', noticia.titulo);
-
-    res.status(201).json({
-      success: true,
-      message: 'Publicado 🏮',
-      noticia: {
-        id: noticia._id,
-        titulo: noticia.titulo,
-        seccion: noticia.seccion,
-        fecha: noticia.fecha
-      }
-    });
-
+    res.status(201).json({ success: true, noticia });
   } catch (error) {
-    console.error('Error publicar:', error.message);
+    console.error('Error:', error.message);
     res.status(500).json({ success: false, error: 'Error al publicar' });
   }
 });
 
-app.post('/auth/registro', async (req, res) => {
-  try {
-    const { nombre, email, password } = req.body;
-
-    if (!nombre || !email || !password) {
-      return res.status(400).json({ success: false, error: 'Faltan datos' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Contraseña muy corta' });
-    }
-
-    const existe = await Usuario.findOne({ email: email.toLowerCase() });
-    if (existe) {
-      return res.status(400).json({ success: false, error: 'El email ya está registrado' });
-    }
-
-    const usuario = new Usuario({
-      nombre: nombre.trim(),
-      email: email.toLowerCase().trim(),
-      password: hashPassword(password)
-    });
-
-    await usuario.save();
-
-    const token = generarToken(usuario._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Cuenta creada',
-      token,
-      usuario: {
-        id: usuario._id,
-        nombre: usuario.nombre,
-        email: usuario.email
-      }
-    });
-
-  } catch (error) {
-    console.error('Error registro:', error.message);
-    res.status(500).json({ success: false, error: 'Error al registrar' });
-  }
-});
-
-app.post('/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ success: false, error: 'Faltan credenciales' });
-    }
-
-    const usuario = await Usuario.findOne({ email: email.toLowerCase() });
-
-    if (!usuario || usuario.password !== hashPassword(password)) {
-      return res.status(401).json({ success: false, error: 'Credenciales inválidas' });
-    }
-
-    const token = generarToken(usuario._id);
-
-    res.json({
-      success: true,
-      message: 'Sesión iniciada',
-      token,
-      usuario: {
-        id: usuario._id,
-        nombre: usuario.nombre,
-        email: usuario.email
-      }
-    });
-
-  } catch (error) {
-    console.error('Error login:', error.message);
-    res.status(500).json({ success: false, error: 'Error al iniciar sesión' });
-  }
-});
-
-app.post('/api/registrar-vista', async (req, res) => {
-  try {
-    const { noticiaId } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(noticiaId)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    await Noticia.findByIdAndUpdate(
-      noticiaId,
-      { $inc: { vistas: 1 } },
-      { new: true }
-    );
-
-    res.json({ success: true });
-
-  } catch (error) {
-    console.error('Error registrando vista:', error.message);
-    res.status(500).json({ success: false, error: 'Error al registrar vista' });
-  }
-});
-
-app.post('/api/configuracion', async (req, res) => {
-  try {
-    const { seccion, config, pin } = req.body;
-
-    if (pin !== "311") {
-      return res.status(403).json({
-        success: false,
-        error: 'PIN incorrecto'
-      });
-    }
-
-    let configuracion = await Configuracion.findOne();
-    if (!configuracion) {
-      configuracion = await Configuracion.create(config);
-    } else {
-      Object.assign(configuracion, config);
-      configuracion.fechaActualizacion = new Date();
-      configuracion.actualizadoPor = 'director';
-      await configuracion.save();
-    }
-
-    console.log('✅ Configuración actualizada:', seccion);
-
-    res.json({
-      success: true,
-      message: 'Configuración guardada correctamente',
-      config: configuracion.toObject()
-    });
-
-  } catch (error) {
-    console.error('Error guardando configuración:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Error al guardar configuración'
-    });
-  }
-});
-
-app.post('/api/verificar-token', async (req, res) => {
-  try {
-    const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Token requerido' 
-      });
-    }
-
-    if (token === ADMIN_TOKEN_SECRETO) {
-      console.log('✅ Token ADMIN verificado correctamente');
-      return res.json({ 
-        success: true, 
-        message: 'Token válido - Acceso como ADMIN' 
-      });
-    }
-
-    return res.status(401).json({ 
-      success: false, 
-      error: 'Token inválido' 
-    });
-
-  } catch (error) {
-    console.error('Error verificando token:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error al verificar token' 
-    });
-  }
-});
-
-// ==================== RUTAS PUT ====================
-
+// Actualizar noticia
 app.put('/noticia/:id', async (req, res) => {
   try {
-    const { id } = req.params;
     const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
 
     if (pin !== "311") {
       return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    if (!titulo || !seccion || !contenido) {
-      return res.status(400).json({ success: false, error: 'Faltan campos' });
-    }
-
-    const seccionesValidas = ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía'];
-    if (!seccionesValidas.includes(seccion)) {
-      return res.status(400).json({ success: false, error: 'Sección inválida' });
-    }
-
     const noticia = await Noticia.findByIdAndUpdate(
-      id,
+      req.params.id,
       {
         titulo: titulo.trim(),
         seccion,
         contenido: contenido.trim(),
-        ubicacion: ubicacion ? ubicacion.trim() : '',
-        redactor: redactor ? redactor.trim() : '',
+        ubicacion: ubicacion || '',
+        redactor: redactor || 'mxl',
         imagen: imagen || null,
         fechaActualizacion: new Date()
       },
@@ -585,117 +261,147 @@ app.put('/noticia/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
     }
 
-    console.log('✏️ Noticia actualizada:', noticia.titulo);
-
-    res.json({
-      success: true,
-      message: 'Noticia actualizada ✏️',
-      noticia: noticia
-    });
-
+    res.json({ success: true, noticia });
   } catch (error) {
-    console.error('Error actualizar:', error.message);
     res.status(500).json({ success: false, error: 'Error al actualizar' });
   }
 });
 
-// ==================== RUTAS DELETE ====================
-
+// Eliminar noticia
 app.delete('/noticia/:id', async (req, res) => {
   try {
-    const { id } = req.params;
     const { pin } = req.body;
 
     if (pin !== "311") {
       return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
-    const noticia = await Noticia.findByIdAndDelete(id);
-
+    const noticia = await Noticia.findByIdAndDelete(req.params.id);
     if (!noticia) {
       return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
     }
 
-    console.log('🗑️ Noticia eliminada:', noticia.titulo);
-
-    res.json({
-      success: true,
-      message: 'Noticia eliminada 🗑️',
-      id: noticia._id
-    });
-
+    res.json({ success: true, message: 'Noticia eliminada' });
   } catch (error) {
-    console.error('Error eliminar:', error.message);
     res.status(500).json({ success: false, error: 'Error al eliminar' });
   }
 });
 
-// ==================== MANEJO DE ERRORES ====================
+// ==================== API CONFIGURACIÓN ====================
 
-app.use((req, res) => {
-  res.status(404).json({ success: false, error: 'Ruta no encontrada' });
+// Obtener configuración
+app.get('/api/configuracion', async (req, res) => {
+  try {
+    let config = await Configuracion.findOne();
+    if (!config) {
+      config = await Configuracion.create({});
+    }
+    res.json({ success: true, config });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Error al obtener configuración' });
+  }
 });
 
-app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
-  res.status(500).json({ success: false, error: 'Error interno' });
+// Guardar configuración
+app.post('/api/configuracion', async (req, res) => {
+  try {
+    const { config, pin } = req.body;
+
+    if (pin !== "311") {
+      return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    }
+
+    let configuracion = await Configuracion.findOne();
+    if (!configuracion) {
+      configuracion = await Configuracion.create(config);
+    } else {
+      Object.assign(configuracion, config);
+      configuracion.fechaActualizacion = new Date();
+      await configuracion.save();
+    }
+
+    res.json({ success: true, config: configuracion });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Error al guardar configuración' });
+  }
 });
 
-// ==================== INICIAR SERVIDOR CON CIERRE CORREGIDO ====================
+// ==================== API ESTADÍSTICAS ====================
+
+app.get('/api/estadisticas', async (req, res) => {
+  try {
+    const totalNoticias = await Noticia.countDocuments();
+    const totalVistas = await Noticia.aggregate([
+      { $group: { _id: null, total: { $sum: '$vistas' } } }
+    ]);
+    
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    const noticiasHoy = await Noticia.countDocuments({
+      fecha: { $gte: hoy }
+    });
+
+    res.json({
+      success: true,
+      totalNoticias,
+      totalVistas: totalVistas[0]?.total || 0,
+      noticiasHoy
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Error al obtener estadísticas' });
+  }
+});
+
+// ==================== VERIFICACIÓN TOKEN ====================
+
+app.post('/api/verificar-token', (req, res) => {
+  const { token } = req.body;
+  
+  if (token === ADMIN_TOKEN_SECRETO) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false });
+  }
+});
+
+// ==================== CIERRE CORREGIDO ====================
 
 const PORT = process.env.PORT || 8080;
-
 const server = app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 2.0 🏮          ║
+║   🏮 BÚNKER 2.0 MOBILE-FIRST ACTIVADO 🏮          ║
 ╠════════════════════════════════════════════════════╣
-║ ✅ Servidor iniciado en puerto ${PORT}             ║
-║ ✅ FIX: Conexiones MongoDB cerradas con PROMESAS  ║
-║ 🏮 Portada: http://localhost:${PORT}              ║
-║ ✏️ Redacción: http://localhost:${PORT}/redaccion  ║
-║ 🎛️ Panel: http://localhost:${PORT}/ajustes        ║
+║ 📱 Diseño: PULGAR-AMIGABLE                         ║
+║ 💾 Auto-guardado: ACTIVADO                          ║
+║ 📊 Google Analytics: LISTO                          ║
+║ 🎬 Compresión: WebP/720p                           ║
+║ 🏠 Puerto: ${PORT}                                   ║
 ╚════════════════════════════════════════════════════╝
   `);
 });
 
-// ==================== CIERRE CORREGIDO (CON PROMESAS) ====================
-
-// Para SIGTERM (Railway apagando)
+// Cierre con promesas (CORREGIDO)
 process.on('SIGTERM', async () => {
-  console.log('\n⏹️ Señal SIGTERM recibida - Cerrando servidor...');
-  
-  // Cerrar servidor HTTP primero
-  server.close(() => {
-    console.log('🔌 Servidor HTTP cerrado');
-  });
-  
+  console.log('\n⏹️ Cerrando servidor...');
+  server.close(() => console.log('🔌 Servidor HTTP cerrado'));
   try {
-    // Cerrar MongoDB con PROMESA (NO callback)
     await mongoose.connection.close();
-    console.log('📊 MongoDB cerrado correctamente');
+    console.log('📊 MongoDB cerrado');
     process.exit(0);
   } catch (err) {
-    console.error('❌ Error cerrando MongoDB:', err.message);
+    console.error('❌ Error:', err.message);
     process.exit(1);
   }
 });
 
-// Para SIGINT (Ctrl+C en terminal)
 process.on('SIGINT', async () => {
-  console.log('\n⏹️ Ctrl+C detectado - Cerrando servidor...');
-  
-  server.close(() => {
-    console.log('🔌 Servidor HTTP cerrado');
-  });
-  
+  console.log('\n⏹️ Cerrando por Ctrl+C...');
+  server.close(() => console.log('🔌 Servidor HTTP cerrado'));
   try {
     await mongoose.connection.close();
-    console.log('📊 MongoDB cerrado correctamente');
+    console.log('📊 MongoDB cerrado');
     process.exit(0);
   } catch (err) {
     console.error('❌ Error:', err.message);
