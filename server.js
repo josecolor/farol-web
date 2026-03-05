@@ -21,11 +21,12 @@ app.use(cors());
 
 // ==================== VALIDACIÓN ESTRICTA DE MONGO_URI ====================
 
-const MONGODB_URI = process.env.MONGO_URL || 
+// Usamos MONGO_URI (nombre estándar) en lugar de MONGO_URL para consistencia
+const MONGODB_URI = process.env.MONGO_URI || 
     "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
 if (!MONGODB_URI) {
-    console.error('\n❌ ERROR CRÍTICO: MONGO_URL no está definida');
+    console.error('\n❌ ERROR CRÍTICO: MONGO_URI no está definida');
     console.error('🔴 El búnker no puede arrancar sin la base de datos');
     process.exit(1);
 }
@@ -385,7 +386,7 @@ app.post('/publicar', async (req, res) => {
             contenido: contenido.trim(),
             ubicacion: ubicacion ? ubicacion.trim() : 'Santo Domingo',
             redactor: redactor ? redactor.trim() : 'mxl',
-            redactorFoto: redactorFoto || null,  // NUEVO
+            redactorFoto: redactorFoto || null,
             imagen: imagen || null
         });
 
@@ -602,7 +603,7 @@ app.put('/noticia/:id', async (req, res) => {
                 contenido: contenido.trim(),
                 ubicacion: ubicacion ? ubicacion.trim() : 'Santo Domingo',
                 redactor: redactor ? redactor.trim() : 'mxl',
-                redactorFoto: redactorFoto || null,  // NUEVO
+                redactorFoto: redactorFoto || null,
                 imagen: imagen || null,
                 fechaActualizacion: new Date()
             },
