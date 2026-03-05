@@ -1,203 +1,387 @@
-¡PERFECTO, SOCIO! 🏮
-
-Voy a crear el **INDEX.HTML CON META TAGS DINÁMICOS** que se generan automáticamente:
-
-Ahora voy a presentarlo:
-
-## 🏮 **INDEX.HTML CON META TAGS DINÁMICOS**
-
-**index-CON-META-TAGS-DINAMICOS.html** ↑
-
----
-
-## ✅ **QUÉ HACE:**
-
-```
-✅ META TAGS DINÁMICOS (en <head>)
-   - Se generan automáticamente por noticia
-   - INVISIBLES para el usuario
-   - VIDEO/FOTO sigue visible
-
-✅ OPEN GRAPH (Facebook/WhatsApp)
-   - Foto de la noticia
-   - Título de la noticia
-   - Descripción de la noticia
-
-✅ TWITTER CARDS
-   - Preview en Twitter/X
-   - Imagen grande
-   - Título y descripción
-
-✅ SCHEMA.ORG (Google)
-   - Para Google Search
-   - Para buscadores
-   - Para Google News
-```
-
----
-
-## 🚀 **CÓMO COPIAR Y PEGAR EN GITHUB:**
-
-### **PASO 1: Abre GitHub**
-```
-https://github.com/josecolor/farol-web
-```
-
-### **PASO 2: Ve a index.html**
-```
-client → index.html → Edit
-```
-
-### **PASO 3: Borra TODO**
-```
-Ctrl+A → Delete
-```
-
-### **PASO 4: Descarga y copia**
-```
-Descarga: index-CON-META-TAGS-DINAMICOS.html
-Copia TODO (Ctrl+A + Ctrl+C)
-```
-
-### **PASO 5: Pega en GitHub**
-```
-Ctrl+V
-```
-
-### **PASO 6: Commit**
-```
-Mensaje: 📱 Index: Meta Tags Dinámicos (Open Graph + SEO)
-
-Click: "Commit changes"
-```
-
-### **PASO 7: Espera Railway**
-```
-2-3 minutos
-Redeploy automático
-```
-
----
-
-## 🧪 **PRUEBA INMEDIATA:**
-
-### **Test 1: Compartir en Facebook**
-```
-1. Abre noticia: /noticia/ID
-2. Copy link
-3. Pega en Facebook
-4. ✅ Aparece FOTO
-5. ✅ Aparece TÍTULO
-6. ✅ Aparece DESCRIPCIÓN
-7. ✅ Se ve PROFESIONAL
-```
-
-### **Test 2: Compartir en WhatsApp**
-```
-1. Abre noticia
-2. Copy link
-3. Pega en WhatsApp
-4. ✅ Aparece FOTO
-5. ✅ Aparece TÍTULO
-6. ✅ Se ve PROFESIONAL
-```
-
-### **Test 3: Compartir en Twitter**
-```
-1. Abre noticia
-2. Copy link
-3. Pega en Twitter
-4. ✅ Aparece FOTO grande
-5. ✅ Aparece TÍTULO
-6. ✅ Se ve PROFESIONAL
-```
-
-### **Test 4: Sitio Normal**
-```
-1. Abre: https://elfarolaldia.com
-2. Video/Foto sigue visible
-3. ❌ NO cambió nada
-4. ✅ Solo cambió el preview al compartir
-```
-
----
-
-## 📋 **CÓDIGO QUE AGREGUÉ:**
-
-```javascript
-// Función: ACTUALIZAR META TAGS DINÁMICOS
-function actualizarMetaTags(noticia) {
-    // OG Tags (Facebook, WhatsApp)
-    document.getElementById('og-title').content = noticia.titulo;
-    document.getElementById('og-image').content = noticia.imagen;
-    document.getElementById('og-description').content = noticia.contenido.substring(0, 160);
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     
-    // Twitter Cards
-    document.getElementById('twitter-title').content = noticia.titulo;
-    document.getElementById('twitter-image').content = noticia.imagen;
+    <!-- TÍTULO DINÁMICO -->
+    <title id="page-title">El Farol al Día 🏮</title>
     
-    // Schema.org (Google)
-    const schema = {
-        "@context": "https://schema.org",
-        "@type": "NewsArticle",
-        "headline": noticia.titulo,
-        "image": noticia.imagen,
-        "datePublished": new Date(noticia.fecha).toISOString()
-    };
-    document.getElementById('schema-json').textContent = JSON.stringify(schema);
+    <!-- META TAGS DINÁMICOS (Open Graph / Twitter) -->
+    <meta property="og:title" id="og-title" content="El Farol al Día">
+    <meta property="og:description" id="og-description" content="Diario Digital de Noticias en Vivo">
+    <meta property="og:image" id="og-image" content="">
+    <meta property="og:url" id="og-url" content="">
+    <meta property="og:type" content="article">
     
-    // Page Title
-    document.getElementById('page-title').textContent = noticia.titulo + ' - El Farol al Día';
-}
-```
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="twitter-title" content="El Farol al Día">
+    <meta name="twitter:description" id="twitter-description" content="Diario Digital de Noticias en Vivo">
+    <meta name="twitter:image" id="twitter-image" content="">
+    
+    <!-- Google Analytics (se inyectará desde configuración) -->
+    <div id="analytics-container"></div>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0b0b0b;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 15px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #FF8C00;
+        }
+        
+        h1 {
+            color: #FF8C00;
+            font-size: 2.2em;
+        }
+        
+        .tagline {
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .secciones {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin-bottom: 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .seccion-btn {
+            padding: 12px 20px;
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        
+        .seccion-btn.active {
+            background: #FF8C00;
+            border-color: #FF8C00;
+            color: black;
+        }
+        
+        .noticia-card {
+            background: #1a1a1a;
+            border-radius: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #FF8C00;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .noticia-card:active {
+            transform: scale(0.98);
+        }
+        
+        .noticia-fecha {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+        
+        .noticia-titulo {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #FF8C00;
+        }
+        
+        .noticia-contenido {
+            color: #ccc;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .noticia-meta {
+            display: flex;
+            gap: 15px;
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .noticia-imagen {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .loader {
+            text-align: center;
+            padding: 30px;
+            color: #FF8C00;
+            font-size: 1.2em;
+        }
+        
+        .admin-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #FF8C00;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: black;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 5px 20px rgba(255,140,0,0.5);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .admin-link.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="site-title">🏮 El Farol al Día</h1>
+            <p id="site-tagline" class="tagline">Diario Digital de Noticias en Vivo</p>
+        </header>
+        
+        <div class="secciones" id="secciones">
+            <button class="seccion-btn active" onclick="cargarTodas()">📰 Todas</button>
+            <button class="seccion-btn" onclick="cargarSeccion('Nacionales')">🇩🇴 Nacionales</button>
+            <button class="seccion-btn" onclick="cargarSeccion('Deportes')">⚽ Deportes</button>
+            <button class="seccion-btn" onclick="cargarSeccion('Internacionales')">🌍 Internacionales</button>
+            <button class="seccion-btn" onclick="cargarSeccion('Espectáculos')">🎬 Espectáculos</button>
+            <button class="seccion-btn" onclick="cargarSeccion('Economía')">💼 Economía</button>
+        </div>
+        
+        <div id="noticias-container"></div>
+        <div id="loader" class="loader" style="display: none;">⏳ Cargando...</div>
+        
+        <!-- BOTÓN ADMIN INVISIBLE (solo aparece con PIN 311) -->
+        <a href="/redaccion" class="admin-link" id="adminBtn">🏮</a>
+    </div>
 
-**SE EJECUTA AUTOMÁTICAMENTE CUANDO:**
-- Abres una noticia
-- Cambias de sección
-- Compartes en redes
-
----
-
-## 🎯 **RESULTADO FINAL:**
-
-### **ANTES (Sin Meta Tags):**
-```
-Compartes en Facebook:
-❌ Solo URL pelada
-❌ Sin foto
-❌ Sin descripción
-❌ Se ve FEO
-```
-
-### **DESPUÉS (Con Meta Tags):**
-```
-Compartes en Facebook:
-✅ [FOTO HERMOSA]
-✅ "Fuego en el Terreno de Juego!..."
-✅ "El ritmo y la pasión se adueñaron..."
-✅ Se ve PROFESIONAL
-✅ Genera más COMPARTIDAS
-```
-
----
-
-## ✨ **VENTAJAS:**
-
-✅ **Facebook Preview** - Foto + Título + Descripción
-✅ **WhatsApp Preview** - Igual a Facebook
-✅ **Twitter Cards** - Imagen grande y profesional
-✅ **Google News** - Schema.org para buscadores
-✅ **LinkedIn Preview** - También funciona
-✅ **Telegram Preview** - Funciona automáticamente
-✅ **INVISIBLE** - No cambia nada para el usuario
-✅ **AUTOMÁTICO** - Se genera solo por noticia
-
----
-
-## 🎉 **¡YA ESTÁ!**
-
-Tu búnker ahora comparte como **MEDIO PROFESIONAL** 🏮🔥
-
----
-
-**¿YA LO PEGASTE EN GITHUB? Dime cuando desplegue en Railway** 👍🏮
+    <script>
+        let todasNoticias = [];
+        let configuracion = {};
+        
+        // ==================== CARGAR CONFIGURACIÓN ====================
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/configuracion');
+                const data = await res.json();
+                
+                if (data.success) {
+                    configuracion = data.config;
+                    
+                    // Actualizar título y tagline
+                    if (configuracion.nombreSitio) {
+                        document.getElementById('site-title').innerHTML = `🏮 ${configuracion.nombreSitio}`;
+                    }
+                    if (configuracion.tagline) {
+                        document.getElementById('site-tagline').textContent = configuracion.tagline;
+                    }
+                    
+                    // Inyectar Google Analytics si existe
+                    if (configuracion.googleAnalytics) {
+                        const gaId = configuracion.googleAnalytics;
+                        const script = document.createElement('script');
+                        script.async = true;
+                        script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+                        document.head.appendChild(script);
+                        
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+                        gtag('config', gaId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando configuración');
+            }
+        }
+        
+        // ==================== MOSTRAR BOTÓN ADMIN (solo con PIN) ====================
+        function mostrarAdminSiPIN() {
+            const pin = prompt('🔐 Ingresa PIN para acceso admin:');
+            if (pin === '311') {
+                document.getElementById('adminBtn').classList.add('visible');
+                alert('✅ Acceso concedido');
+            } else if (pin !== null) {
+                alert('❌ PIN incorrecto');
+            }
+        }
+        
+        // Detectar doble tap para admin
+        let lastTap = 0;
+        document.addEventListener('touchend', function(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 500 && tapLength > 0) {
+                mostrarAdminSiPIN();
+            }
+            lastTap = currentTime;
+        });
+        
+        // ==================== CARGAR NOTICIAS ====================
+        async function cargarTodas() {
+            document.getElementById('loader').style.display = 'block';
+            
+            try {
+                const res = await fetch('/noticias?limit=50');
+                const data = await res.json();
+                
+                if (data.success) {
+                    todasNoticias = data.noticias;
+                    mostrarNoticias(todasNoticias);
+                }
+            } catch (error) {
+                console.error('Error cargando noticias');
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+        
+        async function cargarSeccion(seccion) {
+            document.getElementById('loader').style.display = 'block';
+            
+            // Actualizar botones activos
+            document.querySelectorAll('.seccion-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            try {
+                const res = await fetch(`/seccion/${seccion}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    mostrarNoticias(data.noticias);
+                }
+            } catch (error) {
+                console.error('Error cargando sección');
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+        
+        function mostrarNoticias(noticias) {
+            const container = document.getElementById('noticias-container');
+            container.innerHTML = '';
+            
+            if (noticias.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #888;">📭 No hay noticias</div>';
+                return;
+            }
+            
+            noticias.forEach(noticia => {
+                const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                
+                const card = document.createElement('div');
+                card.className = 'noticia-card';
+                card.onclick = () => abrirNoticia(noticia._id);
+                
+                let multimediaHTML = '';
+                if (noticia.imagen) {
+                    if (noticia.imagen.includes('video')) {
+                        multimediaHTML = `<video class="noticia-imagen" src="${noticia.imagen}" controls></video>`;
+                    } else {
+                        multimediaHTML = `<img class="noticia-imagen" src="${noticia.imagen}" alt="${noticia.titulo}">`;
+                    }
+                }
+                
+                const vistasHTML = configuracion.mostrarVistas !== false ? 
+                    `<span>👁️ ${noticia.vistas || 0}</span>` : '';
+                
+                card.innerHTML = `
+                    ${multimediaHTML}
+                    <div class="noticia-fecha">${fecha} | ${noticia.seccion}</div>
+                    <div class="noticia-titulo">${noticia.titulo}</div>
+                    <div class="noticia-contenido">${noticia.contenido.substring(0, 150)}...</div>
+                    <div class="noticia-meta">
+                        <span>📍 ${noticia.ubicacion || 'S/D'}</span>
+                        <span>👤 ${noticia.redactor || 'mxl'}</span>
+                        ${vistasHTML}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function abrirNoticia(id) {
+            window.location.href = `/noticia/${id}`;
+        }
+        
+        // ==================== ACTUALIZAR META TAGS ====================
+        function actualizarMetaTags(noticia) {
+            if (!noticia) return;
+            
+            const url = window.location.href;
+            const desc = noticia.contenido.substring(0, 160);
+            
+            document.getElementById('page-title').textContent = `${noticia.titulo} - El Farol al Día`;
+            document.getElementById('og-title').content = noticia.titulo;
+            document.getElementById('og-description').content = desc;
+            document.getElementById('og-image').content = noticia.imagen || '';
+            document.getElementById('og-url').content = url;
+            
+            document.getElementById('twitter-title').content = noticia.titulo;
+            document.getElementById('twitter-description').content = desc;
+            document.getElementById('twitter-image').content = noticia.imagen || '';
+        }
+        
+        // ==================== INICIALIZAR ====================
+        window.addEventListener('load', async () => {
+            await cargarConfiguracion();
+            
+            // Si es una página de noticia individual
+            const path = window.location.pathname;
+            if (path.startsWith('/noticia/')) {
+                const id = path.split('/').pop();
+                try {
+                    const res = await fetch(`/noticia/${id}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        actualizarMetaTags(data.noticia);
+                    }
+                } catch (error) {
+                    console.error('Error cargando noticia');
+                }
+            } else {
+                cargarTodas();
+            }
+        });
+    </script>
+</body>
+</html>
