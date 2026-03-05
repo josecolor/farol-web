@@ -146,6 +146,21 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #333;
             flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        /* Foto del periodista en miniatura (para la página individual) */
+        .redactor-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .redactor-foto-mini {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #FF8C00;
         }
         
         .noticia-imagen {
@@ -226,11 +241,8 @@
                 <div class="noticia-fecha" id="noticia-fecha"></div>
                 <h1 class="noticia-titulo" id="noticia-titulo"></h1>
                 
-                <div class="noticia-meta">
-                    <span id="noticia-seccion"></span>
-                    <span id="noticia-ubicacion"></span>
-                    <span id="noticia-redactor"></span>
-                    <span id="noticia-vistas"></span>
+                <div class="noticia-meta" id="noticia-meta">
+                    <!-- Aquí se inyectará la info con foto si existe -->
                 </div>
                 
                 <div id="noticia-multimedia"></div>
@@ -320,10 +332,22 @@
             
             document.getElementById('noticia-fecha').textContent = fecha;
             document.getElementById('noticia-titulo').textContent = noticia.titulo;
-            document.getElementById('noticia-seccion').innerHTML = `📰 ${noticia.seccion}`;
-            document.getElementById('noticia-ubicacion').innerHTML = `📍 ${noticia.ubicacion || 'Santo Domingo'}`;
-            document.getElementById('noticia-redactor').innerHTML = `👤 ${noticia.redactor || 'mxl'}`;
-            document.getElementById('noticia-vistas').innerHTML = `👁️ ${noticia.vistas || 0}`;
+            
+            // Construir la meta información incluyendo la foto del redactor si existe
+            let redactorHTML = '';
+            if (noticia.redactorFoto) {
+                redactorHTML = `<span class="redactor-info"><img src="${noticia.redactorFoto}" class="redactor-foto-mini"> 👤 ${noticia.redactor || 'mxl'}</span>`;
+            } else {
+                redactorHTML = `<span>👤 ${noticia.redactor || 'mxl'}</span>`;
+            }
+            
+            document.getElementById('noticia-meta').innerHTML = `
+                <span>📰 ${noticia.seccion}</span>
+                <span>📍 ${noticia.ubicacion || 'Santo Domingo'}</span>
+                ${redactorHTML}
+                <span>👁️ ${noticia.vistas || 0}</span>
+            `;
+            
             document.getElementById('noticia-contenido').innerHTML = noticia.contenido.replace(/\n/g, '<br>');
             
             const multimediaDiv = document.getElementById('noticia-multimedia');
@@ -333,6 +357,8 @@
                 } else {
                     multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${noticia.imagen}">`;
                 }
+            } else {
+                multimediaDiv.innerHTML = '';
             }
             
             document.getElementById('loader').style.display = 'none';
