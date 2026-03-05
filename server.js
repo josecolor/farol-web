@@ -1,119 +1,77 @@
-/**
- * 🏮 EL FAROL AL DÍA - SERVIDOR FINAL COMPLETO
- * Versión optimizada para despliegue en Railway
- */
-
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const path = require('path');
-const crypto = require('crypto');
+const cors = require('cors');
 
 const app = express();
 
-// ==================== CONFIGURACIÓN INICIAL ====================
+// 1. CONFIGURACIÓN DE PODER (50MB para tus videos y fotos)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
-
-// Servir archivos estáticos desde la carpeta 'client'
 app.use(express.static(path.join(__dirname, 'client')));
 
-// ==================== HEALTH CHECK PARA RAILWAY ====================
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
+// 2. CONEXIÓN AL BÚNKER (MongoDB)
+const MONGODB_URI = process.env.MONGO_URI || "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
-// ==================== CONEXIÓN A MONGODB ====================
-const MONGODB_URI = process.env.MONGO_URI || 
-    "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('🟢 BÚNKER CONECTADO A MONGODB'))
+  .catch(err => console.error('❌ Error Mongo:', err));
 
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('🟢 BÚNKER CONECTADO A MONGODB'))
-.catch(err => console.error('❌ Error de conexión:', err));
-
-// ==================== ESQUEMAS ====================
+// 3. EL "ALMA" DEL PERIÓDICO (Modelo de Noticia)
 const noticiaSchema = new mongoose.Schema({
-    titulo: { type: String, required: true },
-    seccion: { type: String, required: true },
-    contenido: { type: String, required: true },
-    ubicacion: { type: String, default: 'Santo Domingo' },
+    titulo: String,
+    seccion: String,
+    contenido: String,
+    ubicacion: String,
     redactor: { type: String, default: 'mxl' },
-    redactorFoto: { type: String, default: null },
-    imagen: { type: String, default: null },
+    redactorFoto: String,
+    imagen: String, // Aquí se guarda la foto o video comprimido
     vistas: { type: Number, default: 0 },
     fecha: { type: Date, default: Date.now }
 });
-
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-const configuracionSchema = new mongoose.Schema({
-    nombreSitio: { type: String, default: 'El Farol al Día' },
-    tagline: { type: String, default: 'Diario Digital de Noticias en Vivo' },
-    colorPrincipal: { type: String, default: '#FF8C00' }
-});
+// 4. RUTAS DE NAVEGACIÓN (Para que se vea la web)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/noticia/:id', (req, res) => res.sendFile(path.join(__dirname, 'client', 'noticia.html')));
 
-const Configuracion = mongoose.model('Configuracion', configuracionSchema);
+// 5. RUTAS DE LA API (Para que la Redacción funcione)
 
-// ==================== RUTAS DE NAVEGACIÓN (PÁGINAS) ====================
-
-// PORTADA PRINCIPAL
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
-});
-
-// REDACCIÓN
-app.get('/redaccion', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
-});
-
-// AJUSTES
-app.get('/ajustes', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'ajustes.html'));
-});
-
-// ==================== RUTAS DE LA API (DATOS) ====================
-
-// Obtener todas las noticias
+// OBTENER NOTICIAS (Para la portada)
 app.get('/noticias', async (req, res) => {
-    try {
-        const noticias = await Noticia.find().sort({ fecha: -1 }).limit(50);
-        res.json({ success: true, noticias });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    const noticias = await Noticia.find().sort({ fecha: -1 }).limit(30);
+    res.json({ success: true, noticias });
 });
 
-// Publicar noticia (PIN 311)
+// PUBLICAR NOTICIA (El botón de tu redacción)
 app.post('/publicar', async (req, res) => {
     try {
-        const { pin, titulo, seccion, contenido, imagen } = req.body;
-        if (pin !== "311") return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+        const { pin, titulo, seccion, contenido, imagen, redactorFoto, ubicacion } = req.body;
+        if (pin !== "311") return res.status(403).json({ success: false, error: 'PIN INCORRECTO' });
         
-        const nuevaNoticia = new Noticia({ titulo, seccion, contenido, imagen });
-        await nuevaNoticia.save();
-        res.status(201).json({ success: true, message: 'Publicado 🏮' });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        const nueva = new Noticia({ titulo, seccion, contenido, imagen, redactorFoto, ubicacion });
+        await nueva.save();
+        res.json({ success: true, message: '¡🏮 Publicado con éxito!' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// Obtener configuración
-app.get('/api/configuracion', async (req, res) => {
-    try {
-        let config = await Configuracion.findOne();
-        if (!config) config = await Configuracion.create({});
-        res.json({ success: true, config });
-    } catch (error) {
-        res.status(500).json({ success: false });
-    }
+// BUSCAR POR SECCIÓN
+app.get('/seccion/:nombre', async (req, res) => {
+    const noticias = await Noticia.find({ seccion: req.params.nombre }).sort({ fecha: -1 });
+    res.json({ success: true, noticias });
 });
 
-// ==================== INICIAR SERVIDOR ====================
+// 6. ENCENDER EL FAROL (Puerto Railway)
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor en puerto ${PORT}`);
+    console.log(`
+    ╔════════════════════════════╗
+    ║  🏮 EL FAROL AL DÍA        ║
+    ║  ✅ SERVIDOR 100% COMPLETO ║
+    ╚════════════════════════════╝
+    `);
 });
