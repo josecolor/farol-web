@@ -1,177 +1,861 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- META INFORMACIÓN Y SEO -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Farol Al Día 🏮 | Noticias en Vivo RD</title>
-    <meta name="description" content="Noticias de última hora, Trap y Deportes en República Dominicana.">
+    <meta name="description" content="El Farol al Día - Diario Digital de noticias en vivo de República Dominicana">
+    <meta name="keywords" content="noticias, república dominicana, diario, farol">
+    <meta name="author" content="El Farol al Día">
+    <meta name="theme-color" content="#ffffff">
     
-    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-P8V8JK5M"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'GT-P8V8JK5M');
+    <!-- SCHEMA.ORG - Para Google News y SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsMediaOrganization",
+      "name": "El Farol al Día",
+      "alternateName": "Farol",
+      "url": "https://farol-web.railway.app",
+      "logo": "https://farol-web.railway.app/logo.png",
+      "description": "Diario Digital de noticias en vivo",
+      "sameAs": [
+        "https://www.facebook.com/farolaldia",
+        "https://www.twitter.com/farolaldia"
+      ]
+    }
     </script>
 
-    <style>
-        :root { 
-            --naranja: #FF8C00; 
-            --negro: #0b0b0b; 
-            --gris-oscuro: #1a1a1a;
-            --whatsapp: #25D366;
-            --blanco: #f4f4f4;
-        }
-        body { 
-            background: var(--negro); 
-            color: var(--blanco); 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            padding: 10px;
-            line-height: 1.6;
-        }
-        .header { 
-            text-align: center; 
-            padding: 30px 10px; 
-            border-bottom: 3px solid var(--naranja);
-            background: linear-gradient(to bottom, #1a1a1a, var(--negro));
-            margin-bottom: 15px;
-        }
-        .header h1 { font-size: 2.2em; letter-spacing: 1px; margin: 0; }
-        
-        .canal-btn { 
-            display: block; 
-            background: var(--whatsapp); 
-            color: white; 
-            text-align: center; 
-            padding: 16px; 
-            margin: 10px 5px 25px 5px; 
-            border-radius: 50px; 
-            font-weight: 800; 
-            text-decoration: none; 
-            font-size: 1.1em; 
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
-            transition: transform 0.2s;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        .canal-btn:active { transform: scale(0.96); }
+    <title>El Farol al Día - Diario Digital de Noticias</title>
 
-        .noticia { 
-            background: var(--gris-oscuro); 
-            margin-bottom: 30px; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            border: 1px solid #2a2a2a;
-            box-shadow: 0 12px 25px rgba(0,0,0,0.7);
+    <style>
+        /* ==================== VARIABLES Y RESET ==================== */
+        :root {
+            --color-primary: #1a1a1a;
+            --color-secondary: #333333;
+            --color-accent: #FF8C00;
+            --color-bg-light: #fdfdfd;
+            --color-bg-dark: #0a0a0a;
+            --color-text-light: #333333;
+            --color-text-dark: #f5f5f5;
+            --color-border: #e0e0e0;
+            --font-serif: 'Georgia', 'Times New Roman', serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --transition: all 0.3s ease;
         }
-        .noticia img { 
-            width: 100%; 
-            max-height: 450px;
-            object-fit: cover; 
-            display: block; 
-            border-bottom: 3px solid var(--naranja);
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .noticia-body { padding: 20px; }
-        .tag { 
-            display: inline-block;
-            background: rgba(255, 140, 0, 0.15);
-            color: var(--naranja); 
-            padding: 5px 12px;
-            border-radius: 8px;
-            font-weight: bold; 
-            font-size: 0.8em; 
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            border: 1px solid rgba(255, 140, 0, 0.3);
+
+        html {
+            scroll-behavior: smooth;
         }
-        .titulo { 
-            font-size: 1.7em; 
-            margin: 5px 0 15px 0; 
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-bg-light);
+            color: var(--color-text-light);
+            line-height: 1.6;
+            transition: var(--transition);
+        }
+
+        body.dark-mode {
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-dark);
+        }
+
+        /* ==================== HEADER ==================== */
+        header {
+            background: white;
+            border-bottom: 2px solid var(--color-border);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        body.dark-mode header {
+            background: var(--color-primary);
+            border-bottom-color: var(--color-secondary);
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-serif);
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--color-accent);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo:hover {
+            text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn-dark-mode {
+            background: none;
+            border: 2px solid var(--color-text-light);
+            color: var(--color-text-light);
+            padding: 8px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+
+        body.dark-mode .btn-dark-mode {
+            border-color: var(--color-text-dark);
+            color: var(--color-text-dark);
+        }
+
+        .btn-dark-mode:hover {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: white;
+        }
+
+        .btn-login, .btn-register {
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+            font-size: 0.9em;
+        }
+
+        .btn-login:hover, .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+
+        /* ==================== MAIN CONTAINER ==================== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ==================== GRID PRINCIPAL (ESTILO PERIÓDICO) ==================== */
+        .news-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        @media (max-width: 768px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* ==================== NOTICIA PRINCIPAL ==================== */
+        .main-article {
+            border-bottom: 3px solid var(--color-accent);
+            padding-bottom: 20px;
+        }
+
+        .main-article h2 {
+            font-family: var(--font-serif);
+            font-size: 2.5em;
             line-height: 1.2;
-            font-weight: 800;
-            color: #fff;
+            margin: 15px 0;
+            color: var(--color-primary);
+            transition: var(--transition);
         }
-        .meta { 
-            color: #aaa; 
-            font-size: 0.85em; 
-            margin-bottom: 15px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 12px;
+
+        body.dark-mode .main-article h2 {
+            color: var(--color-text-dark);
+        }
+
+        .main-article h2:hover {
+            color: var(--color-accent);
+            cursor: pointer;
+        }
+
+        .main-article-image {
+            width: 100%;
+            height: 400px;
+            background: var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .main-article-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .main-article-image img:hover {
+            transform: scale(1.05);
+        }
+
+        .article-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9em;
+            color: #666;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        body.dark-mode .article-meta {
+            color: #aaa;
+        }
+
+        .meta-item {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        .contenido { 
-            color: #e0e0e0; 
-            font-size: 1.1em; 
-            white-space: pre-wrap; /* Mantiene los saltos de línea que hagas en el búnker */
-        }
-        
-        .loading { 
-            text-align: center; 
-            padding: 50px; 
-            color: var(--naranja); 
-            font-style: italic;
-            font-weight: bold;
+
+        .article-excerpt {
+            font-size: 1.1em;
+            line-height: 1.8;
+            margin: 15px 0;
+            color: var(--color-text-light);
         }
 
-        /* Estilo para celulares: optimiza el espacio */
-        @media (max-width: 600px) {
-            .header h1 { font-size: 1.8em; }
-            .titulo { font-size: 1.4em; }
+        body.dark-mode .article-excerpt {
+            color: var(--color-text-dark);
+        }
+
+        /* ==================== COLUMNA LATERAL ==================== */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .sidebar-section {
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        body.dark-mode .sidebar-section {
+            border-color: var(--color-secondary);
+            background: var(--color-primary);
+        }
+
+        .sidebar-section:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-title {
+            background: var(--color-accent);
+            color: white;
+            padding: 15px;
+            font-family: var(--font-serif);
+            font-size: 1.3em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-content {
+            padding: 15px;
+        }
+
+        /* ==================== NOTAS BREVES ==================== */
+        .brief-articles {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .brief-article {
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--color-border);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        body.dark-mode .brief-article {
+            border-bottom-color: var(--color-secondary);
+        }
+
+        .brief-article:last-child {
+            border-bottom: none;
+        }
+
+        .brief-article:hover {
+            padding-left: 10px;
+            color: var(--color-accent);
+        }
+
+        .brief-article h4 {
+            font-family: var(--font-serif);
+            font-size: 1em;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .brief-date {
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        /* ==================== GRID DE NOTICIAS ==================== */
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .article-card {
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        body.dark-mode .article-card {
+            border-color: var(--color-secondary);
+            background: var(--color-primary);
+        }
+
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .article-card-image {
+            width: 100%;
+            height: 200px;
+            background: var(--color-border);
+            overflow: hidden;
+        }
+
+        .article-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .article-card:hover .article-card-image img {
+            transform: scale(1.1);
+        }
+
+        .article-card-content {
+            padding: 15px;
+        }
+
+        .article-card h3 {
+            font-family: var(--font-serif);
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            color: var(--color-primary);
+        }
+
+        body.dark-mode .article-card h3 {
+            color: var(--color-text-dark);
+        }
+
+        .article-card p {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        body.dark-mode .article-card p {
+            color: #aaa;
+        }
+
+        .article-card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #999;
+        }
+
+        /* ==================== DIVIDERS Y SECCIONES ==================== */
+        .divider {
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--color-border), transparent);
+            margin: 30px 0;
+        }
+
+        .section-title {
+            font-family: var(--font-serif);
+            font-size: 2em;
+            font-weight: bold;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--color-accent);
+            color: var(--color-primary);
+        }
+
+        body.dark-mode .section-title {
+            color: var(--color-text-dark);
+        }
+
+        /* ==================== LOADING SKELETON ==================== */
+        .skeleton {
+            background: linear-gradient(90deg, var(--color-border) 25%, #f0f0f0 50%, var(--color-border) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        body.dark-mode .skeleton {
+            background: linear-gradient(90deg, var(--color-secondary) 25%, var(--color-primary) 50%, var(--color-secondary) 75%);
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ==================== FOOTER ==================== */
+        footer {
+            background: var(--color-primary);
+            color: white;
+            padding: 40px 20px;
+            margin-top: 50px;
+            border-top: 3px solid var(--color-accent);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .footer-section h4 {
+            color: var(--color-accent);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section li {
+            margin-bottom: 10px;
+        }
+
+        .footer-section a {
+            color: #ccc;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-section a:hover {
+            color: var(--color-accent);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--color-secondary);
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* ==================== RESPONSIVO ==================== */
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.5em;
+            }
+
+            .header-actions {
+                gap: 10px;
+            }
+
+            .btn-login, .btn-register, .btn-dark-mode {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+
+            .main-article h2 {
+                font-size: 1.8em;
+            }
+
+            .section-title {
+                font-size: 1.5em;
+            }
+
+            .articles-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>FAROL AL DÍA 🏮</h1>
-        <p style="color: var(--naranja); margin:8px 0; font-weight: 900; text-transform: uppercase; font-size: 0.9em; letter-spacing: 2px;">Iluminando la Verdad</p>
-    </div>
+    <!-- ==================== HEADER ==================== -->
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">
+                🏮 EL FAROL AL DÍA
+            </a>
+            <div class="header-actions">
+                <button class="btn-dark-mode" id="darkModeBtn">🌙 Oscuro</button>
+                <button class="btn-login">🔐 Ingresar</button>
+                <button class="btn-register">📝 Registrarse</button>
+            </div>
+        </div>
+    </header>
 
-    <a href="https://whatsapp.com/channel/0029Vb7TMgWGk1Fw3lINT03G" class="canal-btn">
-        🟢 ÚNETE AL CANAL DE WHATSAPP 🔥
-    </a>
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="container">
+        <!-- GRID PRINCIPAL -->
+        <section class="news-grid">
+            <!-- COLUMNA PRINCIPAL -->
+            <div>
+                <!-- NOTICIA PRINCIPAL -->
+                <article class="main-article" id="mainArticle">
+                    <div class="main-article-image">
+                        <img 
+                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect fill='%23e0e0e0' width='800' height='400'/%3E%3C/svg%3E"
+                            alt="Noticia principal"
+                            loading="lazy"
+                        >
+                    </div>
+                    <h2>Cargando noticias...</h2>
+                    <div class="article-meta">
+                        <div class="meta-item">👤 <span id="mainAuthor">Redactor</span></div>
+                        <div class="meta-item">📍 <span id="mainLocation">Ubicación</span></div>
+                        <div class="meta-item">📅 <span id="mainDate">Hoy</span></div>
+                    </div>
+                    <p class="article-excerpt" id="mainExcerpt">Cargando contenido...</p>
+                </article>
 
-    <div id="noticias-container">
-        <div class="loading">Conectando con el búnker de noticias...</div>
-    </div>
+                <div class="divider"></div>
+
+                <!-- OTRAS NOTICIAS EN GRID -->
+                <h2 class="section-title">Últimas Noticias</h2>
+                <div class="articles-grid" id="articlesGrid">
+                    <!-- Se llena dinámicamente con JavaScript -->
+                </div>
+            </div>
+
+            <!-- COLUMNA LATERAL -->
+            <aside class="sidebar">
+                <!-- DESTACADAS -->
+                <section class="sidebar-section">
+                    <div class="sidebar-title">📌 Destacadas</div>
+                    <div class="sidebar-content">
+                        <div class="brief-articles" id="featuredArticles">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ÚLTIMAS PUBLICADAS -->
+                <section class="sidebar-section">
+                    <div class="sidebar-title">⏰ Últimas</div>
+                    <div class="sidebar-content">
+                        <div class="brief-articles" id="latestArticles">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SOBRE NOSOTROS -->
+                <section class="sidebar-section">
+                    <div class="sidebar-title">ℹ️ Sobre Nosotros</div>
+                    <div class="sidebar-content">
+                        <p style="font-size: 0.95em; line-height: 1.6;">
+                            El Farol al Día es tu fuente de noticias en vivo de República Dominicana. 
+                            Información veraz, rápida y confiable para mantenerte informado.
+                        </p>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <a href="#" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">Facebook</a>
+                            <a href="#" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">Twitter</a>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </section>
+    </main>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Secciones</h4>
+                <ul>
+                    <li><a href="#">Política</a></li>
+                    <li><a href="#">Economía</a></li>
+                    <li><a href="#">Deportes</a></li>
+                    <li><a href="#">Salud</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Nosotros</h4>
+                <ul>
+                    <li><a href="#">Acerca de</a></li>
+                    <li><a href="#">Contacto</a></li>
+                    <li><a href="#">Políticas</a></li>
+                    <li><a href="#">Privacidad</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Síguenos</h4>
+                <ul>
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">Twitter</a></li>
+                    <li><a href="#">Instagram</a></li>
+                    <li><a href="#">WhatsApp</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 El Farol al Día. Todos los derechos reservados.</p>
+        </div>
+    </footer>
 
     <script>
+        // ==================== DARK MODE ====================
+        const darkModeBtn = document.getElementById('darkModeBtn');
+        
+        // Verificar preferencia guardada o preferencia del sistema
+        const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
+                          (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        // Aplicar modo oscuro si está guardado
+        if (isDarkMode && localStorage.getItem('darkMode') !== 'false') {
+            document.body.classList.add('dark-mode');
+            darkModeBtn.textContent = '☀️ Claro';
+        }
+
+        // Listener para cambios en preferencia del sistema
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+                if (localStorage.getItem('darkMode') === null) {
+                    if (e.matches) {
+                        document.body.classList.add('dark-mode');
+                        darkModeBtn.textContent = '☀️ Claro';
+                    } else {
+                        document.body.classList.remove('dark-mode');
+                        darkModeBtn.textContent = '🌙 Oscuro';
+                    }
+                }
+            });
+        }
+
+        // Click del botón
+        darkModeBtn.addEventListener('click', () => {
+            try {
+                document.body.classList.toggle('dark-mode');
+                const isNowDark = document.body.classList.contains('dark-mode');
+                localStorage.setItem('darkMode', isNowDark);
+                darkModeBtn.textContent = isNowDark ? '☀️ Claro' : '🌙 Oscuro';
+            } catch (e) {
+                // Si localStorage falla (modo incógnito), solo cambiar visualmente
+                console.warn('Dark mode preference could not be saved:', e);
+            }
+        });
+
+        // ==================== CARGAR NOTICIAS ====================
         async function cargarNoticias() {
             try {
-                const res = await fetch('/noticias');
-                const noticias = await res.json();
-                const container = document.getElementById('noticias-container');
+                const res = await fetch('/noticias?limit=20');
                 
-                let htmlContent = "";
-                // Invertimos para que la última noticia publicada salga primero
-                noticias.reverse().forEach(n => {
-                    htmlContent += `
-                        <article class="noticia">
-                            ${n.imagen ? `<img src="${n.imagen}" alt="${n.titulo}" loading="lazy">` : ''}
-                            <div class="noticia-body">
-                                <span class="tag">📍 ${n.ubicacion || 'RD'}</span>
-                                <h2 class="titulo">${n.titulo}</h2>
-                                <div class="meta">
-                                    <span>✍️ Por: <b>${n.redactor}</b></span> 
-                                    <span style="margin-left:auto;">🏮 Farol Al Día</span>
-                                </div>
-                                <p class="contenido">${n.contenido}</p>
-                            </div>
-                        </article>
-                    `;
-                });
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
                 
-                container.innerHTML = htmlContent || '<p style="text-align:center; padding:20px;">No hay primicias en este momento.</p>';
-            } catch (e) {
-                console.log("Error de conexión con el búnker...");
-                container.innerHTML = '<p style="text-align:center; color:orange;">Reconectando señal...</p>';
+                const data = await res.json();
+                
+                if (data.success && data.noticias && data.noticias.length > 0) {
+                    renderizarNoticias(data.noticias);
+                } else {
+                    const grid = document.querySelector('.articles-grid');
+                    if (grid) {
+                        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px;">No hay noticias aún. ¡Vuelve pronto!</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error al cargar noticias:', error);
+                const grid = document.querySelector('.articles-grid');
+                if (grid) {
+                    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ff6b6b;">⚠️ Error al cargar las noticias. Intenta recargar la página.</p>';
+                }
             }
         }
 
-        // Actualiza cada 30 segundos para ahorrar tus datos y batería
-        setInterval(cargarNoticias, 30000); 
-        cargarNoticias();
+        function renderizarNoticias(noticias) {
+            // NOTICIA PRINCIPAL (la más reciente)
+            if (noticias.length > 0) {
+                const mainNews = noticias[0];
+                
+                // Función para escapar caracteres especiales
+                function escaparHTML(texto) {
+                    if (!texto) return '';
+                    const div = document.createElement('div');
+                    div.textContent = texto;
+                    return div.innerHTML;
+                }
+                
+                // Escapar todos los datos
+                const tituloSeguro = escaparHTML(mainNews.titulo);
+                const contenidoSeguro = escaparHTML(mainNews.contenido);
+                const redactorSeguro = escaparHTML(mainNews.redactor || 'Redactor');
+                const ubicacionSegura = escaparHTML(mainNews.ubicacion || 'Ubicación');
+                
+                // Actualizar la noticia principal
+                document.querySelector('#mainArticle h2').textContent = tituloSeguro;
+                document.getElementById('mainAuthor').textContent = redactorSeguro;
+                document.getElementById('mainLocation').textContent = ubicacionSegura;
+                document.getElementById('mainDate').textContent = new Date(mainNews.fecha).toLocaleDateString('es-ES');
+                document.getElementById('mainExcerpt').textContent = contenidoSeguro.substring(0, 200) + '...';
+
+                if (mainNews.imagen) {
+                    const imagenSegura = escaparHTML(mainNews.imagen);
+                    document.querySelector('.main-article-image img').src = imagenSegura;
+                }
+
+                // Schema.org para Google News
+                const schema = {
+                    "@context": "https://schema.org",
+                    "@type": "NewsArticle",
+                    "headline": mainNews.titulo,
+                    "description": mainNews.contenido.substring(0, 200),
+                    "author": {
+                        "@type": "Person",
+                        "name": mainNews.redactor || "Redactor"
+                    },
+                    "datePublished": new Date(mainNews.fecha).toISOString(),
+                    "location": mainNews.ubicacion
+                };
+
+                const schemaScript = document.createElement('script');
+                schemaScript.type = 'application/ld+json';
+                schemaScript.textContent = JSON.stringify(schema);
+                document.head.appendChild(schemaScript);
+            }
+
+            // GRID DE OTRAS NOTICIAS
+            const grid = document.getElementById('articlesGrid');
+            grid.innerHTML = '';
+            
+            // Función para escapar caracteres especiales
+            function escaparHTML(texto) {
+                if (!texto) return '';
+                const div = document.createElement('div');
+                div.textContent = texto;
+                return div.innerHTML;
+            }
+            
+            const otrasNoticias = noticias.slice(1).slice(0, 6);
+            otrasNoticias.forEach(noticia => {
+                const card = document.createElement('article');
+                card.className = 'article-card';
+                card.setAttribute('itemscope', '');
+                card.setAttribute('itemtype', 'https://schema.org/NewsArticle');
+                
+                // Escapar datos para seguridad
+                const tituloSeguro = escaparHTML(noticia.titulo);
+                const contenidoSeguro = escaparHTML(noticia.contenido.substring(0, 100));
+                const redactorSeguro = escaparHTML(noticia.redactor || 'Redactor');
+                const imagenSegura = noticia.imagen ? escaparHTML(noticia.imagen) : null;
+                
+                // Construir HTML seguro
+                let cardHTML = '';
+                
+                if (imagenSegura) {
+                    cardHTML += `<div class="article-card-image"><img src="${imagenSegura}" alt="${tituloSeguro}" loading="lazy"></div>`;
+                }
+                
+                cardHTML += `
+                    <div class="article-card-content">
+                        <h3 itemprop="headline">${tituloSeguro}</h3>
+                        <p itemprop="description">${contenidoSeguro}...</p>
+                        <div class="article-card-meta">
+                            <span itemprop="author">${redactorSeguro}</span>
+                            <span itemprop="datePublished">${new Date(noticia.fecha).toLocaleDateString('es-ES')}</span>
+                        </div>
+                    </div>
+                `;
+                
+                card.innerHTML = cardHTML;
+                grid.appendChild(card);
+            });
+
+            // SIDEBAR - DESTACADAS Y ÚLTIMAS
+            const featuredDiv = document.getElementById('featuredArticles');
+            const latestDiv = document.getElementById('latestArticles');
+            
+            featuredDiv.innerHTML = '';
+            latestDiv.innerHTML = '';
+
+            // Función para escapar caracteres especiales
+            function escaparHTML(texto) {
+                if (!texto) return '';
+                const div = document.createElement('div');
+                div.textContent = texto;
+                return div.innerHTML;
+            }
+
+            noticias.slice(0, 5).forEach(noticia => {
+                const briefArticle = document.createElement('article');
+                briefArticle.className = 'brief-article';
+                const tituloSeguro = escaparHTML(noticia.titulo);
+                const redactorSeguro = escaparHTML(noticia.redactor || 'Redactor');
+                briefArticle.innerHTML = `
+                    <h4>${tituloSeguro}</h4>
+                    <div class="brief-date">${new Date(noticia.fecha).toLocaleDateString('es-ES')} • ${redactorSeguro}</div>
+                `;
+                featuredDiv.appendChild(briefArticle);
+            });
+
+            noticias.slice(0, 8).forEach(noticia => {
+                const briefArticle = document.createElement('article');
+                briefArticle.className = 'brief-article';
+                const tituloSeguro = escaparHTML(noticia.titulo);
+                briefArticle.innerHTML = `
+                    <h4>${tituloSeguro}</h4>
+                    <div class="brief-date">${new Date(noticia.fecha).toLocaleDateString('es-ES')}</div>
+                `;
+                latestDiv.appendChild(briefArticle);
+            });
+        }
+
+        // CARGAR NOTICIAS AL ABRIR LA PÁGINA
+        window.addEventListener('load', cargarNoticias);
+
+        // RECARGAR CADA 30 SEGUNDOS (opcional)
+        setInterval(cargarNoticias, 30000);
     </script>
 </body>
 </html>
