@@ -8,7 +8,7 @@ app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(cors());
 
-// ESTO ES LO QUE MI LÓGICA NO VIO: Apuntar a 'client'
+// AQUÍ CORREGIMOS EL FALLO: Apuntamos a tu carpeta real
 app.use(express.static(path.join(__dirname, 'client')));
 
 const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
@@ -27,7 +27,7 @@ const noticiaSchema = new mongoose.Schema({
 });
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-// Rutas directas a tus archivos dentro de 'client'
+// RUTAS QUE COINCIDEN CON TUS ARCHIVOS
 app.get('/redaccion', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'redaccion.html')); 
 });
