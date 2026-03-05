@@ -162,95 +162,6 @@
             display: block;
         }
 
-        /* ==================== MODAL ==================== */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            overflow: auto;
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        body.dark-mode .modal-content {
-            background: var(--color-primary);
-        }
-
-        .modal-close {
-            float: right;
-            font-size: 2em;
-            font-weight: bold;
-            cursor: pointer;
-            color: #aaa;
-        }
-
-        .modal-close:hover {
-            color: var(--color-accent);
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: var(--color-text-light);
-        }
-
-        body.dark-mode .form-group label {
-            color: var(--color-text-dark);
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--color-border);
-            border-radius: 5px;
-            font-family: inherit;
-            font-size: 1em;
-        }
-
-        body.dark-mode .form-group input {
-            background: var(--color-secondary);
-            border-color: #444;
-            color: white;
-        }
-
-        .btn-submit {
-            width: 100%;
-            background: var(--color-accent);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .btn-submit:hover {
-            background: #ff6b00;
-        }
-
         /* ==================== GRID PRINCIPAL ==================== */
         .news-grid {
             display: grid;
@@ -319,7 +230,14 @@
             margin: 15px 0;
         }
 
-        .btn-read-more {
+        .article-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-read-more, .btn-edit {
             background: var(--color-accent);
             color: white;
             border: none;
@@ -327,12 +245,20 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            margin-top: 10px;
             transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background: #4CAF50;
         }
 
         .btn-read-more:hover {
             background: #ff6b00;
+            transform: translateY(-2px);
+        }
+
+        .btn-edit:hover {
+            background: #45a049;
             transform: translateY(-2px);
         }
 
@@ -412,7 +338,6 @@
             border-radius: 8px;
             overflow: hidden;
             transition: all 0.3s ease;
-            cursor: pointer;
         }
 
         body.dark-mode .article-card {
@@ -462,6 +387,43 @@
         .article-card-meta {
             font-size: 0.75em;
             color: #999;
+            margin-bottom: 10px;
+        }
+
+        .card-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-card-read, .btn-card-edit {
+            flex: 1;
+            min-width: 80px;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.75em;
+            transition: all 0.3s ease;
+            text-align: center;
+            color: white;
+        }
+
+        .btn-card-read {
+            background: var(--color-accent);
+        }
+
+        .btn-card-edit {
+            background: #4CAF50;
+        }
+
+        .btn-card-read:hover {
+            background: #ff6b00;
+        }
+
+        .btn-card-edit:hover {
+            background: #45a049;
         }
 
         /* ==================== NOTICIA COMPLETA ==================== */
@@ -520,6 +482,36 @@
             margin: 20px 0;
         }
 
+        .full-article-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-back, .btn-edit-full {
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit-full {
+            background: #4CAF50;
+        }
+
+        .btn-back:hover {
+            background: #ff6b00;
+        }
+
+        .btn-edit-full:hover {
+            background: #45a049;
+        }
+
         /* ==================== SHARE BUTTONS ==================== */
         .share-buttons {
             display: flex;
@@ -558,17 +550,6 @@
         .btn-share:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-back {
-            background: var(--color-accent);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 20px;
         }
 
         /* ==================== SECTION TITLE ==================== */
@@ -656,6 +637,14 @@
             .btn-share {
                 width: 100%;
             }
+
+            .article-buttons {
+                flex-direction: column;
+            }
+
+            .btn-read-more, .btn-edit {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -689,6 +678,7 @@
         <div id="vista-portada" class="view active">
             <section class="news-grid">
                 <div>
+                    <!-- NOTICIA PRINCIPAL -->
                     <article class="main-article" id="mainArticle" onclick="abrirNoticia(noticiaPrincipal); return false;">
                         <div class="main-article-image">
                             <img id="mainImage" src="" alt="">
@@ -700,13 +690,18 @@
                             <span>📅 <span id="mainDate">Hoy</span></span>
                         </div>
                         <p class="article-excerpt" id="mainExcerpt">Cargando...</p>
-                        <button class="btn-read-more">Leer más →</button>
+                        <div class="article-buttons">
+                            <button class="btn-read-more" onclick="abrirNoticia(noticiaPrincipal); return false;">Leer más →</button>
+                            <button class="btn-edit" onclick="irAEditar(noticiaPrincipal._id); return false;">✏️ Editar</button>
+                        </div>
                     </article>
 
+                    <!-- GRID DE NOTICIAS -->
                     <h2 class="section-title">Últimas Noticias</h2>
                     <div class="articles-grid" id="articlesGrid"></div>
                 </div>
 
+                <!-- SIDEBAR -->
                 <aside class="sidebar">
                     <section class="sidebar-section">
                         <div class="sidebar-title">📌 Destacadas</div>
@@ -739,7 +734,10 @@
         <!-- VISTA: NOTICIA COMPLETA -->
         <div id="vista-noticia" class="view">
             <article class="article-full">
-                <button class="btn-back" onclick="volverAtras(); return false;">← Volver</button>
+                <div class="full-article-buttons">
+                    <button class="btn-back" onclick="volverAtras(); return false;">← Volver</button>
+                    <button class="btn-edit-full" onclick="irAEditarDesdeNoticia(); return false;">✏️ Editar</button>
+                </div>
                 <div class="article-full-image">
                     <img id="noticeImage" src="" alt="">
                 </div>
@@ -763,30 +761,13 @@
                     </div>
                 </div>
 
-                <button class="btn-back" onclick="volverAtras(); return false;">← Volver</button>
+                <div class="full-article-buttons" style="margin-top: 20px;">
+                    <button class="btn-back" onclick="volverAtras(); return false;">← Volver</button>
+                    <button class="btn-edit-full" onclick="irAEditarDesdeNoticia(); return false;">✏️ Editar</button>
+                </div>
             </article>
         </div>
     </main>
-
-    <!-- ==================== AUTH MODAL ==================== -->
-    <div id="authModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="cerrarAuth(); return false;">&times;</span>
-            
-            <h2 id="authTitle" style="margin-bottom: 20px;">Ingresar</h2>
-            
-            <form id="authForm" onsubmit="enviarAuth(event); return false;">
-                <div id="authFields"></div>
-                <button type="submit" class="btn-submit">Enviar</button>
-            </form>
-
-            <div style="text-align: center; margin-top: 15px;">
-                <a href="#" onclick="cambiarModoAuth(); return false;" style="color: var(--color-accent); text-decoration: none;">
-                    <span id="authToggle">¿No tienes cuenta? Registrarse</span>
-                </a>
-            </div>
-        </div>
-    </div>
 
     <!-- ==================== FOOTER ==================== -->
     <footer>
@@ -818,8 +799,8 @@
         // ==================== VARIABLES GLOBALES ====================
         let todasLasNoticias = [];
         let noticiaPrincipal = null;
+        let noticiaActual = null;
         let usuarioActual = null;
-        let modoAuth = 'login'; // 'login' o 'registro'
 
         // ==================== DARK MODE ====================
         const darkModeBtn = document.getElementById('darkModeBtn');
@@ -836,131 +817,6 @@
             localStorage.setItem('darkMode', isNowDark);
             darkModeBtn.textContent = isNowDark ? '☀️ Claro' : '🌙 Oscuro';
         });
-
-        // ==================== VERIFICAR USUARIO ====================
-        function verificarUsuario() {
-            const token = localStorage.getItem('userToken');
-            if (token) {
-                const usuario = JSON.parse(localStorage.getItem('usuario'));
-                usuarioActual = usuario;
-                document.getElementById('btnAuth').innerHTML = `👤 ${usuario.nombre} <button style="background: none; border: none; color: var(--color-accent); cursor: pointer; font-weight: bold;" onclick="cerrarSesion()">Salir</button>`;
-            }
-        }
-
-        // ==================== MODALES DE AUTENTICACIÓN ====================
-        function mostrarAuth() {
-            document.getElementById('authModal').classList.add('active');
-            modoAuth = 'login';
-            actualizarFormAuth();
-        }
-
-        function cerrarAuth() {
-            document.getElementById('authModal').classList.remove('active');
-        }
-
-        function cambiarModoAuth() {
-            modoAuth = modoAuth === 'login' ? 'registro' : 'login';
-            actualizarFormAuth();
-        }
-
-        function actualizarFormAuth() {
-            const fields = document.getElementById('authFields');
-            const title = document.getElementById('authTitle');
-            const toggle = document.getElementById('authToggle');
-
-            if (modoAuth === 'login') {
-                title.textContent = 'Ingresar';
-                toggle.textContent = '¿No tienes cuenta? Registrarse';
-                fields.innerHTML = `
-                    <div class="form-group">
-                        <label>Correo Electrónico</label>
-                        <input type="email" id="loginEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="loginPassword" required>
-                    </div>
-                `;
-            } else {
-                title.textContent = 'Registrarse';
-                toggle.textContent = '¿Ya tienes cuenta? Ingresar';
-                fields.innerHTML = `
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" id="regNombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Correo Electrónico</label>
-                        <input type="email" id="regEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="regPassword" required>
-                    </div>
-                `;
-            }
-        }
-
-        function enviarAuth(event) {
-            event.preventDefault();
-
-            if (modoAuth === 'login') {
-                const email = document.getElementById('loginEmail').value;
-                const password = document.getElementById('loginPassword').value;
-
-                fetch('/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        localStorage.setItem('userToken', data.token);
-                        localStorage.setItem('usuario', JSON.stringify(data.usuario));
-                        usuarioActual = data.usuario;
-                        cerrarAuth();
-                        verificarUsuario();
-                        alert('✅ Bienvenido, ' + data.usuario.nombre);
-                    } else {
-                        alert('❌ ' + data.error);
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
-            } else {
-                const nombre = document.getElementById('regNombre').value;
-                const email = document.getElementById('regEmail').value;
-                const password = document.getElementById('regPassword').value;
-
-                fetch('/auth/registro', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, email, password })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        localStorage.setItem('userToken', data.token);
-                        localStorage.setItem('usuario', JSON.stringify(data.usuario));
-                        usuarioActual = data.usuario;
-                        cerrarAuth();
-                        verificarUsuario();
-                        alert('✅ Cuenta creada exitosamente');
-                    } else {
-                        alert('❌ ' + data.error);
-                    }
-                })
-                .catch(err => alert('Error: ' + err.message));
-            }
-        }
-
-        function cerrarSesion() {
-            localStorage.removeItem('userToken');
-            localStorage.removeItem('usuario');
-            usuarioActual = null;
-            document.getElementById('btnAuth').textContent = '🔐 Ingresar';
-            alert('Sesión cerrada');
-        }
 
         // ==================== CARGAR NOTICIAS ====================
         async function cargarNoticias() {
@@ -997,7 +853,6 @@
             todasLasNoticias.slice(1, 7).forEach(noticia => {
                 const card = document.createElement('article');
                 card.className = 'article-card';
-                card.onclick = () => abrirNoticia(noticia);
                 card.innerHTML = `
                     <div class="article-card-image">
                         <img src="${noticia.imagen || ''}" alt="${noticia.titulo}" loading="lazy">
@@ -1007,6 +862,10 @@
                         <p>${noticia.contenido.substring(0, 80)}...</p>
                         <div class="article-card-meta">
                             ${noticia.redactor} • ${new Date(noticia.fecha).toLocaleDateString('es-ES')}
+                        </div>
+                        <div class="card-buttons">
+                            <button class="btn-card-read" onclick="abrirNoticia(JSON.parse('${JSON.stringify(noticia).replace(/'/g, "\\'")}'))" style="cursor: pointer;">Leer</button>
+                            <button class="btn-card-edit" onclick="irAEditar('${noticia._id}')" style="cursor: pointer;">Editar</button>
                         </div>
                     </div>
                 `;
@@ -1052,7 +911,6 @@
             noticias.forEach(noticia => {
                 const card = document.createElement('article');
                 card.className = 'article-card';
-                card.onclick = () => abrirNoticia(noticia);
                 card.innerHTML = `
                     <div class="article-card-image">
                         <img src="${noticia.imagen || ''}" alt="${noticia.titulo}" loading="lazy">
@@ -1063,6 +921,10 @@
                         <div class="article-card-meta">
                             ${noticia.redactor} • ${new Date(noticia.fecha).toLocaleDateString('es-ES')}
                         </div>
+                        <div class="card-buttons">
+                            <button class="btn-card-read" onclick="abrirNoticia(JSON.parse('${JSON.stringify(noticia).replace(/'/g, "\\'")}'))" style="cursor: pointer;">Leer</button>
+                            <button class="btn-card-edit" onclick="irAEditar('${noticia._id}')" style="cursor: pointer;">Editar</button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -1072,8 +934,10 @@
             actualizarNavLinks(seccion);
         }
 
-        // ==================== NOTICIA COMPLETA ====================
+        // ==================== ABRIR NOTICIA COMPLETA ====================
         function abrirNoticia(noticia) {
+            noticiaActual = noticia;
+            
             document.getElementById('noticeTitle').textContent = noticia.titulo;
             document.getElementById('noticeAuthor').textContent = noticia.redactor || 'Redactor';
             document.getElementById('noticeLocation').textContent = noticia.ubicacion || 'Ubicación';
@@ -1082,11 +946,20 @@
             document.getElementById('noticeImage').src = noticia.imagen || '';
             document.getElementById('noticeContent').textContent = noticia.contenido;
 
-            // Guardar noticia actual para compartir
-            window.noticiaActual = noticia;
-
             mostrarVista('vista-noticia');
             window.scrollTo(0, 0);
+        }
+
+        // ==================== EDITAR DESDE HOMEPAGE ====================
+        function irAEditar(noticiaId) {
+            window.location.href = `/redaccion?edit=${noticiaId}`;
+        }
+
+        // ==================== EDITAR DESDE NOTICIA COMPLETA ====================
+        function irAEditarDesdeNoticia() {
+            if (noticiaActual && noticiaActual._id) {
+                window.location.href = `/redaccion?edit=${noticiaActual._id}`;
+            }
         }
 
         // ==================== COMPARTIR EN REDES ====================
@@ -1096,9 +969,9 @@
         }
 
         function compartirTwitter() {
-            const texto = document.getElementById('noticeTitle').textContent;
+            const titulo = document.getElementById('noticeTitle').textContent;
             const url = window.location.href;
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(texto)}&url=${encodeURIComponent(url)}`, '_blank');
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(titulo)}&url=${encodeURIComponent(url)}`, '_blank');
         }
 
         function compartirWhatsApp() {
@@ -1149,7 +1022,6 @@
         // ==================== INICIALIZAR ====================
         window.addEventListener('load', () => {
             cargarNoticias();
-            verificarUsuario();
         });
 
         setInterval(cargarNoticias, 30000);
