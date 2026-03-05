@@ -4,16 +4,16 @@ const cors = require('cors');
 const path = require('path');
 const app = express();
 
-// Configuración para recibir fotos grandes desde el cel
+// Configuración para el celular
 app.use(express.json({ limit: '15mb' })); 
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(cors());
 
-// --- AQUÍ ESTÁ EL ARREGLO ---
+// --- ESTO ES LO QUE ARREGLA EL ERROR ---
 // Le decimos al servidor que tus archivos están en la carpeta 'client'
 app.use(express.static(path.join(__dirname, 'client')));
 
-// Conexión a la base de datos con tu clave maestra
+// Conexión con tu clave maestra WUFwLOY...
 const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
 mongoose.connect(mongoURI)
@@ -30,17 +30,17 @@ const noticiaSchema = new mongoose.Schema({
 });
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-// RUTA PARA EL PANEL DE REDACCIÓN
+// RUTA PARA EL PANEL
 app.get('/redaccion', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'redaccion.html')); 
 });
 
-// RUTA PARA LA PÁGINA PRINCIPAL (Si alguien entra a elfarolaldia.com)
+// RUTA PARA LA PORTADA
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
-// APIs para publicar y leer noticias
+// APIs para noticias
 app.post('/publicar', async (req, res) => {
   const { pin, titulo, contenido, ubicacion, redactor, imagen } = req.body;
   if (pin !== "311") return res.status(403).send("PIN incorrecto");
