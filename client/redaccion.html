@@ -243,6 +243,22 @@
                 </div>
             </div>
             
+            <!-- SECCIÓN (OBLIGATORIO) -->
+            <div class="form-group">
+                <label for="seccion">📰 SECCIÓN *</label>
+                <select 
+                    id="seccion" 
+                    required
+                    style="width: 100%; padding: 12px 15px; border-radius: 12px; border: 1px solid #333; background: #222; color: white; font-size: 1em; font-family: inherit; transition: all 0.3s ease; cursor: pointer;"
+                >
+                    <option value="">-- Selecciona una sección --</option>
+                    <option value="Nacionales">🇩🇴 Nacionales</option>
+                    <option value="Deportes">⚽ Deportes</option>
+                    <option value="Internacionales">🌍 Internacionales</option>
+                    <option value="Espectáculos">🎬 Espectáculos</option>
+                </select>
+            </div>
+
             <!-- REDACTOR -->
             <div class="form-group">
                 <label for="redactor">👤 REDACTOR</label>
@@ -421,7 +437,7 @@
 
         // ==================== ENVIAR NOTICIA ====================
         async function enviarNoticia() {
-            // CORRECCIÓN: Validar todos los campos
+            // ==================== VALIDAR TODOS LOS CAMPOS ====================
             if (!tituloInput.value.trim()) {
                 mostrarAlerta('El título es obligatorio', 'error');
                 tituloInput.focus();
@@ -431,6 +447,14 @@
             if (!contenidoInput.value.trim()) {
                 mostrarAlerta('El contenido es obligatorio', 'error');
                 contenidoInput.focus();
+                return;
+            }
+
+            // NUEVA VALIDACIÓN: SECCIÓN OBLIGATORIA
+            const seccionInput = document.getElementById('seccion');
+            if (!seccionInput.value) {
+                mostrarAlerta('Debes seleccionar una sección', 'error');
+                seccionInput.focus();
                 return;
             }
 
@@ -444,7 +468,7 @@
                 return;
             }
 
-            // CORRECCIÓN: Validar PIN primero
+            // VALIDAR PIN PRIMERO
             if (!pinInput.value) {
                 mostrarAlerta('El PIN es obligatorio', 'error');
                 pinInput.focus();
@@ -457,10 +481,11 @@
                 return;
             }
 
-            // Datos a enviar
+            // Datos a enviar (AHORA CON SECCIÓN)
             const data = {
                 titulo: tituloInput.value.trim(),
                 contenido: contenidoInput.value.trim(),
+                seccion: document.getElementById('seccion').value,  // ← NUEVA
                 redactor: redactorInput.value.trim(),
                 ubicacion: ubicacionInput.value.trim(),
                 imagen: imagenBase64,
@@ -487,6 +512,7 @@
                         tituloInput.value = '';
                         contenidoInput.value = '';
                         ubicacionInput.value = '';
+                        document.getElementById('seccion').value = '';
                         fotoInput.value = '';
                         preview.style.display = 'none';
                         labelFoto.innerText = "📸 TOCAR PARA SUBIR FOTO";
