@@ -163,9 +163,25 @@
         
         .noticia-meta {
             display: flex;
-            gap: 15px;
+            flex-wrap: wrap;
+            gap: 12px 15px;
             color: #888;
             font-size: 0.9em;
+            align-items: center;
+        }
+        
+        /* Foto del periodista en miniatura */
+        .redactor-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .redactor-foto-mini {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #FF8C00;
         }
         
         .noticia-imagen {
@@ -256,6 +272,11 @@
                     }
                 }
                 
+                // Construir info del redactor con foto si existe
+                const redactorHTML = n.redactorFoto 
+                    ? `<span class="redactor-info"><img src="${n.redactorFoto}" class="redactor-foto-mini"> 👤 ${n.redactor || 'mxl'}</span>`
+                    : `<span>👤 ${n.redactor || 'mxl'}</span>`;
+                
                 card.innerHTML = `
                     <div class="share-icon" onclick="abrirMenuCompartir('${n._id}', event)">📤</div>
                     
@@ -272,6 +293,7 @@
                     <div class="noticia-contenido" onclick="abrirNoticia('${n._id}')">${n.contenido.substring(0, 100)}...</div>
                     <div class="noticia-meta">
                         <span>📰 ${n.seccion}</span>
+                        ${redactorHTML}
                         <span>👁️ ${n.vistas || 0}</span>
                         <span>${fecha}</span>
                     </div>
