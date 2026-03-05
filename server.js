@@ -10,21 +10,24 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
 
-// ================= CONEXIÓN MONGODB CON REINTENTOS =================
+// ================= VALIDACIÓN ESTRICTA DE MONGO_URI =================
 const MONGODB_URI = process.env.MONGO_URI;
 
 if (!MONGODB_URI) {
     console.error('\n❌ ERROR CRÍTICO: MONGO_URI no está definida');
-    console.error('📌 Pasos para solucionar:');
+    console.error('🔴 El búnker no puede arrancar sin la base de datos');
+    console.error('\n📌 Solución inmediata:');
     console.error('   1. Ve a Railway Dashboard → Variables');
-    console.error('   2. Agrega nueva variable:');
+    console.error('   2. Agrega una nueva variable:');
     console.error('      NAME: MONGO_URI');
-    console.error('      VALUE: (pega tu link de MongoDB)');
+    console.error('      VALUE: (pega el link de tu MongoDB)');
     console.error('   3. Espera el redeploy automático\n');
-    process.exit(1);
+    process.exit(1); // El contenedor se detiene CON PROPÓSITO
 }
 
-// Función para conectar con reintentos
+console.log('📡 MONGO_URI encontrada. Conectando a MongoDB...');
+
+// ================= SISTEMA DE REINTENTOS =================
 async function conectarMongoDB(intentos = 5) {
     for (let i = 1; i <= intentos; i++) {
         try {
@@ -37,7 +40,7 @@ async function conectarMongoDB(intentos = 5) {
                 socketTimeoutMS: 45000,
             });
             
-            console.log('🟢 BÚNKER CONECTADO!');
+            console.log('🟢 ¡BÚNKER CONECTADO A MONGODB!');
             console.log('📱 Meta tags en servidor: ACTIVADO');
             return true;
             
@@ -45,10 +48,9 @@ async function conectarMongoDB(intentos = 5) {
             console.error(`❌ Intento ${i} falló:`, error.message);
             
             if (i === intentos) {
-                console.error('\n🔴 NO SE PUDO CONECTAR A MONGODB');
-                console.error('Esperando 30 segundos antes de reintentar...\n');
+                console.error('\n🔴 NO SE PUDO CONECTAR A MONGODB DESPUÉS DE 5 INTENTOS');
+                console.error('⏳ Esperando 30 segundos antes de reintentar...\n');
                 
-                // Esperar 30 segundos y reintentar el proceso completo
                 setTimeout(() => {
                     console.log('🔄 Reintentando conexión...');
                     conectarMongoDB(intentos);
@@ -57,7 +59,6 @@ async function conectarMongoDB(intentos = 5) {
                 return false;
             }
             
-            // Esperar 5 segundos entre intentos
             await new Promise(resolve => setTimeout(resolve, 5000));
         }
     }
@@ -198,11 +199,11 @@ app.use(express.static(path.join(__dirname, 'client')));
 // ================= INICIAR SERVIDOR =================
 const PORT = process.env.PORT || 8080;
 const server = app.listen(PORT, () => {
-    console.log(`✅ Servidor en puerto ${PORT}`);
-    console.log('🏮 BÚNKER LISTO PARA OPERAR');
+    console.log(`✅ Servidor escuchando en puerto ${PORT}`);
+    console.log('🏮 BÚNKER LISTO PARA OPERAR (cuando MongoDB conecte)');
 });
 
-// Manejo de cierre graceful
+// ================= CIERRE GRACEFUL =================
 process.on('SIGTERM', async () => {
     console.log('🟡 Cerrando servidor gracefulmente...');
     server.close(async () => {
