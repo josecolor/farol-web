@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Panel de Control 🏮 | Búnker Maestro</title>
+    <style>
+        :root {
+            --naranja: #FF8C00;
+            --negro: #0b0b0b;
+            --gris: #1a1a1a;
+            --verde: #4CAF50;
+            --rojo: #f44336;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--negro);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 3px solid var(--naranja);
+        }
+
+        h1 {
+            color: var(--naranja);
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--naranja);
+            padding-bottom: 10px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: var(--naranja);
+            border-bottom-color: var(--naranja);
+        }
+
+        .tab-btn:hover {
+            color: var(--naranja);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel {
+            background: var(--gris);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid var(--naranja);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .panel h2 {
+            color: var(--naranja);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--naranja);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--naranja);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        input[type="password"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #222;
+            color: white;
+            font-size: 1em;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="number"]:focus,
+        input[type="password"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--naranja);
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+            background: #2a2a2a;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.active {
+            border-color: white;
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.6);
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--verde);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save {
+            background: var(--verde);
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+
+        .btn-reset {
+            background: #666;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #777;
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: var(--rojo);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            display: none;
+        }
+
+        .alert.success {
+            background: rgba(76, 175, 80, 0.1);
+            border-left-color: var(--verde);
+            color: var(--verde);
+        }
+
+        .alert.error {
+            background: rgba(244, 67, 54, 0.1);
+            border-left-color: var(--rojo);
+            color: #ff6b6b;
+        }
+
+        .info-box {
+            background: rgba(255, 140, 0, 0.1);
+            border: 1px solid var(--naranja);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #222;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--naranja);
+            text-align: center;
+        }
+
+        .stat-value {
+            color: var(--naranja);
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #aaa;
+            font-size: 0.85em;
+            text-transform: uppercase;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--gris);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid var(--naranja);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 2em;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .modal-close:hover {
+            color: var(--naranja);
+        }
+
+        @media (max-width: 480px) {
+            .panel {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                font-size: 0.8em;
+                padding: 8px 12px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <h1>🏮 PANEL DE CONTROL MAESTRO</h1>
+            <p class="subtitle">Configuración del Búnker - Sin código, solo clics</p>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarTab('sitio')">🏮 Sitio</button>
+            <button class="tab-btn" onclick="cambiarTab('redes')">📱 Redes Sociales</button>
+            <button class="tab-btn" onclick="cambiarTab('monetizacion')">💰 Monetización</button>
+            <button class="tab-btn" onclick="cambiarTab('analitica')">📊 Analítica</button>
+            <button class="tab-btn" onclick="cambiarTab('seo')">🔍 SEO</button>
+            <button class="tab-btn" onclick="cambiarTab('usuarios')">👥 Usuarios</button>
+        </div>
+
+        <!-- TAB 1: SITIO -->
+        <div id="tab-sitio" class="tab-content active">
+            <div class="panel">
+                <h2>⚙️ Configuración del Sitio</h2>
+
+                <div id="alertSitio" class="alert"></div>
+
+                <div class="form-group">
+                    <label>🏮 Nombre del Sitio</label>
+                    <input type="text" id="nombreSitio" placeholder="Ej: El Farol al Día" maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label>📄 Lema o Tagline</label>
+                    <input type="text" id="tagline" placeholder="Ej: Diario Digital de Noticias en Vivo" maxlength="150">
+                </div>
+
+                <div class="form-group">
+                    <label>🎨 Color Principal</label>
+                    <div class="color-picker">
+                        <div class="color-option active" style="background: #FF8C00;" onclick="seleccionarColor('#FF8C00', 'naranja')"></div>
+                        <div class="color-option" style="background: #2196F3;" onclick="seleccionarColor('#2196F3', 'azul')"></div>
+                        <div class="color-option" style="background: #4CAF50;" onclick="seleccionarColor('#4CAF50', 'verde')"></div>
+                        <div class="color-option" style="background: #9C27B0;" onclick="seleccionarColor('#9C27B0', 'morado')"></div>
+                        <div class="color-option" style="background: #FF5722;" onclick="seleccionarColor('#FF5722', 'rojo')"></div>
+                    </div>
+                    <input type="hidden" id="colorPrincipal" value="#FF8C00">
+                </div>
+
+                <div class="form-group">
+                    <label>📧 Email de Contacto</label>
+                    <input type="email" id="emailContacto" placeholder="contacto@ejemplo.com">
+                </div>
+
+                <div class="form-group">
+                    <label>📍 Ubicación/País</label>
+                    <input type="text" id="ubicacionSitio" placeholder="Ej: República Dominicana" maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label>📝 Descripción del Sitio</label>
+                    <textarea id="descripcionSitio" placeholder="Descripción para SEO"></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" onclick="guardarConfiguracion('sitio')">💾 Guardar Sitio</button>
+                    <button class="btn btn-reset" onclick="limpiarFormulario('sitio')">🔄 Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: REDES SOCIALES -->
+        <div id="tab-redes" class="tab-content">
+            <div class="panel">
+                <h2>📱 Redes Sociales</h2>
+
+                <div id="alertRedes" class="alert"></div>
+
+                <div class="form-group">
+                    <label>📘 Facebook</label>
+                    <input type="text" id="facebook" placeholder="https://facebook.com/...">
+                </div>
+
+                <div class="form-group">
+                    <label>📷 Instagram</label>
+                    <input type="text" id="instagram" placeholder="https://instagram.com/...">
+                </div>
+
+                <div class="form-group">
+                    <label>𝕏 Twitter/X</label>
+                    <input type="text" id="twitter" placeholder="https://twitter.com/...">
+                </div>
+
+                <div class="form-group">
+                    <label>💬 WhatsApp de Contacto</label>
+                    <input type="text" id="whatsapp" placeholder="https://wa.me/18095551234">
+                    <p class="info-box">Formato: https://wa.me/1234567890 (código país + número sin espacios)</p>
+                </div>
+
+                <div class="form-group">
+                    <label>✈️ Telegram</label>
+                    <input type="text" id="telegram" placeholder="https://t.me/...">
+                </div>
+
+                <div class="form-group">
+                    <label>🎬 Canal de WhatsApp</label>
+                    <input type="text" id="whatsappCanal" placeholder="https://whatsapp.com/channel/...">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" onclick="guardarConfiguracion('redes')">💾 Guardar Redes</button>
+                    <button class="btn btn-reset" onclick="limpiarFormulario('redes')">🔄 Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: MONETIZACIÓN -->
+        <div id="tab-monetizacion" class="tab-content">
+            <div class="panel">
+                <h2>💰 Monetización</h2>
+
+                <div id="alertMonetizacion" class="alert"></div>
+
+                <div class="form-group">
+                    <label>🛒 ID de Afiliado Amazon</label>
+                    <input type="text" id="amazonId" placeholder="tutienda-20" maxlength="50">
+                    <p class="info-box">Todos los links de Amazon usarán este ID automáticamente</p>
+                </div>
+
+                <div class="form-group">
+                    <label>📺 Google AdSense</label>
+                    <input type="text" id="googleAdsense" placeholder="ca-pub-xxxxxxxxxxxxxxxx">
+                </div>
+
+                <div class="form-group">
+                    <label>💳 Stripe ID (para donaciones)</label>
+                    <input type="text" id="stripeId" placeholder="pk_live_...">
+                </div>
+
+                <div class="form-group">
+                    <label>🔗 URL de Donación</label>
+                    <input type="text" id="linkDonacion" placeholder="https://ko-fi.com/...">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" onclick="guardarConfiguracion('monetizacion')">💾 Guardar Monetización</button>
+                    <button class="btn btn-reset" onclick="limpiarFormulario('monetizacion')">🔄 Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: ANALÍTICA -->
+        <div id="tab-analitica" class="tab-content">
+            <div class="panel">
+                <h2>📊 Analítica</h2>
+
+                <div id="alertAnalitica" class="alert"></div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalVistas">0</div>
+                        <div class="stat-label">Visitas Totales</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="visitasHoy">0</div>
+                        <div class="stat-label">Hoy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="noticiasPublicadas">0</div>
+                        <div class="stat-label">Noticias</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>🔍 ID de Google Analytics</label>
+                    <input type="text" id="googleAnalytics" placeholder="G-XXXXXXXXXX o UA-XXXXXXXXX">
+                    <p class="info-box">Pega aquí tu ID de seguimiento de Google. Se inyectará automáticamente en todas las páginas</p>
+                </div>
+
+                <div class="form-group">
+                    <label>📊 Mostrar Contador de Vistas</label>
+                    <div class="toggle-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="mostrarVistas" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Mostrar "👁️ X personas leyeron esto" en cada noticia</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" onclick="guardarConfiguracion('analitica')">💾 Guardar Analítica</button>
+                    <button class="btn btn-reset" onclick="limpiarFormulario('analitica')">🔄 Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: SEO -->
+        <div id="tab-seo" class="tab-content">
+            <div class="panel">
+                <h2>🔍 SEO</h2>
+
+                <div id="alertSeo" class="alert"></div>
+
+                <div class="form-group">
+                    <label>📌 Meta Keywords Globales</label>
+                    <input type="text" id="metaKeywords" placeholder="noticias, república dominicana, diario digital">
+                </div>
+
+                <div class="form-group">
+                    <label>🌐 Sitemap URL</label>
+                    <input type="text" id="sitemapUrl" placeholder="https://tudominio.com/sitemap.xml" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>🔗 Robots.txt</label>
+                    <textarea id="robotsTxt" placeholder="User-agent: *&#10;Allow: /">Permitir/denegar acceso a buscadores</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>✅ Verificación Google Search Console</label>
+                    <input type="text" id="googleVerification" placeholder="Código de verificación">
+                </div>
+
+                <div class="form-group">
+                    <label>🔗 Open Graph (Para Facebook/WhatsApp)</label>
+                    <p class="info-box">Automático: Cuando compartas un link, mostrará imagen, título y descripción</p>
+                    <input type="checkbox" id="activarOpenGraph" checked> Activar automáticamente en todas las noticias
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" onclick="guardarConfiguracion('seo')">💾 Guardar SEO</button>
+                    <button class="btn btn-reset" onclick="limpiarFormulario('seo')">🔄 Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: USUARIOS -->
+        <div id="tab-usuarios" class="tab-content">
+            <div class="panel">
+                <h2>👥 Gestión de Usuarios</h2>
+
+                <div id="alertUsuarios" class="alert"></div>
+
+                <div class="form-group">
+                    <label>🔐 PIN de Administrador</label>
+                    <input type="password" id="pinAdmin" placeholder="Actual: 311" maxlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label>🔐 Nuevo PIN (opcional)</label>
+                    <input type="password" id="nuevoPin" placeholder="Deja en blanco si no quieres cambiar" maxlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label>📝 Cambiar PIN</label>
+                    <p class="info-box">Usa un PIN único que solo tú conozcas. Este PIN protege todas las acciones administrativas</p>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-save" onclick="cambiarPin()">🔐 Cambiar PIN</button>
+                </div>
+
+                <hr style="border: 1px solid #333; margin: 25px 0;">
+
+                <h2 style="margin-top: 30px;">🗑️ Peligro</h2>
+
+                <div class="form-group">
+                    <label>⚠️ Resetear Todo el Sistema</label>
+                    <p class="info-box" style="background: rgba(244, 67, 54, 0.2); border-left-color: #f44336;">
+                        CUIDADO: Esto eliminará TODAS las noticias y usuarios. Solo hazlo si necesitas empezar de cero.
+                    </p>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-delete" onclick="resetearSistema()">🗑️ Resetear Todo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PIN -->
+    <div id="modalPin" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="cerrarModalPin()">&times;</span>
+            <h2>🔐 Ingresa PIN</h2>
+            <div class="form-group">
+                <label>PIN de Administrador</label>
+                <input type="password" id="pinInput" placeholder="311" maxlength="6">
+            </div>
+            <div class="button-group">
+                <button class="btn btn-save" onclick="verificarPin()">Ingresar</button>
+                <button class="btn btn-reset" onclick="cerrarModalPin()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== VARIABLES ====================
+        let configuracion = {};
+        let pinActual = "311";
+        let pinVerificado = false;
+
+        // ==================== TABS ====================
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ==================== CARGAR CONFIGURACIÓN ====================
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/configuracion');
+                const data = await res.json();
+
+                if (data.success) {
+                    configuracion = data.config;
+                    llenarFormularios();
+                    cargarEstadisticas();
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+
+        function llenarFormularios() {
+            // Sitio
+            document.getElementById('nombreSitio').value = configuracion.nombreSitio || 'El Farol al Día';
+            document.getElementById('tagline').value = configuracion.tagline || 'Diario Digital de Noticias en Vivo';
+            document.getElementById('colorPrincipal').value = configuracion.colorPrincipal || '#FF8C00';
+            document.getElementById('emailContacto').value = configuracion.emailContacto || '';
+            document.getElementById('ubicacionSitio').value = configuracion.ubicacionSitio || '';
+            document.getElementById('descripcionSitio').value = configuracion.descripcionSitio || '';
+
+            // Redes
+            document.getElementById('facebook').value = configuracion.facebook || '';
+            document.getElementById('instagram').value = configuracion.instagram || '';
+            document.getElementById('twitter').value = configuracion.twitter || '';
+            document.getElementById('whatsapp').value = configuracion.whatsapp || '';
+            document.getElementById('telegram').value = configuracion.telegram || '';
+            document.getElementById('whatsappCanal').value = configuracion.whatsappCanal || '';
+
+            // Monetización
+            document.getElementById('amazonId').value = configuracion.amazonId || '';
+            document.getElementById('googleAdsense').value = configuracion.googleAdsense || '';
+            document.getElementById('stripeId').value = configuracion.stripeId || '';
+            document.getElementById('linkDonacion').value = configuracion.linkDonacion || '';
+
+            // Analítica
+            document.getElementById('googleAnalytics').value = configuracion.googleAnalytics || '';
+            document.getElementById('mostrarVistas').checked = configuracion.mostrarVistas !== false;
+
+            // SEO
+            document.getElementById('metaKeywords').value = configuracion.metaKeywords || '';
+            document.getElementById('sitemapUrl').value = window.location.origin + '/sitemap.xml';
+            document.getElementById('robotsTxt').value = configuracion.robotsTxt || 'User-agent: *\nAllow: /';
+            document.getElementById('googleVerification').value = configuracion.googleVerification || '';
+            document.getElementById('activarOpenGraph').checked = configuracion.activarOpenGraph !== false;
+        }
+
+        // ==================== GUARDAR CONFIGURACIÓN ====================
+        async function guardarConfiguracion(seccion) {
+            if (!pinVerificado) {
+                abrirModalPin();
+                return;
+            }
+
+            const config = {};
+
+            if (seccion === 'sitio') {
+                config.nombreSitio = document.getElementById('nombreSitio').value;
+                config.tagline = document.getElementById('tagline').value;
+                config.colorPrincipal = document.getElementById('colorPrincipal').value;
+                config.emailContacto = document.getElementById('emailContacto').value;
+                config.ubicacionSitio = document.getElementById('ubicacionSitio').value;
+                config.descripcionSitio = document.getElementById('descripcionSitio').value;
+            } else if (seccion === 'redes') {
+                config.facebook = document.getElementById('facebook').value;
+                config.instagram = document.getElementById('instagram').value;
+                config.twitter = document.getElementById('twitter').value;
+                config.whatsapp = document.getElementById('whatsapp').value;
+                config.telegram = document.getElementById('telegram').value;
+                config.whatsappCanal = document.getElementById('whatsappCanal').value;
+            } else if (seccion === 'monetizacion') {
+                config.amazonId = document.getElementById('amazonId').value;
+                config.googleAdsense = document.getElementById('googleAdsense').value;
+                config.stripeId = document.getElementById('stripeId').value;
+                config.linkDonacion = document.getElementById('linkDonacion').value;
+            } else if (seccion === 'analitica') {
+                config.googleAnalytics = document.getElementById('googleAnalytics').value;
+                config.mostrarVistas = document.getElementById('mostrarVistas').checked;
+            } else if (seccion === 'seo') {
+                config.metaKeywords = document.getElementById('metaKeywords').value;
+                config.robotsTxt = document.getElementById('robotsTxt').value;
+                config.googleVerification = document.getElementById('googleVerification').value;
+                config.activarOpenGraph = document.getElementById('activarOpenGraph').checked;
+            }
+
+            try {
+                const res = await fetch('/api/configuracion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        seccion,
+                        config,
+                        pin: pinActual
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta(`✅ ${seccion} guardado correctamente`, 'success', seccion);
+                    configuracion = { ...configuracion, ...config };
+                    // Recargar sitio en otras pestañas
+                    window.location.reload();
+                } else {
+                    mostrarAlerta(`❌ Error: ${data.error}`, 'error', seccion);
+                }
+            } catch (error) {
+                mostrarAlerta(`❌ Error: ${error.message}`, 'error', seccion);
+            }
+        }
+
+        // ==================== COLOR PICKER ====================
+        function seleccionarColor(color, nombre) {
+            document.getElementById('colorPrincipal').value = color;
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // ==================== MODAL PIN ====================
+        function abrirModalPin() {
+            document.getElementById('modalPin').classList.add('active');
+        }
+
+        function cerrarModalPin() {
+            document.getElementById('modalPin').classList.remove('active');
+            document.getElementById('pinInput').value = '';
+        }
+
+        function verificarPin() {
+            const pin = document.getElementById('pinInput').value;
+            if (pin === pinActual) {
+                pinVerificado = true;
+                cerrarModalPin();
+                mostrarAlerta('✅ Acceso concedido', 'success');
+            } else {
+                mostrarAlerta('❌ PIN incorrecto', 'error');
+            }
+        }
+
+        // ==================== CAMBIAR PIN ====================
+        function cambiarPin() {
+            const pinAdmin = document.getElementById('pinAdmin').value;
+            const nuevoPin = document.getElementById('nuevoPin').value;
+
+            if (pinAdmin !== pinActual) {
+                mostrarAlerta('❌ PIN actual incorrecto', 'error', 'usuarios');
+                return;
+            }
+
+            if (!nuevoPin) {
+                mostrarAlerta('❌ Ingresa el nuevo PIN', 'error', 'usuarios');
+                return;
+            }
+
+            if (nuevoPin.length < 4) {
+                mostrarAlerta('❌ El PIN debe tener al menos 4 caracteres', 'error', 'usuarios');
+                return;
+            }
+
+            pinActual = nuevoPin;
+            mostrarAlerta('✅ PIN cambiadocorrectamente', 'success', 'usuarios');
+            document.getElementById('pinAdmin').value = '';
+            document.getElementById('nuevoPin').value = '';
+        }
+
+        // ==================== RESETEAR SISTEMA ====================
+        function resetearSistema() {
+            if (!confirm('⚠️ ADVERTENCIA: Esto eliminará TODAS las noticias y usuarios. ¿Estás seguro?')) {
+                return;
+            }
+
+            if (!confirm('🚨 CONFIRMACIÓN FINAL: Esta acción NO se puede deshacer. ¿Continuar?')) {
+                return;
+            }
+
+            mostrarAlerta('⏳ Reseteando sistema...', 'success', 'usuarios');
+            // Implementar reseteo
+        }
+
+        // ==================== ALERTAS ====================
+        function mostrarAlerta(mensaje, tipo, tab = 'sitio') {
+            const alertBox = document.getElementById(`alert${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+            alertBox.textContent = mensaje;
+            alertBox.className = `alert ${tipo}`;
+            alertBox.style.display = 'block';
+
+            if (tipo === 'success') {
+                setTimeout(() => alertBox.style.display = 'none', 3000);
+            }
+        }
+
+        // ==================== LIMPIAR FORMULARIO ====================
+        function limpiarFormulario(seccion) {
+            if (seccion === 'sitio') {
+                document.getElementById('nombreSitio').value = '';
+                document.getElementById('tagline').value = '';
+                document.getElementById('emailContacto').value = '';
+                document.getElementById('ubicacionSitio').value = '';
+                document.getElementById('descripcionSitio').value = '';
+            }
+        }
+
+        // ==================== CARGAR ESTADÍSTICAS ====================
+        function cargarEstadisticas() {
+            // Simulado - conectar con API real
+            document.getElementById('totalVistas').textContent = '1,250';
+            document.getElementById('visitasHoy').textContent = '156';
+            document.getElementById('noticiasPublicadas').textContent = '42';
+        }
+
+        // ==================== INICIALIZAR ====================
+        window.addEventListener('load', () => {
+            cargarConfiguracion();
+            console.log('✅ Panel de Control Maestro cargado');
+        });
+    </script>
+</body>
+</html>
+
