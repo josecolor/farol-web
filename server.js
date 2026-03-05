@@ -4,13 +4,15 @@ const cors = require('cors');
 const path = require('path');
 const app = express();
 
+// Optimizamos para que el servidor no se sofoque desde el cel
 app.use(express.json({ limit: '15mb' })); 
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
+
+// --- LÍNEA 11 CORREGIDA: Apuntamos a 'client' ---
+app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
-// AQUÍ CORREGIMOS EL FALLO: Apuntamos a tu carpeta real
-app.use(express.static(path.join(__dirname, 'client')));
-
+// LLAVE MAESTRA ACTUALIZADA
 const mongoURI = "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
 
 mongoose.connect(mongoURI)
@@ -27,7 +29,7 @@ const noticiaSchema = new mongoose.Schema({
 });
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-// RUTAS QUE COINCIDEN CON TUS ARCHIVOS
+// --- RUTAS CORREGIDAS PARA ENCONTRAR TUS HTML ---
 app.get('/redaccion', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'redaccion.html')); 
 });
@@ -36,18 +38,26 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
+// PUBLICAR NOTICIA
 app.post('/publicar', async (req, res) => {
   const { pin, titulo, contenido, ubicacion, redactor, imagen } = req.body;
+  
   if (pin !== "311") return res.status(403).send("PIN incorrecto");
+
   try {
-    const nuevaNoticia = new Noticia({ titulo, contenido, ubicacion, redactor, imagen });
+    const nuevaNoticia = new Noticia({ 
+      titulo, contenido, ubicacion, redactor, imagen 
+    });
     await nuevaNoticia.save();
+    console.log("🔥 Noticia publicada por: " + redactor);
     res.status(200).send("Publicado con éxito 🏮");
   } catch (error) {
-    res.status(500).send("Error");
+    console.error(error);
+    res.status(500).send("Error al guardar");
   }
 });
 
+// OBTENER NOTICIAS
 app.get('/noticias', async (req, res) => {
   try {
     const noticias = await Noticia.find().sort({ fecha: -1 }).limit(20);
