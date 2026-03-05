@@ -1,7 +1,7 @@
 /**
  * 🏮 EL FAROL AL DÍA - SERVIDOR FINAL COMPLETO
  * Búnker PRO v2.0 - VERSIÓN ESTABLE Y FUNCIONAL
- * LISTA PARA COPIAR Y PEGAR EN GITHUB
+ * Con campo redactorFoto para la imagen del periodista
  */
 
 const express = require('express');
@@ -70,7 +70,7 @@ conectarMongoDB();
 
 // ==================== ESQUEMAS ====================
 
-// Schema Noticias
+// Schema Noticias (AHORA CON redactorFoto)
 const noticiaSchema = new mongoose.Schema({
     titulo: { 
         type: String, 
@@ -97,6 +97,11 @@ const noticiaSchema = new mongoose.Schema({
         type: String, 
         default: 'mxl',
         trim: true
+    },
+    // NUEVO: Foto del periodista
+    redactorFoto: { 
+        type: String, 
+        default: null 
     },
     imagen: { 
         type: String, 
@@ -356,10 +361,10 @@ app.get('/api/estadisticas', async (req, res) => {
 
 // ==================== RUTAS POST ====================
 
-// Publicar noticia
+// Publicar noticia (AHORA CON redactorFoto)
 app.post('/publicar', async (req, res) => {
     try {
-        const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
+        const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen } = req.body;
 
         if (pin !== "311") {
             return res.status(403).json({ success: false, error: 'PIN incorrecto' });
@@ -380,6 +385,7 @@ app.post('/publicar', async (req, res) => {
             contenido: contenido.trim(),
             ubicacion: ubicacion ? ubicacion.trim() : 'Santo Domingo',
             redactor: redactor ? redactor.trim() : 'mxl',
+            redactorFoto: redactorFoto || null,  // NUEVO
             imagen: imagen || null
         });
 
@@ -565,11 +571,11 @@ app.post('/api/verificar-token', async (req, res) => {
 
 // ==================== RUTAS PUT ====================
 
-// Editar noticia
+// Editar noticia (AHORA CON redactorFoto)
 app.put('/noticia/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { pin, titulo, seccion, contenido, ubicacion, redactor, imagen } = req.body;
+        const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen } = req.body;
 
         if (pin !== "311") {
             return res.status(403).json({ success: false, error: 'PIN incorrecto' });
@@ -596,6 +602,7 @@ app.put('/noticia/:id', async (req, res) => {
                 contenido: contenido.trim(),
                 ubicacion: ubicacion ? ubicacion.trim() : 'Santo Domingo',
                 redactor: redactor ? redactor.trim() : 'mxl',
+                redactorFoto: redactorFoto || null,  // NUEVO
                 imagen: imagen || null,
                 fechaActualizacion: new Date()
             },
@@ -686,6 +693,7 @@ const server = app.listen(PORT, () => {
 ║ 🔐 Autenticación: ACTIVADA (3 opciones)           ║
 ║ 📊 Analítica: ACTIVADA                            ║
 ║ 📱 Meta Tags Dinámicos: ACTIVADOS                 ║
+║ 📸 Foto del periodista: ACTIVADA                  ║
 ║ 🔒 Verificación Token: ACTIVADA                   ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                       ║
 ╚════════════════════════════════════════════════════╝
