@@ -3,15 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    
-    <!-- META TAGS -->
-    <title id="page-title">El Farol al Día 🏮</title>
-    <meta property="og:title" id="og-title" content="El Farol al Día">
-    <meta property="og:description" id="og-description" content="Diario Digital de Noticias en Vivo">
-    <meta property="og:image" id="og-image" content="">
-    <meta property="og:url" id="og-url" content="">
-    <meta name="twitter:card" content="summary_large_image">
-    
+    <title>El Farol al Día 🏮</title>
     <style>
         * {
             margin: 0;
@@ -31,7 +23,6 @@
             margin: 0 auto;
         }
         
-        /* HEADER */
         header {
             text-align: center;
             margin-bottom: 25px;
@@ -44,20 +35,12 @@
             font-size: 2.2em;
         }
         
-        .tagline {
-            color: #aaa;
-            font-size: 0.95em;
-            margin-top: 5px;
-        }
-        
-        /* SECCIONES */
         .secciones {
             display: flex;
             gap: 10px;
             overflow-x: auto;
             padding: 10px 0;
             margin-bottom: 20px;
-            -webkit-overflow-scrolling: touch;
         }
         
         .seccion-btn {
@@ -77,7 +60,6 @@
             color: black;
         }
         
-        /* TARJETA DE NOTICIA */
         .noticia-card {
             background: #1a1a1a;
             border-radius: 25px;
@@ -87,50 +69,6 @@
             position: relative;
         }
         
-        .noticia-fecha {
-            color: #888;
-            font-size: 0.85em;
-            margin-bottom: 8px;
-        }
-        
-        .noticia-titulo {
-            font-size: 1.3em;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #FF8C00;
-            cursor: pointer;
-            padding-right: 50px; /* Espacio para el icono */
-        }
-        
-        .noticia-titulo:active {
-            opacity: 0.8;
-        }
-        
-        .noticia-contenido {
-            color: #ccc;
-            margin-bottom: 12px;
-            line-height: 1.5;
-            cursor: pointer;
-        }
-        
-        .noticia-meta {
-            display: flex;
-            gap: 15px;
-            color: #888;
-            font-size: 0.9em;
-            margin-bottom: 12px;
-        }
-        
-        .noticia-imagen {
-            width: 100%;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 15px;
-            margin-bottom: 12px;
-            cursor: pointer;
-        }
-        
-        /* ICONO DE COMPARTIR - CADA NOTICIA TIENE EL SUYO */
         .share-icon {
             position: absolute;
             top: 18px;
@@ -144,56 +82,39 @@
             justify-content: center;
             font-size: 1.3em;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(255,140,0,0.5);
             z-index: 10;
-            border: 2px solid #fff;
+            border: 2px solid white;
         }
         
-        .share-icon:active {
-            transform: scale(0.9);
-            background: #ff9d1f;
-        }
-        
-        /* MENÚ DE COMPARTIR (se abre al tocar el icono) */
-        .share-menu {
-            display: none;
-            position: absolute;
-            top: 70px;
-            right: 18px;
-            background: #222;
-            border-radius: 20px;
-            padding: 12px;
-            z-index: 20;
-            border: 2px solid #FF8C00;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            min-width: 200px;
-        }
-        
-        .share-menu.active {
-            display: block;
-        }
-        
-        .share-menu-item {
-            padding: 15px 20px;
-            border-radius: 15px;
-            margin: 5px 0;
+        .noticia-titulo {
+            font-size: 1.3em;
             font-weight: bold;
+            color: #FF8C00;
+            margin-bottom: 8px;
+            padding-right: 50px;
             cursor: pointer;
+        }
+        
+        .noticia-contenido {
+            color: #ccc;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        
+        .noticia-meta {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: background 0.2s;
+            gap: 15px;
+            color: #888;
+            font-size: 0.9em;
         }
         
-        .share-menu-item:active {
-            background: #333;
+        .noticia-imagen {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 12px;
         }
-        
-        .share-wa { color: #25D366; }
-        .share-fb { color: #1877F2; }
-        .share-tw { color: #1DA1F2; }
-        .share-tg { color: #0088cc; }
-        .share-link { color: #aaa; }
         
         .admin-link {
             position: fixed;
@@ -207,47 +128,20 @@
             align-items: center;
             justify-content: center;
             color: black;
-            font-weight: bold;
             text-decoration: none;
-            box-shadow: 0 5px 20px rgba(255,140,0,0.5);
             opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
             z-index: 100;
         }
         
         .admin-link.visible {
             opacity: 1;
-            pointer-events: auto;
-        }
-        
-        .loader {
-            text-align: center;
-            padding: 30px;
-            color: #FF8C00;
-        }
-        
-        /* Overlay para cerrar menú al tocar fuera */
-        .menu-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 15;
-        }
-        
-        .menu-overlay.active {
-            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1 id="site-title">🏮 El Farol al Día</h1>
-            <p id="site-tagline" class="tagline">Diario Digital de Noticias en Vivo</p>
+            <h1>🏮 El Farol al Día</h1>
         </header>
         
         <div class="secciones" id="secciones">
@@ -260,236 +154,86 @@
         </div>
         
         <div id="noticias-container"></div>
-        <div id="loader" class="loader" style="display: none;">⏳ Cargando...</div>
-        
-        <!-- Overlay para cerrar menús -->
-        <div class="menu-overlay" id="menuOverlay" onclick="cerrarTodosMenus()"></div>
         
         <a href="/redaccion" class="admin-link" id="adminBtn">🏮</a>
     </div>
 
     <script>
-        let todasNoticias = [];
-        let configuracion = {};
-        let menuAbiertoId = null;
-        
-        // ==================== CARGAR CONFIGURACIÓN ====================
-        async function cargarConfiguracion() {
-            try {
-                const res = await fetch('/api/configuracion');
-                const data = await res.json();
-                if (data.success) {
-                    configuracion = data.config;
-                    if (configuracion.nombreSitio) {
-                        document.getElementById('site-title').innerHTML = `🏮 ${configuracion.nombreSitio}`;
-                    }
-                    if (configuracion.tagline) {
-                        document.getElementById('site-tagline').textContent = configuracion.tagline;
-                    }
-                }
-            } catch (error) {
-                console.error('Error cargando configuración');
-            }
-        }
-        
-        // ==================== ADMIN CON DOBLE TAP ====================
-        let lastTap = 0;
-        document.addEventListener('touchend', function(e) {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTap;
-            if (tapLength < 500 && tapLength > 0) {
-                const pin = prompt('🔐 PIN:');
-                if (pin === '311') {
-                    document.getElementById('adminBtn').classList.add('visible');
-                    alert('✅ Acceso concedido');
-                } else if (pin !== null) {
-                    alert('❌ PIN incorrecto');
-                }
-            }
-            lastTap = currentTime;
-        });
-        
-        // ==================== CERRAR TODOS LOS MENÚS ====================
-        function cerrarTodosMenus() {
-            document.querySelectorAll('.share-menu').forEach(menu => {
-                menu.classList.remove('active');
-            });
-            document.getElementById('menuOverlay').classList.remove('active');
-            menuAbiertoId = null;
-        }
-        
-        // ==================== ABRIR MENÚ DE COMPARTIR ====================
-        function abrirMenuCompartir(id, event) {
-            event.stopPropagation(); // Evitar que se propague
-            
-            // Cerrar cualquier menú abierto
-            cerrarTodosMenus();
-            
-            // Abrir este menú
-            const menu = document.getElementById(`share-menu-${id}`);
-            if (menu) {
-                menu.classList.add('active');
-                document.getElementById('menuOverlay').classList.add('active');
-                menuAbiertoId = id;
-            }
-        }
-        
-        // ==================== FUNCIONES PARA COMPARTIR ====================
-        function compartirWhatsApp(id, event) {
-            event.stopPropagation();
-            const url = `${window.location.origin}/noticia/${id}`;
-            const texto = encodeURIComponent(`Mira esta noticia: ${url}`);
-            window.open(`https://wa.me/?text=${texto}`, '_blank');
-            cerrarTodosMenus();
-        }
-        
-        function compartirFacebook(id, event) {
-            event.stopPropagation();
-            const url = `${window.location.origin}/noticia/${id}`;
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        
-        function compartirTwitter(id, event) {
-            event.stopPropagation();
-            const url = `${window.location.origin}/noticia/${id}`;
-            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        
-        function compartirTelegram(id, event) {
-            event.stopPropagation();
-            const url = `${window.location.origin}/noticia/${id}`;
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        
-        function copiarLink(id, event) {
-            event.stopPropagation();
-            const url = `${window.location.origin}/noticia/${id}`;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('✅ Link copiado');
-            }).catch(() => {
-                prompt('📋 Copia este link:', url);
-            });
-            cerrarTodosMenus();
-        }
-        
-        // ==================== CARGAR NOTICIAS ====================
         async function cargarTodas() {
-            document.getElementById('loader').style.display = 'block';
-            try {
-                const res = await fetch('/noticias?limit=30');
-                const data = await res.json();
-                if (data.success) {
-                    todasNoticias = data.noticias;
-                    mostrarNoticias(todasNoticias);
-                }
-            } catch (error) {
-                console.error('Error cargando noticias');
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-            }
+            const res = await fetch('/noticias?limit=30');
+            const data = await res.json();
+            mostrarNoticias(data.noticias);
         }
         
         async function cargarSeccion(seccion) {
-            document.getElementById('loader').style.display = 'block';
-            document.querySelectorAll('.seccion-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.seccion-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
-            
-            try {
-                const res = await fetch(`/seccion/${seccion}`);
-                const data = await res.json();
-                if (data.success) {
-                    mostrarNoticias(data.noticias);
-                }
-            } catch (error) {
-                console.error('Error cargando sección');
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-            }
+            const res = await fetch(`/seccion/${seccion}`);
+            const data = await res.json();
+            mostrarNoticias(data.noticias);
         }
         
         function mostrarNoticias(noticias) {
             const container = document.getElementById('noticias-container');
             container.innerHTML = '';
             
-            if (noticias.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 50px; color: #888;">📭 No hay noticias</div>';
-                return;
-            }
-            
-            noticias.forEach(noticia => {
-                const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                });
-                
+            noticias.forEach(n => {
+                const fecha = new Date(n.fecha).toLocaleDateString();
                 const card = document.createElement('div');
                 card.className = 'noticia-card';
                 
-                let multimediaHTML = '';
-                if (noticia.imagen) {
-                    if (noticia.imagen.includes('video')) {
-                        multimediaHTML = `<video class="noticia-imagen" src="${noticia.imagen}" controls onclick="abrirNoticia('${noticia._id}')"></video>`;
+                let multimedia = '';
+                if (n.imagen) {
+                    if (n.imagen.includes('video')) {
+                        multimedia = `<video class="noticia-imagen" src="${n.imagen}" controls></video>`;
                     } else {
-                        multimediaHTML = `<img class="noticia-imagen" src="${noticia.imagen}" alt="${noticia.titulo}" onclick="abrirNoticia('${noticia._id}')">`;
+                        multimedia = `<img class="noticia-imagen" src="${n.imagen}">`;
                     }
                 }
                 
-                const vistasHTML = configuracion.mostrarVistas !== false ? 
-                    `<span>👁️ ${noticia.vistas || 0}</span>` : '';
-                
                 card.innerHTML = `
-                    ${multimediaHTML}
-                    
-                    <!-- ICONO DE COMPARTIR (CADA NOTICIA TIENE EL SUYO) -->
-                    <div class="share-icon" onclick="abrirMenuCompartir('${noticia._id}', event)">
-                        📤
-                    </div>
-                    
-                    <!-- MENÚ DE COMPARTIR -->
-                    <div class="share-menu" id="share-menu-${noticia._id}">
-                        <div class="share-menu-item share-wa" onclick="compartirWhatsApp('${noticia._id}', event)">
-                            📱 WhatsApp
-                        </div>
-                        <div class="share-menu-item share-fb" onclick="compartirFacebook('${noticia._id}', event)">
-                            📘 Facebook
-                        </div>
-                        <div class="share-menu-item share-tw" onclick="compartirTwitter('${noticia._id}', event)">
-                            𝕏 Twitter
-                        </div>
-                        <div class="share-menu-item share-tg" onclick="compartirTelegram('${noticia._id}', event)">
-                            ✈️ Telegram
-                        </div>
-                        <div class="share-menu-item share-link" onclick="copiarLink('${noticia._id}', event)">
-                            🔗 Copiar enlace
-                        </div>
-                    </div>
-                    
-                    <div class="noticia-fecha" onclick="abrirNoticia('${noticia._id}')">${fecha} | ${noticia.seccion}</div>
-                    <div class="noticia-titulo" onclick="abrirNoticia('${noticia._id}')">${noticia.titulo}</div>
-                    <div class="noticia-contenido" onclick="abrirNoticia('${noticia._id}')">${noticia.contenido.substring(0, 120)}...</div>
+                    <div class="share-icon" onclick="compartir('${n._id}', event)">📤</div>
+                    ${multimedia}
+                    <div class="noticia-titulo" onclick="abrir('${n._id}')">${n.titulo}</div>
+                    <div class="noticia-contenido" onclick="abrir('${n._id}')">${n.contenido.substring(0, 100)}...</div>
                     <div class="noticia-meta">
-                        <span>📍 ${noticia.ubicacion || 'S/D'}</span>
-                        <span>👤 ${noticia.redactor || 'mxl'}</span>
-                        ${vistasHTML}
+                        <span>📰 ${n.seccion}</span>
+                        <span>👁️ ${n.vistas || 0}</span>
+                        <span>${fecha}</span>
                     </div>
                 `;
-                
                 container.appendChild(card);
             });
         }
         
-        function abrirNoticia(id) {
-            window.location.href = `/noticia/${id}`;
+        function compartir(id, event) {
+            event.stopPropagation();
+            const url = window.location.origin + '/noticia/' + id;
+            if (navigator.share) {
+                navigator.share({ url: url });
+            } else {
+                prompt('📋 Copia este link:', url);
+            }
         }
         
-        // ==================== INICIALIZAR ====================
-        window.addEventListener('load', async () => {
-            await cargarConfiguracion();
-            cargarTodas();
+        function abrir(id) {
+            window.location.href = '/noticia/' + id;
+        }
+        
+        // Admin con doble tap
+        let lastTap = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = new Date().getTime();
+            if (now - lastTap < 500) {
+                const pin = prompt('PIN:');
+                if (pin === '311') {
+                    document.getElementById('adminBtn').classList.add('visible');
+                }
+            }
+            lastTap = now;
         });
+        
+        cargarTodas();
     </script>
 </body>
 </html>
