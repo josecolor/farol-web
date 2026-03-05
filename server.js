@@ -1,43 +1,37 @@
-/**
- * 🏮 EL FAROL AL DÍA - SERVIDOR COMPLETO CON META TAGS EN SERVIDOR
- */
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const app = express();
+const app = express();  // ← IMPORTANTE: esto faltaba
 
-// Configuración
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
 
-// ==================== CONEXIÓN MONGODB ====================
-const mongoURI = process.env.MONGO_URI || 
-  "mongodb://mongo:WUFwLOYlhqGOFXBiYxnUzqPGqmAgQhUz@mongodb.railway.internal:27017";
+// ================= CONEXIÓN MONGODB =================
+const mongodb = process.env.MONGO_URI || 'mongodb://localhost:27017/mongodb';
 
-mongoose.connect(mongoURI, {
+mongoose.connect(mongodb, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-  .then(() => {
-    console.log('✅ BÚNKER CONECTADO');
-    console.log('📱 Meta tags en servidor: ACTIVADO');
-  })
-  .catch(err => {
-    console.error('❌ Error MongoDB:', err.message);
-    process.exit(1);
-  });
+.then(() => {
+  console.log('🟢 BÚNKER CONECTADO!');
+  console.log('Meta tags en servidor: ACTIVADO');
+})
+.catch(err => {
+  console.error('❌ Error MongoDB:', err.message);
+  process.exit(1);
+});
 
-// ==================== ESQUEMAS ====================
+// ================= ESQUEMAS =================
 const noticiaSchema = new mongoose.Schema({
   titulo: { type: String, required: true, trim: true },
-  seccion: { 
-    type: String, 
-    required: true, 
+  seccion: {
+    type: String,
+    required: true,
     enum: ['Nacionales', 'Deportes', 'Internacionales', 'Espectáculos', 'Economía']
   },
   contenido: { type: String, required: true, trim: true },
@@ -50,7 +44,7 @@ const noticiaSchema = new mongoose.Schema({
 
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-// ==================== RUTA PARA NOTICIAS CON META TAGS (LO MÁS IMPORTANTE) ====================
+// ================= RUTA PARA NOTICIAS =================
 app.get('/noticia/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -65,15 +59,12 @@ app.get('/noticia/:id', async (req, res) => {
       return res.status(404).send('Noticia no encontrada');
     }
 
-    // Incrementar vistas
     noticia.vistas += 1;
     await noticia.save();
 
-    // Leer el template
     const templatePath = path.join(__dirname, 'client', 'noticia-template.html');
     let html = fs.readFileSync(templatePath, 'utf8');
     
-    // Preparar datos
     const titulo = noticia.titulo.replace(/"/g, '&quot;');
     const descripcion = noticia.contenido.substring(0, 160).replace(/"/g, '&quot;').replace(/\n/g, ' ');
     const imagen = noticia.imagen || 'https://elfarolaldia.com/default-share.jpg';
@@ -85,10 +76,8 @@ app.get('/noticia/:id', async (req, res) => {
     });
     const contenidoHTML = noticia.contenido.replace(/\n/g, '<br>');
     
-    // Determinar si es video
     const esVideo = noticia.imagen && noticia.imagen.includes('video');
     
-    // Reemplazar todos los placeholders
     html = html
       .replace(/{{TITULO}}/g, titulo)
       .replace(/{{DESCRIPCION}}/g, descripcion)
@@ -102,7 +91,6 @@ app.get('/noticia/:id', async (req, res) => {
       .replace(/{{VISTAS}}/g, noticia.vistas || 0)
       .replace(/{{UBICACION}}/g, noticia.ubicacion || 'Santo Domingo');
     
-    // Manejo de multimedia
     if (noticia.imagen) {
       if (esVideo) {
         html = html.replace('{{MULTIMEDIA}}', `<video class="noticia-imagen" src="${noticia.imagen}" controls></video>`);
@@ -121,7 +109,7 @@ app.get('/noticia/:id', async (req, res) => {
   }
 });
 
-// ==================== RUTAS API ====================
+// ================= RUTAS API =================
 app.get('/noticias', async (req, res) => {
   try {
     const noticias = await Noticia.find().sort({ fecha: -1 }).limit(50).lean();
@@ -164,10 +152,10 @@ app.post('/publicar', async (req, res) => {
   }
 });
 
-// ==================== ARCHIVOS ESTÁTICOS (DESPUÉS DE LAS RUTAS DINÁMICAS) ====================
+// ================= ARCHIVOS ESTÁTICOS =================
 app.use(express.static(path.join(__dirname, 'client')));
 
-// ==================== INICIAR SERVIDOR ====================
+// ================= INICIAR SERVIDOR =================
 const PORT = process.env.PORT || 8080;
 const server = app.listen(PORT, () => {
   console.log(`✅ Servidor en puerto ${PORT}`);
