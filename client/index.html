@@ -4,16 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="El Farol al Día - Diario Digital de noticias en vivo de República Dominicana">
-    <meta name="keywords" content="noticias, república dominicana, diario, farol">
-    <meta name="author" content="El Farol al Día">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#FF8C00">
     
-    <title>El Farol al Día - Diario Digital de Noticias</title>
+    <title>El Farol al Día - Noticias en Vivo</title>
 
     <style>
         :root {
             --color-primary: #1a1a1a;
-            --color-secondary: #333333;
             --color-accent: #FF8C00;
             --color-bg-light: #fdfdfd;
             --color-bg-dark: #0a0a0a;
@@ -28,10 +25,6 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
         }
 
         body {
@@ -55,12 +48,10 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            transition: all 0.3s ease;
         }
 
         body.dark-mode header {
             background: var(--color-primary);
-            border-bottom-color: var(--color-secondary);
         }
 
         .header-container {
@@ -78,10 +69,11 @@
             font-weight: bold;
             color: var(--color-accent);
             text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             cursor: pointer;
+        }
+
+        .logo:hover {
+            text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
         }
 
         .header-actions {
@@ -90,7 +82,7 @@
             align-items: center;
         }
 
-        .btn-dark-mode, .btn-login, .btn-register {
+        .btn-header {
             background: var(--color-accent);
             color: white;
             border: none;
@@ -113,17 +105,21 @@
             color: var(--color-text-dark);
         }
 
-        .btn-dark-mode:hover, .btn-login:hover, .btn-register:hover {
+        .btn-header:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
         }
 
-        /* ==================== NAVEGACIÓN ==================== */
+        .user-info {
+            font-size: 0.85em;
+            color: var(--color-accent);
+        }
+
+        /* ==================== NAV MENU ==================== */
         .nav-menu {
             background: var(--color-accent);
-            padding: 12px 0;
+            padding: 10px 0;
             overflow-x: auto;
-            margin-top: 10px;
         }
 
         .nav-container {
@@ -141,7 +137,6 @@
             padding: 8px 15px;
             font-weight: bold;
             font-size: 0.9em;
-            white-space: nowrap;
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 4px;
@@ -158,13 +153,102 @@
             padding: 20px;
         }
 
-        /* ==================== VISTA: PORTADA ==================== */
+        /* ==================== VISTAS ==================== */
         .view {
             display: none;
         }
 
         .view.active {
             display: block;
+        }
+
+        /* ==================== MODAL ==================== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        body.dark-mode .modal-content {
+            background: var(--color-primary);
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 2em;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .modal-close:hover {
+            color: var(--color-accent);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--color-text-light);
+        }
+
+        body.dark-mode .form-group label {
+            color: var(--color-text-dark);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1em;
+        }
+
+        body.dark-mode .form-group input {
+            background: var(--color-secondary);
+            border-color: #444;
+            color: white;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background: #ff6b00;
         }
 
         /* ==================== GRID PRINCIPAL ==================== */
@@ -199,15 +283,6 @@
             font-size: 2em;
             line-height: 1.2;
             margin: 15px 0;
-            color: var(--color-primary);
-        }
-
-        body.dark-mode .main-article h2 {
-            color: var(--color-text-dark);
-        }
-
-        .main-article h2:hover {
-            color: var(--color-accent);
         }
 
         .main-article-image {
@@ -223,11 +298,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .main-article:hover .main-article-image img {
-            transform: scale(1.05);
         }
 
         .article-meta {
@@ -247,11 +317,6 @@
             font-size: 1em;
             line-height: 1.8;
             margin: 15px 0;
-            color: var(--color-text-light);
-        }
-
-        body.dark-mode .article-excerpt {
-            color: var(--color-text-dark);
         }
 
         .btn-read-more {
@@ -282,11 +347,10 @@
             border: 1px solid var(--color-border);
             border-radius: 8px;
             overflow: hidden;
-            transition: all 0.3s ease;
         }
 
         body.dark-mode .sidebar-section {
-            border-color: var(--color-secondary);
+            border-color: #444;
             background: var(--color-primary);
         }
 
@@ -312,7 +376,7 @@
         }
 
         body.dark-mode .brief-article {
-            border-bottom-color: var(--color-secondary);
+            border-bottom-color: #444;
         }
 
         .brief-article:last-child {
@@ -328,7 +392,6 @@
             font-family: var(--font-serif);
             font-size: 0.95em;
             margin-bottom: 4px;
-            line-height: 1.3;
         }
 
         .brief-date {
@@ -353,7 +416,7 @@
         }
 
         body.dark-mode .article-card {
-            border-color: var(--color-secondary);
+            border-color: #444;
             background: var(--color-primary);
         }
 
@@ -373,11 +436,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .article-card:hover .article-card-image img {
-            transform: scale(1.1);
         }
 
         .article-card-content {
@@ -389,18 +447,12 @@
             font-size: 1em;
             margin-bottom: 8px;
             line-height: 1.3;
-            color: var(--color-primary);
-        }
-
-        body.dark-mode .article-card h3 {
-            color: var(--color-text-dark);
         }
 
         .article-card p {
             font-size: 0.85em;
             color: #666;
             margin-bottom: 8px;
-            line-height: 1.5;
         }
 
         body.dark-mode .article-card p {
@@ -412,7 +464,7 @@
             color: #999;
         }
 
-        /* ==================== VISTA NOTICIA COMPLETA ==================== */
+        /* ==================== NOTICIA COMPLETA ==================== */
         .article-full {
             background: white;
             padding: 30px;
@@ -444,7 +496,6 @@
             font-family: var(--font-serif);
             font-size: 2.2em;
             margin: 20px 0;
-            line-height: 1.3;
         }
 
         .article-full-meta {
@@ -455,17 +506,58 @@
             margin-bottom: 20px;
             padding-bottom: 20px;
             border-bottom: 2px solid var(--color-border);
+            flex-wrap: wrap;
         }
 
         body.dark-mode .article-full-meta {
             color: #aaa;
-            border-bottom-color: var(--color-secondary);
+            border-bottom-color: #444;
         }
 
         .article-full-content {
             font-size: 1.05em;
             line-height: 1.8;
             margin: 20px 0;
+        }
+
+        /* ==================== SHARE BUTTONS ==================== */
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-share {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-facebook {
+            background: #1877F2;
+        }
+
+        .btn-twitter {
+            background: #000000;
+        }
+
+        .btn-whatsapp {
+            background: #25D366;
+        }
+
+        .btn-telegram {
+            background: #0088cc;
+        }
+
+        .btn-share:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .btn-back {
@@ -477,11 +569,6 @@
             cursor: pointer;
             font-weight: bold;
             margin-top: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-back:hover {
-            background: #ff6b00;
         }
 
         /* ==================== SECTION TITLE ==================== */
@@ -492,22 +579,6 @@
             margin: 40px 0 20px;
             padding-bottom: 10px;
             border-bottom: 3px solid var(--color-accent);
-            color: var(--color-primary);
-        }
-
-        body.dark-mode .section-title {
-            color: var(--color-text-dark);
-        }
-
-        /* ==================== LOADING ==================== */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        body.dark-mode .loading {
-            color: #aaa;
         }
 
         /* ==================== FOOTER ==================== */
@@ -531,7 +602,6 @@
             color: var(--color-accent);
             margin-bottom: 10px;
             text-transform: uppercase;
-            font-size: 0.85em;
         }
 
         .footer-section ul {
@@ -545,8 +615,8 @@
         .footer-section a {
             color: #ccc;
             text-decoration: none;
-            transition: all 0.3s ease;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
 
         .footer-section a:hover {
@@ -557,7 +627,7 @@
             text-align: center;
             margin-top: 20px;
             padding-top: 15px;
-            border-top: 1px solid var(--color-secondary);
+            border-top: 1px solid #444;
             font-size: 0.85em;
             color: #aaa;
         }
@@ -567,25 +637,7 @@
                 font-size: 1.4em;
             }
 
-            .btn-dark-mode, .btn-login, .btn-register {
-                padding: 6px 12px;
-                font-size: 0.75em;
-            }
-
-            .nav-container {
-                gap: 5px;
-            }
-
-            .nav-link {
-                padding: 6px 10px;
-                font-size: 0.8em;
-            }
-
             .main-article h2 {
-                font-size: 1.5em;
-            }
-
-            .section-title {
                 font-size: 1.5em;
             }
 
@@ -597,8 +649,12 @@
                 padding: 15px;
             }
 
-            .article-full h1 {
-                font-size: 1.6em;
+            .share-buttons {
+                flex-direction: column;
+            }
+
+            .btn-share {
+                width: 100%;
             }
         }
     </style>
@@ -607,21 +663,18 @@
     <!-- ==================== HEADER ==================== -->
     <header>
         <div class="header-container">
-            <a href="/" class="logo" onclick="irAPortada(); return false;">
-                🏮 EL FAROL
-            </a>
+            <a class="logo" onclick="irAPortada(); return false;">🏮 EL FAROL</a>
             <div class="header-actions">
-                <button class="btn-dark-mode" id="darkModeBtn">🌙 Oscuro</button>
-                <button class="btn-login">🔐 Ingresar</button>
-                <button class="btn-register">📝 Registrarse</button>
+                <button class="btn-header btn-dark-mode" id="darkModeBtn">🌙 Oscuro</button>
+                <button class="btn-header" id="btnAuth" onclick="mostrarAuth()">🔐 Ingresar</button>
             </div>
         </div>
     </header>
 
-    <!-- ==================== NAVEGACIÓN ==================== -->
+    <!-- ==================== NAV MENU ==================== -->
     <nav class="nav-menu">
         <div class="nav-container">
-            <a class="nav-link active" onclick="irASeccion('portada'); return false;">🏮 Portada</a>
+            <a class="nav-link active" onclick="irAPortada(); return false;">🏮 Portada</a>
             <a class="nav-link" onclick="irASeccion('Nacionales'); return false;">🇩🇴 Nacionales</a>
             <a class="nav-link" onclick="irASeccion('Deportes'); return false;">⚽ Deportes</a>
             <a class="nav-link" onclick="irASeccion('Internacionales'); return false;">🌍 Internacionales</a>
@@ -638,7 +691,7 @@
                 <div>
                     <article class="main-article" id="mainArticle" onclick="abrirNoticia(noticiaPrincipal); return false;">
                         <div class="main-article-image">
-                            <img id="mainImage" src="" alt="Noticia principal" loading="lazy">
+                            <img id="mainImage" src="" alt="">
                         </div>
                         <h2 id="mainTitle">Cargando...</h2>
                         <div class="article-meta">
@@ -646,7 +699,7 @@
                             <span>📍 <span id="mainLocation">Ubicación</span></span>
                             <span>📅 <span id="mainDate">Hoy</span></span>
                         </div>
-                        <p class="article-excerpt" id="mainExcerpt">Cargando contenido...</p>
+                        <p class="article-excerpt" id="mainExcerpt">Cargando...</p>
                         <button class="btn-read-more">Leer más →</button>
                     </article>
 
@@ -664,13 +717,12 @@
                         <div class="sidebar-title">ℹ️ Sobre Nosotros</div>
                         <div class="sidebar-content">
                             <p style="font-size: 0.95em; line-height: 1.6;">
-                                El Farol al Día es tu fuente de noticias en vivo de República Dominicana. 
-                                Información veraz, rápida y confiable.
+                                El Farol al Día es tu fuente de noticias en vivo de República Dominicana.
                             </p>
                             <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                                <a href="https://www.facebook.com/share/14VNbV3wFyG/" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">📘 Facebook</a>
-                                <a href="https://www.instagram.com/farol_al_dia?igsh=ZGFpZTdqcjg3MnRl" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">📷 Instagram</a>
-                                <a href="https://whatsapp.com/channel/0029Vb7TMgWGk1Fw3lINT03G" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: bold;">💬 WhatsApp</a>
+                                <a href="https://www.facebook.com/share/14VNbV3wFyG/" target="_blank" style="color: var(--color-accent); text-decoration: none;">📘 Facebook</a>
+                                <a href="https://www.instagram.com/farol_al_dia" target="_blank" style="color: var(--color-accent); text-decoration: none;">📷 Instagram</a>
+                                <a href="https://whatsapp.com/channel/0029Vb7TMgWGk1Fw3lINT03G" target="_blank" style="color: var(--color-accent); text-decoration: none;">💬 WhatsApp</a>
                             </div>
                         </div>
                     </section>
@@ -693,16 +745,48 @@
                 </div>
                 <h1 id="noticeTitle"></h1>
                 <div class="article-full-meta">
-                    <span>👤 <span id="noticeAuthor">Redactor</span></span>
-                    <span>📍 <span id="noticeLocation">Ubicación</span></span>
-                    <span>📅 <span id="noticeDate">Hoy</span></span>
-                    <span>📰 <span id="noticeSection">Sección</span></span>
+                    <span>👤 <span id="noticeAuthor"></span></span>
+                    <span>📍 <span id="noticeLocation"></span></span>
+                    <span>📅 <span id="noticeDate"></span></span>
+                    <span>📰 <span id="noticeSection"></span></span>
                 </div>
                 <div class="article-full-content" id="noticeContent"></div>
+
+                <!-- SHARE BUTTONS -->
+                <div style="border-top: 2px solid var(--color-border); padding-top: 20px; margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px; font-size: 1em;">Compartir en redes:</h3>
+                    <div class="share-buttons">
+                        <button class="btn-share btn-facebook" onclick="compartirFacebook(); return false;">📘 Facebook</button>
+                        <button class="btn-share btn-twitter" onclick="compartirTwitter(); return false;">𝕏 Twitter</button>
+                        <button class="btn-share btn-whatsapp" onclick="compartirWhatsApp(); return false;">💬 WhatsApp</button>
+                        <button class="btn-share btn-telegram" onclick="compartirTelegram(); return false;">✈️ Telegram</button>
+                    </div>
+                </div>
+
                 <button class="btn-back" onclick="volverAtras(); return false;">← Volver</button>
             </article>
         </div>
     </main>
+
+    <!-- ==================== AUTH MODAL ==================== -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="cerrarAuth(); return false;">&times;</span>
+            
+            <h2 id="authTitle" style="margin-bottom: 20px;">Ingresar</h2>
+            
+            <form id="authForm" onsubmit="enviarAuth(event); return false;">
+                <div id="authFields"></div>
+                <button type="submit" class="btn-submit">Enviar</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="#" onclick="cambiarModoAuth(); return false;" style="color: var(--color-accent); text-decoration: none;">
+                    <span id="authToggle">¿No tienes cuenta? Registrarse</span>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- ==================== FOOTER ==================== -->
     <footer>
@@ -720,7 +804,7 @@
                 <h4>Síguenos</h4>
                 <ul>
                     <li><a href="https://www.facebook.com/share/14VNbV3wFyG/" target="_blank">📘 Facebook</a></li>
-                    <li><a href="https://www.instagram.com/farol_al_dia?igsh=ZGFpZTdqcjg3MnRl" target="_blank">📷 Instagram</a></li>
+                    <li><a href="https://www.instagram.com/farol_al_dia" target="_blank">📷 Instagram</a></li>
                     <li><a href="https://whatsapp.com/channel/0029Vb7TMgWGk1Fw3lINT03G" target="_blank">💬 WhatsApp</a></li>
                 </ul>
             </div>
@@ -734,7 +818,8 @@
         // ==================== VARIABLES GLOBALES ====================
         let todasLasNoticias = [];
         let noticiaPrincipal = null;
-        let vistaAnterior = 'portada';
+        let usuarioActual = null;
+        let modoAuth = 'login'; // 'login' o 'registro'
 
         // ==================== DARK MODE ====================
         const darkModeBtn = document.getElementById('darkModeBtn');
@@ -746,41 +831,150 @@
         }
 
         darkModeBtn.addEventListener('click', () => {
-            try {
-                document.body.classList.toggle('dark-mode');
-                const isNowDark = document.body.classList.contains('dark-mode');
-                localStorage.setItem('darkMode', isNowDark);
-                darkModeBtn.textContent = isNowDark ? '☀️ Claro' : '🌙 Oscuro';
-            } catch (e) {
-                console.warn('Dark mode preference could not be saved:', e);
-            }
+            document.body.classList.toggle('dark-mode');
+            const isNowDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isNowDark);
+            darkModeBtn.textContent = isNowDark ? '☀️ Claro' : '🌙 Oscuro';
         });
+
+        // ==================== VERIFICAR USUARIO ====================
+        function verificarUsuario() {
+            const token = localStorage.getItem('userToken');
+            if (token) {
+                const usuario = JSON.parse(localStorage.getItem('usuario'));
+                usuarioActual = usuario;
+                document.getElementById('btnAuth').innerHTML = `👤 ${usuario.nombre} <button style="background: none; border: none; color: var(--color-accent); cursor: pointer; font-weight: bold;" onclick="cerrarSesion()">Salir</button>`;
+            }
+        }
+
+        // ==================== MODALES DE AUTENTICACIÓN ====================
+        function mostrarAuth() {
+            document.getElementById('authModal').classList.add('active');
+            modoAuth = 'login';
+            actualizarFormAuth();
+        }
+
+        function cerrarAuth() {
+            document.getElementById('authModal').classList.remove('active');
+        }
+
+        function cambiarModoAuth() {
+            modoAuth = modoAuth === 'login' ? 'registro' : 'login';
+            actualizarFormAuth();
+        }
+
+        function actualizarFormAuth() {
+            const fields = document.getElementById('authFields');
+            const title = document.getElementById('authTitle');
+            const toggle = document.getElementById('authToggle');
+
+            if (modoAuth === 'login') {
+                title.textContent = 'Ingresar';
+                toggle.textContent = '¿No tienes cuenta? Registrarse';
+                fields.innerHTML = `
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                `;
+            } else {
+                title.textContent = 'Registrarse';
+                toggle.textContent = '¿Ya tienes cuenta? Ingresar';
+                fields.innerHTML = `
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="regNombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <input type="email" id="regEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="regPassword" required>
+                    </div>
+                `;
+            }
+        }
+
+        function enviarAuth(event) {
+            event.preventDefault();
+
+            if (modoAuth === 'login') {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+
+                fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        localStorage.setItem('userToken', data.token);
+                        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                        usuarioActual = data.usuario;
+                        cerrarAuth();
+                        verificarUsuario();
+                        alert('✅ Bienvenido, ' + data.usuario.nombre);
+                    } else {
+                        alert('❌ ' + data.error);
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+            } else {
+                const nombre = document.getElementById('regNombre').value;
+                const email = document.getElementById('regEmail').value;
+                const password = document.getElementById('regPassword').value;
+
+                fetch('/auth/registro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, email, password })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        localStorage.setItem('userToken', data.token);
+                        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                        usuarioActual = data.usuario;
+                        cerrarAuth();
+                        verificarUsuario();
+                        alert('✅ Cuenta creada exitosamente');
+                    } else {
+                        alert('❌ ' + data.error);
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('userToken');
+            localStorage.removeItem('usuario');
+            usuarioActual = null;
+            document.getElementById('btnAuth').textContent = '🔐 Ingresar';
+            alert('Sesión cerrada');
+        }
 
         // ==================== CARGAR NOTICIAS ====================
         async function cargarNoticias() {
             try {
                 const res = await fetch('/noticias?limit=50');
-                if (!res.ok) throw new Error('Error al cargar noticias');
-
                 const data = await res.json();
+
                 if (data.success && data.noticias.length > 0) {
                     todasLasNoticias = data.noticias;
                     renderizarPortada();
                 }
             } catch (error) {
                 console.error('Error:', error);
-                document.querySelector('.articles-grid').innerHTML = '<p style="grid-column: 1/-1;">Error al cargar noticias</p>';
             }
-        }
-
-        // ==================== GENERAR SLUG ====================
-        function generarSlug(titulo) {
-            return titulo
-                .toLowerCase()
-                .trim()
-                .replace(/[^\w\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-');
         }
 
         // ==================== RENDERIZAR PORTADA ====================
@@ -789,7 +983,6 @@
 
             noticiaPrincipal = todasLasNoticias[0];
 
-            // Noticia principal
             document.getElementById('mainTitle').textContent = noticiaPrincipal.titulo;
             document.getElementById('mainAuthor').textContent = noticiaPrincipal.redactor || 'Redactor';
             document.getElementById('mainLocation').textContent = noticiaPrincipal.ubicacion || 'Ubicación';
@@ -797,7 +990,7 @@
             document.getElementById('mainImage').src = noticiaPrincipal.imagen || '';
             document.getElementById('mainExcerpt').textContent = noticiaPrincipal.contenido.substring(0, 200) + '...';
 
-            // Grid de noticias
+            // Grid
             const grid = document.getElementById('articlesGrid');
             grid.innerHTML = '';
 
@@ -813,8 +1006,7 @@
                         <h3>${noticia.titulo}</h3>
                         <p>${noticia.contenido.substring(0, 80)}...</p>
                         <div class="article-card-meta">
-                            <span>${noticia.redactor || 'Redactor'}</span> • 
-                            <span>${new Date(noticia.fecha).toLocaleDateString('es-ES')}</span>
+                            ${noticia.redactor} • ${new Date(noticia.fecha).toLocaleDateString('es-ES')}
                         </div>
                     </div>
                 `;
@@ -837,25 +1029,23 @@
             });
         }
 
-        // ==================== IR A SECCIÓN ====================
+        // ==================== SECCIONES ====================
         function irASeccion(seccion) {
-            if (seccion === 'portada') {
-                mostrarVista('vista-portada');
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                document.querySelectorAll('.nav-link')[0].classList.add('active');
+            if (seccion === 'Portada') {
+                irAPortada();
                 return;
             }
 
-            vistaAnterior = 'portada';
             const noticias = todasLasNoticias.filter(n => n.seccion === seccion);
 
-            document.getElementById('seccionTitle').textContent = `${seccion}`;
+            document.getElementById('seccionTitle').textContent = seccion;
             const grid = document.getElementById('seccionGrid');
             grid.innerHTML = '';
 
             if (noticias.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">No hay noticias en esta sección</p>';
                 mostrarVista('vista-seccion');
+                actualizarNavLinks(seccion);
                 return;
             }
 
@@ -871,8 +1061,7 @@
                         <h3>${noticia.titulo}</h3>
                         <p>${noticia.contenido.substring(0, 80)}...</p>
                         <div class="article-card-meta">
-                            <span>${noticia.redactor || 'Redactor'}</span> • 
-                            <span>${new Date(noticia.fecha).toLocaleDateString('es-ES')}</span>
+                            ${noticia.redactor} • ${new Date(noticia.fecha).toLocaleDateString('es-ES')}
                         </div>
                     </div>
                 `;
@@ -883,10 +1072,8 @@
             actualizarNavLinks(seccion);
         }
 
-        // ==================== ABRIR NOTICIA COMPLETA ====================
+        // ==================== NOTICIA COMPLETA ====================
         function abrirNoticia(noticia) {
-            vistaAnterior = 'portada';
-            
             document.getElementById('noticeTitle').textContent = noticia.titulo;
             document.getElementById('noticeAuthor').textContent = noticia.redactor || 'Redactor';
             document.getElementById('noticeLocation').textContent = noticia.ubicacion || 'Ubicación';
@@ -895,36 +1082,60 @@
             document.getElementById('noticeImage').src = noticia.imagen || '';
             document.getElementById('noticeContent').textContent = noticia.contenido;
 
+            // Guardar noticia actual para compartir
+            window.noticiaActual = noticia;
+
             mostrarVista('vista-noticia');
             window.scrollTo(0, 0);
         }
 
-        // ==================== VOLVER ATRÁS ====================
-        function volverAtras() {
-            if (vistaAnterior === 'portada') {
-                irASeccion('portada');
-            }
+        // ==================== COMPARTIR EN REDES ====================
+        function compartirFacebook() {
+            const url = window.location.href;
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
         }
 
-        // ==================== IR A PORTADA ====================
+        function compartirTwitter() {
+            const texto = document.getElementById('noticeTitle').textContent;
+            const url = window.location.href;
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(texto)}&url=${encodeURIComponent(url)}`, '_blank');
+        }
+
+        function compartirWhatsApp() {
+            const titulo = document.getElementById('noticeTitle').textContent;
+            const url = window.location.href;
+            const mensaje = `📰 ${titulo}\n\n🏮 Lee más: ${url}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+        }
+
+        function compartirTelegram() {
+            const titulo = document.getElementById('noticeTitle').textContent;
+            const url = window.location.href;
+            const mensaje = `📰 ${titulo}\n\n🏮 Lee más: ${url}`;
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(titulo)}`, '_blank');
+        }
+
+        // ==================== NAVEGACIÓN ====================
         function irAPortada() {
             mostrarVista('vista-portada');
             actualizarNavLinks(null);
         }
 
-        // ==================== MOSTRAR VISTA ====================
+        function volverAtras() {
+            irAPortada();
+        }
+
         function mostrarVista(vistaId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(vistaId).classList.add('active');
         }
 
-        // ==================== ACTUALIZAR NAV LINKS ====================
         function actualizarNavLinks(seccion) {
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.classList.remove('active');
             });
 
-            if (seccion === null || seccion === 'portada') {
+            if (seccion === null) {
                 document.querySelectorAll('.nav-link')[0].classList.add('active');
             } else {
                 document.querySelectorAll('.nav-link').forEach(link => {
@@ -936,9 +1147,12 @@
         }
 
         // ==================== INICIALIZAR ====================
-        window.addEventListener('load', cargarNoticias);
+        window.addEventListener('load', () => {
+            cargarNoticias();
+            verificarUsuario();
+        });
+
         setInterval(cargarNoticias, 30000);
     </script>
 </body>
 </html>
-
