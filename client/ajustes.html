@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Ajustes del Búnker 🏮</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body { background:#0b0b0b; color:white; font-family:sans-serif; padding:12px; }
+        .container { max-width:600px; margin:0 auto; }
+        h1 { text-align:center; color:#FF8C00; font-size:2em; margin:20px 0; }
+        .tabs { display:flex; gap:8px; margin:20px 0; flex-wrap:wrap; justify-content:center; }
+        .tab-btn { flex:1 1 auto; min-width:120px; padding:16px 8px; font-size:1.1em; background:#1a1a1a; color:white; border:2px solid #333; border-radius:40px; cursor:pointer; font-weight:bold; transition:all 0.2s; }
+        .tab-btn.active { background:#FF8C00; border-color:#FF8C00; color:black; }
+        .tab-content { display:none; margin-top:20px; }
+        .tab-content.active { display:block; }
+        .panel { background:#1a1a1a; padding:25px 20px; border-radius:40px; border:2px solid #FF8C00; margin-bottom:20px; }
+        label { display:block; font-size:1.1em; color:#FF8C00; font-weight:bold; margin:20px 0 8px; }
+        input, textarea, select { width:100%; padding:16px 20px; font-size:1.1em; border-radius:40px; border:2px solid #333; background:#222; color:white; -webkit-appearance:none; }
+        textarea { border-radius:25px; min-height:100px; }
+        .btn-gigante { width:100%; padding:20px; font-size:1.3em; border:none; border-radius:60px; background:linear-gradient(145deg,#4CAF50,#45a049); color:white; margin:20px 0 10px; cursor:pointer; font-weight:bold; }
+        .btn-peligro { background:linear-gradient(145deg,#f44336,#d32f2f); }
+        .alert { padding:16px; border-radius:40px; margin:15px 0; text-align:center; font-weight:bold; display:none; }
+        .alert.success { background:rgba(76,175,80,0.2); border:2px solid #4CAF50; color:#4CAF50; }
+        .alert.error { background:rgba(244,67,54,0.2); border:2px solid #f44336; color:#ff6b6b; }
+        .stats { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:20px 0; }
+        .stat-card { background:#222; padding:20px; border-radius:30px; text-align:center; border-left:5px solid #FF8C00; }
+        .stat-value { font-size:2.2em; color:#FF8C00; font-weight:bold; }
+        .stat-label { color:#aaa; font-size:0.9em; }
+        hr { border:1px solid #333; margin:30px 0; }
+        .info-box { background:rgba(255,140,0,0.1); border-left:4px solid #FF8C00; padding:12px; border-radius:12px; margin:15px 0; color:#ddd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏮 AJUSTES DEL BÚNKER</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarTab('sitio')">📱 Sitio</button>
+            <button class="tab-btn" onclick="cambiarTab('redes')">📱 Redes</button>
+            <button class="tab-btn" onclick="cambiarTab('monetizacion')">💰 Monetización</button>
+            <button class="tab-btn" onclick="cambiarTab('analitica')">📊 Analítica</button>
+            <button class="tab-btn" onclick="cambiarTab('seo')">🔍 SEO</button>
+            <button class="tab-btn" onclick="cambiarTab('peligro')">⚠️ Peligro</button>
+        </div>
+
+        <!-- SITIO -->
+        <div id="tab-sitio" class="tab-content active">
+            <div class="panel">
+                <div id="alertSitio" class="alert"></div>
+                <label>🏮 Nombre del Sitio</label><input type="text" id="nombreSitio" placeholder="El Farol al Día">
+                <label>📄 Tagline</label><input type="text" id="tagline" placeholder="Diario Digital">
+                <label>🎨 Color Principal</label><input type="color" id="colorPrincipal" value="#FF8C00" style="height:60px;">
+                <label>📧 Email Contacto</label><input type="email" id="emailContacto" placeholder="contacto@...">
+                <label>📍 Ubicación</label><input type="text" id="ubicacionSitio" placeholder="República Dominicana">
+                <label>📝 Descripción</label><textarea id="descripcionSitio" placeholder="Descripción..."></textarea>
+                <button class="btn-gigante" onclick="guardarConfig('sitio')">💾 GUARDAR SITIO</button>
+            </div>
+        </div>
+
+        <!-- REDES -->
+        <div id="tab-redes" class="tab-content">
+            <div class="panel">
+                <div id="alertRedes" class="alert"></div>
+                <label>📘 Facebook</label><input type="url" id="facebook" placeholder="https://facebook.com/...">
+                <label>📷 Instagram</label><input type="url" id="instagram" placeholder="https://instagram.com/...">
+                <label>𝕏 Twitter</label><input type="url" id="twitter" placeholder="https://twitter.com/...">
+                <label>💬 WhatsApp</label><input type="text" id="whatsapp" placeholder="https://wa.me/...">
+                <label>✈️ Telegram</label><input type="url" id="telegram" placeholder="https://t.me/...">
+                <label>📱 Canal WhatsApp</label><input type="url" id="whatsappCanal" placeholder="https://whatsapp.com/channel/...">
+                <button class="btn-gigante" onclick="guardarConfig('redes')">📱 GUARDAR REDES</button>
+            </div>
+        </div>
+
+        <!-- MONETIZACIÓN -->
+        <div id="tab-monetizacion" class="tab-content">
+            <div class="panel">
+                <div id="alertMonetizacion" class="alert"></div>
+                <label>🛒 Amazon ID</label><input type="text" id="amazonId" placeholder="tutienda-20">
+                <label>📺 Google AdSense</label><input type="text" id="googleAdsense" placeholder="ca-pub-...">
+                <label>💳 Stripe ID</label><input type="text" id="stripeId" placeholder="pk_live_...">
+                <label>🔗 Donación URL</label><input type="url" id="linkDonacion" placeholder="https://ko-fi.com/...">
+                <button class="btn-gigante" onclick="guardarConfig('monetizacion')">💰 GUARDAR MONETIZACIÓN</button>
+            </div>
+        </div>
+
+        <!-- ANALÍTICA -->
+        <div id="tab-analitica" class="tab-content">
+            <div class="panel">
+                <div id="alertAnalitica" class="alert"></div>
+                <div class="stats">
+                    <div class="stat-card"><div class="stat-value" id="totalNoticias">0</div><div class="stat-label">Noticias</div></div>
+                    <div class="stat-card"><div class="stat-value" id="totalVistas">0</div><div class="stat-label">Vistas</div></div>
+                </div>
+                <label>🔍 Google Analytics</label><input type="text" id="googleAnalytics" placeholder="G-XXXXXX">
+                <label>👁️ Mostrar contador de vistas</label>
+                <select id="mostrarVistas"><option value="true">Sí</option><option value="false">No</option></select>
+                <button class="btn-gigante" onclick="guardarConfig('analitica')">📊 GUARDAR ANALÍTICA</button>
+            </div>
+        </div>
+
+        <!-- SEO -->
+        <div id="tab-seo" class="tab-content">
+            <div class="panel">
+                <div id="alertSeo" class="alert"></div>
+                <label>📌 Meta Keywords</label><input type="text" id="metaKeywords" placeholder="noticias, RD">
+                <label>🌐 Sitemap URL</label><input type="url" id="sitemapUrl" placeholder="https://..." readonly>
+                <label>🔗 Robots.txt</label><textarea id="robotsTxt" placeholder="User-agent: *..."></textarea>
+                <label>✅ Google Search Console</label><input type="text" id="googleVerification" placeholder="código">
+                <label>🔗 Activar Open Graph</label>
+                <select id="activarOpenGraph"><option value="true">Sí</option><option value="false">No</option></select>
+                <button class="btn-gigante" onclick="guardarConfig('seo')">🔍 GUARDAR SEO</button>
+            </div>
+        </div>
+
+        <!-- PELIGRO -->
+        <div id="tab-peligro" class="tab-content">
+            <div class="panel">
+                <div id="alertPeligro" class="alert"></div>
+                <label>🔐 PIN Actual</label><input type="password" id="pinActual" placeholder="311">
+                <label>🔐 Nuevo PIN</label><input type="password" id="nuevoPin" placeholder="Nuevo PIN">
+                <button class="btn-gigante" onclick="cambiarPin()">🔄 CAMBIAR PIN</button>
+                <hr>
+                <label>⚠️ RESETEAR TODO</label>
+                <div class="info-box">Esto eliminará TODAS las noticias. No se puede deshacer.</div>
+                <button class="btn-gigante btn-peligro" onclick="resetearSistema()">🗑️ RESETEAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let configuracion = {};
+        let pinActual = "311";
+
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/configuracion');
+                const data = await res.json();
+                if (data.success) {
+                    configuracion = data.config;
+                    llenarFormularios();
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        function llenarFormularios() {
+            document.getElementById('nombreSitio').value = configuracion.nombreSitio || 'El Farol al Día';
+            document.getElementById('tagline').value = configuracion.tagline || '';
+            document.getElementById('colorPrincipal').value = configuracion.colorPrincipal || '#FF8C00';
+            document.getElementById('emailContacto').value = configuracion.emailContacto || '';
+            document.getElementById('ubicacionSitio').value = configuracion.ubicacionSitio || '';
+            document.getElementById('descripcionSitio').value = configuracion.descripcionSitio || '';
+            document.getElementById('facebook').value = configuracion.facebook || '';
+            document.getElementById('instagram').value = configuracion.instagram || '';
+            document.getElementById('twitter').value = configuracion.twitter || '';
+            document.getElementById('whatsapp').value = configuracion.whatsapp || '';
+            document.getElementById('telegram').value = configuracion.telegram || '';
+            document.getElementById('whatsappCanal').value = configuracion.whatsappCanal || '';
+            document.getElementById('amazonId').value = configuracion.amazonId || '';
+            document.getElementById('googleAdsense').value = configuracion.googleAdsense || '';
+            document.getElementById('stripeId').value = configuracion.stripeId || '';
+            document.getElementById('linkDonacion').value = configuracion.linkDonacion || '';
+            document.getElementById('googleAnalytics').value = configuracion.googleAnalytics || '';
+            document.getElementById('mostrarVistas').value = configuracion.mostrarVistas ? 'true' : 'false';
+            document.getElementById('metaKeywords').value = configuracion.metaKeywords || '';
+            document.getElementById('sitemapUrl').value = window.location.origin + '/sitemap.xml';
+            document.getElementById('robotsTxt').value = configuracion.robotsTxt || 'User-agent: *\nAllow: /';
+            document.getElementById('googleVerification').value = configuracion.googleVerification || '';
+            document.getElementById('activarOpenGraph').value = configuracion.activarOpenGraph ? 'true' : 'false';
+        }
+
+        async function guardarConfig(seccion) {
+            const pin = prompt('🔐 PIN para guardar:');
+            if (!pin) return;
+            const config = {};
+            if (seccion === 'sitio') {
+                config.nombreSitio = document.getElementById('nombreSitio').value;
+                config.tagline = document.getElementById('tagline').value;
+                config.colorPrincipal = document.getElementById('colorPrincipal').value;
+                config.emailContacto = document.getElementById('emailContacto').value;
+                config.ubicacionSitio = document.getElementById('ubicacionSitio').value;
+                config.descripcionSitio = document.getElementById('descripcionSitio').value;
+            } else if (seccion === 'redes') {
+                config.facebook = document.getElementById('facebook').value;
+                config.instagram = document.getElementById('instagram').value;
+                config.twitter = document.getElementById('twitter').value;
+                config.whatsapp = document.getElementById('whatsapp').value;
+                config.telegram = document.getElementById('telegram').value;
+                config.whatsappCanal = document.getElementById('whatsappCanal').value;
+            } else if (seccion === 'monetizacion') {
+                config.amazonId = document.getElementById('amazonId').value;
+                config.googleAdsense = document.getElementById('googleAdsense').value;
+                config.stripeId = document.getElementById('stripeId').value;
+                config.linkDonacion = document.getElementById('linkDonacion').value;
+            } else if (seccion === 'analitica') {
+                config.googleAnalytics = document.getElementById('googleAnalytics').value;
+                config.mostrarVistas = document.getElementById('mostrarVistas').value === 'true';
+            } else if (seccion === 'seo') {
+                config.metaKeywords = document.getElementById('metaKeywords').value;
+                config.robotsTxt = document.getElementById('robotsTxt').value;
+                config.googleVerification = document.getElementById('googleVerification').value;
+                config.activarOpenGraph = document.getElementById('activarOpenGraph').value === 'true';
+            }
+            try {
+                const res = await fetch('/api/configuracion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seccion, config, pin })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    mostrarAlerta(`✅ ${seccion} guardado`, 'success', seccion);
+                    configuracion = { ...configuracion, ...config };
+                } else {
+                    mostrarAlerta(`❌ ${data.error}`, 'error', seccion);
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error de red', 'error', seccion);
+            }
+        }
+
+        async function cargarEstadisticas() {
+            try {
+                const res = await fetch('/api/estadisticas');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('totalNoticias').textContent = data.totalNoticias || 0;
+                    document.getElementById('totalVistas').textContent = data.totalVistas || 0;
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        function cambiarPin() {
+            const pinActualIngresado = document.getElementById('pinActual').value;
+            const nuevoPin = document.getElementById('nuevoPin').value;
+            if (!pinActualIngresado || !nuevoPin) return mostrarAlerta('❌ Completa ambos campos', 'error', 'peligro');
+            if (pinActualIngresado === pinActual) {
+                pinActual = nuevoPin;
+                mostrarAlerta('✅ PIN cambiado', 'success', 'peligro');
+                document.getElementById('pinActual').value = '';
+                document.getElementById('nuevoPin').value = '';
+            } else {
+                mostrarAlerta('❌ PIN actual incorrecto', 'error', 'peligro');
+            }
+        }
+
+        function resetearSistema() {
+            if (!confirm('⚠️ Eliminar TODAS las noticias?')) return;
+            if (!confirm('🚨 CONFIRMACIÓN FINAL?')) return;
+            const pin = prompt('🔐 PIN:');
+            if (pin !== pinActual) return mostrarAlerta('❌ PIN incorrecto', 'error', 'peligro');
+            mostrarAlerta('⏳ Función desactivada por seguridad', 'error', 'peligro');
+        }
+
+        function mostrarAlerta(mensaje, tipo, tab) {
+            const alertBox = document.getElementById('alert' + tab.charAt(0).toUpperCase() + tab.slice(1));
+            alertBox.textContent = mensaje;
+            alertBox.className = `alert ${tipo}`;
+            alertBox.style.display = 'block';
+            setTimeout(() => alertBox.style.display = 'none', 3000);
+        }
+
+        window.addEventListener('load', () => {
+            cargarConfiguracion();
+            cargarEstadisticas();
+        });
+    </script>
+</body>
+                                                   </html>
