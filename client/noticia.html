@@ -304,12 +304,13 @@
             cerrarMenu();
         }
         
-        // ==================== CARGAR NOTICIA ====================
+        // ==================== CARGAR NOTICIA (CORREGIDO) ====================
         async function cargarNoticia() {
             const id = getNoticiaId();
             
             try {
-                const res = await fetch(`/noticia/${id}`);
+                // Cambio importante: ahora usa la ruta API /api/noticias/:id
+                const res = await fetch(`/api/noticias/${id}`);
                 const data = await res.json();
                 
                 if (data.success) {
@@ -320,7 +321,8 @@
                     document.getElementById('loader').innerHTML = '❌ Noticia no encontrada';
                 }
             } catch (error) {
-                document.getElementById('loader').innerHTML = '❌ Error';
+                console.error(error);
+                document.getElementById('loader').innerHTML = '❌ Error de carga';
             }
         }
         
@@ -355,7 +357,7 @@
                 if (noticia.imagen.includes('video')) {
                     multimediaDiv.innerHTML = `<video class="noticia-imagen" src="${noticia.imagen}" controls></video>`;
                 } else {
-                    multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${noticia.imagen}">`;
+                    multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${noticia.imagen}" alt="${noticia.titulo}">`;
                 }
             } else {
                 multimediaDiv.innerHTML = '';
