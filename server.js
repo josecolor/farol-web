@@ -1,6 +1,6 @@
 /**
  * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V3.0
- * Con SEO y Google Analytics integrados
+ * Con foto de periodista, SEO y Google Analytics integrados
  */
 
 const express = require('express');
@@ -83,7 +83,6 @@ const noticiaSchema = new mongoose.Schema({
 const configSchema = new mongoose.Schema({
     googleVerification: { type: String, default: '' },
     googleAnalytics: { type: String, default: '' },
-    // otros campos si los necesitas
 }, { strict: false });
 
 const Noticia = mongoose.model('Noticia', noticiaSchema);
@@ -307,6 +306,7 @@ async function iniciarServidor() {
 ║ 📄 Noticia: https://elfarolaldia.com/noticia/:id  ║
 ║ ✏️ Redacción: https://elfarolaldia.com/redaccion  ║
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
+║ 📸 Foto del periodista: ACTIVADA                   ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
