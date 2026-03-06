@@ -1,7 +1,7 @@
 /**
  * 🏮 EL FAROL AL DÍA - SERVIDOR FINAL COMPLETO
  * Búnker PRO v2.0 - VERSIÓN ESTABLE Y FUNCIONAL
- * Con campo redactorFoto y ruta /ajustes corregida
+ * Con campo redactorFoto, ruta /ajustes corregida y guardado unificado de configuración
  */
 
 const express = require('express');
@@ -15,7 +15,6 @@ const app = express();
 // ==================== MANEJADORES DE ERRORES GLOBALES ====================
 process.on('uncaughtException', (err) => {
     console.error('❌ Excepción no capturada:', err);
-    // No salimos inmediatamente, solo logueamos
 });
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -110,7 +109,6 @@ const noticiaSchema = new mongoose.Schema({
         default: 'mxl',
         trim: true
     },
-    // Foto del periodista
     redactorFoto: { 
         type: String, 
         default: null 
@@ -207,7 +205,6 @@ app.get('/redaccion', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
-// ✅ RUTA PARA AJUSTES (agregada)
 app.get('/ajustes', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'ajustes.html'));
 });
@@ -355,30 +352,30 @@ app.post('/api/publicar', async (req, res) => {
     }
 });
 
-// Guardar configuración
+// Guardar configuración (VERSIÓN SIMPLIFICADA Y UNIFICADA)
 app.post('/api/configuracion', async (req, res) => {
     try {
-        const { seccion, config, pin } = req.body;
+        const { pin, ...config } = req.body; // Extrae el PIN y el resto es la configuración
 
         if (pin !== "311") {
             return res.status(403).json({ success: false, error: 'PIN incorrecto' });
         }
 
-        let configuracion = await Configuracion.findOne();
-        if (!configuracion) {
-            configuracion = await Configuracion.create(config);
+        let configDoc = await Configuracion.findOne();
+        if (!configDoc) {
+            configDoc = new Configuracion(config);
         } else {
-            Object.assign(configuracion, config);
-            configuracion.fechaActualizacion = new Date();
-            configuracion.actualizadoPor = 'director';
-            await configuracion.save();
+            Object.assign(configDoc, config);
+            configDoc.fechaActualizacion = new Date();
+            configDoc.actualizadoPor = 'director';
         }
+        await configDoc.save();
 
-        console.log('✅ Configuración actualizada:', seccion);
+        console.log('✅ Configuración actualizada');
         res.json({ success: true, message: 'Configuración guardada correctamente' });
     } catch (error) {
         console.error('Error POST /api/configuracion:', error.message);
-        res.status(500).json({ success: false, error: 'Error al guardar configuración' });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -460,7 +457,6 @@ app.delete('/api/noticias/:id', async (req, res) => {
 });
 
 // ==================== MANEJO DE ERRORES (REDIRECCIÓN A PORTADA) ====================
-// Todas las rutas no encontradas van a la portada
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
