@@ -3,233 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    
     <title id="page-title">El Farol al Día 🏮</title>
-    
-    <!-- META TAGS DINÁMICOS -->
     <meta property="og:title" id="og-title" content="">
     <meta property="og:description" id="og-description" content="">
     <meta property="og:image" id="og-image" content="">
     <meta property="og:url" id="og-url" content="">
     <meta property="og:type" content="article">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" id="twitter-title" content="">
-    <meta name="twitter:description" id="twitter-description" content="">
-    <meta name="twitter:image" id="twitter-image" content="">
-    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            background: #0b0b0b;
-            color: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 15px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            position: relative;
-        }
-        
-        .noticia-completa {
-            background: #1a1a1a;
-            border-radius: 30px;
-            padding: 25px;
-            border-left: 5px solid #FF8C00;
-            position: relative;
-        }
-        
-        /* ICONO DE COMPARTIR GRANDE */
-        .share-icon-large {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: #FF8C00;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8em;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255,140,0,0.6);
-            border: 3px solid white;
-            z-index: 10;
-        }
-        
-        .share-icon-large:active {
-            transform: scale(0.9);
-        }
-        
-        /* MENÚ DE COMPARTIR */
-        .share-menu {
-            display: none;
-            position: absolute;
-            top: 90px;
-            right: 20px;
-            background: #222;
-            border-radius: 25px;
-            padding: 15px;
-            z-index: 20;
-            border: 2px solid #FF8C00;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.7);
-            min-width: 250px;
-        }
-        
-        .share-menu.active {
-            display: block;
-        }
-        
-        .share-menu-item {
-            padding: 18px 20px;
-            border-radius: 15px;
-            margin: 8px 0;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 1.2em;
-        }
-        
-        .share-menu-item:active {
-            background: #333;
-        }
-        
-        .share-wa { color: #25D366; }
-        .share-fb { color: #1877F2; }
-        .share-tw { color: #1DA1F2; }
-        .share-tg { color: #0088cc; }
-        .share-link { color: #aaa; }
-        
-        .menu-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 15;
-        }
-        
-        .menu-overlay.active {
-            display: block;
-        }
-        
-        .noticia-fecha {
-            color: #888;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-            padding-right: 70px;
-        }
-        
-        .noticia-titulo {
-            font-size: 2em;
-            font-weight: bold;
-            color: #FF8C00;
-            margin-bottom: 15px;
-            padding-right: 70px;
-        }
-        
-        .noticia-meta {
-            display: flex;
-            gap: 20px;
-            color: #888;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #333;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        /* Foto del periodista en miniatura (para la página individual) */
-        .redactor-info {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .redactor-foto-mini {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #FF8C00;
-        }
-        
-        .noticia-imagen {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            border-radius: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .noticia-contenido {
-            font-size: 1.2em;
-            line-height: 1.7;
-            color: #eee;
-            margin-bottom: 30px;
-            white-space: pre-wrap;
-        }
-        
-        .volver-btn {
-            display: block;
-            text-align: center;
-            padding: 18px;
-            background: transparent;
-            border: 2px solid #FF8C00;
-            border-radius: 50px;
-            color: #FF8C00;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 20px;
-        }
-        
-        .admin-link {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: #FF8C00;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: black;
-            text-decoration: none;
-            opacity: 0;
-            z-index: 100;
-            font-size: 1.5em;
-        }
-        
-        .admin-link.visible {
-            opacity: 1;
-        }
-        
-        .loader {
-            text-align: center;
-            padding: 50px;
-            color: #FF8C00;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0b0b0b; color:white; font-family:sans-serif; padding:15px; }
+        .container { max-width:800px; margin:0 auto; position:relative; }
+        .noticia-completa { background:#1a1a1a; border-radius:30px; padding:25px; border-left:5px solid #FF8C00; position:relative; }
+        .share-icon-large { position:absolute; top:20px; right:20px; width:60px; height:60px; background:#FF8C00; border-radius:30px; display:flex; align-items:center; justify-content:center; font-size:1.8em; cursor:pointer; border:3px solid white; z-index:10; }
+        .share-menu { display:none; position:absolute; top:90px; right:20px; background:#222; border-radius:25px; padding:15px; z-index:20; border:2px solid #FF8C00; min-width:250px; }
+        .share-menu.active { display:block; }
+        .share-menu-item { padding:18px 20px; border-radius:15px; margin:8px 0; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:15px; }
+        .share-menu-item:active { background:#333; }
+        .share-wa { color:#25D366; } .share-fb { color:#1877F2; } .share-tw { color:#1DA1F2; } .share-tg { color:#0088cc; } .share-link { color:#aaa; }
+        .menu-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:15; }
+        .menu-overlay.active { display:block; }
+        .noticia-fecha { color:#888; font-size:0.9em; margin-bottom:10px; padding-right:70px; }
+        .noticia-titulo { font-size:2em; font-weight:bold; color:#FF8C00; margin-bottom:15px; padding-right:70px; }
+        .noticia-meta { display:flex; gap:20px; color:#888; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #333; flex-wrap:wrap; align-items:center; }
+        .redactor-info { display:inline-flex; align-items:center; gap:5px; }
+        .redactor-foto-mini { width:30px; height:30px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; }
+        .noticia-imagen { width:100%; max-height:400px; object-fit:cover; border-radius:20px; margin-bottom:20px; }
+        .noticia-contenido { font-size:1.2em; line-height:1.7; color:#eee; margin-bottom:30px; white-space:pre-wrap; }
+        .volver-btn { display:block; text-align:center; padding:18px; background:transparent; border:2px solid #FF8C00; border-radius:50px; color:#FF8C00; text-decoration:none; font-weight:bold; margin-top:20px; }
+        .admin-link { position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#FF8C00; border-radius:30px; display:flex; align-items:center; justify-content:center; color:black; text-decoration:none; opacity:0; z-index:100; font-size:1.5em; }
+        .admin-link.visible { opacity:1; }
+        .loader { text-align:center; padding:50px; color:#FF8C00; }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="loader" class="loader">⏳ Cargando...</div>
-        
-        <div id="noticia-container" style="display: none;">
+        <div id="noticia-container" style="display:none;">
             <div class="noticia-completa">
-                
                 <div class="share-icon-large" id="shareIcon">📤</div>
-                
                 <div class="share-menu" id="shareMenu">
                     <div class="share-menu-item share-wa" id="shareWa">📱 WhatsApp</div>
                     <div class="share-menu-item share-fb" id="shareFb">📘 Facebook</div>
@@ -237,82 +49,41 @@
                     <div class="share-menu-item share-tg" id="shareTg">✈️ Telegram</div>
                     <div class="share-menu-item share-link" id="shareLink">🔗 Copiar enlace</div>
                 </div>
-                
                 <div class="noticia-fecha" id="noticia-fecha"></div>
                 <h1 class="noticia-titulo" id="noticia-titulo"></h1>
-                
-                <div class="noticia-meta" id="noticia-meta">
-                    <!-- Aquí se inyectará la info con foto si existe -->
-                </div>
-                
+                <div class="noticia-meta" id="noticia-meta"></div>
                 <div id="noticia-multimedia"></div>
-                
                 <div class="noticia-contenido" id="noticia-contenido"></div>
-                
                 <a href="/" class="volver-btn">← VOLVER A PORTADA</a>
             </div>
         </div>
-        
         <div class="menu-overlay" id="menuOverlay" onclick="cerrarMenu()"></div>
         <a href="/redaccion" class="admin-link" id="adminBtn">🏮</a>
     </div>
 
     <script>
         let noticiaActual = null;
-        
-        function getNoticiaId() {
-            return window.location.pathname.split('/').pop();
+        function getNoticiaId() { return window.location.pathname.split('/').pop(); }
+
+        function cerrarMenu() { 
+            document.getElementById('shareMenu').classList.remove('active'); 
+            document.getElementById('menuOverlay').classList.remove('active'); 
         }
-        
-        // ==================== FUNCIONES DE COMPARTIR ====================
-        function cerrarMenu() {
-            document.getElementById('shareMenu').classList.remove('active');
-            document.getElementById('menuOverlay').classList.remove('active');
+        function abrirMenu() { 
+            document.getElementById('shareMenu').classList.add('active'); 
+            document.getElementById('menuOverlay').classList.add('active'); 
         }
-        
-        function abrirMenu() {
-            document.getElementById('shareMenu').classList.add('active');
-            document.getElementById('menuOverlay').classList.add('active');
-        }
-        
-        function compartirWhatsApp() {
-            window.open(`https://wa.me/?text=${encodeURIComponent(window.location.href)}`, '_blank');
-            cerrarMenu();
-        }
-        
-        function compartirFacebook() {
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
-            cerrarMenu();
-        }
-        
-        function compartirTwitter() {
-            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}`, '_blank');
-            cerrarMenu();
-        }
-        
-        function compartirTelegram() {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`, '_blank');
-            cerrarMenu();
-        }
-        
-        function copiarLink() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                alert('✅ Link copiado');
-            }).catch(() => {
-                prompt('📋 Copia este link:', window.location.href);
-            });
-            cerrarMenu();
-        }
-        
-        // ==================== CARGAR NOTICIA (CORREGIDO) ====================
+        function compartirWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
+        function compartirFacebook() { window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
+        function compartirTwitter() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
+        function compartirTelegram() { window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
+        function copiarLink() { navigator.clipboard.writeText(window.location.href).then(()=>alert('✅ Link copiado')).catch(()=>prompt('📋 Copia:',window.location.href)); cerrarMenu(); }
+
         async function cargarNoticia() {
             const id = getNoticiaId();
-            
             try {
-                // Cambio importante: ahora usa la ruta API /api/noticias/:id
                 const res = await fetch(`/api/noticias/${id}`);
                 const data = await res.json();
-                
                 if (data.success) {
                     noticiaActual = data.noticia;
                     mostrarNoticia(noticiaActual);
@@ -321,83 +92,53 @@
                     document.getElementById('loader').innerHTML = '❌ Noticia no encontrada';
                 }
             } catch (error) {
-                console.error(error);
                 document.getElementById('loader').innerHTML = '❌ Error de carga';
             }
         }
-        
-        function mostrarNoticia(noticia) {
-            const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO', {
-                weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            });
-            
+
+        function mostrarNoticia(n) {
+            const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { weekday:'long', day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
             document.getElementById('noticia-fecha').textContent = fecha;
-            document.getElementById('noticia-titulo').textContent = noticia.titulo;
-            
-            // Construir la meta información incluyendo la foto del redactor si existe
-            let redactorHTML = '';
-            if (noticia.redactorFoto) {
-                redactorHTML = `<span class="redactor-info"><img src="${noticia.redactorFoto}" class="redactor-foto-mini"> 👤 ${noticia.redactor || 'mxl'}</span>`;
-            } else {
-                redactorHTML = `<span>👤 ${noticia.redactor || 'mxl'}</span>`;
-            }
-            
+            document.getElementById('noticia-titulo').textContent = n.titulo;
+            const redactorHTML = n.redactorFoto 
+                ? `<span class="redactor-info"><img src="${n.redactorFoto}" class="redactor-foto-mini"> 👤 ${n.redactor||'mxl'}</span>`
+                : `<span>👤 ${n.redactor||'mxl'}</span>`;
             document.getElementById('noticia-meta').innerHTML = `
-                <span>📰 ${noticia.seccion}</span>
-                <span>📍 ${noticia.ubicacion || 'Santo Domingo'}</span>
+                <span>📰 ${n.seccion}</span>
+                <span>📍 ${n.ubicacion||'Santo Domingo'}</span>
                 ${redactorHTML}
-                <span>👁️ ${noticia.vistas || 0}</span>
+                <span>👁️ ${n.vistas||0}</span>
             `;
-            
-            document.getElementById('noticia-contenido').innerHTML = noticia.contenido.replace(/\n/g, '<br>');
-            
+            document.getElementById('noticia-contenido').innerHTML = n.contenido.replace(/\n/g,'<br>');
             const multimediaDiv = document.getElementById('noticia-multimedia');
-            if (noticia.imagen) {
-                if (noticia.imagen.includes('video')) {
-                    multimediaDiv.innerHTML = `<video class="noticia-imagen" src="${noticia.imagen}" controls></video>`;
-                } else {
-                    multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${noticia.imagen}" alt="${noticia.titulo}">`;
-                }
-            } else {
-                multimediaDiv.innerHTML = '';
-            }
-            
+            if (n.imagen) {
+                if (n.imagen.includes('video')) multimediaDiv.innerHTML = `<video class="noticia-imagen" src="${n.imagen}" controls></video>`;
+                else multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${n.imagen}">`;
+            } else multimediaDiv.innerHTML = '';
             document.getElementById('loader').style.display = 'none';
             document.getElementById('noticia-container').style.display = 'block';
         }
-        
-        function actualizarMetaTags(noticia) {
-            const url = window.location.href;
-            const desc = noticia.contenido.substring(0, 160);
-            
-            document.getElementById('page-title').textContent = `${noticia.titulo} - El Farol al Día`;
-            document.getElementById('og-title').content = noticia.titulo;
-            document.getElementById('og-description').content = desc;
-            document.getElementById('og-image').content = noticia.imagen || '';
-            document.getElementById('og-url').content = url;
-            document.getElementById('twitter-title').content = noticia.titulo;
-            document.getElementById('twitter-description').content = desc;
-            document.getElementById('twitter-image').content = noticia.imagen || '';
+
+        function actualizarMetaTags(n) {
+            document.getElementById('page-title').textContent = n.titulo + ' - El Farol al Día';
+            document.getElementById('og-title').content = n.titulo;
+            document.getElementById('og-description').content = n.contenido.substring(0,160);
+            document.getElementById('og-image').content = n.imagen || '';
+            document.getElementById('og-url').content = window.location.href;
         }
-        
-        // ==================== ADMIN ====================
+
         let lastTap = 0;
         document.addEventListener('touchend', function(e) {
-            const now = new Date().getTime();
+            const now = Date.now();
             if (now - lastTap < 500) {
                 const pin = prompt('🔐 PIN:');
-                if (pin === '311') {
-                    document.getElementById('adminBtn').classList.add('visible');
-                }
+                if (pin === '311') document.getElementById('adminBtn').classList.add('visible');
             }
             lastTap = now;
         });
-        
-        // ==================== INICIALIZAR ====================
+
         window.addEventListener('load', () => {
             cargarNoticia();
-            
             document.getElementById('shareIcon').addEventListener('click', abrirMenu);
             document.getElementById('shareWa').addEventListener('click', compartirWhatsApp);
             document.getElementById('shareFb').addEventListener('click', compartirFacebook);
