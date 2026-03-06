@@ -2,7 +2,7 @@
  * 🏮 EL FAROL AL DÍA - SERVIDOR FINAL COMPLETO
  * Búnker PRO v2.0 - VERSIÓN ULTRA-ESTABLE
  * - Usa MONGO_URL (variable de Railway) sin fallback
- * - Fuerza IPv4 con family:4
+ * - Fuerza IPv4 con family: 4
  * - Reintentos bloqueantes: el servidor no arranca sin DB
  * - Middleware 404 para API que devuelve JSON
  * - Inyección SSR de metaetiqueta Google Search Console
