@@ -2,13 +2,14 @@
  * 🏮 EL FAROL AL DÍA - SERVIDOR FINAL COMPLETO
  * Búnker PRO v2.0 - VERSIÓN ESTABLE Y FUNCIONAL
  * Con inyección de metaetiquetas desde el servidor (SSR) para Google Search Console
+ * Límite de memoria reducido a 10MB para evitar caídas
  */
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs'); // Importamos fs para leer archivos
+const fs = require('fs');
 const crypto = require('crypto');
 
 const app = express();
@@ -23,8 +24,9 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // ==================== CONFIGURACIÓN INICIAL ====================
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Reducido a 10MB para evitar problemas de memoria
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
@@ -200,13 +202,15 @@ function generarToken(usuarioId) {
 // ==================== FUNCIÓN PARA INYECTAR METAETIQUETAS EN HTML ====================
 async function inyectarMetaTags(html) {
     try {
+        console.log('Inyectando meta tags...');
         const config = await Configuracion.findOne();
         if (config && config.googleVerification) {
             const metaTag = `<meta name="google-site-verification" content="${config.googleVerification}" />`;
             html = html.replace('<!-- META_GOOGLE_VERIFICATION -->', metaTag);
+            console.log('Meta tag de Google Search Console inyectado.');
         } else {
-            // Si no hay verificación, eliminamos el marcador
             html = html.replace('<!-- META_GOOGLE_VERIFICATION -->', '');
+            console.log('No hay código de verificación, se eliminó el marcador.');
         }
         return html;
     } catch (error) {
@@ -220,6 +224,7 @@ async function inyectarMetaTags(html) {
 // Portada
 app.get('/', async (req, res) => {
     try {
+        console.log('Sirviendo portada...');
         const filePath = path.join(__dirname, 'client', 'index.html');
         let html = fs.readFileSync(filePath, 'utf8');
         html = await inyectarMetaTags(html);
@@ -243,6 +248,7 @@ app.get('/ajustes', (req, res) => {
 // Noticia individual (también inyectamos metaetiquetas)
 app.get('/noticia/:id', async (req, res) => {
     try {
+        console.log('Sirviendo noticia individual...');
         const filePath = path.join(__dirname, 'client', 'noticia.html');
         let html = fs.readFileSync(filePath, 'utf8');
         html = await inyectarMetaTags(html);
@@ -513,7 +519,7 @@ const server = app.listen(PORT, () => {
 ║ 🏮 Portada: http://localhost:${PORT}              ║
 ║ ✏️ Redacción: http://localhost:${PORT}/redaccion  ║
 ║ 🎛️ Ajustes: http://localhost:${PORT}/ajustes     ║
-║ 🎬 Videos: ACTIVADOS (50MB)                       ║
+║ 🎬 Videos: ACTIVADOS (10MB)                       ║
 ║ ✏️ Editar noticias: ACTIVADO                      ║
 ║ 🗑️ Eliminar noticias: ACTIVADO                    ║
 ║ 🔐 Autenticación: ACTIVADA                         ║
