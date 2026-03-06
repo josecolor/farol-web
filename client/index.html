@@ -2,219 +2,146 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title id="page-title">El Farol al Día 🏮</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Farol al Día | Noticias en Realidad</title>
     <!-- Marcador para que el servidor inyecte la metaetiqueta de Google Search Console -->
     <!-- META_GOOGLE_VERIFICATION -->
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:#0b0b0b; color:white; font-family:sans-serif; padding:12px; }
-        .container { max-width:800px; margin:0 auto; }
-        header { text-align:center; margin-bottom:25px; padding-bottom:15px; border-bottom:3px solid #FF8C00; }
-        h1 { color:#FF8C00; font-size:2.2em; }
-        .tagline { color:#aaa; margin-top:5px; font-size:0.9em; }
-        .secciones { display:flex; gap:10px; overflow-x:auto; padding:10px 0; margin-bottom:20px; }
-        .seccion-btn { padding:12px 20px; background:#1a1a1a; border:2px solid #333; border-radius:40px; color:white; font-weight:bold; white-space:nowrap; cursor:pointer; }
-        .seccion-btn.active { background:#FF8C00; border-color:#FF8C00; color:black; }
-        .noticia-card { background:#1a1a1a; border-radius:25px; padding:18px; margin-bottom:20px; border-left:5px solid #FF8C00; position:relative; }
-        .share-icon { position:absolute; top:18px; right:18px; width:44px; height:44px; background:#FF8C00; border-radius:22px; display:flex; align-items:center; justify-content:center; font-size:1.3em; cursor:pointer; z-index:10; border:2px solid white; }
-        .share-menu { display:none; position:absolute; top:70px; right:18px; background:#222; border-radius:20px; padding:12px; z-index:20; border:2px solid #FF8C00; min-width:200px; }
-        .share-menu.active { display:block; }
-        .share-menu-item { padding:15px 20px; border-radius:15px; margin:5px 0; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:12px; }
-        .share-menu-item:active { background:#333; }
-        .share-wa { color:#25D366; } .share-fb { color:#1877F2; } .share-tw { color:#1DA1F2; } .share-tg { color:#0088cc; } .share-link { color:#aaa; }
-        .menu-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:15; }
-        .menu-overlay.active { display:block; }
-        .noticia-titulo { font-size:1.3em; font-weight:bold; color:#FF8C00; margin-bottom:8px; padding-right:50px; cursor:pointer; }
-        .noticia-contenido { color:#ccc; margin-bottom:12px; cursor:pointer; }
-        .noticia-meta { display:flex; flex-wrap:wrap; gap:12px 15px; color:#888; font-size:0.9em; align-items:center; }
-        .redactor-info { display:inline-flex; align-items:center; gap:5px; }
-        .redactor-foto-mini { width:26px; height:26px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; }
-        .noticia-imagen { width:100%; max-height:200px; object-fit:cover; border-radius:15px; margin-bottom:12px; }
-        .admin-link { position:fixed; bottom:20px; right:20px; width:60px; height:60px; background:#FF8C00; border-radius:30px; display:flex; align-items:center; justify-content:center; color:black; text-decoration:none; opacity:0; z-index:100; font-size:1.5em; }
-        .admin-link.visible { opacity:1; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
+            line-height: 1.6;
+        }
+        header {
+            background: #6200ea;
+            padding: 20px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 10px rgba(98, 0, 234, 0.5);
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .loading, .error, .empty {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #aaa;
+        }
+        .noticia {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid #6200ea;
+        }
+        .noticia:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(98, 0, 234, 0.3);
+        }
+        .noticia img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .noticia h2 {
+            color: #bb86fc;
+            margin: 10px 0;
+            font-size: 1.8em;
+            cursor: pointer;
+        }
+        .noticia h2:hover {
+            text-decoration: underline;
+        }
+        .noticia p {
+            color: #ddd;
+            margin: 10px 0;
+        }
+        .noticia .meta {
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        .noticia .seccion {
+            background: #6200ea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        @media (max-width: 600px) {
+            header {
+                font-size: 22px;
+            }
+            .noticia h2 {
+                font-size: 1.5em;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 id="site-title">🏮 El Farol al Día</h1>
-            <p id="site-tagline" class="tagline"></p>
-        </header>
-        <div class="secciones" id="secciones">
-            <button class="seccion-btn active" onclick="cargarTodas()">📰 Todas</button>
-            <button class="seccion-btn" onclick="cargarSeccion('Nacionales')">🇩🇴 Nacionales</button>
-            <button class="seccion-btn" onclick="cargarSeccion('Deportes')">⚽ Deportes</button>
-            <button class="seccion-btn" onclick="cargarSeccion('Internacionales')">🌍 Internacionales</button>
-            <button class="seccion-btn" onclick="cargarSeccion('Espectáculos')">🎬 Espectáculos</button>
-            <button class="seccion-btn" onclick="cargarSeccion('Economía')">💼 Economía</button>
-        </div>
-        <div id="noticias-container"></div>
-        <a href="/redaccion" class="admin-link" id="adminBtn">🏮</a>
-        <div class="menu-overlay" id="menuOverlay" onclick="cerrarTodosMenus()"></div>
+    <header>🏮 EL FAROL AL DÍA</header>
+    <div class="container" id="noticias-container">
+        <div class="loading">Cargando primicias...</div>
     </div>
 
     <script>
-        let menuAbiertoId = null;
-        let configuracion = {};
+        const container = document.getElementById('noticias-container');
 
-        // Cargar configuración al inicio
-        async function cargarConfiguracion() {
+        async function cargarNoticias() {
             try {
-                const res = await fetch('/api/configuracion');
+                const res = await fetch('/api/noticias');
+                if (!res.ok) throw new Error('Error en la respuesta del servidor');
                 const data = await res.json();
-                if (data.success) {
-                    configuracion = data.config;
-                    // Actualizar título y tagline
-                    if (configuracion.nombreSitio) {
-                        document.getElementById('site-title').innerHTML = `🏮 ${configuracion.nombreSitio}`;
-                        document.getElementById('page-title').textContent = configuracion.nombreSitio + ' 🏮';
-                    }
-                    if (configuracion.tagline) {
-                        document.getElementById('site-tagline').textContent = configuracion.tagline;
-                    }
-                    // Inyectar Google Analytics si existe
-                    if (configuracion.googleAnalytics) {
-                        const script1 = document.createElement('script');
-                        script1.async = true;
-                        script1.src = `https://www.googletagmanager.com/gtag/js?id=${configuracion.googleAnalytics}`;
-                        document.head.appendChild(script1);
-                        const script2 = document.createElement('script');
-                        script2.innerHTML = `
-                            window.dataLayer = window.dataLayer || [];
-                            function gtag(){dataLayer.push(arguments);}
-                            gtag('js', new Date());
-                            gtag('config', '${configuracion.googleAnalytics}');
-                        `;
-                        document.head.appendChild(script2);
-                    }
+                
+                if (!data.success || !data.noticias || data.noticias.length === 0) {
+                    container.innerHTML = '<div class="empty">📭 No hay noticias aún. ¡Vuelve pronto!</div>';
+                    return;
                 }
+
+                const noticias = data.noticias;
+                container.innerHTML = noticias.map(n => `
+                    <div class="noticia">
+                        <img src="${n.imagen || 'https://via.placeholder.com/800x400?text=El+Farol+al+Día'}" alt="Imagen de la noticia" loading="lazy">
+                        <h2 onclick="window.location.href='/noticia/${n._id}'">${n.titulo}</h2>
+                        <p>${n.contenido.substring(0, 200)}...</p>
+                        <div class="meta">
+                            <span class="seccion">${n.seccion || 'General'}</span>
+                            <span>📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</span>
+                            <span>👁️ ${n.vistas || 0}</span>
+                            <span>👤 ${n.redactor || 'Redacción'}</span>
+                        </div>
+                    </div>
+                `).join('');
             } catch (error) {
-                console.error('Error cargando configuración:', error);
+                console.error(error);
+                container.innerHTML = '<div class="error">❌ Error al cargar el búnker. Intenta de nuevo más tarde.</div>';
             }
         }
 
-        async function cargarTodas() {
-            const res = await fetch('/api/noticias?limit=30');
-            const data = await res.json();
-            mostrarNoticias(data.noticias);
-        }
-
-        async function cargarSeccion(seccion) {
-            document.querySelectorAll('.seccion-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            const res = await fetch(`/api/seccion/${seccion}`);
-            const data = await res.json();
-            mostrarNoticias(data.noticias);
-        }
-
-        function mostrarNoticias(noticias) {
-            const container = document.getElementById('noticias-container');
-            container.innerHTML = '';
-            noticias.forEach(n => {
-                const fecha = new Date(n.fecha).toLocaleDateString();
-                const card = document.createElement('div');
-                card.className = 'noticia-card';
-                let multimedia = '';
-                if (n.imagen) {
-                    if (n.imagen.includes('video')) {
-                        multimedia = `<video class="noticia-imagen" src="${n.imagen}" controls onclick="abrirNoticia('${n._id}')"></video>`;
-                    } else {
-                        multimedia = `<img class="noticia-imagen" src="${n.imagen}" onclick="abrirNoticia('${n._id}')">`;
-                    }
-                }
-                const redactorHTML = n.redactorFoto 
-                    ? `<span class="redactor-info"><img src="${n.redactorFoto}" class="redactor-foto-mini"> 👤 ${n.redactor || 'mxl'}</span>`
-                    : `<span>👤 ${n.redactor || 'mxl'}</span>`;
-
-                card.innerHTML = `
-                    <div class="share-icon" onclick="abrirMenuCompartir('${n._id}', event)">📤</div>
-                    <div class="share-menu" id="share-menu-${n._id}">
-                        <div class="share-menu-item share-wa" onclick="compartirWhatsApp('${n._id}', event)">📱 WhatsApp</div>
-                        <div class="share-menu-item share-fb" onclick="compartirFacebook('${n._id}', event)">📘 Facebook</div>
-                        <div class="share-menu-item share-tw" onclick="compartirTwitter('${n._id}', event)">𝕏 Twitter</div>
-                        <div class="share-menu-item share-tg" onclick="compartirTelegram('${n._id}', event)">✈️ Telegram</div>
-                        <div class="share-menu-item share-link" onclick="copiarLink('${n._id}', event)">🔗 Copiar</div>
-                    </div>
-                    ${multimedia}
-                    <div class="noticia-titulo" onclick="abrirNoticia('${n._id}')">${n.titulo}</div>
-                    <div class="noticia-contenido" onclick="abrirNoticia('${n._id}')">${n.contenido.substring(0,100)}...</div>
-                    <div class="noticia-meta">
-                        <span>📰 ${n.seccion}</span>
-                        ${redactorHTML}
-                        <span>👁️ ${n.vistas || 0}</span>
-                        <span>${fecha}</span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function abrirMenuCompartir(id, event) {
-            event.stopPropagation();
-            cerrarTodosMenus();
-            const menu = document.getElementById(`share-menu-${id}`);
-            if (menu) {
-                menu.classList.add('active');
-                document.getElementById('menuOverlay').classList.add('active');
-                menuAbiertoId = id;
-            }
-        }
-
-        function cerrarTodosMenus() {
-            document.querySelectorAll('.share-menu').forEach(m => m.classList.remove('active'));
-            document.getElementById('menuOverlay').classList.remove('active');
-            menuAbiertoId = null;
-        }
-
-        function compartirWhatsApp(id, event) {
-            event.stopPropagation();
-            const url = window.location.origin + '/noticia/' + id;
-            window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        function compartirFacebook(id, event) {
-            event.stopPropagation();
-            const url = window.location.origin + '/noticia/' + id;
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        function compartirTwitter(id, event) {
-            event.stopPropagation();
-            const url = window.location.origin + '/noticia/' + id;
-            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        function compartirTelegram(id, event) {
-            event.stopPropagation();
-            const url = window.location.origin + '/noticia/' + id;
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}`, '_blank');
-            cerrarTodosMenus();
-        }
-        function copiarLink(id, event) {
-            event.stopPropagation();
-            const url = window.location.origin + '/noticia/' + id;
-            navigator.clipboard.writeText(url).then(() => alert('✅ Link copiado')).catch(() => prompt('📋 Copia:', url));
-            cerrarTodosMenus();
-        }
-
-        function abrirNoticia(id) { window.location.href = '/noticia/' + id; }
-
-        let lastTap = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = Date.now();
-            if (now - lastTap < 500) {
-                const pin = prompt('🔐 PIN:');
-                if (pin === '311') document.getElementById('adminBtn').classList.add('visible');
-            }
-            lastTap = now;
-        });
-
-        // Inicializar: cargar configuración y luego las noticias
-        window.addEventListener('load', async () => {
-            await cargarConfiguracion();
-            cargarTodas();
-        });
+        cargarNoticias();
     </script>
 </body>
 </html>
