@@ -1,13 +1,14 @@
 /**
  * 🏮 EL FAROL AL DÍA - SERVIDOR FINAL COMPLETO
  * Búnker PRO v2.0 - VERSIÓN ESTABLE Y FUNCIONAL
- * Con campo redactorFoto, ruta /ajustes corregida y guardado unificado de configuración
+ * Con inyección de metaetiquetas desde el servidor (SSR) para Google Search Console
  */
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs'); // Importamos fs para leer archivos
 const crypto = require('crypto');
 
 const app = express();
@@ -196,21 +197,60 @@ function generarToken(usuarioId) {
     return crypto.randomBytes(32).toString('hex');
 }
 
-// ==================== RUTAS DE PÁGINAS (HTML) ====================
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
+// ==================== FUNCIÓN PARA INYECTAR METAETIQUETAS EN HTML ====================
+async function inyectarMetaTags(html) {
+    try {
+        const config = await Configuracion.findOne();
+        if (config && config.googleVerification) {
+            const metaTag = `<meta name="google-site-verification" content="${config.googleVerification}" />`;
+            html = html.replace('<!-- META_GOOGLE_VERIFICATION -->', metaTag);
+        } else {
+            // Si no hay verificación, eliminamos el marcador
+            html = html.replace('<!-- META_GOOGLE_VERIFICATION -->', '');
+        }
+        return html;
+    } catch (error) {
+        console.error('Error inyectando meta tags:', error);
+        return html; // Devolvemos el HTML sin cambios en caso de error
+    }
+}
+
+// ==================== RUTAS DE PÁGINAS (HTML) CON INYECCIÓN SSR ====================
+
+// Portada
+app.get('/', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'client', 'index.html');
+        let html = fs.readFileSync(filePath, 'utf8');
+        html = await inyectarMetaTags(html);
+        res.send(html);
+    } catch (error) {
+        console.error('Error sirviendo portada:', error);
+        res.status(500).send('Error interno');
+    }
 });
 
+// Redacción (no necesita inyección de meta, pero la dejamos igual)
 app.get('/redaccion', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
+// Ajustes
 app.get('/ajustes', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'ajustes.html'));
 });
 
-app.get('/noticia/:id', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'noticia.html'));
+// Noticia individual (también inyectamos metaetiquetas)
+app.get('/noticia/:id', async (req, res) => {
+    try {
+        const filePath = path.join(__dirname, 'client', 'noticia.html');
+        let html = fs.readFileSync(filePath, 'utf8');
+        html = await inyectarMetaTags(html);
+        res.send(html);
+    } catch (error) {
+        console.error('Error sirviendo noticia:', error);
+        res.status(500).send('Error interno');
+    }
 });
 
 // ==================== RUTAS API (JSON) ====================
@@ -355,7 +395,7 @@ app.post('/api/publicar', async (req, res) => {
 // Guardar configuración (VERSIÓN SIMPLIFICADA Y UNIFICADA)
 app.post('/api/configuracion', async (req, res) => {
     try {
-        const { pin, ...config } = req.body; // Extrae el PIN y el resto es la configuración
+        const { pin, ...config } = req.body;
 
         if (pin !== "311") {
             return res.status(403).json({ success: false, error: 'PIN incorrecto' });
@@ -481,6 +521,7 @@ const server = app.listen(PORT, () => {
 ║ 📱 Meta Tags Dinámicos: ACTIVADOS                  ║
 ║ 📸 Foto del periodista: ACTIVADA                   ║
 ║ 🔒 Verificación Token: ACTIVADA                    ║
+║ 🔍 Metaetiquetas SSR: ACTIVADAS (Google Search Console) ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
   `);
