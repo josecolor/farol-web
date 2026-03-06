@@ -1,7 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V2.1
- * Conexión segura a MongoDB + Inyección de meta tags + Rutas API unificadas
- * Listo para producción en Railway
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V2.2 (ANTI-CRASH)
+ * Conexión segura a MongoDB + Inyección de meta tags + Rutas API
+ * NO se cae aunque MongoDB falle
  */
 
 const express = require('express');
@@ -45,7 +45,9 @@ if (!MONGO_URL) {
 
 console.log('📡 MONGO_URL encontrada. Conectando...');
 
-// ==================== CONEXIÓN A MONGODB (BLOQUEANTE) ====================
+// ==================== CONEXIÓN A MONGODB (NO BLOQUEANTE) ====================
+let mongoConnected = false;
+
 async function conectarMongoDB() {
     const maxIntentos = 5;
     
@@ -58,9 +60,10 @@ async function conectarMongoDB() {
                 useUnifiedTopology: true,
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
-                family: 4, // Fuerza IPv4 para evitar ECONNREFUSED
+                family: 4, // Fuerza IPv4
             });
             
+            mongoConnected = true;
             console.log('✅ 🟢 ¡BÚNKER CONECTADO A MONGODB!');
             return true;
             
@@ -68,8 +71,17 @@ async function conectarMongoDB() {
             console.error(`❌ Intento ${i} falló:`, error.message);
             
             if (i === maxIntentos) {
-                console.error('\n🛑 No se pudo conectar después de 5 intentos. Saliendo...');
-                process.exit(1);
+                console.error('\n⏳ No se pudo conectar después de 5 intentos');
+                console.error('⏰ Reintentando en 30 segundos...\n');
+                
+                // NO hacer process.exit() - permitir que el servidor siga corriendo
+                // Reintentar conexión en 30 segundos
+                setTimeout(() => {
+                    console.log('🔄 Reintentando conexión a MongoDB...');
+                    conectarMongoDB();
+                }, 30000);
+                
+                return false;
             }
             
             // Esperar 5 segundos antes del siguiente intento
@@ -78,9 +90,12 @@ async function conectarMongoDB() {
     }
 }
 
+// Iniciar conexión pero NO esperar (no bloqueante)
+conectarMongoDB();
+
 // ==================== ESQUEMAS Y MODELOS ====================
 
-// Modelo de Configuración (con campos comunes y flexible)
+// Modelo de Configuración
 const configSchema = new mongoose.Schema({
     googleVerification: { type: String, default: '' },
     nombreSitio: { type: String, default: 'El Farol al Día' },
@@ -104,7 +119,7 @@ const configSchema = new mongoose.Schema({
     metaKeywords: String,
     robotsTxt: String,
     activarOpenGraph: { type: Boolean, default: true },
-}, { strict: false }); // Permite campos adicionales sin definir
+}, { strict: false });
 
 const Config = mongoose.model('Configuracion', configSchema);
 
@@ -126,18 +141,21 @@ const Noticia = mongoose.model('Noticia', noticiaSchema);
 // ==================== FUNCIÓN PARA INYECTAR META TAGS ====================
 async function inyectarMeta(html) {
     try {
+        if (!mongoConnected) {
+            console.warn('⚠️ MongoDB no conectado, meta tag no inyectado');
+            return html.replace('<!-- META_GOOGLE_VERIFICATION -->', '');
+        }
+
         const config = await Config.findOne().lean();
         
         if (config?.googleVerification) {
             const meta = `<meta name="google-site-verification" content="${config.googleVerification}" />`;
-            console.log('🔍 Meta tag inyectado');
             return html.replace('<!-- META_GOOGLE_VERIFICATION -->', meta);
         }
     } catch (e) {
-        console.error('⚠️ Error inyectando meta (no crítico):', e.message);
+        console.error('⚠️ Error inyectando meta:', e.message);
     }
     
-    // Si no hay verificación o error, simplemente eliminar el marcador
     return html.replace('<!-- META_GOOGLE_VERIFICATION -->', '');
 }
 
@@ -185,13 +203,16 @@ app.get('/ajustes', (req, res) => {
     }
 });
 
-// ==================== RUTAS API (unificadas bajo /api) ====================
+// ==================== RUTAS API ====================
 
-// GET /api/configuracion - Obtener configuración
+// GET /api/configuracion
 app.get('/api/configuracion', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         let config = await Config.findOne();
-        
         if (!config) {
             config = await Config.create({});
         }
@@ -203,17 +224,19 @@ app.get('/api/configuracion', async (req, res) => {
     }
 });
 
-// POST /api/configuracion - Guardar configuración (requiere PIN 311)
+// POST /api/configuracion
 app.post('/api/configuracion', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const { pin, ...config } = req.body;
         
-        // Validar PIN
         if (pin !== '311') {
             return res.status(403).json({ success: false, error: 'PIN incorrecto' });
         }
         
-        // Buscar y actualizar o crear
         let configActual = await Config.findOne();
         
         if (configActual) {
@@ -232,9 +255,13 @@ app.post('/api/configuracion', async (req, res) => {
     }
 });
 
-// GET /api/estadisticas - Obtener estadísticas básicas
+// GET /api/estadisticas
 app.get('/api/estadisticas', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const totalNoticias = await Noticia.countDocuments();
         const totalVistas = await Noticia.aggregate([
             { $group: { _id: null, total: { $sum: '$vistas' } } }
@@ -251,9 +278,13 @@ app.get('/api/estadisticas', async (req, res) => {
     }
 });
 
-// GET /api/noticias - Obtener todas las noticias (para portada)
+// GET /api/noticias
 app.get('/api/noticias', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const limit = Math.min(parseInt(req.query.limit) || 20, 100);
         const skip = parseInt(req.query.skip) || 0;
 
@@ -272,9 +303,13 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
-// GET /api/noticias/:id - Obtener noticia individual (JSON, incrementa vistas)
+// GET /api/noticias/:id
 app.get('/api/noticias/:id', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const { id } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -297,9 +332,13 @@ app.get('/api/noticias/:id', async (req, res) => {
     }
 });
 
-// GET /api/seccion/:nombre - Obtener noticias por sección
+// GET /api/seccion/:nombre
 app.get('/api/seccion/:nombre', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const nombre = req.params.nombre;
         const noticias = await Noticia.find({ seccion: nombre })
             .sort({ fecha: -1 })
@@ -313,9 +352,13 @@ app.get('/api/seccion/:nombre', async (req, res) => {
     }
 });
 
-// POST /api/publicar - Publicar nueva noticia
+// POST /api/publicar
 app.post('/api/publicar', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen } = req.body;
 
         if (pin !== '311') {
@@ -357,9 +400,13 @@ app.post('/api/publicar', async (req, res) => {
     }
 });
 
-// PUT /api/noticias/:id - Actualizar noticia
+// PUT /api/noticias/:id
 app.put('/api/noticias/:id', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const { id } = req.params;
         const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen } = req.body;
 
@@ -408,9 +455,13 @@ app.put('/api/noticias/:id', async (req, res) => {
     }
 });
 
-// DELETE /api/noticias/:id - Eliminar noticia
+// DELETE /api/noticias/:id
 app.delete('/api/noticias/:id', async (req, res) => {
     try {
+        if (!mongoConnected) {
+            return res.status(503).json({ success: false, error: 'MongoDB no disponible' });
+        }
+
         const { id } = req.params;
         const { pin } = req.body;
 
@@ -448,22 +499,16 @@ app.use('/api/*', (req, res) => {
 });
 
 // ==================== FALLBACK PARA CUALQUIER OTRA RUTA ====================
-// Si no es /api, redirigir a la portada (para SPA)
 app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
 // ==================== INICIAR SERVIDOR ====================
 
-async function iniciarServidor() {
-    // Conectar a MongoDB (esto es bloqueante, si falla sale del proceso)
-    await conectarMongoDB();
-    
-    // Iniciar servidor SOLO después de conectar
-    const server = app.listen(PORT, () => {
-        console.log(`
+const server = app.listen(PORT, () => {
+    console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 2.1 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 2.2 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: https://elfarolaldia.com              ║
@@ -475,24 +520,20 @@ async function iniciarServidor() {
 ║ 📱 Meta Tags: INYECTABLES                          ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
-        `);
-    });
-    
-    // Cierre graceful
-    process.on('SIGTERM', () => {
-        console.log('⏹️ Cerrando servidor gracefulmente...');
-        server.close(() => {
-            console.log('🔌 Servidor cerrado');
-            if (mongoose.connection.readyState === 1) {
-                mongoose.connection.close();
-                console.log('📊 MongoDB cerrado');
-            }
-            process.exit(0);
-        });
-    });
-}
+    `);
+});
 
-// Iniciar
-iniciarServidor();
+// Cierre graceful
+process.on('SIGTERM', () => {
+    console.log('⏹️ Cerrando servidor gracefulmente...');
+    server.close(() => {
+        console.log('🔌 Servidor cerrado');
+        if (mongoose.connection.readyState === 1) {
+            mongoose.connection.close();
+            console.log('📊 MongoDB cerrado');
+        }
+        process.exit(0);
+    });
+});
 
 module.exports = app;
