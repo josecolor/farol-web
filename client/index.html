@@ -6,128 +6,49 @@
     <title>El Farol al Día | Noticias en Realidad</title>
     <!-- Marcador para Google Search Console -->
     <!-- META_GOOGLE_VERIFICATION -->
+    <!-- Marcador para Google Analytics -->
+    <!-- GOOGLE_ANALYTICS -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0b0b0b; /* Fondo negro */
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            padding: 20px;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #FF8C00; /* Línea naranja */
-        }
-        h1 {
-            color: #FF8C00; /* Naranja */
-            font-size: 2.5em;
-            font-weight: bold;
-        }
-        .loading, .error, .empty {
-            text-align: center;
-            padding: 50px;
-            color: #aaa;
-        }
-        .noticia {
-            background: #1a1a1a; /* Gris oscuro para las tarjetas */
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-left: 4px solid #FF8C00; /* Borde naranja */
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .noticia:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(255, 140, 0, 0.3); /* Sombra naranja */
-        }
-        .noticia img {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        .noticia h2 {
-            color: #FF8C00; /* Naranja */
-            margin: 10px 0;
-            font-size: 1.8em;
-            cursor: pointer;
-        }
-        .noticia h2:hover {
-            text-decoration: underline;
-        }
-        .noticia p {
-            color: #ddd;
-            margin: 10px 0;
-        }
-        .noticia .meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 20px;
-            color: #888;
-            font-size: 0.9em;
-            margin-top: 15px;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-        }
-        .noticia .seccion {
-            background: #FF8C00; /* Naranja */
-            color: black;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-        a {
-            text-decoration: none;
-            color: inherit;
-        }
-        @media (max-width: 600px) {
-            h1 { font-size: 2em; }
-            .noticia h2 { font-size: 1.5em; }
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0b0b0b; color:#fff; font-family:'Segoe UI',sans-serif; line-height:1.6; padding:20px; }
+        .container { max-width:900px; margin:0 auto; }
+        header { text-align:center; margin-bottom:30px; padding-bottom:20px; border-bottom:3px solid #FF8C00; }
+        h1 { color:#FF8C00; font-size:2.5em; font-weight:bold; }
+        .loading, .error, .empty { text-align:center; padding:50px; color:#aaa; }
+        .noticia { background:#1a1a1a; border-radius:12px; padding:20px; margin-bottom:30px; border-left:4px solid #FF8C00; transition:0.2s; }
+        .noticia:hover { transform:translateY(-4px); box-shadow:0 10px 20px rgba(255,140,0,0.3); }
+        .noticia img { width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-bottom:15px; }
+        .noticia h2 { color:#FF8C00; margin:10px 0; font-size:1.8em; cursor:pointer; }
+        .noticia h2:hover { text-decoration:underline; }
+        .noticia p { color:#ddd; margin:10px 0; }
+        .noticia .meta { display:flex; flex-wrap:wrap; gap:10px 20px; color:#888; font-size:0.9em; margin-top:15px; border-top:1px solid #333; padding-top:10px; }
+        .noticia .seccion { background:#FF8C00; color:black; padding:4px 12px; border-radius:20px; font-weight:bold; }
+        a { text-decoration:none; color:inherit; }
+        @media (max-width:600px) { h1 { font-size:2em; } .noticia h2 { font-size:1.5em; } }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🏮 EL FAROL AL DÍA</h1>
-        </header>
-        <div id="noticias-container">
-            <div class="loading">Cargando primicias...</div>
-        </div>
+        <header><h1>🏮 EL FAROL AL DÍA</h1></header>
+        <div id="noticias-container"><div class="loading">Cargando primicias...</div></div>
     </div>
 
     <script>
         const container = document.getElementById('noticias-container');
-
         async function cargarNoticias() {
             try {
                 const res = await fetch('/api/noticias');
                 if (!res.ok) throw new Error('Error en la respuesta');
                 const data = await res.json();
-                
                 if (!data.success || !data.noticias || data.noticias.length === 0) {
                     container.innerHTML = '<div class="empty">📭 No hay noticias aún. ¡Vuelve pronto!</div>';
                     return;
                 }
-
-                const noticias = data.noticias;
-                container.innerHTML = noticias.map(n => `
+                container.innerHTML = data.noticias.map(n => `
                     <div class="noticia">
-                        <img src="${n.imagen || 'https://via.placeholder.com/800x400?text=El+Farol+al+Día'}" alt="Imagen de la noticia" loading="lazy">
+                        <img src="${n.imagen || 'https://via.placeholder.com/800x400?text=El+Farol+al+Día'}" alt="Imagen" loading="lazy">
                         <h2 onclick="window.location.href='/noticia/${n._id}'">${n.titulo}</h2>
-                        <p>${n.contenido.substring(0, 200)}...</p>
+                        <p>${n.contenido.substring(0,200)}...</p>
                         <div class="meta">
                             <span class="seccion">${n.seccion || 'General'}</span>
                             <span>📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</span>
@@ -137,11 +58,9 @@
                     </div>
                 `).join('');
             } catch (error) {
-                console.error(error);
-                container.innerHTML = '<div class="error">❌ Error al cargar el búnker. Intenta de nuevo más tarde.</div>';
+                container.innerHTML = '<div class="error">❌ Error al cargar el búnker.</div>';
             }
         }
-
         cargarNoticias();
     </script>
 </body>
