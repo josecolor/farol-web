@@ -17,7 +17,10 @@
         .file-area:hover { background:#2a2a2a; }
         .file-area span { display:block; font-size:1.2em; color:#FF8C00; margin-bottom:10px; }
         .file-area small { color:#888; }
-        #preview { width:100%; max-height:300px; object-fit:cover; border-radius:12px; margin-top:15px; display:none; border:2px solid #FF8C00; }
+        #preview, #fotoRedactorPreview { width:100%; max-height:300px; object-fit:cover; border-radius:12px; margin-top:15px; display:none; border:2px solid #FF8C00; }
+        .foto-redactor-area { display:flex; align-items:center; gap:15px; margin:15px 0; }
+        .foto-redactor-preview { width:70px; height:70px; border-radius:50%; object-fit:cover; border:3px solid #FF8C00; display:none; }
+        .foto-redactor-placeholder { width:70px; height:70px; border-radius:50%; background:#222; border:3px dashed #FF8C00; display:flex; align-items:center; justify-content:center; color:#FF8C00; cursor:pointer; }
         .pin-input { background:#222; border:2px solid #FF8C00; color:white; font-size:1.5em; letter-spacing:4px; text-align:center; }
         button { width:100%; padding:18px; background:linear-gradient(145deg, #FF8C00, #ffaa33); color:black; border:none; border-radius:40px; font-size:1.3em; font-weight:bold; margin:10px 0; cursor:pointer; transition:0.2s; text-transform:uppercase; letter-spacing:1px; }
         button:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(255,140,0,0.6); }
@@ -53,7 +56,7 @@
             <label>✍️ Contenido</label>
             <textarea id="contenido" placeholder="Escribe la noticia aquí..." required maxlength="5000"></textarea>
 
-            <label>🎬 Imagen (opcional)</label>
+            <label>🎬 Imagen de la noticia (opcional)</label>
             <div class="file-area" id="fileArea">
                 <span>📸 + 🎥</span>
                 <small>Toca para elegir una imagen o video (MP4)</small>
@@ -62,8 +65,21 @@
             <img id="preview" src="#" alt="Vista previa">
             <div id="fileInfo" class="info"></div>
 
-            <input type="hidden" id="redactor" value="mxl">
-            <input type="hidden" id="ubicacion" value="">
+            <hr style="border-color:#FF8C00;">
+            <h2 style="color:#FF8C00;">👤 Datos del periodista</h2>
+
+            <label>Nombre del redactor</label>
+            <input type="text" id="redactor" value="mxl" placeholder="Ej: José Gregorio">
+
+            <label>Foto del periodista (opcional)</label>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img id="fotoRedactorPreview" class="foto-redactor-preview" src="#" alt="Foto periodista">
+                <div id="fotoRedactorPlaceholder" class="foto-redactor-placeholder" onclick="document.getElementById('fotoRedactorInput').click()">
+                    📸
+                </div>
+                <input type="file" id="fotoRedactorInput" accept="image/*" style="display: none;">
+                <div class="info" id="fotoRedactorInfo">Toca para añadir foto</div>
+            </div>
 
             <hr style="border-color:#FF8C00;">
             <h2 style="color:#FF8C00;">🔍 SEO de la noticia (opcional)</h2>
@@ -103,10 +119,15 @@
         const fileInput = document.getElementById('multimedia');
         const preview = document.getElementById('preview');
         const fileInfo = document.getElementById('fileInfo');
+        const fotoInput = document.getElementById('fotoRedactorInput');
+        const fotoPreview = document.getElementById('fotoRedactorPreview');
+        const fotoPlaceholder = document.getElementById('fotoRedactorPlaceholder');
+        const fotoInfo = document.getElementById('fotoRedactorInfo');
 
         let imagenBase64 = "";
+        let fotoRedactorBase64 = "";
 
-        // Subida de archivo
+        // Subida de archivo (imagen de la noticia)
         fileArea.addEventListener('click', () => fileInput.click());
 
         fileInput.addEventListener('change', async (e) => {
@@ -125,7 +146,7 @@
                 reader.readAsDataURL(file);
             } else {
                 try {
-                    imagenBase64 = await comprimirImagen(file);
+                    imagenBase64 = await comprimirImagen(file, 720);
                     preview.src = imagenBase64;
                     preview.style.display = 'block';
                     fileInfo.textContent = `✅ Imagen lista (${(imagenBase64.length / (1024*1024)).toFixed(2)} MB)`;
@@ -135,7 +156,25 @@
             }
         });
 
-        function comprimirImagen(file) {
+        // Subida de foto del periodista
+        fotoInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            fotoInfo.textContent = '⏳ Comprimiendo...';
+            try {
+                fotoRedactorBase64 = await comprimirImagen(file, 150); // Tamaño pequeño para foto de perfil
+                fotoPreview.src = fotoRedactorBase64;
+                fotoPreview.style.display = 'block';
+                fotoPlaceholder.style.display = 'none';
+                fotoInfo.textContent = '✅ Foto lista';
+            } catch (err) {
+                fotoInfo.textContent = '❌ Error al comprimir la foto';
+            }
+        });
+
+        // Función de compresión de imagen (reutilizable)
+        function comprimirImagen(file, maxWidth) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -144,9 +183,9 @@
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        if (width > 720) {
-                            height = (height * 720) / width;
-                            width = 720;
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
                         }
                         canvas.width = width;
                         canvas.height = height;
@@ -170,6 +209,7 @@
             const titulo = document.getElementById('titulo').value.trim();
             const seccion = document.getElementById('seccion').value;
             const contenido = document.getElementById('contenido').value.trim();
+            const redactor = document.getElementById('redactor').value.trim() || 'mxl';
             const pin = document.getElementById('pin').value.trim();
 
             if (!titulo || !seccion || !contenido) {
@@ -190,8 +230,8 @@
                 seccion,
                 contenido,
                 ubicacion: '',
-                redactor: 'mxl',
-                redactorFoto: null,
+                redactor,
+                redactorFoto: fotoRedactorBase64 || null,
                 imagen: imagenBase64 || null,
                 seoTitle: document.getElementById('seoTitle').value.trim() || undefined,
                 seoDesc: document.getElementById('seoDesc').value.trim() || undefined,
@@ -209,8 +249,12 @@
                     mostrarAlerta('✅ ¡Noticia publicada con éxito!', 'success');
                     form.reset();
                     preview.style.display = 'none';
+                    fotoPreview.style.display = 'none';
+                    fotoPlaceholder.style.display = 'flex';
                     imagenBase64 = '';
+                    fotoRedactorBase64 = '';
                     fileInfo.textContent = '';
+                    fotoInfo.textContent = 'Toca para añadir foto';
                     setTimeout(() => window.location.href = '/', 2000);
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error');
