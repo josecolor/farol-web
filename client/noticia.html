@@ -6,85 +6,32 @@
     <title>Noticia | El Farol al Día</title>
     <!-- Marcador para Google Search Console -->
     <!-- META_GOOGLE_VERIFICATION -->
+    <!-- Marcadores SEO -->
+    <!-- SEO_TITLE -->
+    <!-- SEO_DESCRIPTION -->
+    <!-- SEO_KEYWORDS -->
+    <!-- Open Graph -->
+    <!-- OG_TITLE -->
+    <!-- OG_DESCRIPTION -->
+    <!-- OG_IMAGE -->
+    <!-- OG_URL -->
+    <!-- Marcador para Google Analytics -->
+    <!-- GOOGLE_ANALYTICS -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #000;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 30px;
-            border-left: 4px solid #6200ea;
-            box-shadow: 0 10px 30px rgba(98, 0, 234, 0.2);
-        }
-        h1 {
-            color: #bb86fc;
-            font-size: 2.2em;
-            margin-bottom: 15px;
-        }
-        .fecha {
-            color: #888;
-            font-size: 0.9em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
-        }
-        .imagen {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            border-radius: 12px;
-            margin: 20px 0;
-            border: 2px solid #6200ea;
-        }
-        .contenido {
-            font-size: 1.2em;
-            line-height: 1.8;
-            color: #eee;
-            white-space: pre-wrap;
-        }
-        .volver {
-            display: inline-block;
-            margin-top: 30px;
-            padding: 12px 24px;
-            background: linear-gradient(145deg, #6200ea, #bb86fc);
-            color: white;
-            text-decoration: none;
-            border-radius: 40px;
-            font-weight: bold;
-            transition: transform 0.2s;
-        }
-        .volver:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(98, 0, 234, 0.6);
-        }
-        .loading, .error {
-            text-align: center;
-            padding: 50px;
-            color: #aaa;
-        }
-        @media (max-width: 600px) {
-            .container { padding: 20px; }
-            h1 { font-size: 1.8em; }
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0b0b0b; color:#fff; font-family:'Segoe UI',sans-serif; line-height:1.6; padding:20px; }
+        .container { max-width:800px; margin:0 auto; background:#1a1a1a; border-radius:16px; padding:30px; border-left:4px solid #FF8C00; box-shadow:0 10px 30px rgba(255,140,0,0.2); }
+        h1 { color:#FF8C00; font-size:2.2em; margin-bottom:15px; }
+        .fecha { color:#888; font-size:0.9em; margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid #333; }
+        .imagen { width:100%; max-height:400px; object-fit:cover; border-radius:12px; margin:20px 0; border:2px solid #FF8C00; }
+        .contenido { font-size:1.2em; line-height:1.8; color:#eee; white-space:pre-wrap; }
+        .volver { display:inline-block; margin-top:30px; padding:12px 24px; background:#FF8C00; color:black; text-decoration:none; border-radius:40px; font-weight:bold; transition:0.2s; }
+        .volver:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(255,140,0,0.6); }
+        .loading, .error { text-align:center; padding:50px; color:#aaa; }
     </style>
 </head>
 <body>
-    <div class="container" id="noticia-container">
-        <div class="loading">Cargando noticia...</div>
-    </div>
-
+    <div class="container" id="noticia-container"><div class="loading">Cargando noticia...</div></div>
     <script>
         const container = document.getElementById('noticia-container');
         const id = window.location.pathname.split('/').pop();
@@ -93,41 +40,31 @@
             try {
                 const res = await fetch(`/api/noticias/${id}`);
                 const data = await res.json();
-                
                 if (!data.success || !data.noticia) {
                     container.innerHTML = '<div class="error">❌ Noticia no encontrada</div>';
                     return;
                 }
-
                 const n = data.noticia;
-                const fecha = new Date(n.fecha).toLocaleDateString('es-DO', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                let imagenHtml = '';
+                const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+                let mediaHtml = '';
                 if (n.imagen) {
                     if (n.imagen.startsWith('data:video')) {
-                        imagenHtml = `<video class="imagen" src="${n.imagen}" controls></video>`;
+                        mediaHtml = `<video class="imagen" src="${n.imagen}" controls></video>`;
                     } else {
-                        imagenHtml = `<img class="imagen" src="${n.imagen}" alt="${n.titulo}">`;
+                        mediaHtml = `<img class="imagen" src="${n.imagen}" alt="${n.titulo}">`;
                     }
                 }
-
                 container.innerHTML = `
                     <h1>${n.titulo}</h1>
                     <div class="fecha">${fecha} · ${n.seccion || 'General'}</div>
-                    ${imagenHtml}
-                    <div class="contenido">${n.contenido.replace(/\n/g, '<br>')}</div>
+                    ${mediaHtml}
+                    <div class="contenido">${n.contenido.replace(/\n/g,'<br>')}</div>
                     <a href="/" class="volver">← Volver a portada</a>
                 `;
             } catch (error) {
                 container.innerHTML = '<div class="error">❌ Error al cargar la noticia</div>';
             }
         }
-
         cargarNoticia();
     </script>
 </body>
