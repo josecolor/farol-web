@@ -4,30 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Noticia | El Farol al Día</title>
-    <!-- Marcador para Google Search Console -->
+    <!-- Marcadores SEO y Analytics -->
     <!-- META_GOOGLE_VERIFICATION -->
-    <!-- Marcadores SEO -->
     <!-- SEO_TITLE -->
     <!-- SEO_DESCRIPTION -->
     <!-- SEO_KEYWORDS -->
-    <!-- Open Graph -->
     <!-- OG_TITLE -->
     <!-- OG_DESCRIPTION -->
     <!-- OG_IMAGE -->
     <!-- OG_URL -->
-    <!-- Marcador para Google Analytics -->
     <!-- GOOGLE_ANALYTICS -->
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:#0b0b0b; color:#fff; font-family:'Segoe UI',sans-serif; line-height:1.6; padding:20px; }
         .container { max-width:800px; margin:0 auto; background:#1a1a1a; border-radius:16px; padding:30px; border-left:4px solid #FF8C00; box-shadow:0 10px 30px rgba(255,140,0,0.2); }
         h1 { color:#FF8C00; font-size:2.2em; margin-bottom:15px; }
-        .fecha { color:#888; font-size:0.9em; margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid #333; }
+        .fecha { color:#888; font-size:0.9em; margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid #333; display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; }
         .imagen { width:100%; max-height:400px; object-fit:cover; border-radius:12px; margin:20px 0; border:2px solid #FF8C00; }
         .contenido { font-size:1.2em; line-height:1.8; color:#eee; white-space:pre-wrap; }
         .volver { display:inline-block; margin-top:30px; padding:12px 24px; background:#FF8C00; color:black; text-decoration:none; border-radius:40px; font-weight:bold; transition:0.2s; }
         .volver:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(255,140,0,0.6); }
         .loading, .error { text-align:center; padding:50px; color:#aaa; }
+        .redactor-info { display:inline-flex; align-items:center; gap:8px; }
+        .redactor-foto-mini { width:35px; height:35px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; }
     </style>
 </head>
 <body>
@@ -54,9 +53,19 @@
                         mediaHtml = `<img class="imagen" src="${n.imagen}" alt="${n.titulo}">`;
                     }
                 }
+                const redactorFoto = n.redactorFoto ? `<img src="${n.redactorFoto}" class="redactor-foto-mini">` : '';
                 container.innerHTML = `
                     <h1>${n.titulo}</h1>
-                    <div class="fecha">${fecha} · ${n.seccion || 'General'}</div>
+                    <div class="fecha">
+                        <span>📅 ${fecha}</span>
+                        <span>📰 ${n.seccion || 'General'}</span>
+                        <span>📍 ${n.ubicacion || 'Santo Domingo'}</span>
+                        <span class="redactor-info">
+                            ${redactorFoto}
+                            👤 ${n.redactor || 'Redacción'}
+                        </span>
+                        <span>👁️ ${n.vistas || 0}</span>
+                    </div>
                     ${mediaHtml}
                     <div class="contenido">${n.contenido.replace(/\n/g,'<br>')}</div>
                     <a href="/" class="volver">← Volver a portada</a>
