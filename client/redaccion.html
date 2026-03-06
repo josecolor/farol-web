@@ -4,166 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción | El Farol al Día</title>
-    <!-- Marcador para Google Search Console (opcional aquí, pero por si acaso) -->
-    <!-- META_GOOGLE_VERIFICATION -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0b0b0b; /* Fondo negro */
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #1a1a1a; /* Gris oscuro para el contenedor */
-            border-radius: 16px;
-            padding: 30px;
-            border-left: 4px solid #FF8C00; /* Borde naranja */
-            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2); /* Sombra naranja */
-        }
-        h1 {
-            color: #FF8C00; /* Naranja */
-            margin-bottom: 20px;
-            font-size: 2.2em;
-            text-align: center;
-        }
-        label {
-            display: block;
-            margin: 20px 0 8px;
-            color: #FF8C00; /* Naranja */
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 14px 16px;
-            border-radius: 12px;
-            border: 2px solid #333;
-            background: #222;
-            color: white;
-            font-size: 1em;
-            transition: all 0.3s;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #FF8C00; /* Naranja al enfocar */
-            background: #2a2a2a;
-        }
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-        .file-area {
-            border: 2px dashed #FF8C00; /* Borde naranja */
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            background: #222;
-            margin: 15px 0;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .file-area:hover {
-            background: #2a2a2a;
-        }
-        .file-area span {
-            display: block;
-            font-size: 1.2em;
-            color: #FF8C00; /* Naranja */
-            margin-bottom: 10px;
-        }
-        .file-area small {
-            color: #888;
-        }
-        #preview {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
-            border-radius: 12px;
-            margin-top: 15px;
-            display: none;
-            border: 2px solid #FF8C00; /* Borde naranja */
-        }
-        .pin-input {
-            background: #222;
-            border: 2px solid #FF8C00; /* Borde naranja */
-            color: white;
-            font-size: 1.5em;
-            letter-spacing: 4px;
-            text-align: center;
-        }
-        button {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(145deg, #FF8C00, #ffaa33); /* Degradado naranja */
-            color: black; /* Texto negro para contraste */
-            border: none;
-            border-radius: 40px;
-            font-size: 1.3em;
-            font-weight: bold;
-            margin: 25px 0 10px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6); /* Sombra naranja */
-        }
-        button:disabled {
-            opacity: 0.6;
-            transform: none;
-        }
-        .alert {
-            padding: 15px;
-            border-radius: 40px;
-            margin: 20px 0;
-            text-align: center;
-            font-weight: bold;
-            display: none;
-        }
-        .alert.success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px solid #4CAF50;
-            color: #4CAF50;
-        }
-        .alert.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 2px solid #f44336;
-            color: #ff6b6b;
-        }
-        .info {
-            color: #888;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-        hr {
-            border: 1px solid #333;
-            margin: 30px 0;
-        }
-        @media (max-width: 600px) {
-            .container { padding: 20px; }
-            h1 { font-size: 1.8em; }
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:#0b0b0b; color:#fff; font-family:'Segoe UI',sans-serif; line-height:1.6; padding:20px; }
+        .container { max-width:800px; margin:0 auto; background:#1a1a1a; border-radius:16px; padding:30px; border-left:4px solid #FF8C00; box-shadow:0 10px 30px rgba(255,140,0,0.2); }
+        h1 { color:#FF8C00; margin-bottom:20px; font-size:2.2em; text-align:center; }
+        label { display:block; margin:20px 0 8px; color:#FF8C00; font-weight:bold; font-size:1.1em; }
+        input, select, textarea { width:100%; padding:14px 16px; border-radius:12px; border:2px solid #333; background:#222; color:white; font-size:1em; transition:all 0.3s; }
+        input:focus, select:focus, textarea:focus { outline:none; border-color:#FF8C00; background:#2a2a2a; }
+        textarea { min-height:150px; resize:vertical; }
+        .file-area { border:2px dashed #FF8C00; border-radius:12px; padding:30px; text-align:center; background:#222; margin:15px 0; cursor:pointer; transition:background 0.3s; }
+        .file-area:hover { background:#2a2a2a; }
+        .file-area span { display:block; font-size:1.2em; color:#FF8C00; margin-bottom:10px; }
+        .file-area small { color:#888; }
+        #preview { width:100%; max-height:300px; object-fit:cover; border-radius:12px; margin-top:15px; display:none; border:2px solid #FF8C00; }
+        .pin-input { background:#222; border:2px solid #FF8C00; color:white; font-size:1.5em; letter-spacing:4px; text-align:center; }
+        button { width:100%; padding:18px; background:linear-gradient(145deg, #FF8C00, #ffaa33); color:black; border:none; border-radius:40px; font-size:1.3em; font-weight:bold; margin:10px 0; cursor:pointer; transition:0.2s; text-transform:uppercase; letter-spacing:1px; }
+        button:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(255,140,0,0.6); }
+        button:disabled { opacity:0.6; transform:none; }
+        .alert { padding:15px; border-radius:40px; margin:20px 0; text-align:center; font-weight:bold; display:none; }
+        .alert.success { background:rgba(76,175,80,0.2); border:2px solid #4CAF50; color:#4CAF50; }
+        .alert.error { background:rgba(244,67,54,0.2); border:2px solid #f44336; color:#ff6b6b; }
+        .info { color:#888; font-size:0.9em; margin-top:5px; }
+        hr { border:1px solid #333; margin:30px 0; }
+        .stats { background:#222; padding:15px; border-radius:12px; margin-bottom:20px; }
+        @media (max-width:600px) { .container { padding:20px; } h1 { font-size:1.8em; } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🏮 Redacción del Búnker</h1>
-
-        <!-- Área de alertas -->
         <div id="alert" class="alert"></div>
 
         <form id="formulario">
-            <!-- Sección -->
             <label>📰 Sección</label>
             <select id="seccion" required>
                 <option value="">-- Selecciona una sección --</option>
@@ -174,15 +47,12 @@
                 <option value="Economía">💼 Economía</option>
             </select>
 
-            <!-- Título -->
             <label>📝 Título</label>
             <input type="text" id="titulo" placeholder="Ej: ¡Fuego en el terreno de juego!" required maxlength="200">
 
-            <!-- Contenido -->
             <label>✍️ Contenido</label>
             <textarea id="contenido" placeholder="Escribe la noticia aquí..." required maxlength="5000"></textarea>
 
-            <!-- Imagen (subida) -->
             <label>🎬 Imagen (opcional)</label>
             <div class="file-area" id="fileArea">
                 <span>📸 + 🎥</span>
@@ -192,22 +62,36 @@
             <img id="preview" src="#" alt="Vista previa">
             <div id="fileInfo" class="info"></div>
 
-            <!-- Redactor (oculto, por defecto "mxl") -->
             <input type="hidden" id="redactor" value="mxl">
-
-            <!-- Ubicación (oculta, opcional) -->
             <input type="hidden" id="ubicacion" value="">
 
-            <!-- PIN -->
+            <hr style="border-color:#FF8C00;">
+            <h2 style="color:#FF8C00;">🔍 SEO de la noticia (opcional)</h2>
+
+            <label>📌 Título para SEO</label>
+            <input type="text" id="seoTitle" placeholder="Si lo dejas vacío, se usará el título normal">
+
+            <label>📝 Descripción para SEO</label>
+            <textarea id="seoDesc" placeholder="Máximo 160 caracteres. Si se deja vacío, se usará el inicio del contenido" maxlength="160"></textarea>
+
+            <label>🏷️ Palabras clave (separadas por comas)</label>
+            <input type="text" id="seoKeywords" placeholder="ej: accidente, tránsito, santo domingo">
+
+            <hr style="border-color:#FF8C00;">
+            <h2 style="color:#FF8C00;">📊 Google Analytics</h2>
+            <label>ID de Analytics (ej: G-XXXXXXXX)</label>
+            <input type="text" id="analyticsId" placeholder="G-XXXXXXXX" value="">
+            <button type="button" id="btnGuardarAnalytics" style="background:#FF8C00; color:black;">Guardar Analytics</button>
+
+            <hr style="border-color:#FF8C00;">
+            <h2 style="color:#FF8C00;">📈 Estadísticas rápidas</h2>
+            <div id="stats" class="stats">Cargando...</div>
+
             <label>🔐 PIN</label>
             <input type="password" id="pin" class="pin-input" placeholder="311" maxlength="6" required>
 
-            <!-- Botón de publicar -->
             <button type="submit" id="btnPublicar">🚀 PUBLICAR AHORA</button>
         </form>
-
-        <hr>
-        <p style="text-align: center; color: #888;">El contenido multimedia se comprime automáticamente</p>
     </div>
 
     <script>
@@ -230,9 +114,7 @@
             if (!file) return;
 
             fileInfo.textContent = '⏳ Comprimiendo...';
-            
             if (file.type.startsWith('video/')) {
-                // Para video, simplemente leer como base64 (sin compresión por ahora)
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     imagenBase64 = e.target.result;
@@ -242,7 +124,6 @@
                 };
                 reader.readAsDataURL(file);
             } else {
-                // Para imagen, comprimir a WebP 720p
                 try {
                     imagenBase64 = await comprimirImagen(file);
                     preview.src = imagenBase64;
@@ -254,7 +135,6 @@
             }
         });
 
-        // Función de compresión de imagen (misma que antes)
         function comprimirImagen(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -264,19 +144,13 @@
                         const canvas = document.createElement('canvas');
                         let width = img.width;
                         let height = img.height;
-                        
-                        // Reducir a máximo 720px de ancho
                         if (width > 720) {
                             height = (height * 720) / width;
                             width = 720;
                         }
-                        
                         canvas.width = width;
                         canvas.height = height;
-                        
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                         canvas.toBlob((blob) => {
                             const reader2 = new FileReader();
                             reader2.onload = () => resolve(reader2.result);
@@ -293,13 +167,11 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Obtener valores
             const titulo = document.getElementById('titulo').value.trim();
             const seccion = document.getElementById('seccion').value;
             const contenido = document.getElementById('contenido').value.trim();
             const pin = document.getElementById('pin').value.trim();
 
-            // Validaciones básicas
             if (!titulo || !seccion || !contenido) {
                 mostrarAlerta('❌ Faltan campos obligatorios', 'error');
                 return;
@@ -309,20 +181,21 @@
                 return;
             }
 
-            // Deshabilitar botón
             btn.disabled = true;
             btn.textContent = '⏳ PUBLICANDO...';
 
-            // Preparar datos
             const noticia = {
                 pin,
                 titulo,
                 seccion,
                 contenido,
-                ubicacion: '', // opcional
+                ubicacion: '',
                 redactor: 'mxl',
-                redactorFoto: null, // sin foto de periodista
-                imagen: imagenBase64 || null
+                redactorFoto: null,
+                imagen: imagenBase64 || null,
+                seoTitle: document.getElementById('seoTitle').value.trim() || undefined,
+                seoDesc: document.getElementById('seoDesc').value.trim() || undefined,
+                seoKeywords: document.getElementById('seoKeywords').value.trim() || undefined
             };
 
             try {
@@ -331,19 +204,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(noticia)
                 });
-
                 const data = await res.json();
-
                 if (data.success) {
                     mostrarAlerta('✅ ¡Noticia publicada con éxito!', 'success');
-                    // Limpiar formulario
                     form.reset();
                     preview.style.display = 'none';
                     imagenBase64 = '';
                     fileInfo.textContent = '';
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 2000);
+                    setTimeout(() => window.location.href = '/', 2000);
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error');
                 }
@@ -355,15 +223,61 @@
             }
         });
 
-        // Función para mostrar alertas
         function mostrarAlerta(mensaje, tipo) {
             alertDiv.textContent = mensaje;
             alertDiv.className = `alert ${tipo}`;
             alertDiv.style.display = 'block';
-            setTimeout(() => {
-                alertDiv.style.display = 'none';
-            }, 4000);
+            setTimeout(() => alertDiv.style.display = 'none', 4000);
         }
+
+        // Analytics
+        async function cargarAnalytics() {
+            const res = await fetch('/api/configuracion');
+            const data = await res.json();
+            if (data.success && data.config.googleAnalytics) {
+                document.getElementById('analyticsId').value = data.config.googleAnalytics;
+            }
+        }
+        cargarAnalytics();
+
+        document.getElementById('btnGuardarAnalytics').addEventListener('click', async () => {
+            const pin = document.getElementById('pin').value.trim();
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error');
+                return;
+            }
+            const googleAnalytics = document.getElementById('analyticsId').value;
+            const res = await fetch('/api/configuracion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin, googleAnalytics })
+            });
+            const data = await res.json();
+            if (data.success) {
+                mostrarAlerta('✅ Analytics guardado', 'success');
+            } else {
+                mostrarAlerta('❌ Error: ' + data.error, 'error');
+            }
+        });
+
+        // Estadísticas
+        async function cargarEstadisticas() {
+            try {
+                const res = await fetch('/api/estadisticas');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('stats').innerHTML = `
+                        <p>📰 Noticias publicadas: <strong>${data.totalNoticias}</strong></p>
+                        <p>👁️ Vistas totales: <strong>${data.totalVistas}</strong></p>
+                    `;
+                } else {
+                    document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
+                }
+            } catch (e) {
+                document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
+            }
+        }
+        cargarEstadisticas();
     </script>
 </body>
 </html>
