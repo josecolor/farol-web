@@ -239,9 +239,9 @@
     <script>
         let menuAbiertoId = null;
         
-        // ==================== CARGAR NOTICIAS ====================
+        // ==================== CARGAR NOTICIAS (CORREGIDO: USANDO API) ====================
         async function cargarTodas() {
-            const res = await fetch('/noticias?limit=30');
+            const res = await fetch('/api/noticias?limit=30');
             const data = await res.json();
             mostrarNoticias(data.noticias);
         }
@@ -249,7 +249,7 @@
         async function cargarSeccion(seccion) {
             document.querySelectorAll('.seccion-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
-            const res = await fetch(`/seccion/${seccion}`);
+            const res = await fetch(`/api/seccion/${seccion}`);
             const data = await res.json();
             mostrarNoticias(data.noticias);
         }
@@ -379,6 +379,7 @@
             lastTap = now;
         });
         
+        // Cargar todas las noticias al inicio
         cargarTodas();
     </script>
 </body>
