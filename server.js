@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA - BÚNKER PRO 2.0 (FINAL)
+ * 🏮 EL FAROL AL DÍA - BÚNKER PRO 2.0 (FINAL CORREGIDO)
  * Servidor optimizado para móviles y despliegue en Railway
  */
 
@@ -11,12 +11,12 @@ const path = require('path');
 const app = express();
 
 // ==================== CONFIGURACIÓN DE PODER ====================
-// Permitimos 50MB para que tus videos y fotos suban sin problemas
 app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
-// Servir archivos de la carpeta 'client'
+// 1. SERVIR ARCHIVOS ESTÁTICOS
+// Esto asegura que carguen el CSS y las imágenes
 app.use(express.static(path.join(__dirname, 'client')));
 
 // ==================== CONEXIÓN AL BÚNKER (MongoDB) ====================
@@ -45,31 +45,30 @@ const noticiaSchema = new mongoose.Schema({
 
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 
-// ==================== RUTAS DE NAVEGACIÓN (PÁGINAS) ====================
+// ==================== RUTAS DE NAVEGACIÓN (BLINDADAS) ====================
 
-// 1. Portada
+// PORTADA (Si entras a elfarolaldia.com o elfarolaldia.com/ carga esto)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
-// 2. Redacción (Limpiamos cualquier carácter basura del celular con '*')
+// REDACCIÓN
 app.get('/redaccion*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
-// 3. Noticia Individual
+// NOTICIA INDIVIDUAL
 app.get('/noticia/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'noticia.html'));
 });
 
-// 4. Ajustes (También blindado contra caracteres extraños)
+// AJUSTES
 app.get('/ajustes*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'ajustes.html'));
 });
 
 // ==================== RUTAS DE LA API (DATOS) ====================
 
-// Obtener todas las noticias
 app.get('/noticias', async (req, res) => {
     try {
         const noticias = await Noticia.find().sort({ fecha: -1 }).limit(30);
@@ -79,38 +78,27 @@ app.get('/noticias', async (req, res) => {
     }
 });
 
-// Publicar noticia desde la redacción (PIN 311 obligatorio)
 app.post('/publicar', async (req, res) => {
     try {
         const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen } = req.body;
+        if (pin !== "311") return res.status(403).json({ success: false, error: 'PIN INCORRECTO' });
         
-        if (pin !== "311") {
-            return res.status(403).json({ success: false, error: 'PIN INCORRECTO' });
-        }
-
-        const nuevaNoticia = new Noticia({
-            titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen
-        });
-
+        const nuevaNoticia = new Noticia({ titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen });
         await nuevaNoticia.save();
-        console.log('📰 Nueva noticia publicada:', titulo);
-        res.status(201).json({ success: true, message: '¡Publicado con éxito en El Farol! 🏮' });
+        res.status(201).json({ success: true, message: '¡Publicado con éxito! 🏮' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// ==================== MANEJO DE ERRORES (EL ARREGLO DE LA PORTADA) ====================
+// Si alguna ruta falla, lo mandamos a la portada en lugar de mostrar error JSON
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'index.html'));
+});
+
 // ==================== INICIAR EL FAROL ====================
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-    console.log(`
-    ╔════════════════════════════════════════╗
-    ║   🏮 EL FAROL AL DÍA - ACTIVO         ║
-    ╠════════════════════════════════════════╣
-    ║ ✅ Servidor en puerto: ${PORT}           ║
-    ║ 🟢 Base de Datos: CONECTADA            ║
-    ║ 🔐 Seguridad PIN 311: ACTIVA           ║
-    ║ 🚀 Blindaje de Rutas: ACTIVADO         ║
-    ╚════════════════════════════════════════╝
-    `);
+    console.log(`🚀 El Farol encendido en puerto ${PORT}`);
 });
