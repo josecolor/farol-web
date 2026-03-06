@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title id="page-title">El Farol al Día 🏮</title>
+    <!-- Metaetiqueta para Google Search Console (se inyectará dinámicamente) -->
+    <meta name="google-site-verification" id="google-verification" content="">
+    <!-- Open Graph / Twitter (se actualizan con JS) -->
     <meta property="og:title" id="og-title" content="">
     <meta property="og:description" id="og-description" content="">
     <meta property="og:image" id="og-image" content="">
@@ -63,22 +66,81 @@
 
     <script>
         let noticiaActual = null;
-        function getNoticiaId() { return window.location.pathname.split('/').pop(); }
+        let configuracion = {};
 
-        function cerrarMenu() { 
-            document.getElementById('shareMenu').classList.remove('active'); 
-            document.getElementById('menuOverlay').classList.remove('active'); 
+        // Obtener ID de la noticia desde la URL
+        function getNoticiaId() {
+            return window.location.pathname.split('/').pop();
         }
-        function abrirMenu() { 
-            document.getElementById('shareMenu').classList.add('active'); 
-            document.getElementById('menuOverlay').classList.add('active'); 
-        }
-        function compartirWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
-        function compartirFacebook() { window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
-        function compartirTwitter() { window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
-        function compartirTelegram() { window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`,'_blank'); cerrarMenu(); }
-        function copiarLink() { navigator.clipboard.writeText(window.location.href).then(()=>alert('✅ Link copiado')).catch(()=>prompt('📋 Copia:',window.location.href)); cerrarMenu(); }
 
+        // Cargar configuración del sitio (Google Analytics, Search Console, etc.)
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/configuracion');
+                const data = await res.json();
+                if (data.success) {
+                    configuracion = data.config;
+
+                    // Google Search Console
+                    if (configuracion.googleVerification) {
+                        document.getElementById('google-verification').content = configuracion.googleVerification;
+                    }
+
+                    // Google Analytics
+                    if (configuracion.googleAnalytics) {
+                        const script1 = document.createElement('script');
+                        script1.async = true;
+                        script1.src = `https://www.googletagmanager.com/gtag/js?id=${configuracion.googleAnalytics}`;
+                        document.head.appendChild(script1);
+
+                        const script2 = document.createElement('script');
+                        script2.innerHTML = `
+                            window.dataLayer = window.dataLayer || [];
+                            function gtag(){dataLayer.push(arguments);}
+                            gtag('js', new Date());
+                            gtag('config', '${configuracion.googleAnalytics}');
+                        `;
+                        document.head.appendChild(script2);
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+
+        // Funciones del menú de compartir
+        function cerrarMenu() {
+            document.getElementById('shareMenu').classList.remove('active');
+            document.getElementById('menuOverlay').classList.remove('active');
+        }
+        function abrirMenu() {
+            document.getElementById('shareMenu').classList.add('active');
+            document.getElementById('menuOverlay').classList.add('active');
+        }
+        function compartirWhatsApp() {
+            window.open(`https://wa.me/?text=${encodeURIComponent(window.location.href)}`, '_blank');
+            cerrarMenu();
+        }
+        function compartirFacebook() {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+            cerrarMenu();
+        }
+        function compartirTwitter() {
+            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}`, '_blank');
+            cerrarMenu();
+        }
+        function compartirTelegram() {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}`, '_blank');
+            cerrarMenu();
+        }
+        function copiarLink() {
+            navigator.clipboard.writeText(window.location.href)
+                .then(() => alert('✅ Link copiado'))
+                .catch(() => prompt('📋 Copia este link:', window.location.href));
+            cerrarMenu();
+        }
+
+        // Cargar la noticia actual
         async function cargarNoticia() {
             const id = getNoticiaId();
             try {
@@ -97,24 +159,41 @@
         }
 
         function mostrarNoticia(n) {
-            const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { weekday:'long', day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            const fecha = new Date(n.fecha).toLocaleDateString('es-DO', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
             document.getElementById('noticia-fecha').textContent = fecha;
             document.getElementById('noticia-titulo').textContent = n.titulo;
-            const redactorHTML = n.redactorFoto 
-                ? `<span class="redactor-info"><img src="${n.redactorFoto}" class="redactor-foto-mini"> 👤 ${n.redactor||'mxl'}</span>`
-                : `<span>👤 ${n.redactor||'mxl'}</span>`;
+
+            const redactorHTML = n.redactorFoto
+                ? `<span class="redactor-info"><img src="${n.redactorFoto}" class="redactor-foto-mini"> 👤 ${n.redactor || 'mxl'}</span>`
+                : `<span>👤 ${n.redactor || 'mxl'}</span>`;
+
             document.getElementById('noticia-meta').innerHTML = `
                 <span>📰 ${n.seccion}</span>
-                <span>📍 ${n.ubicacion||'Santo Domingo'}</span>
+                <span>📍 ${n.ubicacion || 'Santo Domingo'}</span>
                 ${redactorHTML}
-                <span>👁️ ${n.vistas||0}</span>
+                <span>👁️ ${n.vistas || 0}</span>
             `;
-            document.getElementById('noticia-contenido').innerHTML = n.contenido.replace(/\n/g,'<br>');
+
+            document.getElementById('noticia-contenido').innerHTML = n.contenido.replace(/\n/g, '<br>');
+
             const multimediaDiv = document.getElementById('noticia-multimedia');
             if (n.imagen) {
-                if (n.imagen.includes('video')) multimediaDiv.innerHTML = `<video class="noticia-imagen" src="${n.imagen}" controls></video>`;
-                else multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${n.imagen}">`;
-            } else multimediaDiv.innerHTML = '';
+                if (n.imagen.includes('video')) {
+                    multimediaDiv.innerHTML = `<video class="noticia-imagen" src="${n.imagen}" controls></video>`;
+                } else {
+                    multimediaDiv.innerHTML = `<img class="noticia-imagen" src="${n.imagen}" alt="${n.titulo}">`;
+                }
+            } else {
+                multimediaDiv.innerHTML = '';
+            }
+
             document.getElementById('loader').style.display = 'none';
             document.getElementById('noticia-container').style.display = 'block';
         }
@@ -122,23 +201,29 @@
         function actualizarMetaTags(n) {
             document.getElementById('page-title').textContent = n.titulo + ' - El Farol al Día';
             document.getElementById('og-title').content = n.titulo;
-            document.getElementById('og-description').content = n.contenido.substring(0,160);
+            document.getElementById('og-description').content = n.contenido.substring(0, 160);
             document.getElementById('og-image').content = n.imagen || '';
             document.getElementById('og-url').content = window.location.href;
         }
 
+        // Admin con doble tap
         let lastTap = 0;
         document.addEventListener('touchend', function(e) {
             const now = Date.now();
             if (now - lastTap < 500) {
                 const pin = prompt('🔐 PIN:');
-                if (pin === '311') document.getElementById('adminBtn').classList.add('visible');
+                if (pin === '311') {
+                    document.getElementById('adminBtn').classList.add('visible');
+                }
             }
             lastTap = now;
         });
 
-        window.addEventListener('load', () => {
+        // Inicializar: cargar configuración y luego la noticia
+        window.addEventListener('load', async () => {
+            await cargarConfiguracion();
             cargarNoticia();
+
             document.getElementById('shareIcon').addEventListener('click', abrirMenu);
             document.getElementById('shareWa').addEventListener('click', compartirWhatsApp);
             document.getElementById('shareFb').addEventListener('click', compartirFacebook);
