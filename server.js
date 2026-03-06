@@ -53,7 +53,7 @@ async function conectarMongoDB(intentos = 5) {
     for (let i = 1; i <= intentos; i++) {
         try {
             console.log(`📡 Intento ${i}/${intentos} - Conectando a MongoDB...`);
-            
+
             await mongoose.connect(MONGO_URL, {
                 useNewUrlParser: true,
                 useUnifiedTopology: true,
@@ -64,7 +64,7 @@ async function conectarMongoDB(intentos = 5) {
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
             });
-            
+
             console.log('🟢 ¡BÚNKER CONECTADO A MONGODB!');
             return true;
         } catch (error) {
