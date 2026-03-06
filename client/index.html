@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>El Farol al Día | Noticias en Realidad</title>
-    <!-- Marcador para Google Search Console -->
+    <!-- Marcadores SEO y Analytics -->
     <!-- META_GOOGLE_VERIFICATION -->
-    <!-- Marcador para Google Analytics -->
     <!-- GOOGLE_ANALYTICS -->
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -21,8 +20,10 @@
         .noticia h2 { color:#FF8C00; margin:10px 0; font-size:1.8em; cursor:pointer; }
         .noticia h2:hover { text-decoration:underline; }
         .noticia p { color:#ddd; margin:10px 0; }
-        .noticia .meta { display:flex; flex-wrap:wrap; gap:10px 20px; color:#888; font-size:0.9em; margin-top:15px; border-top:1px solid #333; padding-top:10px; }
+        .noticia .meta { display:flex; flex-wrap:wrap; gap:10px 20px; color:#888; font-size:0.9em; margin-top:15px; border-top:1px solid #333; padding-top:10px; align-items:center; }
         .noticia .seccion { background:#FF8C00; color:black; padding:4px 12px; border-radius:20px; font-weight:bold; }
+        .redactor-info { display:inline-flex; align-items:center; gap:5px; }
+        .redactor-foto-mini { width:26px; height:26px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; }
         a { text-decoration:none; color:inherit; }
         @media (max-width:600px) { h1 { font-size:2em; } .noticia h2 { font-size:1.5em; } }
     </style>
@@ -44,7 +45,9 @@
                     container.innerHTML = '<div class="empty">📭 No hay noticias aún. ¡Vuelve pronto!</div>';
                     return;
                 }
-                container.innerHTML = data.noticias.map(n => `
+                container.innerHTML = data.noticias.map(n => {
+                    const redactorFoto = n.redactorFoto ? `<img src="${n.redactorFoto}" class="redactor-foto-mini">` : '';
+                    return `
                     <div class="noticia">
                         <img src="${n.imagen || 'https://via.placeholder.com/800x400?text=El+Farol+al+Día'}" alt="Imagen" loading="lazy">
                         <h2 onclick="window.location.href='/noticia/${n._id}'">${n.titulo}</h2>
@@ -53,10 +56,13 @@
                             <span class="seccion">${n.seccion || 'General'}</span>
                             <span>📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</span>
                             <span>👁️ ${n.vistas || 0}</span>
-                            <span>👤 ${n.redactor || 'Redacción'}</span>
+                            <span class="redactor-info">
+                                ${redactorFoto}
+                                👤 ${n.redactor || 'Redacción'}
+                            </span>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (error) {
                 container.innerHTML = '<div class="error">❌ Error al cargar el búnker.</div>';
             }
