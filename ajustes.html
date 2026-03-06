@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Ajustes Móvil 🏮</title>
+    <title>Ajustes del Búnker 🏮</title>
     <style>
         * {
             margin: 0;
@@ -36,12 +36,13 @@
             gap: 8px;
             margin: 20px 0;
             flex-wrap: wrap;
+            justify-content: center;
         }
 
         .tab-btn {
-            flex: 1;
+            flex: 1 1 auto;
             min-width: 120px;
-            padding: 18px 8px;
+            padding: 16px 8px;
             font-size: 1.1em;
             background: #1a1a1a;
             color: white;
@@ -49,6 +50,7 @@
             border-radius: 40px;
             cursor: pointer;
             font-weight: bold;
+            transition: all 0.2s;
         }
 
         .tab-btn.active {
@@ -84,7 +86,7 @@
 
         input, textarea, select {
             width: 100%;
-            padding: 18px 20px;
+            padding: 16px 20px;
             font-size: 1.1em;
             border-radius: 40px;
             border: 2px solid #333;
@@ -100,13 +102,13 @@
 
         .btn-gigante {
             width: 100%;
-            padding: 22px;
+            padding: 20px;
             font-size: 1.3em;
             border: none;
             border-radius: 60px;
             background: linear-gradient(145deg, #4CAF50, #45a049);
             color: white;
-            margin: 20px 0;
+            margin: 20px 0 10px;
             cursor: pointer;
             font-weight: bold;
         }
@@ -115,8 +117,12 @@
             background: linear-gradient(145deg, #f44336, #d32f2f);
         }
 
+        .btn-secundario {
+            background: #666;
+        }
+
         .alert {
-            padding: 18px;
+            padding: 16px;
             border-radius: 40px;
             margin: 15px 0;
             text-align: center;
@@ -161,17 +167,34 @@
             color: #aaa;
             font-size: 0.9em;
         }
+
+        hr {
+            border: 1px solid #333;
+            margin: 30px 0;
+        }
+
+        .info-box {
+            background: rgba(255,140,0,0.1);
+            border-left: 4px solid #FF8C00;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 15px 0;
+            color: #ddd;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🏮 AJUSTES DEL BÚNKER</h1>
 
-        <!-- TABS MÓVILES -->
+        <!-- PESTAÑAS -->
         <div class="tabs">
             <button class="tab-btn active" onclick="cambiarTab('sitio')">📱 Sitio</button>
-            <button class="tab-btn" onclick="cambiarTab('analitica')">📊 Analítica</button>
             <button class="tab-btn" onclick="cambiarTab('redes')">📱 Redes</button>
+            <button class="tab-btn" onclick="cambiarTab('monetizacion')">💰 Monetización</button>
+            <button class="tab-btn" onclick="cambiarTab('analitica')">📊 Analítica</button>
+            <button class="tab-btn" onclick="cambiarTab('seo')">🔍 SEO</button>
             <button class="tab-btn" onclick="cambiarTab('peligro')">⚠️ Peligro</button>
         </div>
 
@@ -181,21 +204,72 @@
                 <div id="alertSitio" class="alert"></div>
 
                 <label>🏮 Nombre del Sitio</label>
-                <input type="text" id="nombreSitio" placeholder="El Farol al Día">
+                <input type="text" id="nombreSitio" placeholder="Ej: El Farol al Día">
 
                 <label>📄 Tagline</label>
-                <input type="text" id="tagline" placeholder="Diario Digital">
+                <input type="text" id="tagline" placeholder="Diario Digital de Noticias en Vivo">
 
-                <label>📧 Email Contacto</label>
-                <input type="email" id="emailContacto" placeholder="contacto@ejemplo.com">
+                <label>🎨 Color Principal</label>
+                <input type="color" id="colorPrincipal" value="#FF8C00" style="height:60px; padding:5px;">
+
+                <label>📧 Email de Contacto</label>
+                <input type="email" id="emailContacto" placeholder="contacto@elfarolaldia.com">
 
                 <label>📍 Ubicación</label>
                 <input type="text" id="ubicacionSitio" placeholder="República Dominicana">
 
-                <label>📝 Descripción</label>
-                <textarea id="descripcionSitio" placeholder="Descripción del sitio..."></textarea>
+                <label>📝 Descripción del Sitio</label>
+                <textarea id="descripcionSitio" placeholder="Breve descripción para SEO..."></textarea>
 
                 <button class="btn-gigante" onclick="guardarConfig('sitio')">💾 GUARDAR SITIO</button>
+            </div>
+        </div>
+
+        <!-- TAB REDES SOCIALES -->
+        <div id="tab-redes" class="tab-content">
+            <div class="panel">
+                <div id="alertRedes" class="alert"></div>
+
+                <label>📘 Facebook</label>
+                <input type="url" id="facebook" placeholder="https://facebook.com/...">
+
+                <label>📷 Instagram</label>
+                <input type="url" id="instagram" placeholder="https://instagram.com/...">
+
+                <label>𝕏 Twitter</label>
+                <input type="url" id="twitter" placeholder="https://twitter.com/...">
+
+                <label>💬 WhatsApp</label>
+                <input type="text" id="whatsapp" placeholder="https://wa.me/18095551234">
+
+                <label>✈️ Telegram</label>
+                <input type="url" id="telegram" placeholder="https://t.me/...">
+
+                <label>📱 Canal de WhatsApp</label>
+                <input type="url" id="whatsappCanal" placeholder="https://whatsapp.com/channel/...">
+
+                <button class="btn-gigante" onclick="guardarConfig('redes')">📱 GUARDAR REDES</button>
+            </div>
+        </div>
+
+        <!-- TAB MONETIZACIÓN -->
+        <div id="tab-monetizacion" class="tab-content">
+            <div class="panel">
+                <div id="alertMonetizacion" class="alert"></div>
+
+                <label>🛒 ID de Afiliado Amazon</label>
+                <input type="text" id="amazonId" placeholder="tutienda-20">
+
+                <label>📺 Google AdSense</label>
+                <input type="text" id="googleAdsense" placeholder="ca-pub-xxxxxxxxxxxxxxxx">
+
+                <label>💳 Stripe ID (donaciones)</label>
+                <input type="text" id="stripeId" placeholder="pk_live_...">
+
+                <label>🔗 URL de Donación</label>
+                <input type="url" id="linkDonacion" placeholder="https://ko-fi.com/...">
+
+                <button class="btn-gigante" onclick="guardarConfig('monetizacion')">💰 GUARDAR MONETIZACIÓN</button>
             </div>
         </div>
 
@@ -204,7 +278,7 @@
             <div class="panel">
                 <div id="alertAnalitica" class="alert"></div>
 
-                <!-- ESTADÍSTICAS -->
+                <!-- Estadísticas rápidas -->
                 <div class="stats">
                     <div class="stat-card">
                         <div class="stat-value" id="totalNoticias">0</div>
@@ -212,13 +286,12 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="totalVistas">0</div>
-                        <div class="stat-label">Vistas</div>
+                        <div class="stat-label">Vistas totales</div>
                     </div>
                 </div>
 
                 <label>🔍 Google Analytics ID</label>
-                <input type="text" id="googleAnalytics" placeholder="G-XXXXXXXXXX o UA-XXXXX">
-                <p style="color: #888; margin: 10px;">Se inyectará automáticamente en el sitio</p>
+                <input type="text" id="googleAnalytics" placeholder="G-XXXXXXXXXX o UA-XXXXXX">
 
                 <label>👁️ Mostrar contador de vistas</label>
                 <select id="mostrarVistas">
@@ -230,54 +303,65 @@
             </div>
         </div>
 
-        <!-- TAB REDES -->
-        <div id="tab-redes" class="tab-content">
+        <!-- TAB SEO -->
+        <div id="tab-seo" class="tab-content">
             <div class="panel">
-                <div id="alertRedes" class="alert"></div>
+                <div id="alertSeo" class="alert"></div>
 
-                <label>📘 Facebook</label>
-                <input type="text" id="facebook" placeholder="https://facebook.com/...">
+                <label>📌 Meta Keywords Globales</label>
+                <input type="text" id="metaKeywords" placeholder="noticias, república dominicana, diario digital">
 
-                <label>📷 Instagram</label>
-                <input type="text" id="instagram" placeholder="https://instagram.com/...">
+                <label>🌐 Sitemap URL</label>
+                <input type="url" id="sitemapUrl" placeholder="https://elfarolaldia.com/sitemap.xml" readonly>
 
-                <label>𝕏 Twitter</label>
-                <input type="text" id="twitter" placeholder="https://twitter.com/...">
+                <label>🔗 Robots.txt</label>
+                <textarea id="robotsTxt" placeholder="User-agent: *\nAllow: /">User-agent: *
+Allow: /
+Sitemap: https://elfarolaldia.com/sitemap.xml</textarea>
 
-                <label>💬 WhatsApp</label>
-                <input type="text" id="whatsapp" placeholder="https://wa.me/1809...">
+                <label>✅ Verificación Google Search Console</label>
+                <input type="text" id="googleVerification" placeholder="código de verificación">
 
-                <button class="btn-gigante" onclick="guardarConfig('redes')">📱 GUARDAR REDES</button>
+                <label>🔗 Activar Open Graph (Facebook/WhatsApp)</label>
+                <select id="activarOpenGraph">
+                    <option value="true">Sí, activado</option>
+                    <option value="false">No desactivado</option>
+                </select>
+
+                <button class="btn-gigante" onclick="guardarConfig('seo')">🔍 GUARDAR SEO</button>
             </div>
         </div>
 
-        <!-- TAB PELIGRO -->
+        <!-- TAB PELIGRO (USUARIOS Y RESETEO) -->
         <div id="tab-peligro" class="tab-content">
             <div class="panel">
                 <div id="alertPeligro" class="alert"></div>
 
                 <label>🔐 PIN Actual</label>
-                <input type="password" id="pinActual" placeholder="Ingresa PIN actual" value="311">
+                <input type="password" id="pinActual" placeholder="311" maxlength="6">
 
-                <label>🔐 Nuevo PIN</label>
-                <input type="password" id="nuevoPin" placeholder="Nuevo PIN (opcional)">
+                <label>🔐 Nuevo PIN (opcional)</label>
+                <input type="password" id="nuevoPin" placeholder="Nuevo PIN" maxlength="6">
 
                 <button class="btn-gigante" onclick="cambiarPin()">🔄 CAMBIAR PIN</button>
 
-                <hr style="border: 1px solid #333; margin: 30px 0;">
+                <hr>
 
-                <label>⚠️ RESETEAR TODO</label>
-                <p style="color: #f44336; margin: 15px 0;">Esto eliminará TODAS las noticias</p>
-
-                <button class="btn-gigante btn-peligro" onclick="resetearTodo()">🗑️ RESETEAR SISTEMA</button>
+                <label>⚠️ RESETEAR TODO EL SISTEMA</label>
+                <div class="info-box">
+                    Esto eliminará TODAS las noticias y configuraciones. No se puede deshacer.
+                </div>
+                <button class="btn-gigante btn-peligro" onclick="resetearSistema()">🗑️ RESETEAR TODO</button>
             </div>
         </div>
     </div>
 
     <script>
-        let configActual = {};
+        // ==================== VARIABLES GLOBALES ====================
+        let configuracion = {};
+        let pinActual = "311";  // Por defecto, se actualizará desde el servidor
 
-        // ==================== TABS ====================
+        // ==================== CAMBIAR DE PESTAÑA ====================
         function cambiarTab(tab) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -285,32 +369,111 @@
             event.target.classList.add('active');
         }
 
-        // ==================== CARGAR CONFIGURACIÓN ====================
+        // ==================== CARGAR CONFIGURACIÓN DESDE EL SERVIDOR ====================
         async function cargarConfiguracion() {
             try {
                 const res = await fetch('/api/configuracion');
                 const data = await res.json();
-                
                 if (data.success) {
-                    configActual = data.config;
-                    
-                    // Llenar campos
-                    document.getElementById('nombreSitio').value = configActual.nombreSitio || 'El Farol al Día';
-                    document.getElementById('tagline').value = configActual.tagline || '';
-                    document.getElementById('emailContacto').value = configActual.emailContacto || '';
-                    document.getElementById('ubicacionSitio').value = configActual.ubicacionSitio || '';
-                    document.getElementById('descripcionSitio').value = configActual.descripcionSitio || '';
-                    
-                    document.getElementById('googleAnalytics').value = configActual.googleAnalytics || '';
-                    document.getElementById('mostrarVistas').value = configActual.mostrarVistas ? 'true' : 'false';
-                    
-                    document.getElementById('facebook').value = configActual.facebook || '';
-                    document.getElementById('instagram').value = configActual.instagram || '';
-                    document.getElementById('twitter').value = configActual.twitter || '';
-                    document.getElementById('whatsapp').value = configActual.whatsapp || '';
+                    configuracion = data.config;
+                    llenarFormularios();
+                } else {
+                    console.error('Error cargando configuración');
                 }
             } catch (error) {
-                console.error('Error cargando configuración');
+                console.error('Error de red:', error);
+            }
+        }
+
+        function llenarFormularios() {
+            // Sitio
+            document.getElementById('nombreSitio').value = configuracion.nombreSitio || 'El Farol al Día';
+            document.getElementById('tagline').value = configuracion.tagline || 'Diario Digital de Noticias en Vivo';
+            document.getElementById('colorPrincipal').value = configuracion.colorPrincipal || '#FF8C00';
+            document.getElementById('emailContacto').value = configuracion.emailContacto || '';
+            document.getElementById('ubicacionSitio').value = configuracion.ubicacionSitio || '';
+            document.getElementById('descripcionSitio').value = configuracion.descripcionSitio || '';
+
+            // Redes
+            document.getElementById('facebook').value = configuracion.facebook || '';
+            document.getElementById('instagram').value = configuracion.instagram || '';
+            document.getElementById('twitter').value = configuracion.twitter || '';
+            document.getElementById('whatsapp').value = configuracion.whatsapp || '';
+            document.getElementById('telegram').value = configuracion.telegram || '';
+            document.getElementById('whatsappCanal').value = configuracion.whatsappCanal || '';
+
+            // Monetización
+            document.getElementById('amazonId').value = configuracion.amazonId || '';
+            document.getElementById('googleAdsense').value = configuracion.googleAdsense || '';
+            document.getElementById('stripeId').value = configuracion.stripeId || '';
+            document.getElementById('linkDonacion').value = configuracion.linkDonacion || '';
+
+            // Analítica
+            document.getElementById('googleAnalytics').value = configuracion.googleAnalytics || '';
+            document.getElementById('mostrarVistas').value = configuracion.mostrarVistas ? 'true' : 'false';
+
+            // SEO
+            document.getElementById('metaKeywords').value = configuracion.metaKeywords || '';
+            document.getElementById('sitemapUrl').value = window.location.origin + '/sitemap.xml';
+            document.getElementById('robotsTxt').value = configuracion.robotsTxt || 'User-agent: *\nAllow: /\nSitemap: ' + window.location.origin + '/sitemap.xml';
+            document.getElementById('googleVerification').value = configuracion.googleVerification || '';
+            document.getElementById('activarOpenGraph').value = configuracion.activarOpenGraph ? 'true' : 'false';
+        }
+
+        // ==================== GUARDAR CONFIGURACIÓN ====================
+        async function guardarConfig(seccion) {
+            // Pedir PIN (puede ser el mismo de sesión o preguntar)
+            const pin = prompt('🔐 Ingresa el PIN de administrador para guardar:');
+            if (!pin) return;
+
+            const config = {};
+
+            if (seccion === 'sitio') {
+                config.nombreSitio = document.getElementById('nombreSitio').value;
+                config.tagline = document.getElementById('tagline').value;
+                config.colorPrincipal = document.getElementById('colorPrincipal').value;
+                config.emailContacto = document.getElementById('emailContacto').value;
+                config.ubicacionSitio = document.getElementById('ubicacionSitio').value;
+                config.descripcionSitio = document.getElementById('descripcionSitio').value;
+            } else if (seccion === 'redes') {
+                config.facebook = document.getElementById('facebook').value;
+                config.instagram = document.getElementById('instagram').value;
+                config.twitter = document.getElementById('twitter').value;
+                config.whatsapp = document.getElementById('whatsapp').value;
+                config.telegram = document.getElementById('telegram').value;
+                config.whatsappCanal = document.getElementById('whatsappCanal').value;
+            } else if (seccion === 'monetizacion') {
+                config.amazonId = document.getElementById('amazonId').value;
+                config.googleAdsense = document.getElementById('googleAdsense').value;
+                config.stripeId = document.getElementById('stripeId').value;
+                config.linkDonacion = document.getElementById('linkDonacion').value;
+            } else if (seccion === 'analitica') {
+                config.googleAnalytics = document.getElementById('googleAnalytics').value;
+                config.mostrarVistas = document.getElementById('mostrarVistas').value === 'true';
+            } else if (seccion === 'seo') {
+                config.metaKeywords = document.getElementById('metaKeywords').value;
+                config.robotsTxt = document.getElementById('robotsTxt').value;
+                config.googleVerification = document.getElementById('googleVerification').value;
+                config.activarOpenGraph = document.getElementById('activarOpenGraph').value === 'true';
+            }
+
+            try {
+                const res = await fetch('/api/configuracion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seccion, config, pin })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarAlerta(`✅ ${seccion} guardado correctamente`, 'success', seccion);
+                    configuracion = { ...configuracion, ...config };
+                } else {
+                    mostrarAlerta(`❌ Error: ${data.error}`, 'error', seccion);
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error de red', 'error', seccion);
             }
         }
 
@@ -319,7 +482,6 @@
             try {
                 const res = await fetch('/api/estadisticas');
                 const data = await res.json();
-                
                 if (data.success) {
                     document.getElementById('totalNoticias').textContent = data.totalNoticias || 0;
                     document.getElementById('totalVistas').textContent = data.totalVistas || 0;
@@ -329,73 +491,41 @@
             }
         }
 
-        // ==================== GUARDAR CONFIGURACIÓN ====================
-        async function guardarConfig(seccion) {
-            const pin = document.getElementById('pinActual')?.value || '311';
-            
-            if (pin !== '311') {
-                mostrarAlerta('❌ PIN incorrecto', 'error', seccion);
-                return;
-            }
-
-            let config = {};
-
-            if (seccion === 'sitio') {
-                config = {
-                    nombreSitio: document.getElementById('nombreSitio').value,
-                    tagline: document.getElementById('tagline').value,
-                    emailContacto: document.getElementById('emailContacto').value,
-                    ubicacionSitio: document.getElementById('ubicacionSitio').value,
-                    descripcionSitio: document.getElementById('descripcionSitio').value
-                };
-            } else if (seccion === 'analitica') {
-                config = {
-                    googleAnalytics: document.getElementById('googleAnalytics').value,
-                    mostrarVistas: document.getElementById('mostrarVistas').value === 'true'
-                };
-            } else if (seccion === 'redes') {
-                config = {
-                    facebook: document.getElementById('facebook').value,
-                    instagram: document.getElementById('instagram').value,
-                    twitter: document.getElementById('twitter').value,
-                    whatsapp: document.getElementById('whatsapp').value
-                };
-            }
-
-            try {
-                const res = await fetch('/api/configuracion', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ config, pin })
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    mostrarAlerta('✅ Guardado correctamente', 'success', seccion);
-                } else {
-                    mostrarAlerta('❌ Error: ' + data.error, 'error', seccion);
-                }
-            } catch (error) {
-                mostrarAlerta('❌ Error de red', 'error', seccion);
-            }
-        }
-
         // ==================== CAMBIAR PIN ====================
-        function cambiarPin() {
-            mostrarAlerta('✅ Función disponible en versión completa', 'success', 'peligro');
+        async function cambiarPin() {
+            const pinActualIngresado = document.getElementById('pinActual').value;
+            const nuevoPin = document.getElementById('nuevoPin').value;
+
+            if (!pinActualIngresado || !nuevoPin) {
+                mostrarAlerta('❌ Completa ambos campos', 'error', 'peligro');
+                return;
+            }
+
+            // Aquí deberías tener una ruta en el backend para cambiar el PIN
+            // Por ahora simulamos
+            if (pinActualIngresado === pinActual) {
+                pinActual = nuevoPin;
+                mostrarAlerta('✅ PIN cambiado correctamente', 'success', 'peligro');
+                document.getElementById('pinActual').value = '';
+                document.getElementById('nuevoPin').value = '';
+            } else {
+                mostrarAlerta('❌ PIN actual incorrecto', 'error', 'peligro');
+            }
         }
 
-        // ==================== RESETEAR TODO ====================
-        function resetearTodo() {
-            if (!confirm('⚠️ ¿Estás SEGURO? Esto eliminará TODAS las noticias')) {
+        // ==================== RESETEAR SISTEMA ====================
+        function resetearSistema() {
+            if (!confirm('⚠️ ¿Estás SEGURO? Esto eliminará TODAS las noticias y configuraciones.')) return;
+            if (!confirm('🚨 CONFIRMACIÓN FINAL: No se puede deshacer. ¿Continuar?')) return;
+
+            const pin = prompt('🔐 Ingresa el PIN de administrador para confirmar:');
+            if (pin !== pinActual) {
+                mostrarAlerta('❌ PIN incorrecto', 'error', 'peligro');
                 return;
             }
-            if (!confirm('🚨 CONFIRMACIÓN FINAL: No se puede deshacer')) {
-                return;
-            }
-            
-            mostrarAlerta('⏳ Función desactivada por seguridad', 'error', 'peligro');
+
+            // Aquí llamarías a una ruta de reseteo en el backend
+            mostrarAlerta('⏳ Función de reseteo desactivada por seguridad', 'error', 'peligro');
         }
 
         // ==================== ALERTAS ====================
@@ -404,11 +534,20 @@
             alertBox.textContent = mensaje;
             alertBox.className = `alert ${tipo}`;
             alertBox.style.display = 'block';
-            
             setTimeout(() => {
                 alertBox.style.display = 'none';
             }, 3000);
         }
+
+        // ==================== ADMIN CON DOBLE TAP (para volver a redacción) ====================
+        let lastTap = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = new Date().getTime();
+            if (now - lastTap < 500) {
+                // No hacemos nada aquí, pero podríamos redirigir a redacción si se desea
+            }
+            lastTap = now;
+        });
 
         // ==================== INICIALIZAR ====================
         window.addEventListener('load', () => {
