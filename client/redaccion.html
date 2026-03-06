@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción | El Farol al Día</title>
+    <!-- Marcador para Google Search Console (opcional aquí, pero por si acaso) -->
+    <!-- META_GOOGLE_VERIFICATION -->
     <style>
         * {
             margin: 0;
@@ -11,8 +13,8 @@
             box-sizing: border-box;
         }
         body {
-            background: #000;
-            color: #fff;
+            background: #0b0b0b; /* Fondo negro */
+            color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             padding: 20px;
@@ -20,14 +22,14 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: #1a1a1a;
+            background: #1a1a1a; /* Gris oscuro para el contenedor */
             border-radius: 16px;
             padding: 30px;
-            border-left: 4px solid #6200ea;
-            box-shadow: 0 10px 30px rgba(98, 0, 234, 0.2);
+            border-left: 4px solid #FF8C00; /* Borde naranja */
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2); /* Sombra naranja */
         }
         h1 {
-            color: #bb86fc;
+            color: #FF8C00; /* Naranja */
             margin-bottom: 20px;
             font-size: 2.2em;
             text-align: center;
@@ -35,7 +37,7 @@
         label {
             display: block;
             margin: 20px 0 8px;
-            color: #bb86fc;
+            color: #FF8C00; /* Naranja */
             font-weight: bold;
             font-size: 1.1em;
         }
@@ -51,7 +53,7 @@
         }
         input:focus, select:focus, textarea:focus {
             outline: none;
-            border-color: #6200ea;
+            border-color: #FF8C00; /* Naranja al enfocar */
             background: #2a2a2a;
         }
         textarea {
@@ -59,7 +61,7 @@
             resize: vertical;
         }
         .file-area {
-            border: 2px dashed #6200ea;
+            border: 2px dashed #FF8C00; /* Borde naranja */
             border-radius: 12px;
             padding: 30px;
             text-align: center;
@@ -74,7 +76,7 @@
         .file-area span {
             display: block;
             font-size: 1.2em;
-            color: #bb86fc;
+            color: #FF8C00; /* Naranja */
             margin-bottom: 10px;
         }
         .file-area small {
@@ -87,11 +89,11 @@
             border-radius: 12px;
             margin-top: 15px;
             display: none;
-            border: 2px solid #6200ea;
+            border: 2px solid #FF8C00; /* Borde naranja */
         }
         .pin-input {
             background: #222;
-            border: 2px solid #6200ea;
+            border: 2px solid #FF8C00; /* Borde naranja */
             color: white;
             font-size: 1.5em;
             letter-spacing: 4px;
@@ -100,8 +102,8 @@
         button {
             width: 100%;
             padding: 18px;
-            background: linear-gradient(145deg, #6200ea, #bb86fc);
-            color: white;
+            background: linear-gradient(145deg, #FF8C00, #ffaa33); /* Degradado naranja */
+            color: black; /* Texto negro para contraste */
             border: none;
             border-radius: 40px;
             font-size: 1.3em;
@@ -114,7 +116,7 @@
         }
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(98, 0, 234, 0.6);
+            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6); /* Sombra naranja */
         }
         button:disabled {
             opacity: 0.6;
@@ -146,11 +148,6 @@
         hr {
             border: 1px solid #333;
             margin: 30px 0;
-        }
-        .redactor-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
         @media (max-width: 600px) {
             .container { padding: 20px; }
