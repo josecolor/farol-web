@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>El Farol al Día 🏮</title>
+    <title id="page-title">El Farol al Día 🏮</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:#0b0b0b; color:white; font-family:sans-serif; padding:12px; }
         .container { max-width:800px; margin:0 auto; }
         header { text-align:center; margin-bottom:25px; padding-bottom:15px; border-bottom:3px solid #FF8C00; }
         h1 { color:#FF8C00; font-size:2.2em; }
+        .tagline { color:#aaa; margin-top:5px; font-size:0.9em; }
         .secciones { display:flex; gap:10px; overflow-x:auto; padding:10px 0; margin-bottom:20px; }
         .seccion-btn { padding:12px 20px; background:#1a1a1a; border:2px solid #333; border-radius:40px; color:white; font-weight:bold; white-space:nowrap; cursor:pointer; }
         .seccion-btn.active { background:#FF8C00; border-color:#FF8C00; color:black; }
@@ -34,7 +35,10 @@
 </head>
 <body>
     <div class="container">
-        <header><h1>🏮 El Farol al Día</h1></header>
+        <header>
+            <h1 id="site-title">🏮 El Farol al Día</h1>
+            <p id="site-tagline" class="tagline"></p>
+        </header>
         <div class="secciones" id="secciones">
             <button class="seccion-btn active" onclick="cargarTodas()">📰 Todas</button>
             <button class="seccion-btn" onclick="cargarSeccion('Nacionales')">🇩🇴 Nacionales</button>
@@ -50,6 +54,43 @@
 
     <script>
         let menuAbiertoId = null;
+        let configuracion = {};
+
+        // Cargar configuración al inicio
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/configuracion');
+                const data = await res.json();
+                if (data.success) {
+                    configuracion = data.config;
+                    // Actualizar título y tagline
+                    if (configuracion.nombreSitio) {
+                        document.getElementById('site-title').innerHTML = `🏮 ${configuracion.nombreSitio}`;
+                        document.getElementById('page-title').textContent = configuracion.nombreSitio + ' 🏮';
+                    }
+                    if (configuracion.tagline) {
+                        document.getElementById('site-tagline').textContent = configuracion.tagline;
+                    }
+                    // Inyectar Google Analytics si existe
+                    if (configuracion.googleAnalytics) {
+                        const script1 = document.createElement('script');
+                        script1.async = true;
+                        script1.src = `https://www.googletagmanager.com/gtag/js?id=${configuracion.googleAnalytics}`;
+                        document.head.appendChild(script1);
+                        const script2 = document.createElement('script');
+                        script2.innerHTML = `
+                            window.dataLayer = window.dataLayer || [];
+                            function gtag(){dataLayer.push(arguments);}
+                            gtag('js', new Date());
+                            gtag('config', '${configuracion.googleAnalytics}');
+                        `;
+                        document.head.appendChild(script2);
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
 
         async function cargarTodas() {
             const res = await fetch('/api/noticias?limit=30');
@@ -167,7 +208,11 @@
             lastTap = now;
         });
 
-        cargarTodas();
+        // Inicializar: cargar configuración y luego las noticias
+        window.addEventListener('load', async () => {
+            await cargarConfiguracion();
+            cargarTodas();
+        });
     </script>
 </body>
 </html>
