@@ -53,7 +53,7 @@
                 <label>📧 Email Contacto</label><input type="email" id="emailContacto" placeholder="contacto@...">
                 <label>📍 Ubicación</label><input type="text" id="ubicacionSitio" placeholder="República Dominicana">
                 <label>📝 Descripción</label><textarea id="descripcionSitio" placeholder="Descripción..."></textarea>
-                <button class="btn-gigante" onclick="guardarConfig('sitio')">💾 GUARDAR SITIO</button>
+                <button class="btn-gigante" onclick="guardarConfig()">💾 GUARDAR SITIO</button>
             </div>
         </div>
 
@@ -67,7 +67,7 @@
                 <label>💬 WhatsApp</label><input type="text" id="whatsapp" placeholder="https://wa.me/...">
                 <label>✈️ Telegram</label><input type="url" id="telegram" placeholder="https://t.me/...">
                 <label>📱 Canal WhatsApp</label><input type="url" id="whatsappCanal" placeholder="https://whatsapp.com/channel/...">
-                <button class="btn-gigante" onclick="guardarConfig('redes')">📱 GUARDAR REDES</button>
+                <button class="btn-gigante" onclick="guardarConfig()">📱 GUARDAR REDES</button>
             </div>
         </div>
 
@@ -79,7 +79,7 @@
                 <label>📺 Google AdSense</label><input type="text" id="googleAdsense" placeholder="ca-pub-...">
                 <label>💳 Stripe ID</label><input type="text" id="stripeId" placeholder="pk_live_...">
                 <label>🔗 Donación URL</label><input type="url" id="linkDonacion" placeholder="https://ko-fi.com/...">
-                <button class="btn-gigante" onclick="guardarConfig('monetizacion')">💰 GUARDAR MONETIZACIÓN</button>
+                <button class="btn-gigante" onclick="guardarConfig()">💰 GUARDAR MONETIZACIÓN</button>
             </div>
         </div>
 
@@ -94,7 +94,7 @@
                 <label>🔍 Google Analytics</label><input type="text" id="googleAnalytics" placeholder="G-XXXXXX">
                 <label>👁️ Mostrar contador de vistas</label>
                 <select id="mostrarVistas"><option value="true">Sí</option><option value="false">No</option></select>
-                <button class="btn-gigante" onclick="guardarConfig('analitica')">📊 GUARDAR ANALÍTICA</button>
+                <button class="btn-gigante" onclick="guardarConfig()">📊 GUARDAR ANALÍTICA</button>
             </div>
         </div>
 
@@ -108,7 +108,7 @@
                 <label>✅ Google Search Console</label><input type="text" id="googleVerification" placeholder="código">
                 <label>🔗 Activar Open Graph</label>
                 <select id="activarOpenGraph"><option value="true">Sí</option><option value="false">No</option></select>
-                <button class="btn-gigante" onclick="guardarConfig('seo')">🔍 GUARDAR SEO</button>
+                <button class="btn-gigante" onclick="guardarConfig()">🔍 GUARDAR SEO</button>
             </div>
         </div>
 
@@ -145,6 +145,8 @@
                 if (data.success) {
                     configuracion = data.config;
                     llenarFormularios();
+                } else {
+                    console.error('Error cargando configuración:', data.error);
                 }
             } catch (error) { console.error(error); }
         }
@@ -175,53 +177,53 @@
             document.getElementById('activarOpenGraph').value = configuracion.activarOpenGraph ? 'true' : 'false';
         }
 
-        async function guardarConfig(seccion) {
+        // Función unificada para guardar TODA la configuración
+        async function guardarConfig() {
             const pin = prompt('🔐 PIN para guardar:');
             if (!pin) return;
-            const config = {};
-            if (seccion === 'sitio') {
-                config.nombreSitio = document.getElementById('nombreSitio').value;
-                config.tagline = document.getElementById('tagline').value;
-                config.colorPrincipal = document.getElementById('colorPrincipal').value;
-                config.emailContacto = document.getElementById('emailContacto').value;
-                config.ubicacionSitio = document.getElementById('ubicacionSitio').value;
-                config.descripcionSitio = document.getElementById('descripcionSitio').value;
-            } else if (seccion === 'redes') {
-                config.facebook = document.getElementById('facebook').value;
-                config.instagram = document.getElementById('instagram').value;
-                config.twitter = document.getElementById('twitter').value;
-                config.whatsapp = document.getElementById('whatsapp').value;
-                config.telegram = document.getElementById('telegram').value;
-                config.whatsappCanal = document.getElementById('whatsappCanal').value;
-            } else if (seccion === 'monetizacion') {
-                config.amazonId = document.getElementById('amazonId').value;
-                config.googleAdsense = document.getElementById('googleAdsense').value;
-                config.stripeId = document.getElementById('stripeId').value;
-                config.linkDonacion = document.getElementById('linkDonacion').value;
-            } else if (seccion === 'analitica') {
-                config.googleAnalytics = document.getElementById('googleAnalytics').value;
-                config.mostrarVistas = document.getElementById('mostrarVistas').value === 'true';
-            } else if (seccion === 'seo') {
-                config.metaKeywords = document.getElementById('metaKeywords').value;
-                config.robotsTxt = document.getElementById('robotsTxt').value;
-                config.googleVerification = document.getElementById('googleVerification').value;
-                config.activarOpenGraph = document.getElementById('activarOpenGraph').value === 'true';
-            }
+
+            // Recolectar todos los campos del formulario
+            const config = {
+                nombreSitio: document.getElementById('nombreSitio').value,
+                tagline: document.getElementById('tagline').value,
+                colorPrincipal: document.getElementById('colorPrincipal').value,
+                emailContacto: document.getElementById('emailContacto').value,
+                ubicacionSitio: document.getElementById('ubicacionSitio').value,
+                descripcionSitio: document.getElementById('descripcionSitio').value,
+                facebook: document.getElementById('facebook').value,
+                instagram: document.getElementById('instagram').value,
+                twitter: document.getElementById('twitter').value,
+                whatsapp: document.getElementById('whatsapp').value,
+                telegram: document.getElementById('telegram').value,
+                whatsappCanal: document.getElementById('whatsappCanal').value,
+                amazonId: document.getElementById('amazonId').value,
+                googleAdsense: document.getElementById('googleAdsense').value,
+                stripeId: document.getElementById('stripeId').value,
+                linkDonacion: document.getElementById('linkDonacion').value,
+                googleAnalytics: document.getElementById('googleAnalytics').value,
+                mostrarVistas: document.getElementById('mostrarVistas').value === 'true',
+                metaKeywords: document.getElementById('metaKeywords').value,
+                robotsTxt: document.getElementById('robotsTxt').value,
+                googleVerification: document.getElementById('googleVerification').value,
+                activarOpenGraph: document.getElementById('activarOpenGraph').value === 'true'
+            };
+
             try {
                 const res = await fetch('/api/configuracion', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ seccion, config, pin })
+                    body: JSON.stringify({ pin, ...config }) // Enviamos todo junto
                 });
                 const data = await res.json();
                 if (data.success) {
-                    mostrarAlerta(`✅ ${seccion} guardado`, 'success', seccion);
+                    mostrarAlerta('✅ Configuración guardada', 'success', 'sitio');
                     configuracion = { ...configuracion, ...config };
                 } else {
-                    mostrarAlerta(`❌ ${data.error}`, 'error', seccion);
+                    mostrarAlerta(`❌ ${data.error}`, 'error', 'sitio');
                 }
             } catch (error) {
-                mostrarAlerta('❌ Error de red', 'error', seccion);
+                console.error(error);
+                mostrarAlerta('❌ Error de red', 'error', 'sitio');
             }
         }
 
@@ -260,10 +262,14 @@
 
         function mostrarAlerta(mensaje, tipo, tab) {
             const alertBox = document.getElementById('alert' + tab.charAt(0).toUpperCase() + tab.slice(1));
-            alertBox.textContent = mensaje;
-            alertBox.className = `alert ${tipo}`;
-            alertBox.style.display = 'block';
-            setTimeout(() => alertBox.style.display = 'none', 3000);
+            if (alertBox) {
+                alertBox.textContent = mensaje;
+                alertBox.className = `alert ${tipo}`;
+                alertBox.style.display = 'block';
+                setTimeout(() => alertBox.style.display = 'none', 3000);
+            } else {
+                alert(mensaje);
+            }
         }
 
         window.addEventListener('load', () => {
@@ -272,4 +278,4 @@
         });
     </script>
 </body>
-                                                   </html>
+</html>
