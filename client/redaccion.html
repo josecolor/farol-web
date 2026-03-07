@@ -186,7 +186,7 @@
             if (!file) return;
             fotoInfo.textContent = '⏳ Comprimiendo...';
             try {
-                fotoRedactorBase64 = await comprimirImagen(file, 150);
+                fotoRedactorBase64 = await comprimirImagen(file, 150); // Foto de periodista a 150px
                 fotoPreview.src = fotoRedactorBase64;
                 fotoPreview.style.display = 'block';
                 fotoPlaceholder.style.display = 'none';
