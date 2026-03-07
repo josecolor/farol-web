@@ -311,7 +311,6 @@
             setTimeout(() => alertDiv.style.display = 'none', 4000);
         }
 
-        // Cargar Analytics y estadísticas
         (async function() {
             const res = await fetch('/api/configuracion');
             const data = await res.json();
@@ -349,6 +348,8 @@
                         <p>📰 Noticias publicadas: <strong>${data.totalNoticias}</strong></p>
                         <p>👁️ Vistas totales: <strong>${data.totalVistas}</strong></p>
                     `;
+                } else {
+                    document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
                 }
             } catch (e) {
                 document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
