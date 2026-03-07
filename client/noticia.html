@@ -25,8 +25,10 @@
         .volver { display:inline-block; margin-top:30px; padding:12px 24px; background:#FF8C00; color:black; text-decoration:none; border-radius:40px; font-weight:bold; transition:0.2s; }
         .volver:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(255,140,0,0.6); }
         .loading, .error { text-align:center; padding:50px; color:#aaa; }
-        .redactor-info { display:inline-flex; align-items:center; gap:8px; }
-        .redactor-foto-mini { width:35px; height:35px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; }
+        .autor-contenedor { display:flex; align-items:center; background:#222; padding:15px; border-radius:12px; margin:20px 0; border:1px solid #FF8C00; }
+        .autor-foto { width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; margin-right:15px; }
+        .autor-info h4 { margin:0; color:#FF8C00; font-size:1.2em; }
+        .autor-info p { margin:5px 0 0; color:#aaa; font-size:0.9em; }
     </style>
 </head>
 <body>
@@ -53,20 +55,32 @@
                         mediaHtml = `<img class="imagen" src="${n.imagen}" alt="${n.titulo}">`;
                     }
                 }
-                const redactorFoto = n.redactorFoto ? `<img src="${n.redactorFoto}" class="redactor-foto-mini">` : '';
+                const autorHtml = n.redactorFoto ? `
+                    <div class="autor-contenedor">
+                        <img src="${n.redactorFoto}" class="autor-foto" alt="Foto del redactor">
+                        <div class="autor-info">
+                            <h4>${n.redactor || 'Redacción'}</h4>
+                            <p>Periodista de El Farol al Día</p>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="autor-contenedor">
+                        <div class="autor-info">
+                            <h4>${n.redactor || 'Redacción'}</h4>
+                        </div>
+                    </div>
+                `;
+
                 container.innerHTML = `
                     <h1>${n.titulo}</h1>
                     <div class="fecha">
                         <span>📅 ${fecha}</span>
                         <span>📰 ${n.seccion || 'General'}</span>
                         <span>📍 ${n.ubicacion || 'Santo Domingo'}</span>
-                        <span class="redactor-info">
-                            ${redactorFoto}
-                            👤 ${n.redactor || 'Redacción'}
-                        </span>
                         <span>👁️ ${n.vistas || 0}</span>
                     </div>
                     ${mediaHtml}
+                    ${autorHtml}
                     <div class="contenido">${n.contenido.replace(/\n/g,'<br>')}</div>
                     <a href="/" class="volver">← Volver a portada</a>
                 `;
