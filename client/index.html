@@ -20,10 +20,10 @@
         .noticia h2 { color:#FF8C00; margin:10px 0; font-size:1.8em; cursor:pointer; }
         .noticia h2:hover { text-decoration:underline; }
         .noticia p { color:#ddd; margin:10px 0; }
-        .noticia .meta { display:flex; flex-wrap:wrap; gap:10px 20px; color:#888; font-size:0.9em; margin-top:15px; border-top:1px solid #333; padding-top:10px; align-items:center; }
-        .noticia .seccion { background:#FF8C00; color:black; padding:4px 12px; border-radius:20px; font-weight:bold; }
-        .redactor-info { display:inline-flex; align-items:center; gap:5px; }
-        .redactor-foto-mini { width:26px; height:26px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; }
+        .noticia-meta { display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center; font-size:14px; color:#bbb; margin-top:10px; border-top:1px solid #333; padding-top:10px; }
+        .seccion { background:#FF8C00; color:black; padding:4px 12px; border-radius:20px; font-weight:bold; }
+        .redactor-info { display:flex; align-items:center; gap:10px; }
+        .redactor-foto { width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #FF8C00; vertical-align:middle; }
         a { text-decoration:none; color:inherit; }
         @media (max-width:600px) { h1 { font-size:2em; } .noticia h2 { font-size:1.5em; } }
     </style>
@@ -46,19 +46,19 @@
                     return;
                 }
                 container.innerHTML = data.noticias.map(n => {
-                    const redactorFoto = n.redactorFoto ? `<img src="${n.redactorFoto}" class="redactor-foto-mini">` : '';
+                    const fotoHtml = n.redactorFoto ? `<img src="${n.redactorFoto}" class="redactor-foto" alt="Foto del redactor">` : '';
                     return `
                     <div class="noticia">
                         <img src="${n.imagen || 'https://via.placeholder.com/800x400?text=El+Farol+al+Día'}" alt="Imagen" loading="lazy">
                         <h2 onclick="window.location.href='/noticia/${n._id}'">${n.titulo}</h2>
                         <p>${n.contenido.substring(0,200)}...</p>
-                        <div class="meta">
+                        <div class="noticia-meta">
                             <span class="seccion">${n.seccion || 'General'}</span>
                             <span>📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</span>
                             <span>👁️ ${n.vistas || 0}</span>
                             <span class="redactor-info">
-                                ${redactorFoto}
-                                👤 ${n.redactor || 'Redacción'}
+                                ${fotoHtml}
+                                <span>👤 ${n.redactor || 'Redacción'}</span>
                             </span>
                         </div>
                     </div>
