@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V3.0
- * Con foto de periodista, SEO y Google Analytics integrados
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V4.0
+ * Con publicaciones programadas usando Agenda
  */
 
 const express = require('express');
@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const Agenda = require('agenda');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -63,6 +64,41 @@ async function conectarMongoDB() {
     }
 }
 
+// ==================== INICIALIZAR AGENDA ====================
+let agenda;
+(async function initAgenda() {
+    await conectarMongoDB(); // Aseguramos conexión primero
+    agenda = new Agenda({ db: { address: MONGO_URL, collection: 'agendaJobs' } });
+
+    // Definir el trabajo de publicar noticia
+    agenda.define('publicar noticia programada', async (job) => {
+        const { noticiaId } = job.attrs.data;
+        console.log(`📅 Ejecutando publicación programada para noticia: ${noticiaId}`);
+
+        const noticia = await Noticia.findById(noticiaId);
+        if (!noticia) {
+            console.log(`❌ Noticia ${noticiaId} no encontrada, cancelando trabajo.`);
+            await job.remove();
+            return;
+        }
+
+        if (noticia.estado === 'programada') {
+            noticia.estado = 'publicada';
+            noticia.fecha = new Date(); // Actualizar fecha a ahora
+            await noticia.save();
+            console.log(`✅ Noticia "${noticia.titulo}" publicada automáticamente.`);
+        } else {
+            console.log(`⚠️ Noticia ${noticiaId} ya estaba publicada.`);
+            await job.remove();
+        }
+    });
+
+    await agenda.start();
+    console.log('📅 Agenda (planificador) iniciado.');
+
+    // Cada minuto revisamos si hay trabajos pendientes (esto ya lo hace agenda automáticamente)
+})();
+
 // ==================== ESQUEMAS ====================
 const noticiaSchema = new mongoose.Schema({
     titulo: { type: String, required: true },
@@ -74,6 +110,9 @@ const noticiaSchema = new mongoose.Schema({
     imagen: { type: String, default: null },
     vistas: { type: Number, default: 0 },
     fecha: { type: Date, default: Date.now },
+    // Nuevos campos para programación
+    fechaProgramada: { type: Date, default: null },
+    estado: { type: String, default: 'publicada', enum: ['programada', 'publicada'] },
     // Campos SEO
     seoTitle: { type: String, default: '' },
     seoDesc: { type: String, default: '' },
@@ -187,7 +226,8 @@ app.get('/redaccion', (req, res) => {
 // ==================== RUTAS API ====================
 app.get('/api/noticias', async (req, res) => {
     try {
-        const noticias = await Noticia.find().sort({ fecha: -1 }).lean();
+        // Solo devolvemos noticias publicadas (no las programadas)
+        const noticias = await Noticia.find({ estado: 'publicada' }).sort({ fecha: -1 }).lean();
         res.json({ success: true, noticias });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -198,6 +238,9 @@ app.get('/api/noticias/:id', async (req, res) => {
     try {
         const noticia = await Noticia.findById(req.params.id);
         if (!noticia) return res.status(404).json({ success: false, error: 'No encontrada' });
+        if (noticia.estado !== 'publicada') {
+            return res.status(404).json({ success: false, error: 'Noticia no disponible' });
+        }
         noticia.vistas = (noticia.vistas || 0) + 1;
         await noticia.save();
         res.json({ success: true, noticia });
@@ -208,9 +251,18 @@ app.get('/api/noticias/:id', async (req, res) => {
 
 app.post('/api/publicar', async (req, res) => {
     try {
-        const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen, seoTitle, seoDesc, seoKeywords } = req.body;
+        const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen, seoTitle, seoDesc, seoKeywords, fechaProgramada } = req.body;
         if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
         if (!titulo || !seccion || !contenido) return res.status(400).json({ success: false, error: 'Faltan campos' });
+
+        let estado = 'publicada';
+        let fecha = new Date();
+
+        // Si hay fechaProgramada, la noticia se guarda como programada
+        if (fechaProgramada) {
+            estado = 'programada';
+            fecha = new Date(fechaProgramada); // Guardamos la fecha programada, pero la fecha de publicación será cuando se ejecute
+        }
 
         const noticia = new Noticia({
             titulo: titulo.trim(),
@@ -222,11 +274,23 @@ app.post('/api/publicar', async (req, res) => {
             imagen: imagen || null,
             seoTitle: seoTitle?.trim() || '',
             seoDesc: seoDesc?.trim() || '',
-            seoKeywords: seoKeywords?.trim() || ''
+            seoKeywords: seoKeywords?.trim() || '',
+            fechaProgramada: fechaProgramada ? new Date(fechaProgramada) : null,
+            estado,
+            fecha: estado === 'publicada' ? new Date() : null // Si es programada, la fecha se pondrá cuando se publique
         });
+
         await noticia.save();
-        console.log('📰 Nueva noticia:', noticia.titulo);
-        res.status(201).json({ success: true, message: 'Publicado 🏮', id: noticia._id });
+
+        if (estado === 'programada') {
+            // Programar en Agenda
+            await agenda.schedule(new Date(fechaProgramada), 'publicar noticia programada', { noticiaId: noticia._id });
+            console.log(`📅 Noticia programada para: ${new Date(fechaProgramada).toLocaleString()}`);
+            res.status(201).json({ success: true, message: 'Noticia programada con éxito 🗓️', id: noticia._id });
+        } else {
+            console.log('📰 Nueva noticia publicada:', noticia.titulo);
+            res.status(201).json({ success: true, message: 'Publicado 🏮', id: noticia._id });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -261,8 +325,11 @@ app.post('/api/configuracion', async (req, res) => {
 
 app.get('/api/estadisticas', async (req, res) => {
     try {
-        const totalNoticias = await Noticia.countDocuments();
-        const totalVistas = await Noticia.aggregate([{ $group: { _id: null, total: { $sum: '$vistas' } } }]);
+        const totalNoticias = await Noticia.countDocuments({ estado: 'publicada' });
+        const totalVistas = await Noticia.aggregate([
+            { $match: { estado: 'publicada' } },
+            { $group: { _id: null, total: { $sum: '$vistas' } } }
+        ]);
         res.json({ success: true, totalNoticias, totalVistas: totalVistas[0]?.total || 0 });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -272,7 +339,7 @@ app.get('/api/estadisticas', async (req, res) => {
 // ==================== SITEMAP ====================
 app.get('/sitemap.xml', async (req, res) => {
     try {
-        const noticias = await Noticia.find().sort({ fecha: -1 }).lean();
+        const noticias = await Noticia.find({ estado: 'publicada' }).sort({ fecha: -1 }).lean();
         const urlBase = 'https://elfarolaldia.com';
         let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
         xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -295,11 +362,11 @@ app.use((req, res) => {
 
 // ==================== INICIAR SERVIDOR ====================
 async function iniciarServidor() {
-    await conectarMongoDB();
+    // La conexión ya se hizo en initAgenda, pero esperamos a que agenda esté listo
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 3.0 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 4.0 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: https://elfarolaldia.com              ║
@@ -307,18 +374,22 @@ async function iniciarServidor() {
 ║ ✏️ Redacción: https://elfarolaldia.com/redaccion  ║
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
 ║ 📸 Foto del periodista: ACTIVADA                   ║
+║ 📅 Publicaciones programadas: ACTIVADAS            ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
     });
-    process.on('SIGTERM', () => {
+
+    process.on('SIGTERM', async () => {
         console.log('⏹️ Cerrando servidor gracefulmente...');
+        await agenda.stop();
         server.close(() => {
             if (mongoose.connection.readyState === 1) mongoose.connection.close();
             process.exit(0);
         });
     });
 }
+
 iniciarServidor();
 
 module.exports = app;
