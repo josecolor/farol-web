@@ -224,7 +224,7 @@ app.post('/api/publicar', async (req, res) => {
 
         if (fechaProgramada) {
             estado = 'programada';
-            fecha = null; // la fecha se asignará al publicarse
+            fecha = null;
         }
 
         const noticia = new Noticia({
@@ -339,11 +339,10 @@ app.use((req, res) => {
 });
 
 // ==================== INICIAR SERVIDOR ====================
-let agenda; // variable global para agenda
+let agenda;
 
 async function iniciarServidor() {
     await conectarMongoDB();
-    // Inicializar agenda solo si se va a usar (se creará bajo demanda en POST)
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
