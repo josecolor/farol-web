@@ -1,6 +1,6 @@
 /**
  * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V4.0
- * Con publicaciones programadas usando Agenda
+ * Con publicaciones programadas (Agenda) y optimizado
  */
 
 const express = require('express');
@@ -64,41 +64,6 @@ async function conectarMongoDB() {
     }
 }
 
-// ==================== INICIALIZAR AGENDA ====================
-let agenda;
-(async function initAgenda() {
-    await conectarMongoDB(); // Aseguramos conexión primero
-    agenda = new Agenda({ db: { address: MONGO_URL, collection: 'agendaJobs' } });
-
-    // Definir el trabajo de publicar noticia
-    agenda.define('publicar noticia programada', async (job) => {
-        const { noticiaId } = job.attrs.data;
-        console.log(`📅 Ejecutando publicación programada para noticia: ${noticiaId}`);
-
-        const noticia = await Noticia.findById(noticiaId);
-        if (!noticia) {
-            console.log(`❌ Noticia ${noticiaId} no encontrada, cancelando trabajo.`);
-            await job.remove();
-            return;
-        }
-
-        if (noticia.estado === 'programada') {
-            noticia.estado = 'publicada';
-            noticia.fecha = new Date(); // Actualizar fecha a ahora
-            await noticia.save();
-            console.log(`✅ Noticia "${noticia.titulo}" publicada automáticamente.`);
-        } else {
-            console.log(`⚠️ Noticia ${noticiaId} ya estaba publicada.`);
-            await job.remove();
-        }
-    });
-
-    await agenda.start();
-    console.log('📅 Agenda (planificador) iniciado.');
-
-    // Cada minuto revisamos si hay trabajos pendientes (esto ya lo hace agenda automáticamente)
-})();
-
 // ==================== ESQUEMAS ====================
 const noticiaSchema = new mongoose.Schema({
     titulo: { type: String, required: true },
@@ -110,7 +75,7 @@ const noticiaSchema = new mongoose.Schema({
     imagen: { type: String, default: null },
     vistas: { type: Number, default: 0 },
     fecha: { type: Date, default: Date.now },
-    // Nuevos campos para programación
+    // Campos para programación
     fechaProgramada: { type: Date, default: null },
     estado: { type: String, default: 'publicada', enum: ['programada', 'publicada'] },
     // Campos SEO
@@ -226,7 +191,6 @@ app.get('/redaccion', (req, res) => {
 // ==================== RUTAS API ====================
 app.get('/api/noticias', async (req, res) => {
     try {
-        // Solo devolvemos noticias publicadas (no las programadas)
         const noticias = await Noticia.find({ estado: 'publicada' }).sort({ fecha: -1 }).lean();
         res.json({ success: true, noticias });
     } catch (error) {
@@ -258,10 +222,9 @@ app.post('/api/publicar', async (req, res) => {
         let estado = 'publicada';
         let fecha = new Date();
 
-        // Si hay fechaProgramada, la noticia se guarda como programada
         if (fechaProgramada) {
             estado = 'programada';
-            fecha = new Date(fechaProgramada); // Guardamos la fecha programada, pero la fecha de publicación será cuando se ejecute
+            fecha = null; // la fecha se asignará al publicarse
         }
 
         const noticia = new Noticia({
@@ -277,18 +240,33 @@ app.post('/api/publicar', async (req, res) => {
             seoKeywords: seoKeywords?.trim() || '',
             fechaProgramada: fechaProgramada ? new Date(fechaProgramada) : null,
             estado,
-            fecha: estado === 'publicada' ? new Date() : null // Si es programada, la fecha se pondrá cuando se publique
+            fecha: estado === 'publicada' ? new Date() : null
         });
 
         await noticia.save();
 
         if (estado === 'programada') {
-            // Programar en Agenda
+            // Inicializar agenda si no está
+            if (!agenda) {
+                agenda = new Agenda({ db: { address: MONGO_URL, collection: 'agendaJobs' } });
+                agenda.define('publicar noticia programada', async (job) => {
+                    const { noticiaId } = job.attrs.data;
+                    const n = await Noticia.findById(noticiaId);
+                    if (n && n.estado === 'programada') {
+                        n.estado = 'publicada';
+                        n.fecha = new Date();
+                        await n.save();
+                        console.log(`✅ Noticia programada publicada: ${n.titulo}`);
+                    }
+                });
+                await agenda.start();
+                console.log('📅 Agenda iniciada.');
+            }
             await agenda.schedule(new Date(fechaProgramada), 'publicar noticia programada', { noticiaId: noticia._id });
             console.log(`📅 Noticia programada para: ${new Date(fechaProgramada).toLocaleString()}`);
             res.status(201).json({ success: true, message: 'Noticia programada con éxito 🗓️', id: noticia._id });
         } else {
-            console.log('📰 Nueva noticia publicada:', noticia.titulo);
+            console.log('📰 Nueva noticia:', noticia.titulo);
             res.status(201).json({ success: true, message: 'Publicado 🏮', id: noticia._id });
         }
     } catch (error) {
@@ -361,8 +339,11 @@ app.use((req, res) => {
 });
 
 // ==================== INICIAR SERVIDOR ====================
+let agenda; // variable global para agenda
+
 async function iniciarServidor() {
-    // La conexión ya se hizo en initAgenda, pero esperamos a que agenda esté listo
+    await conectarMongoDB();
+    // Inicializar agenda solo si se va a usar (se creará bajo demanda en POST)
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
@@ -382,7 +363,7 @@ async function iniciarServidor() {
 
     process.on('SIGTERM', async () => {
         console.log('⏹️ Cerrando servidor gracefulmente...');
-        await agenda.stop();
+        if (agenda) await agenda.stop();
         server.close(() => {
             if (mongoose.connection.readyState === 1) mongoose.connection.close();
             process.exit(0);
