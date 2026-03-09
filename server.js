@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.2
- * Con IA generativa (Gemini 1.5 Flash), caché, rate limiting, trabajos automáticos
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.3
+ * Con IA generativa (Gemini 2.5 Flash), caché, rate limiting, trabajos automáticos
  * y LIMPIEZA AUTOMÁTICA DE NOTICIAS ANTIGUAS (para no llenar el disco)
  */
 
@@ -15,7 +15,7 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// ==================== TRUST PROXY (elimina advertencia de Railway) ====================
+// ==================== TRUST PROXY ====================
 app.set('trust proxy', true);
 
 // ==================== MANEJO DE ERRORES GLOBAL ====================
@@ -32,10 +32,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
-// ==================== RATE LIMITING (protección) ====================
+// ==================== RATE LIMITING ====================
 const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // máximo 100 peticiones por IP cada 15 minutos
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: { error: 'Demasiadas peticiones, intenta más tarde' }
 });
 app.use('/api/', apiLimiter);
@@ -43,26 +43,26 @@ app.use('/api/', apiLimiter);
 // ==================== HEALTH CHECK ====================
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// ==================== VALIDACIÓN DE VARIABLES DE ENTORNO ====================
+// ==================== VALIDACIÓN DE VARIABLES ====================
 const MONGO_URL = process.env.MONGO_URL;
 if (!MONGO_URL) {
-    console.error('\n❌ ERROR CRÍTICO: Variable MONGO_URL no está definida en Railway.');
+    console.error('\n❌ ERROR: Variable MONGO_URL no definida.');
     process.exit(1);
 }
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
-    console.error('\n❌ ERROR: Variable GEMINI_API_KEY no está definida.');
+    console.error('\n❌ ERROR: Variable GEMINI_API_KEY no definida.');
     process.exit(1);
 }
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
 if (!INTERNAL_SECRET) {
-    console.error('\n❌ ERROR: Variable INTERNAL_SECRET no está definida.');
+    console.error('\n❌ ERROR: Variable INTERNAL_SECRET no definida.');
     process.exit(1);
 }
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 console.log('📡 Variables de entorno validadas.');
 
-// ==================== CONEXIÓN A MONGODB ====================
+// ==================== CONEXIÓN MONGODB ====================
 async function conectarMongoDB() {
     const maxIntentos = 5;
     for (let i = 1; i <= maxIntentos; i++) {
@@ -80,7 +80,7 @@ async function conectarMongoDB() {
         } catch (error) {
             console.error(`❌ Intento ${i} falló:`, error.message);
             if (i === maxIntentos) {
-                console.error('\n🛑 No se pudo conectar después de 5 intentos. Saliendo...');
+                console.error('\n🛑 No se pudo conectar. Saliendo...');
                 process.exit(1);
             }
             await new Promise(resolve => setTimeout(resolve, 5000));
@@ -99,14 +99,11 @@ const noticiaSchema = new mongoose.Schema({
     imagen: { type: String, default: null },
     vistas: { type: Number, default: 0 },
     fecha: { type: Date, default: Date.now },
-    // Campos para programación
     fechaProgramada: { type: Date, default: null },
     estado: { type: String, default: 'publicada', enum: ['programada', 'publicada'] },
-    // Campos SEO
     seoTitle: { type: String, default: '' },
     seoDesc: { type: String, default: '' },
     seoKeywords: { type: String, default: '' },
-    // Nuevos campos para SEO y URLs amigables
     categoriaSlug: { type: String, default: '' },
     tags: [{ type: String }],
     url: { type: String, unique: true, sparse: true },
@@ -122,19 +119,19 @@ const configSchema = new mongoose.Schema({
 const Noticia = mongoose.model('Noticia', noticiaSchema);
 const Config = mongoose.model('Configuracion', configSchema);
 
-// ==================== ÍNDICES PARA RENDIMIENTO ====================
+// ==================== ÍNDICES ====================
 Noticia.collection.createIndex({ categoriaSlug: 1, fecha: -1 });
 Noticia.collection.createIndex({ estado: 1, fecha: -1 });
 Noticia.collection.createIndex({ url: 1 }, { unique: true, sparse: true });
 
-// ==================== CACHE SIMPLE EN MEMORIA ====================
+// ==================== CACHE ====================
 const cache = {
     noticias: null,
     timestamp: 0,
-    duracion: 5 * 60 * 1000 // 5 minutos
+    duracion: 5 * 60 * 1000
 };
 
-// ==================== MAPA DE CATEGORÍAS PARA SLUGS ====================
+// ==================== MAPA DE CATEGORÍAS ====================
 const categoriaSlugMap = {
     'Nacionales': 'nacional-rd',
     'Política': 'politica-rd',
@@ -146,7 +143,7 @@ const categoriaSlugMap = {
     'Espectáculos': 'entretenimiento'
 };
 
-// ==================== FUNCIÓN PARA GENERAR SLUG ====================
+// ==================== FUNCIÓN SLUG ====================
 function generarSlug(texto) {
     return texto
         .toLowerCase()
@@ -155,7 +152,7 @@ function generarSlug(texto) {
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-// ==================== FUNCIONES DE INYECCIÓN META ====================
+// ==================== INYECCIÓN META ====================
 async function inyectarMeta(html) {
     try {
         const config = await Config.findOne().lean();
@@ -165,9 +162,7 @@ async function inyectarMeta(html) {
         } else {
             html = html.replace('<!-- META_GOOGLE_VERIFICATION -->', '');
         }
-    } catch (e) {
-        console.error('⚠️ Error inyectando meta:', e.message);
-    }
+    } catch (e) {}
     return html;
 }
 
@@ -188,9 +183,7 @@ async function inyectarAnalytics(html) {
         } else {
             html = html.replace('<!-- GOOGLE_ANALYTICS -->', '');
         }
-    } catch (e) {
-        console.error('⚠️ Error inyectando analytics:', e.message);
-    }
+    } catch (e) {}
     return html;
 }
 
@@ -210,9 +203,7 @@ async function inyectarMetaNoticia(html, noticia) {
         html = html.replace('<!-- OG_DESCRIPTION -->', seoDesc);
         html = html.replace('<!-- OG_IMAGE -->', ogImage);
         html = html.replace('<!-- OG_URL -->', ogUrl);
-    } catch (e) {
-        console.error('⚠️ Error inyectando meta noticia:', e.message);
-    }
+    } catch (e) {}
     return html;
 }
 
@@ -225,7 +216,6 @@ app.get('/', async (req, res) => {
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
     } catch (e) {
-        console.error('Error en GET /:', e.message);
         res.status(500).send('Error interno');
     }
 });
@@ -243,7 +233,6 @@ app.get('/noticia/:slug', async (req, res) => {
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
     } catch (e) {
-        console.error('Error en GET /noticia/:slug:', e.message);
         res.status(500).send('Error interno');
     }
 });
@@ -253,8 +242,6 @@ app.get('/redaccion', (req, res) => {
 });
 
 // ==================== RUTAS API ====================
-
-// Últimas noticias (con caché)
 app.get('/api/noticias', async (req, res) => {
     try {
         if (cache.noticias && cache.timestamp > Date.now() - cache.duracion) {
@@ -273,7 +260,6 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
-// Noticia por ID (para compatibilidad con frontend actual)
 app.get('/api/noticias/:id', async (req, res) => {
     try {
         const noticia = await Noticia.findById(req.params.id);
@@ -281,7 +267,7 @@ app.get('/api/noticias/:id', async (req, res) => {
         if (noticia.estado !== 'publicada') {
             return res.status(404).json({ success: false, error: 'Noticia no disponible' });
         }
-        noticia.vistas = (noticia.vistas || 0) + 1;
+        noticia.vistas += 1;
         await noticia.save();
         res.json({ success: true, noticia });
     } catch (error) {
@@ -289,7 +275,6 @@ app.get('/api/noticias/:id', async (req, res) => {
     }
 });
 
-// Noticias por categoría (slug)
 app.get('/api/categoria/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
@@ -310,7 +295,6 @@ app.get('/api/categoria/:slug', async (req, res) => {
     }
 });
 
-// Publicar noticia manual (desde redacción)
 app.post('/api/publicar', async (req, res) => {
     try {
         const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen, seoTitle, seoDesc, seoKeywords, fechaProgramada } = req.body;
@@ -327,12 +311,7 @@ app.post('/api/publicar', async (req, res) => {
         }
 
         let estado = 'publicada';
-        let fecha = new Date();
-
-        if (fechaProgramada) {
-            estado = 'programada';
-            fecha = null;
-        }
+        if (fechaProgramada) estado = 'programada';
 
         const noticia = new Noticia({
             titulo: titulo.trim(),
@@ -357,24 +336,17 @@ app.post('/api/publicar', async (req, res) => {
         await noticia.save();
 
         if (estado === 'programada') {
-            if (!agenda) {
-                console.error('Agenda no inicializada');
-                return res.status(500).json({ success: false, error: 'Error interno' });
-            }
             await agenda.schedule(new Date(fechaProgramada), 'publicar noticia programada', { noticiaId: noticia._id });
-            console.log(`📅 Noticia programada para: ${new Date(fechaProgramada).toLocaleString()}`);
             res.status(201).json({ success: true, message: 'Noticia programada con éxito 🗓️', id: noticia._id });
         } else {
-            console.log('📰 Nueva noticia:', noticia.titulo);
             res.status(201).json({ success: true, message: 'Publicado 🏮', id: noticia._id });
         }
     } catch (error) {
-        console.error('Error POST /api/publicar:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Endpoint de generación con IA (solo para llamadas internas)
+// Endpoint de IA con Gemini 2.5 Flash
 app.post('/api/generar-noticia', async (req, res) => {
     if (req.headers['x-internal-key'] !== INTERNAL_SECRET) {
         return res.status(403).json({ error: 'No autorizado' });
@@ -409,9 +381,9 @@ Tema: ${tema}
 Estilo: neutral, objetivo, con lenguaje de República Dominicana.
         `;
 
-        // CAMBIO IMPORTANTE: usar modelo gemini-1.5-flash
+        // CAMBIO CLAVE: Usamos gemini-2.5-flash
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -461,8 +433,6 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
 
         if (agenda) {
             await agenda.schedule(new Date(Date.now() + 5 * 60000), 'publicar noticia programada', { noticiaId: nuevaNoticia._id });
-        } else {
-            console.error('Agenda no disponible');
         }
 
         res.json({
@@ -478,7 +448,7 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
     }
 });
 
-// Endpoint de estado del servidor
+// Endpoint de estado
 app.get('/status', (req, res) => {
     res.json({
         uptime: process.uptime(),
@@ -580,23 +550,20 @@ app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
-// ==================== INICIAR SERVIDOR Y AGENDA ====================
+// ==================== INICIAR SERVIDOR ====================
 let agenda;
 
 async function iniciarServidor() {
     await conectarMongoDB();
 
-    // Inicializar Agenda
     agenda = new Agenda({ db: { address: MONGO_URL, collection: 'agendaJobs' } });
 
-    // --- TRABAJO DE PUBLICACIÓN ---
     agenda.define('publicar noticia programada', async (job) => {
         const { noticiaId } = job.attrs.data;
         await Noticia.findByIdAndUpdate(noticiaId, { estado: 'publicada', fecha: new Date() });
         console.log(`✅ Noticia publicada: ${noticiaId}`);
     });
 
-    // --- TRABAJOS DE GENERACIÓN POR LOTES (IA) ---
     agenda.define('generar lote rd', async () => {
         const categorias = ['Nacionales', 'Política', 'Economía', 'Deportes', 'Tecnología', 'Salud'];
         for (const cat of categorias) {
@@ -654,9 +621,8 @@ async function iniciarServidor() {
         }
     });
 
-    // --- NUEVO: TRABAJO DE LIMPIEZA AUTOMÁTICA DE NOTICIAS ANTIGUAS ---
     agenda.define('limpiar noticias antiguas', async () => {
-        const dias = 30; // Noticias con más de 30 días
+        const dias = 30;
         const fechaLimite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
         const resultado = await Noticia.deleteMany({
             estado: 'publicada',
@@ -668,24 +634,21 @@ async function iniciarServidor() {
     await agenda.start();
     console.log('📅 Agenda iniciada.');
 
-    // Programar horarios de generación
-    await agenda.every('0 5 * * *', 'generar lote rd');   // 5 AM
-    await agenda.every('0 14 * * *', 'generar lote latam'); // 2 PM
-    await agenda.every('0 20 * * *', 'generar lote usa');   // 8 PM
-
-    // Programar limpieza diaria a las 3 AM
+    await agenda.every('0 5 * * *', 'generar lote rd');
+    await agenda.every('0 14 * * *', 'generar lote latam');
+    await agenda.every('0 20 * * *', 'generar lote usa');
     await agenda.every('0 3 * * *', 'limpiar noticias antiguas');
 
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.2 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.3 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
 ║ ✏️ Redacción: ${BASE_URL}/redaccion  ║
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
-║ 🤖 IA Generativa: ACTIVADA (Gemini 1.5 Flash)      ║
+║ 🤖 IA Generativa: ACTIVADA (Gemini 2.5 Flash)      ║
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
 ║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
@@ -694,7 +657,7 @@ async function iniciarServidor() {
     });
 
     process.on('SIGTERM', async () => {
-        console.log('⏹️ Cerrando servidor gracefulmente...');
+        console.log('⏹️ Cerrando servidor...');
         if (agenda) await agenda.stop();
         server.close(() => {
             if (mongoose.connection.readyState === 1) mongoose.connection.close();
