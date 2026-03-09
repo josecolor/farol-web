@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V6.2
- * Con IA generativa (Gemini 2.5 Flash), caché con Redis, cola de trabajos BullMQ,
- * compresión, limpieza optimizada y monitoreo avanzado.
- * LIMPIEZA: noticias de más de 8 DÍAS se eliminan automáticamente.
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V7.1
+ * Con IA generativa (Gemini 2.5 Flash) optimizada para SEO,
+ * validaciones de calidad Google, caché Redis, cola BullMQ,
+ * compresión, limpieza automática y monitoreo avanzado.
  */
 
 const express = require('express');
@@ -33,7 +33,7 @@ const generacionQueue = new Queue('generacion-noticias', { connection: redisConn
 const worker = new Worker('generacion-noticias', async job => {
     const { categoria, fechaPublicacion } = job.data;
     console.log(`⚙️ Procesando generación de noticia para categoría: ${categoria}`);
-    
+
     const response = await fetch(`${process.env.BASE_URL}/api/generar-noticia-internal`, {
         method: 'POST',
         headers: {
@@ -42,7 +42,7 @@ const worker = new Worker('generacion-noticias', async job => {
         },
         body: JSON.stringify({ categoria })
     });
-    
+
     const data = await response.json();
     if (data.success) {
         console.log(`✅ Noticia generada y programada: ${data.id}`);
@@ -82,7 +82,7 @@ app.use('/api/', apiLimiter);
 // ==================== HEALTH CHECK ====================
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
-// ==================== VALIDACIÓN DE VARIABLES ====================
+// ==================== VALIDACIÓN DE VARIABLES DE ENTORNO ====================
 const MONGO_URL = process.env.MONGO_URL;
 if (!MONGO_URL) {
     console.error('\n❌ ERROR: Variable MONGO_URL no definida.');
@@ -206,6 +206,7 @@ const noticiaSchema = new mongoose.Schema({
     seoTitle: { type: String, default: '' },
     seoDesc: { type: String, default: '' },
     seoKeywords: { type: String, default: '' },
+    palabraClave: { type: String, default: '' },
     categoriaSlug: { type: String, default: '' },
     tags: [{ type: String }],
     url: { type: String, unique: true, sparse: true },
@@ -225,6 +226,7 @@ const Config = mongoose.model('Configuracion', configSchema);
 Noticia.collection.createIndex({ categoriaSlug: 1, fecha: -1 });
 Noticia.collection.createIndex({ estado: 1, fecha: -1 });
 Noticia.collection.createIndex({ url: 1 }, { unique: true, sparse: true });
+Noticia.collection.createIndex({ palabraClave: 1 });
 
 // ==================== CACHÉ CON REDIS ====================
 const cache = redisConnection;
@@ -290,13 +292,12 @@ async function inyectarMetaNoticia(html, noticia) {
         if (!noticia) return html;
         const seoTitle = noticia.seoTitle || noticia.titulo;
         const seoDesc = noticia.seoDesc || noticia.contenido.substring(0, 160);
-        const seoKeywords = noticia.seoKeywords || '';
         const ogImage = noticia.imagen || `${BASE_URL}/default-news.jpg`;
         const ogUrl = `${BASE_URL}${noticia.url || `/noticia/${noticia._id}`}`;
 
         html = html.replace('<!-- SEO_TITLE -->', seoTitle);
         html = html.replace('<!-- SEO_DESCRIPTION -->', seoDesc);
-        html = html.replace('<!-- SEO_KEYWORDS -->', seoKeywords);
+        html = html.replace('<!-- SEO_KEYWORDS -->', noticia.seoKeywords || '');
         html = html.replace('<!-- OG_TITLE -->', seoTitle);
         html = html.replace('<!-- OG_DESCRIPTION -->', seoDesc);
         html = html.replace('<!-- OG_IMAGE -->', ogImage);
@@ -451,6 +452,7 @@ app.post('/api/publicar', async (req, res) => {
     }
 });
 
+// ==================== ENDPOINT DE GENERACIÓN INTERNA (con validaciones SEO) ====================
 app.post('/api/generar-noticia-internal', async (req, res) => {
     if (req.headers['x-internal-key'] !== INTERNAL_SECRET) {
         return res.status(403).json({ error: 'No autorizado' });
@@ -468,20 +470,37 @@ app.post('/api/generar-noticia-internal', async (req, res) => {
         ];
         const tema = temas[Math.floor(Math.random() * temas.length)];
 
+        // ========== PROMPT OPTIMIZADO PARA GOOGLE ==========
         const prompt = `
-Eres un periodista digital especializado en ${categoria}. Genera una noticia en formato JSON con esta estructura exacta:
+Eres un periodista digital profesional especializado en ${categoria} y en redacción SEO para Google News y Google Discover.
+
+Debes generar una noticia original y de alta calidad que cumpla estrictamente con las políticas de contenido útil de Google.
+
+**REQUISITOS OBLIGATORIOS:**
+
+1. **Originalidad:** La noticia debe ser completamente original. No copies ni reproduzcas contenido de otros medios.
+2. **Sin spam:** Prohibido usar títulos engañosos, clickbait, repetición artificial de palabras clave o contenido sin valor informativo.
+3. **Escritura natural:** Redacta como un periodista humano. Evita frases robóticas o repetitivas.
+4. **Información creíble:** Describe hechos plausibles y coherentes. No inventes afirmaciones falsas.
+5. **Densidad de palabras clave:** La palabra clave principal debe aparecer de forma natural. No la fuerces ni repitas más de lo necesario.
+6. **Calidad editorial:** El contenido debe ser útil para el lector, tener estructura clara con subtítulos H2, párrafos bien desarrollados y estilo periodístico profesional.
+7. **Longitud adecuada:** Entre 400 y 700 palabras (ni más, ni menos).
+
+**ESTRUCTURA JSON EXACTA:**
 
 {
-  "titulo": "string (máx. 100 caracteres, llamativo)",
-  "contenido": "string (mín. 300 palabras, con datos concretos)",
-  "resumen": "string (máx. 160 caracteres, para SEO)",
-  "categoria": "${categoria}",
-  "keywords": ["array", "de", "palabras", "clave"],
-  "imagen_keywords": "string (palabras clave para buscar una imagen relacionada con la noticia)"
+  "titulo": "string (máx. 70 caracteres, con palabra clave al inicio)",
+  "slug": "string (generado a partir del título)",
+  "meta_description": "string (máx. 155 caracteres, atractiva y con palabra clave)",
+  "palabra_clave": "string (palabra clave principal)",
+  "contenido": "string (entre 400 y 700 palabras, con al menos 3 subtítulos H2)",
+  "subtitulos_h2": ["array de strings (los subtítulos usados)"],
+  "keywords": ["array de palabras clave relacionadas (mínimo 5)"],
+  "imagen_keywords": "string (palabras para buscar una imagen real en Unsplash)",
+  "categoria": "${categoria}"
 }
 
-Tema: ${tema}
-Estilo: neutral, objetivo, con lenguaje de República Dominicana.
+Tema sugerido: ${tema}
         `;
 
         const response = await fetch(
@@ -505,27 +524,94 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
 
         const noticiaGenerada = JSON.parse(jsonMatch[0]);
 
-        const existe = await Noticia.findOne({
-            titulo: noticiaGenerada.titulo,
-            fecha: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-        });
-        if (existe) return res.json({ message: 'Noticia duplicada, ignorada' });
+        // ========== VALIDACIONES DE CALIDAD ==========
+        const errores = [];
 
-        const query = noticiaGenerada.imagen_keywords || noticiaGenerada.titulo;
+        // Longitud
+        const palabras = noticiaGenerada.contenido?.split(' ').length || 0;
+        if (palabras < 400) errores.push(`Contenido demasiado corto: ${palabras} palabras (mínimo 400)`);
+        if (palabras > 700) errores.push(`Contenido demasiado largo: ${palabras} palabras (máximo 700)`);
+
+        // Palabra clave
+        const keyword = noticiaGenerada.palabra_clave?.toLowerCase() || '';
+        if (!keyword) {
+            errores.push('Falta palabra clave');
+        } else {
+            if (!noticiaGenerada.titulo?.toLowerCase().includes(keyword)) {
+                errores.push('La palabra clave no está en el título');
+            }
+            const primerParrafo = noticiaGenerada.contenido?.split('\n')[0] || '';
+            if (!primerParrafo.toLowerCase().includes(keyword)) {
+                errores.push('La palabra clave no está en el primer párrafo');
+            }
+        }
+
+        // Subtítulos H2
+        if (!noticiaGenerada.subtitulos_h2 || noticiaGenerada.subtitulos_h2.length < 3) {
+            errores.push('Debe tener al menos 3 subtítulos H2');
+        }
+
+        // Meta descripción
+        if (!noticiaGenerada.meta_description || noticiaGenerada.meta_description.length > 155) {
+            errores.push('Meta descripción debe tener entre 1 y 155 caracteres');
+        }
+
+        // Título clickbait (básico)
+        if (noticiaGenerada.titulo?.includes('!!!') || noticiaGenerada.titulo?.toUpperCase() === noticiaGenerada.titulo) {
+            errores.push('Título parece clickbait');
+        }
+
+        if (errores.length > 0) {
+            console.error('❌ Noticia rechazada por calidad:', errores);
+            return res.status(400).json({
+                success: false,
+                message: 'Noticia no cumple estándares de calidad',
+                errores
+            });
+        }
+
+        // ========== VERIFICACIÓN DE DUPLICADOS ==========
+        const fechaLimite = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const posiblesDuplicados = await Noticia.find({
+            fecha: { $gte: fechaLimite },
+            $or: [
+                { titulo: { $regex: keyword, $options: 'i' } },
+                { palabraClave: keyword }
+            ]
+        }).lean();
+
+        let duplicado = false;
+        for (const existente of posiblesDuplicados) {
+            if (existente.titulo.toLowerCase().includes(keyword) &&
+                noticiaGenerada.titulo.toLowerCase().includes(existente.titulo.split(' ').slice(0, 3).join(' ').toLowerCase())) {
+                duplicado = true;
+                break;
+            }
+        }
+
+        if (duplicado) {
+            return res.json({ message: 'Noticia duplicada (misma palabra clave o título similar), ignorada' });
+        }
+
+        // ========== BUSCAR IMAGEN EN UNSPLASH ==========
+        const query = noticiaGenerada.imagen_keywords || keyword || noticiaGenerada.titulo;
         const imagenUrl = await buscarImagenUnsplash(query);
 
-        const slug = generarSlug(noticiaGenerada.titulo);
+        // ========== GENERAR SLUG ==========
+        const slug = noticiaGenerada.slug || generarSlug(noticiaGenerada.titulo);
         const url = `/noticia/${slug}`;
 
+        // ========== GUARDAR NOTICIA ==========
         const nuevaNoticia = new Noticia({
             titulo: noticiaGenerada.titulo,
             seccion: categoria,
             contenido: noticiaGenerada.contenido,
             redactor: 'IA Gemini',
-            seoDesc: noticiaGenerada.resumen,
+            seoDesc: noticiaGenerada.meta_description.substring(0, 160),
             seoKeywords: noticiaGenerada.keywords?.join(', '),
+            palabraClave: noticiaGenerada.palabra_clave,
             tags: noticiaGenerada.keywords || [],
-            categoriaSlug,
+            categoriaSlug: categoriaSlugMap[categoria] || 'general',
             url,
             imagen: imagenUrl || '/default-news.jpg',
             estado: 'programada',
@@ -552,6 +638,7 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
     }
 });
 
+// Endpoint público para probar la IA (encola un trabajo)
 app.post('/api/generar-noticia', async (req, res) => {
     if (req.headers['x-internal-key'] !== INTERNAL_SECRET) {
         return res.status(403).json({ error: 'No autorizado' });
@@ -736,9 +823,9 @@ async function iniciarServidor() {
         }
     });
 
-    // ========== LIMPIEZA AUTOMÁTICA CADA 8 DÍAS ==========
+    // LIMPIEZA AUTOMÁTICA CADA 8 DÍAS
     agenda.define('limpiar noticias antiguas', async () => {
-        const dias = 8;  // 🔴 CAMBIADO DE 60 A 8 DÍAS
+        const dias = 8;
         const fechaLimite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
         let deleted = 0;
         do {
@@ -754,22 +841,29 @@ async function iniciarServidor() {
     await agenda.start();
     console.log('📅 Agenda iniciada.');
 
-    await agenda.every('0 5 * * *', 'generar lote rd');
-    await agenda.every('0 14 * * *', 'generar lote latam');
-    await agenda.every('0 20 * * *', 'generar lote usa');
-    await agenda.every('0 3 * * *', 'limpiar noticias antiguas');
+    // HORARIOS DE GENERACIÓN
+    await agenda.every('0 6 * * *', 'generar lote rd');    // 6:00 AM
+    await agenda.every('0 11 * * *', 'generar lote latam'); // 11:00 AM
+    await agenda.every('0 13 * * *', 'generar lote usa');   // 1:00 PM
+    await agenda.every('0 16 * * *', 'generar lote rd');    // 4:00 PM
+
+    await agenda.every('0 3 * * *', 'limpiar noticias antiguas'); // 3:00 AM limpieza
 
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 6.2 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 7.1 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
 ║ ✏️ Redacción: ${BASE_URL}/redaccion  ║
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
-║ 🤖 IA Generativa: ACTIVADA (Gemini 2.5 Flash)      ║
+║ 🤖 IA Generativa: ACTIVADA (Gemini SEO)            ║
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
+║    • 6:00 AM  (RD)                                 ║
+║    • 11:00 AM (LATAM)                              ║
+║    • 1:00 PM  (USA)                                ║
+║    • 4:00 PM  (RD)                                 ║
 ║ 🧹 Limpieza automática: ACTIVADA (8 días)          ║
 ║ 📧 Notificaciones por correo: ACTIVADAS            ║
 ║ 🖼️ Imágenes automáticas: ACTIVADAS (Unsplash)      ║
