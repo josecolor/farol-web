@@ -11,6 +11,7 @@
     "mongoose": "^7.6.3",
     "cors": "^2.8.5",
     "agenda": "^5.0.0",
-    "express-rate-limit": "^7.1.5"
+    "express-rate-limit": "^7.1.5",
+    "nodemailer": "^6.9.15"
   }
 }
