@@ -361,6 +361,13 @@
         <hr style="border-color:#FF8C00;">
         <h2 style="color:#FF8C00;">📰 Últimas noticias</h2>
         <div id="noticiasRecientes"></div>
+
+        <!-- BOTÓN DE PRUEBA PARA GENERAR NOTICIA CON IA (puedes borrarlo después) -->
+        <hr style="border-color:#FF8C00;">
+        <div style="margin-top: 30px; padding: 20px; background: #222; border-radius: 12px;">
+            <button onclick="probarIA()" style="width:100%; padding:18px; background:#FF8C00; color:black; border:none; border-radius:40px; font-size:1.3em; font-weight:bold;">🤖 PROBAR IA – GENERAR NOTICIA AHORA</button>
+            <div id="resultadoIA" style="margin-top:15px; color:#aaa; text-align:center;"></div>
+        </div>
     </div>
 
     <script>
@@ -655,6 +662,30 @@
 
         // Cargar noticias recientes al inicio
         cargarNoticiasRecientes();
+
+        // ==================== FUNCIÓN PARA PROBAR LA IA ====================
+        async function probarIA() {
+            const resultado = document.getElementById('resultadoIA');
+            resultado.innerHTML = '⏳ Generando noticia...';
+            try {
+                const res = await fetch('/api/generar-noticia', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-internal-key': 's7d8f9a3s7d6f5a4s3d2f1'  // ← Este es tu INTERNAL_SECRET
+                    },
+                    body: JSON.stringify({ categoria: 'Nacionales' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    resultado.innerHTML = `✅ Noticia generada.<br>📰 <a href="${data.url}" target="_blank" style="color:#FF8C00;">Ver noticia en 5 minutos</a>`;
+                } else {
+                    resultado.innerHTML = '❌ Error: ' + (data.error || 'desconocido');
+                }
+            } catch (e) {
+                resultado.innerHTML = '❌ Error de conexión';
+            }
+        }
     </script>
 </body>
 </html>
