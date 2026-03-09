@@ -1,7 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.4
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.5
  * Con IA generativa (Gemini 2.5 Flash), caché, rate limiting, trabajos automáticos,
- * LIMPIEZA AUTOMÁTICA y NOTIFICACIONES POR CORREO al publicar
+ * LIMPIEZA AUTOMÁTICA, NOTIFICACIONES POR CORREO e IMÁGENES AUTOMÁTICAS (Unsplash)
  */
 
 const express = require('express');
@@ -62,10 +62,13 @@ if (!INTERNAL_SECRET) {
 }
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
-// Variables para correo (EMAIL_PASS debe ser la contraseña de aplicación, ej: spyquhouyrbjhpem)
+// Variables para correo
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const EMAIL_TO = process.env.EMAIL_TO || EMAIL_USER;
+
+// Variable para Unsplash
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
 console.log('📡 Variables de entorno validadas.');
 
@@ -109,6 +112,29 @@ async function enviarNotificacion(noticia) {
     }
 }
 
+// ==================== FUNCIÓN PARA BUSCAR IMAGEN EN UNSPLASH ====================
+async function buscarImagenUnsplash(query) {
+    if (!UNSPLASH_ACCESS_KEY) return null;
+
+    try {
+        const response = await fetch(
+            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
+            {
+                headers: {
+                    'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}`
+                }
+            }
+        );
+        const data = await response.json();
+        if (data.results && data.results.length > 0) {
+            return data.results[0].urls.regular;
+        }
+    } catch (error) {
+        console.error('Error buscando imagen en Unsplash:', error.message);
+    }
+    return null;
+}
+
 // ==================== CONEXIÓN MONGODB ====================
 async function conectarMongoDB() {
     const maxIntentos = 5;
@@ -143,7 +169,7 @@ const noticiaSchema = new mongoose.Schema({
     ubicacion: { type: String, default: 'Santo Domingo' },
     redactor: { type: String, default: 'mxl' },
     redactorFoto: { type: String, default: null },
-    imagen: { type: String, default: null },
+    imagen: { type: String, default: '/default-news.jpg' }, // Valor por defecto local
     vistas: { type: Number, default: 0 },
     fecha: { type: Date, default: Date.now },
     fechaProgramada: { type: Date, default: null },
@@ -240,7 +266,7 @@ async function inyectarMetaNoticia(html, noticia) {
         const seoTitle = noticia.seoTitle || noticia.titulo;
         const seoDesc = noticia.seoDesc || noticia.contenido.substring(0, 160);
         const seoKeywords = noticia.seoKeywords || '';
-        const ogImage = noticia.imagen || 'https://elfarolaldia.com/default.jpg';
+        const ogImage = noticia.imagen || `${BASE_URL}/default-news.jpg`;
         const ogUrl = `${BASE_URL}${noticia.url || `/noticia/${noticia._id}`}`;
 
         html = html.replace('<!-- SEO_TITLE -->', seoTitle);
@@ -367,7 +393,7 @@ app.post('/api/publicar', async (req, res) => {
             ubicacion: ubicacion?.trim() || 'Santo Domingo',
             redactor: redactor?.trim() || 'mxl',
             redactorFoto: redactorFoto || null,
-            imagen: imagen || null,
+            imagen: imagen || '/default-news.jpg',
             seoTitle: seoTitle?.trim() || '',
             seoDesc: seoDesc?.trim() || '',
             seoKeywords: seoKeywords?.trim() || '',
@@ -393,7 +419,7 @@ app.post('/api/publicar', async (req, res) => {
     }
 });
 
-// Endpoint de IA con Gemini 2.5 Flash
+// Endpoint de IA con Gemini 2.5 Flash e imágenes de Unsplash
 app.post('/api/generar-noticia', async (req, res) => {
     if (req.headers['x-internal-key'] !== INTERNAL_SECRET) {
         return res.status(403).json({ error: 'No autorizado' });
@@ -421,7 +447,8 @@ Eres un periodista digital especializado en ${categoria}. Genera una noticia en 
   "contenido": "string (mín. 300 palabras, con datos concretos)",
   "resumen": "string (máx. 160 caracteres, para SEO)",
   "categoria": "${categoria}",
-  "keywords": ["array", "de", "palabras", "clave"]
+  "keywords": ["array", "de", "palabras", "clave"],
+  "imagen_keywords": "string (palabras clave para buscar una imagen relacionada con la noticia)"
 }
 
 Tema: ${tema}
@@ -449,6 +476,7 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
 
         const noticiaGenerada = JSON.parse(jsonMatch[0]);
 
+        // Verificar duplicados
         const existe = await Noticia.findOne({
             titulo: noticiaGenerada.titulo,
             fecha: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
@@ -456,6 +484,10 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
         if (existe) {
             return res.json({ message: 'Noticia duplicada, ignorada' });
         }
+
+        // Buscar imagen en Unsplash
+        const query = noticiaGenerada.imagen_keywords || noticiaGenerada.titulo;
+        const imagenUrl = await buscarImagenUnsplash(query);
 
         const slug = generarSlug(noticiaGenerada.titulo);
         const url = `/noticia/${slug}`;
@@ -470,6 +502,7 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
             tags: noticiaGenerada.keywords || [],
             categoriaSlug,
             url,
+            imagen: imagenUrl || '/default-news.jpg',
             estado: 'programada',
             fechaProgramada: new Date(Date.now() + 5 * 60000),
             readingTime: Math.ceil(noticiaGenerada.contenido.split(' ').length / 200)
@@ -485,7 +518,8 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
             success: true,
             message: 'Noticia generada y programada',
             id: nuevaNoticia._id,
-            url: nuevaNoticia.url
+            url: nuevaNoticia.url,
+            imagen: imagenUrl || '/default-news.jpg'
         });
 
     } catch (error) {
@@ -697,7 +731,7 @@ async function iniciarServidor() {
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.4 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.5 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
@@ -707,6 +741,7 @@ async function iniciarServidor() {
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
 ║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
 ║ 📧 Notificaciones por correo: ACTIVADAS            ║
+║ 🖼️ Imágenes automáticas: ACTIVADAS (Unsplash)      ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
