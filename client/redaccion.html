@@ -32,6 +32,11 @@
             font-size: 2.2em;
             text-align: center;
         }
+        h2 {
+            color: #FF8C00;
+            margin: 30px 0 15px;
+            font-size: 1.8em;
+        }
         label {
             display: block;
             margin: 20px 0 8px;
@@ -206,6 +211,50 @@
             align-items: center;
             gap: 20px;
         }
+        /* Estilos para noticias recientes */
+        .noticia-reciente {
+            background: #222;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #FF8C00;
+        }
+        .noticia-titulo-reciente {
+            font-weight: bold;
+            color: #FF8C00;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        .noticia-meta-reciente {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .botones-accion {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-editar, .btn-eliminar {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .btn-editar {
+            background: #FF8C00;
+            color: black;
+        }
+        .btn-eliminar {
+            background: #d32f2f;
+            color: white;
+        }
+        .btn-editar:hover, .btn-eliminar:hover {
+            opacity: 0.8;
+        }
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -307,6 +356,11 @@
 
             <button type="submit" id="btnPublicar">🚀 PUBLICAR / PROGRAMAR</button>
         </form>
+
+        <!-- SECCIÓN DE NOTICIAS RECIENTES -->
+        <hr style="border-color:#FF8C00;">
+        <h2 style="color:#FF8C00;">📰 Últimas noticias</h2>
+        <div id="noticiasRecientes"></div>
     </div>
 
     <script>
@@ -466,6 +520,8 @@
                     fotoInfo.textContent = 'Toca para añadir foto';
                     campoFecha.style.display = 'none';
                     radioAhora.checked = true;
+                    // Recargar lista de noticias recientes
+                    cargarNoticiasRecientes();
                     if (data.message.includes('programada')) {
                         setTimeout(() => window.location.reload(), 2000);
                     } else {
@@ -489,6 +545,68 @@
             setTimeout(() => alertDiv.style.display = 'none', 4000);
         }
 
+        // ==================== NOTICIAS RECIENTES ====================
+        async function cargarNoticiasRecientes() {
+            try {
+                const res = await fetch('/api/noticias?limit=10');
+                const data = await res.json();
+                if (data.success) {
+                    const container = document.getElementById('noticiasRecientes');
+                    container.innerHTML = '';
+                    if (data.noticias.length === 0) {
+                        container.innerHTML = '<p style="color:#888; text-align:center;">No hay noticias publicadas.</p>';
+                        return;
+                    }
+                    data.noticias.forEach(noticia => {
+                        const card = document.createElement('div');
+                        card.className = 'noticia-reciente';
+                        card.setAttribute('data-id', noticia._id);
+                        const fecha = new Date(noticia.fecha).toLocaleDateString();
+                        card.innerHTML = `
+                            <div class="noticia-titulo-reciente">${noticia.titulo.substring(0, 60)}${noticia.titulo.length > 60 ? '...' : ''}</div>
+                            <div class="noticia-meta-reciente">
+                                ${noticia.seccion} | ${fecha} | 👁️ ${noticia.vistas || 0}
+                            </div>
+                            <div class="botones-accion">
+                                <button class="btn-editar" onclick="editarNoticia('${noticia._id}')">✏️ Editar</button>
+                                <button class="btn-eliminar" onclick="eliminarNoticia('${noticia._id}')">🗑️ Eliminar</button>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando noticias recientes:', error);
+            }
+        }
+
+        window.editarNoticia = function(id) {
+            window.location.href = '/redaccion?edit=' + id;
+        };
+
+        window.eliminarNoticia = async function(id) {
+            if (!confirm('¿Estás seguro de eliminar esta noticia? No podrás recuperarla.')) return;
+            const pin = prompt('🔐 Ingresa el PIN para eliminar:');
+            if (!pin) return;
+            try {
+                const res = await fetch(`/api/noticias/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    mostrarAlerta('✅ Noticia eliminada', 'success');
+                    cargarNoticiasRecientes(); // recargar lista
+                } else {
+                    mostrarAlerta('❌ Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error de conexión', 'error');
+            }
+        };
+
+        // Cargar configuración de Analytics
         (async function () {
             const res = await fetch('/api/configuracion');
             const data = await res.json();
@@ -517,6 +635,7 @@
             }
         });
 
+        // Cargar estadísticas
         (async function () {
             try {
                 const res = await fetch('/api/estadisticas');
@@ -533,6 +652,9 @@
                 document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
             }
         })();
+
+        // Cargar noticias recientes al inicio
+        cargarNoticiasRecientes();
     </script>
 </body>
 </html>
