@@ -1,7 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.3
- * Con IA generativa (Gemini 2.5 Flash), caché, rate limiting, trabajos automáticos
- * y LIMPIEZA AUTOMÁTICA DE NOTICIAS ANTIGUAS (para no llenar el disco)
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.4
+ * Con IA generativa (Gemini 2.5 Flash), caché, rate limiting, trabajos automáticos,
+ * LIMPIEZA AUTOMÁTICA y NOTIFICACIONES POR CORREO al publicar
  */
 
 const express = require('express');
@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const Agenda = require('agenda');
 const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -60,7 +61,53 @@ if (!INTERNAL_SECRET) {
     process.exit(1);
 }
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
+
+// Variables para correo (EMAIL_PASS debe ser la contraseña de aplicación, ej: spyquhouyrbjhpem)
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+const EMAIL_TO = process.env.EMAIL_TO || EMAIL_USER;
+
 console.log('📡 Variables de entorno validadas.');
+
+// ==================== CONFIGURACIÓN DE NODEMAILER ====================
+let transporter = null;
+if (EMAIL_USER && EMAIL_PASS) {
+    transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: EMAIL_USER,
+            pass: EMAIL_PASS
+        }
+    });
+    console.log('📧 Notificaciones por correo activadas');
+} else {
+    console.log('⚠️ Notificaciones por correo no configuradas (falta EMAIL_USER o EMAIL_PASS)');
+}
+
+async function enviarNotificacion(noticia) {
+    if (!transporter) return;
+
+    const mailOptions = {
+        from: `"El Farol al Día" <${EMAIL_USER}>`,
+        to: EMAIL_TO,
+        subject: `📰 Noticia publicada: ${noticia.titulo}`,
+        html: `
+            <h2>¡Nueva noticia publicada automáticamente!</h2>
+            <p><strong>Título:</strong> ${noticia.titulo}</p>
+            <p><strong>Sección:</strong> ${noticia.seccion}</p>
+            <p><strong>Resumen:</strong> ${noticia.seoDesc || noticia.contenido.substring(0, 200)}...</p>
+            <p><strong>URL:</strong> <a href="${BASE_URL}${noticia.url || `/noticia/${noticia._id}`}">Ver noticia</a></p>
+            <p><small>Publicado el ${new Date().toLocaleString()}</small></p>
+        `
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`📧 Notificación enviada para: ${noticia.titulo}`);
+    } catch (error) {
+        console.error('❌ Error enviando correo:', error.message);
+    }
+}
 
 // ==================== CONEXIÓN MONGODB ====================
 async function conectarMongoDB() {
@@ -381,7 +428,6 @@ Tema: ${tema}
 Estilo: neutral, objetivo, con lenguaje de República Dominicana.
         `;
 
-        // CAMBIO CLAVE: Usamos gemini-2.5-flash
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
@@ -558,10 +604,19 @@ async function iniciarServidor() {
 
     agenda = new Agenda({ db: { address: MONGO_URL, collection: 'agendaJobs' } });
 
+    // TRABAJO DE PUBLICACIÓN (CON NOTIFICACIÓN)
     agenda.define('publicar noticia programada', async (job) => {
         const { noticiaId } = job.attrs.data;
-        await Noticia.findByIdAndUpdate(noticiaId, { estado: 'publicada', fecha: new Date() });
+        const noticia = await Noticia.findByIdAndUpdate(
+            noticiaId,
+            { estado: 'publicada', fecha: new Date() },
+            { new: true }
+        );
         console.log(`✅ Noticia publicada: ${noticiaId}`);
+
+        if (noticia) {
+            await enviarNotificacion(noticia);
+        }
     });
 
     agenda.define('generar lote rd', async () => {
@@ -642,7 +697,7 @@ async function iniciarServidor() {
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.3 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.4 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
@@ -651,6 +706,7 @@ async function iniciarServidor() {
 ║ 🤖 IA Generativa: ACTIVADA (Gemini 2.5 Flash)      ║
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
 ║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
+║ 📧 Notificaciones por correo: ACTIVADAS            ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
