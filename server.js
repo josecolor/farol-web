@@ -1,6 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.0
- * Con IA generativa (Gemini), caché, rate limiting y trabajos automáticos
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.1
+ * Con IA generativa (Gemini), caché, rate limiting, trabajos automáticos
+ * y LIMPIEZA AUTOMÁTICA DE NOTICIAS ANTIGUAS (para no llenar el disco)
  */
 
 const express = require('express');
@@ -13,6 +14,9 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// ==================== TRUST PROXY (elimina advertencia de Railway) ====================
+app.set('trust proxy', true);
 
 // ==================== MANEJO DE ERRORES GLOBAL ====================
 process.on('uncaughtException', (err) => {
@@ -105,7 +109,7 @@ const noticiaSchema = new mongoose.Schema({
     // Nuevos campos para SEO y URLs amigables
     categoriaSlug: { type: String, default: '' },
     tags: [{ type: String }],
-    url: { type: String, unique: true, sparse: true }, // URL única (opcional)
+    url: { type: String, unique: true, sparse: true },
     readingTime: { type: Number, default: 3 },
     featured: { type: Boolean, default: false }
 }, { timestamps: true });
@@ -146,12 +150,12 @@ const categoriaSlugMap = {
 function generarSlug(texto) {
     return texto
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')          // elimina caracteres especiales
-        .replace(/\s+/g, '-')                  // espacios a guiones
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quita tildes
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '-')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-// ==================== FUNCIONES DE INYECCIÓN META (sin cambios) ====================
+// ==================== FUNCIONES DE INYECCIÓN META ====================
 async function inyectarMeta(html) {
     try {
         const config = await Config.findOne().lean();
@@ -289,7 +293,6 @@ app.get('/api/noticias/:id', async (req, res) => {
 app.get('/api/categoria/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
-        // Mapeo inverso de slug a categoría real
         const categoriaMap = Object.fromEntries(
             Object.entries(categoriaSlugMap).map(([k, v]) => [v, k])
         );
@@ -318,7 +321,6 @@ app.post('/api/publicar', async (req, res) => {
         const categoriaSlug = categoriaSlugMap[seccion] || 'general';
         const url = `/noticia/${slug}`;
 
-        // Verificar duplicado de URL
         const existe = await Noticia.findOne({ url });
         if (existe) {
             return res.status(400).json({ success: false, error: 'Ya existe una noticia con título similar' });
@@ -384,7 +386,6 @@ app.post('/api/generar-noticia', async (req, res) => {
 
         const categoriaSlug = categoriaSlugMap[categoria] || 'general';
 
-        // Temas variados para no repetir
         const temas = [
             `últimas noticias sobre ${categoria} en República Dominicana`,
             `evento importante de ${categoria} hoy`,
@@ -429,7 +430,6 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
 
         const noticiaGenerada = JSON.parse(jsonMatch[0]);
 
-        // Verificar duplicados (última semana)
         const existe = await Noticia.findOne({
             titulo: noticiaGenerada.titulo,
             fecha: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
@@ -452,7 +452,7 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
             categoriaSlug,
             url,
             estado: 'programada',
-            fechaProgramada: new Date(Date.now() + 5 * 60000), // +5 min para prueba
+            fechaProgramada: new Date(Date.now() + 5 * 60000),
             readingTime: Math.ceil(noticiaGenerada.contenido.split(' ').length / 200)
         });
 
@@ -588,14 +588,14 @@ async function iniciarServidor() {
     // Inicializar Agenda
     agenda = new Agenda({ db: { address: MONGO_URL, collection: 'agendaJobs' } });
 
-    // Definir trabajo de publicación
+    // --- TRABAJO DE PUBLICACIÓN ---
     agenda.define('publicar noticia programada', async (job) => {
         const { noticiaId } = job.attrs.data;
         await Noticia.findByIdAndUpdate(noticiaId, { estado: 'publicada', fecha: new Date() });
         console.log(`✅ Noticia publicada: ${noticiaId}`);
     });
 
-    // Definir trabajos de generación por lotes
+    // --- TRABAJOS DE GENERACIÓN POR LOTES (IA) ---
     agenda.define('generar lote rd', async () => {
         const categorias = ['Nacionales', 'Política', 'Economía', 'Deportes', 'Tecnología', 'Salud'];
         for (const cat of categorias) {
@@ -608,7 +608,6 @@ async function iniciarServidor() {
                     },
                     body: JSON.stringify({ categoria: cat })
                 });
-                // Pausa para no saturar
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (err) {
                 console.error(`Error generando noticia de ${cat}:`, err.message);
@@ -654,18 +653,32 @@ async function iniciarServidor() {
         }
     });
 
+    // --- NUEVO: TRABAJO DE LIMPIEZA AUTOMÁTICA DE NOTICIAS ANTIGUAS ---
+    agenda.define('limpiar noticias antiguas', async () => {
+        const dias = 30; // Noticias con más de 30 días
+        const fechaLimite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+        const resultado = await Noticia.deleteMany({
+            estado: 'publicada',
+            fecha: { $lt: fechaLimite }
+        });
+        console.log(`🧹 Limpieza automática: ${resultado.deletedCount} noticias antiguas eliminadas (más de ${dias} días).`);
+    });
+
     await agenda.start();
     console.log('📅 Agenda iniciada.');
 
-    // Programar horarios
+    // Programar horarios de generación
     await agenda.every('0 5 * * *', 'generar lote rd');   // 5 AM
     await agenda.every('0 14 * * *', 'generar lote latam'); // 2 PM
     await agenda.every('0 20 * * *', 'generar lote usa');   // 8 PM
 
+    // Programar limpieza diaria a las 3 AM
+    await agenda.every('0 3 * * *', 'limpiar noticias antiguas');
+
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.0 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.1 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
@@ -673,6 +686,7 @@ async function iniciarServidor() {
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
 ║ 🤖 IA Generativa: ACTIVADA (Gemini)                ║
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
+║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
