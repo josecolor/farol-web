@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V6.1
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V6.2
  * Con IA generativa (Gemini 2.5 Flash), caché con Redis, cola de trabajos BullMQ,
  * compresión, limpieza optimizada y monitoreo avanzado.
- * CORREGIDO: Opción maxRetriesPerRequest: null para BullMQ.
+ * LIMPIEZA: noticias de más de 8 DÍAS se eliminan automáticamente.
  */
 
 const express = require('express');
@@ -20,7 +20,7 @@ const Redis = require('ioredis');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// ==================== CONEXIÓN A REDIS (CORREGIDA) ====================
+// ==================== CONEXIÓN A REDIS ====================
 const redisConnection = new Redis(process.env.REDIS_URL, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false
@@ -736,8 +736,9 @@ async function iniciarServidor() {
         }
     });
 
+    // ========== LIMPIEZA AUTOMÁTICA CADA 8 DÍAS ==========
     agenda.define('limpiar noticias antiguas', async () => {
-        const dias = 60;
+        const dias = 8;  // 🔴 CAMBIADO DE 60 A 8 DÍAS
         const fechaLimite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
         let deleted = 0;
         do {
@@ -761,7 +762,7 @@ async function iniciarServidor() {
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 6.1 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 6.2 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
@@ -769,7 +770,7 @@ async function iniciarServidor() {
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
 ║ 🤖 IA Generativa: ACTIVADA (Gemini 2.5 Flash)      ║
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
-║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
+║ 🧹 Limpieza automática: ACTIVADA (8 días)          ║
 ║ 📧 Notificaciones por correo: ACTIVADAS            ║
 ║ 🖼️ Imágenes automáticas: ACTIVADAS (Unsplash)      ║
 ║ ⚙️ Cola de trabajos: ACTIVADA (BullMQ + Redis)     ║
