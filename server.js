@@ -1,7 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.5
- * Con IA generativa (Gemini 2.5 Flash), caché, rate limiting, trabajos automáticos,
- * LIMPIEZA AUTOMÁTICA, NOTIFICACIONES POR CORREO e IMÁGENES AUTOMÁTICAS (Unsplash)
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V6.0
+ * Con IA generativa (Gemini 2.5 Flash), caché con Redis, cola de trabajos BullMQ,
+ * compresión, limpieza optimizada y monitoreo avanzado.
  */
 
 const express = require('express');
@@ -12,12 +12,47 @@ const fs = require('fs');
 const Agenda = require('agenda');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
+const compression = require('compression');
+const { Queue, Worker } = require('bullmq');
+const Redis = require('ioredis');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// ==================== CONEXIÓN A REDIS ====================
+const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+// ==================== COLA DE TRABAJOS ====================
+const generacionQueue = new Queue('generacion-noticias', { connection: redisConnection });
+
+// Worker que procesa cada trabajo de generación
+const worker = new Worker('generacion-noticias', async job => {
+    const { categoria, fechaPublicacion } = job.data;
+    console.log(`⚙️ Procesando generación de noticia para categoría: ${categoria}`);
+    
+    // Llamar al endpoint interno de generación (reutiliza la lógica existente)
+    const response = await fetch(`${process.env.BASE_URL}/api/generar-noticia-internal`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-internal-key': process.env.INTERNAL_SECRET
+        },
+        body: JSON.stringify({ categoria })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        console.log(`✅ Noticia generada y programada: ${data.id}`);
+    } else {
+        console.error(`❌ Error generando noticia: ${data.error}`);
+    }
+}, { connection: redisConnection, concurrency: 2 }); // Máximo 2 generaciones simultáneas
+
 // ==================== TRUST PROXY ====================
 app.set('trust proxy', true);
+
+// ==================== COMPRESIÓN ====================
+app.use(compression());
 
 // ==================== MANEJO DE ERRORES GLOBAL ====================
 process.on('uncaughtException', (err) => {
@@ -169,7 +204,7 @@ const noticiaSchema = new mongoose.Schema({
     ubicacion: { type: String, default: 'Santo Domingo' },
     redactor: { type: String, default: 'mxl' },
     redactorFoto: { type: String, default: null },
-    imagen: { type: String, default: '/default-news.jpg' }, // Valor por defecto local
+    imagen: { type: String, default: '/default-news.jpg' },
     vistas: { type: Number, default: 0 },
     fecha: { type: Date, default: Date.now },
     fechaProgramada: { type: Date, default: null },
@@ -197,12 +232,8 @@ Noticia.collection.createIndex({ categoriaSlug: 1, fecha: -1 });
 Noticia.collection.createIndex({ estado: 1, fecha: -1 });
 Noticia.collection.createIndex({ url: 1 }, { unique: true, sparse: true });
 
-// ==================== CACHE ====================
-const cache = {
-    noticias: null,
-    timestamp: 0,
-    duracion: 5 * 60 * 1000
-};
+// ==================== CACHÉ CON REDIS ====================
+const cache = redisConnection;
 
 // ==================== MAPA DE CATEGORÍAS ====================
 const categoriaSlugMap = {
@@ -314,25 +345,32 @@ app.get('/redaccion', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
-// ==================== RUTAS API ====================
+// ==================== RUTAS API CON CACHÉ ====================
+
+// Últimas noticias (con caché Redis)
 app.get('/api/noticias', async (req, res) => {
+    const cacheKey = 'noticias:portada';
     try {
-        if (cache.noticias && cache.timestamp > Date.now() - cache.duracion) {
-            return res.json(cache.noticias);
+        const cached = await cache.get(cacheKey);
+        if (cached) {
+            return res.json(JSON.parse(cached));
         }
+
         const noticias = await Noticia.find({ estado: 'publicada' })
+            .select('titulo seccion contenido resumen imagen url fecha vistas redactor redactorFoto')
             .sort({ fecha: -1 })
             .limit(30)
             .lean();
+
         const response = { success: true, noticias };
-        cache.noticias = response;
-        cache.timestamp = Date.now();
+        await cache.set(cacheKey, JSON.stringify(response), 'EX', 300); // 5 minutos
         res.json(response);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// Noticia por ID (sin caché, porque las vistas cambian)
 app.get('/api/noticias/:id', async (req, res) => {
     try {
         const noticia = await Noticia.findById(req.params.id);
@@ -348,9 +386,16 @@ app.get('/api/noticias/:id', async (req, res) => {
     }
 });
 
+// Noticias por categoría (con caché Redis)
 app.get('/api/categoria/:slug', async (req, res) => {
+    const { slug } = req.params;
+    const cacheKey = `categoria:${slug}`;
     try {
-        const { slug } = req.params;
+        const cached = await cache.get(cacheKey);
+        if (cached) {
+            return res.json(JSON.parse(cached));
+        }
+
         const categoriaMap = Object.fromEntries(
             Object.entries(categoriaSlugMap).map(([k, v]) => [v, k])
         );
@@ -358,16 +403,22 @@ app.get('/api/categoria/:slug', async (req, res) => {
         if (!categoriaReal) {
             return res.status(404).json({ success: false, error: 'Categoría no encontrada' });
         }
+
         const noticias = await Noticia.find({ seccion: categoriaReal, estado: 'publicada' })
+            .select('titulo seccion contenido resumen imagen url fecha vistas redactor')
             .sort({ fecha: -1 })
             .limit(30)
             .lean();
-        res.json({ success: true, categoria: slug, noticias });
+
+        const response = { success: true, categoria: slug, noticias };
+        await cache.set(cacheKey, JSON.stringify(response), 'EX', 300); // 5 minutos
+        res.json(response);
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
+// Publicar noticia manual (sin cambios)
 app.post('/api/publicar', async (req, res) => {
     try {
         const { pin, titulo, seccion, contenido, ubicacion, redactor, redactorFoto, imagen, seoTitle, seoDesc, seoKeywords, fechaProgramada } = req.body;
@@ -419,8 +470,8 @@ app.post('/api/publicar', async (req, res) => {
     }
 });
 
-// Endpoint de IA con Gemini 2.5 Flash e imágenes de Unsplash
-app.post('/api/generar-noticia', async (req, res) => {
+// Endpoint de generación con IA (versión original, pero ahora usada internamente)
+app.post('/api/generar-noticia-internal', async (req, res) => {
     if (req.headers['x-internal-key'] !== INTERNAL_SECRET) {
         return res.status(403).json({ error: 'No autorizado' });
     }
@@ -476,7 +527,6 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
 
         const noticiaGenerada = JSON.parse(jsonMatch[0]);
 
-        // Verificar duplicados
         const existe = await Noticia.findOne({
             titulo: noticiaGenerada.titulo,
             fecha: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
@@ -485,7 +535,6 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
             return res.json({ message: 'Noticia duplicada, ignorada' });
         }
 
-        // Buscar imagen en Unsplash
         const query = noticiaGenerada.imagen_keywords || noticiaGenerada.titulo;
         const imagenUrl = await buscarImagenUnsplash(query);
 
@@ -518,8 +567,7 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
             success: true,
             message: 'Noticia generada y programada',
             id: nuevaNoticia._id,
-            url: nuevaNoticia.url,
-            imagen: imagenUrl || '/default-news.jpg'
+            url: nuevaNoticia.url
         });
 
     } catch (error) {
@@ -528,16 +576,48 @@ Estilo: neutral, objetivo, con lenguaje de República Dominicana.
     }
 });
 
-// Endpoint de estado
-app.get('/status', (req, res) => {
-    res.json({
-        uptime: process.uptime(),
-        memoria: process.memoryUsage(),
-        cpu: process.cpuUsage()
+// Endpoint público para probar la IA (encola un trabajo)
+app.post('/api/generar-noticia', async (req, res) => {
+    if (req.headers['x-internal-key'] !== INTERNAL_SECRET) {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    const { categoria } = req.body;
+    if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
+
+    await generacionQueue.add('generar', { 
+        categoria, 
+        fechaPublicacion: new Date(Date.now() + 5 * 60000) 
     });
+
+    res.json({ success: true, message: 'Trabajo encolado, la noticia se generará en breve' });
 });
 
-// Configuración
+// Endpoint de estado mejorado
+app.get('/status', async (req, res) => {
+    try {
+        const redisStatus = await redisConnection.ping() === 'PONG' ? 'ok' : 'error';
+        const queueJobs = await generacionQueue.getJobCounts();
+
+        res.json({
+            uptime: process.uptime(),
+            memoria: process.memoryUsage(),
+            cpu: process.cpuUsage(),
+            mongodb: mongoose.connection.readyState === 1 ? 'conectado' : 'desconectado',
+            redis: redisStatus,
+            cola: {
+                pendientes: queueJobs.waiting || 0,
+                activos: queueJobs.active || 0,
+                completados: queueJobs.completed || 0,
+                fallidos: queueJobs.failed || 0
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Configuración (sin cambios)
 app.get('/api/configuracion', async (req, res) => {
     try {
         let config = await Config.findOne();
@@ -565,7 +645,7 @@ app.post('/api/configuracion', async (req, res) => {
     }
 });
 
-// Estadísticas
+// Estadísticas (sin cambios)
 app.get('/api/estadisticas', async (req, res) => {
     try {
         const totalNoticias = await Noticia.countDocuments({ estado: 'publicada' });
@@ -579,7 +659,7 @@ app.get('/api/estadisticas', async (req, res) => {
     }
 });
 
-// Sitemap
+// Sitemap (sin cambios)
 app.get('/sitemap.xml', async (req, res) => {
     try {
         const noticias = await Noticia.find({ estado: 'publicada' }).sort({ fecha: -1 }).lean();
@@ -597,7 +677,7 @@ app.get('/sitemap.xml', async (req, res) => {
     }
 });
 
-// RSS
+// RSS (sin cambios)
 app.get('/rss', async (req, res) => {
     try {
         const noticias = await Noticia.find({ estado: 'publicada' }).sort({ fecha: -1 }).limit(30).lean();
@@ -630,7 +710,7 @@ app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
-// ==================== INICIAR SERVIDOR ====================
+// ==================== INICIAR SERVIDOR Y AGENDA ====================
 let agenda;
 
 async function iniciarServidor() {
@@ -650,74 +730,61 @@ async function iniciarServidor() {
 
         if (noticia) {
             await enviarNotificacion(noticia);
+            // Invalidar caché de portada y categoría
+            await cache.del('noticias:portada');
+            if (noticia.categoriaSlug) {
+                await cache.del(`categoria:${noticia.categoriaSlug}`);
+            }
         }
     });
 
+    // TRABAJOS DE GENERACIÓN POR LOTES (AHORA USAN LA COLA)
     agenda.define('generar lote rd', async () => {
         const categorias = ['Nacionales', 'Política', 'Economía', 'Deportes', 'Tecnología', 'Salud'];
         for (const cat of categorias) {
-            try {
-                await fetch(`${BASE_URL}/api/generar-noticia`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-internal-key': INTERNAL_SECRET
-                    },
-                    body: JSON.stringify({ categoria: cat })
-                });
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            } catch (err) {
-                console.error(`Error generando noticia de ${cat}:`, err.message);
-            }
+            await generacionQueue.add('generar', { 
+                categoria: cat, 
+                fechaPublicacion: new Date(Date.now() + 5 * 60000) 
+            });
         }
     });
 
     agenda.define('generar lote latam', async () => {
         const categorias = ['Internacionales', 'Economía', 'Deportes'];
         for (const cat of categorias) {
-            try {
-                await fetch(`${BASE_URL}/api/generar-noticia`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-internal-key': INTERNAL_SECRET
-                    },
-                    body: JSON.stringify({ categoria: cat })
-                });
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            } catch (err) {
-                console.error(`Error generando noticia de ${cat}:`, err.message);
-            }
+            await generacionQueue.add('generar', { 
+                categoria: cat, 
+                fechaPublicacion: new Date(Date.now() + 5 * 60000) 
+            });
         }
     });
 
     agenda.define('generar lote usa', async () => {
         const categorias = ['Internacionales', 'Tecnología', 'Espectáculos'];
         for (const cat of categorias) {
-            try {
-                await fetch(`${BASE_URL}/api/generar-noticia`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-internal-key': INTERNAL_SECRET
-                    },
-                    body: JSON.stringify({ categoria: cat })
-                });
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            } catch (err) {
-                console.error(`Error generando noticia de ${cat}:`, err.message);
-            }
+            await generacionQueue.add('generar', { 
+                categoria: cat, 
+                fechaPublicacion: new Date(Date.now() + 5 * 60000) 
+            });
         }
     });
 
+    // LIMPIEZA OPTIMIZADA (por lotes)
     agenda.define('limpiar noticias antiguas', async () => {
-        const dias = 30;
+        const dias = 60;
         const fechaLimite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
-        const resultado = await Noticia.deleteMany({
-            estado: 'publicada',
-            fecha: { $lt: fechaLimite }
-        });
-        console.log(`🧹 Limpieza automática: ${resultado.deletedCount} noticias antiguas eliminadas (más de ${dias} días).`);
+        
+        let deleted = 0;
+        do {
+            const result = await Noticia.deleteMany({
+                estado: 'publicada',
+                fecha: { $lt: fechaLimite }
+            }).limit(100);
+            deleted = result.deletedCount;
+            if (deleted > 0) {
+                console.log(`🧹 Eliminadas ${deleted} noticias antiguas (lote)`);
+            }
+        } while (deleted === 100);
     });
 
     await agenda.start();
@@ -731,7 +798,7 @@ async function iniciarServidor() {
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.5 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 6.0 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
@@ -742,6 +809,8 @@ async function iniciarServidor() {
 ║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
 ║ 📧 Notificaciones por correo: ACTIVADAS            ║
 ║ 🖼️ Imágenes automáticas: ACTIVADAS (Unsplash)      ║
+║ ⚙️ Cola de trabajos: ACTIVADA (BullMQ + Redis)     ║
+║ 🗃️ Caché Redis: ACTIVADO                            ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
@@ -750,6 +819,8 @@ async function iniciarServidor() {
     process.on('SIGTERM', async () => {
         console.log('⏹️ Cerrando servidor...');
         if (agenda) await agenda.stop();
+        await worker.close();
+        await redisConnection.quit();
         server.close(() => {
             if (mongoose.connection.readyState === 1) mongoose.connection.close();
             process.exit(0);
