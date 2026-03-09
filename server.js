@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.1
- * Con IA generativa (Gemini), caché, rate limiting, trabajos automáticos
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V5.2
+ * Con IA generativa (Gemini 1.5 Flash), caché, rate limiting, trabajos automáticos
  * y LIMPIEZA AUTOMÁTICA DE NOTICIAS ANTIGUAS (para no llenar el disco)
  */
 
@@ -409,8 +409,9 @@ Tema: ${tema}
 Estilo: neutral, objetivo, con lenguaje de República Dominicana.
         `;
 
+        // CAMBIO IMPORTANTE: usar modelo gemini-1.5-flash
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -678,13 +679,13 @@ async function iniciarServidor() {
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.1 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 5.2 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
 ║ ✏️ Redacción: ${BASE_URL}/redaccion  ║
 ║ 🔍 SEO y Analytics: ACTIVADOS                      ║
-║ 🤖 IA Generativa: ACTIVADA (Gemini)                ║
+║ 🤖 IA Generativa: ACTIVADA (Gemini 1.5 Flash)      ║
 ║ 📅 Publicaciones automáticas: ACTIVADAS            ║
 ║ 🧹 Limpieza automática: ACTIVADA (c/ 3 AM)         ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
