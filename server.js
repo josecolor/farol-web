@@ -1,8 +1,14 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V7.1
+ * 🏮 EL FAROL AL DÍA - SERVIDOR DEFINITIVO V7.2
  * Con IA generativa (Gemini 2.5 Flash) optimizada para SEO,
  * validaciones de calidad Google, caché Redis, cola BullMQ,
  * compresión, limpieza automática y monitoreo avanzado.
+ * 
+ * CORRECCIONES APLICADAS:
+ * - trust proxy configurable vía variable de entorno (por defecto false)
+ * - Manejo robusto de errores en worker y endpoint interno
+ * - Validación de meta descripción (longitud mínima 1 carácter)
+ * - Detección y alerta de OutOfDiskSpace en MongoDB
  */
 
 const express = require('express');
@@ -34,25 +40,31 @@ const worker = new Worker('generacion-noticias', async job => {
     const { categoria, fechaPublicacion } = job.data;
     console.log(`⚙️ Procesando generación de noticia para categoría: ${categoria}`);
 
-    const response = await fetch(`${process.env.BASE_URL}/api/generar-noticia-internal`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-internal-key': process.env.INTERNAL_SECRET
-        },
-        body: JSON.stringify({ categoria })
-    });
+    try {
+        const response = await fetch(`${process.env.BASE_URL}/api/generar-noticia-internal`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-internal-key': process.env.INTERNAL_SECRET
+            },
+            body: JSON.stringify({ categoria })
+        });
 
-    const data = await response.json();
-    if (data.success) {
-        console.log(`✅ Noticia generada y programada: ${data.id}`);
-    } else {
-        console.error(`❌ Error generando noticia: ${data.error}`);
+        const data = await response.json();
+        if (data.success) {
+            console.log(`✅ Noticia generada y programada: ${data.id}`);
+        } else {
+            // Mostrar el error devuelto por el endpoint (campo 'error')
+            console.error(`❌ Error generando noticia: ${data.error || data.message || 'Error desconocido'}`);
+        }
+    } catch (error) {
+        console.error(`❌ Excepción en worker: ${error.message}`);
     }
 }, { connection: redisConnection, concurrency: 2 });
 
 // ==================== TRUST PROXY ====================
-app.set('trust proxy', true);
+// Uso seguro: definir en .env TRUST_PROXY=false o una IP/rango específico
+app.set('trust proxy', process.env.TRUST_PROXY || false);
 
 // ==================== COMPRESIÓN ====================
 app.use(compression());
@@ -146,6 +158,22 @@ async function enviarNotificacion(noticia) {
     }
 }
 
+async function enviarNotificacionError(tipo, mensaje) {
+    if (!transporter) return;
+    const mailOptions = {
+        from: `"El Farol al Día" <${EMAIL_USER}>`,
+        to: EMAIL_TO,
+        subject: `🚨 ALERTA CRÍTICA: ${tipo}`,
+        text: `Ocurrió un error grave en el servidor:\n\n${mensaje}\n\nRevisa inmediatamente.`
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log(`📧 Alerta enviada: ${tipo}`);
+    } catch (error) {
+        console.error('❌ Error enviando alerta por correo:', error.message);
+    }
+}
+
 // ==================== FUNCIÓN PARA BUSCAR IMAGEN EN UNSPLASH ====================
 async function buscarImagenUnsplash(query) {
     if (!UNSPLASH_ACCESS_KEY) return null;
@@ -181,6 +209,17 @@ async function conectarMongoDB() {
             return true;
         } catch (error) {
             console.error(`❌ Intento ${i} falló:`, error.message);
+            
+            // Detectar error de disco lleno
+            if (error.message && error.message.includes('OutOfDiskSpace')) {
+                console.error('🚨 CRÍTICO: Espacio en disco insuficiente para MongoDB.');
+                if (transporter) {
+                    await enviarNotificacionError('OutOfDiskSpace', error.message);
+                }
+                // Podemos optar por salir inmediatamente o continuar reintentando
+                process.exit(1);
+            }
+
             if (i === maxIntentos) {
                 console.error('\n🛑 No se pudo conectar. Saliendo...');
                 process.exit(1);
@@ -551,8 +590,8 @@ Tema sugerido: ${tema}
             errores.push('Debe tener al menos 3 subtítulos H2');
         }
 
-        // Meta descripción
-        if (!noticiaGenerada.meta_description || noticiaGenerada.meta_description.length > 155) {
+        // Meta descripción (longitud 1-155)
+        if (!noticiaGenerada.meta_description || noticiaGenerada.meta_description.length < 1 || noticiaGenerada.meta_description.length > 155) {
             errores.push('Meta descripción debe tener entre 1 y 155 caracteres');
         }
 
@@ -565,8 +604,8 @@ Tema sugerido: ${tema}
             console.error('❌ Noticia rechazada por calidad:', errores);
             return res.status(400).json({
                 success: false,
-                message: 'Noticia no cumple estándares de calidad',
-                errores
+                error: 'Noticia no cumple estándares de calidad',
+                detalles: errores
             });
         }
 
@@ -852,7 +891,7 @@ async function iniciarServidor() {
     const server = app.listen(PORT, () => {
         console.log(`
 ╔════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - BÚNKER PRO 7.1 🏮          ║
+║   🏮 EL FAROL AL DÍA - BÚNKER PRO 7.2 🏮          ║
 ╠════════════════════════════════════════════════════╣
 ║ ✅ Servidor escuchando en puerto ${PORT}           ║
 ║ 🏮 Portada: ${BASE_URL}              ║
@@ -869,6 +908,7 @@ async function iniciarServidor() {
 ║ 🖼️ Imágenes automáticas: ACTIVADAS (Unsplash)      ║
 ║ ⚙️ Cola de trabajos: ACTIVADA (BullMQ + Redis)     ║
 ║ 🗃️ Caché Redis: ACTIVADO                            ║
+║ 🔒 trust proxy: ${process.env.TRUST_PROXY || 'false'} (configurado) ║
 ║ 🟢 BÚNKER LISTO PARA OPERAR                        ║
 ╚════════════════════════════════════════════════════╝
         `);
