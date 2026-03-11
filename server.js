@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.5
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.6
  * Gemini genera noticias SEO optimizadas para monetizar
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * CORREGIDO: Ruta /noticia/:slug funcionando al 100%
+ * NUEVO: Múltiples redactores (equipo periodístico real)
  */
 
 const express = require('express');
@@ -32,6 +32,33 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
+
+// ==================== LISTA DE REDACTORES ====================
+const REDACTORES = [
+    { nombre: 'Carlos Méndez', especialidad: 'Nacionales' },
+    { nombre: 'Laura Santana', especialidad: 'Deportes' },
+    { nombre: 'Roberto Peña', especialidad: 'Internacionales' },
+    { nombre: 'Ana María Castillo', especialidad: 'Economía' },
+    { nombre: 'José Miguel Fernández', especialidad: 'Tecnología' },
+    { nombre: 'Patricia Jiménez', especialidad: 'Espectáculos' },
+    { nombre: 'Fernando Rivas', especialidad: 'Nacionales' },
+    { nombre: 'Carmen Lora', especialidad: 'Deportes' },
+    { nombre: 'Miguel Ángel Pérez', especialidad: 'Internacionales' }
+];
+
+// Función para elegir redactor según categoría
+function elegirRedactor(categoria) {
+    // Filtrar redactores por especialidad
+    const especialistas = REDACTORES.filter(r => r.especialidad === categoria);
+    
+    // Si hay especialistas, elegir uno al azar
+    if (especialistas.length > 0) {
+        return especialistas[Math.floor(Math.random() * especialistas.length)].nombre;
+    }
+    
+    // Si no hay especialistas, elegir cualquiera al azar
+    return REDACTORES[Math.floor(Math.random() * REDACTORES.length)].nombre;
+}
 
 // ==================== FUNCIÓN PARA GENERAR SLUG ====================
 function generarSlug(texto) {
@@ -359,6 +386,10 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
         const imagenData = await buscarImagen(titulo, categoria);
         const slug = generarSlug(titulo);
 
+        // ELEGIR REDACTOR SEGÚN CATEGORÍA
+        const redactorAsignado = elegirRedactor(categoria);
+        console.log(`👤 Redactor asignado: ${redactorAsignado}`);
+
         // Verificar slug duplicado
         const slugExistente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
         let slugFinal = slug;
@@ -381,7 +412,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
                 contenido,
                 seoDesc,
                 keywords.substring(0, 255),
-                'IA Gemini',
+                redactorAsignado,  // ← REDACTOR VARIABLE
                 imagenData.url,
                 imagenData.alt,
                 'Santo Domingo',
@@ -392,6 +423,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
         const noticia = result.rows[0];
         console.log(`✅ Noticia guardada con ID: ${noticia.id}`);
         console.log(`✅ URL: ${BASE_URL}/noticia/${noticia.slug}`);
+        console.log(`✅ Redactor: ${redactorAsignado}`);
 
         return {
             success: true,
@@ -400,6 +432,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
             titulo: noticia.titulo,
             url: `${BASE_URL}/noticia/${noticia.slug}`,
             imagen: noticia.imagen,
+            redactor: redactorAsignado,
             fuente_imagen: imagenData.source || 'desconocida',
             mensaje: '✅ Noticia generada y publicada'
         };
@@ -471,42 +504,33 @@ app.get('/api/noticias/:id', async (req, res) => {
     }
 });
 
-// ==================== NOTICIA POR SLUG (CORREGIDA) ====================
+// ==================== NOTICIA POR SLUG ====================
 app.get('/noticia/:slug', async (req, res) => {
     const slugBuscado = req.params.slug;
     console.log(`\n🔍 Buscando noticia con slug: "${slugBuscado}"`);
     
     try {
-        // Buscar en la base de datos
         const result = await pool.query(
             'SELECT * FROM noticias WHERE slug = $1 AND estado = $2',
             [slugBuscado, 'publicada']
         );
 
-        console.log(`📦 Resultado: ${result.rows.length} noticia(s) encontrada(s)`);
+        console.log(`📦 Resultado: ${result.rows.length} noticia(s)`);
 
         if (result.rows.length === 0) {
-            // Mostrar slugs disponibles para depuración
-            const slugs = await pool.query('SELECT slug FROM noticias LIMIT 5');
-            console.log('📋 Slugs disponibles:', slugs.rows.map(r => r.slug));
-            
             return res.status(404).send(`
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Noticia no encontrada | El Farol al Día</title>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Noticia no encontrada</title>
                     <style>
-                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                        body { font-family: Arial; text-align: center; padding: 50px; background: #0b0b0b; color: white; }
                         h1 { color: #c62828; }
-                        a { color: #2e7d32; text-decoration: none; font-size: 18px; }
-                        a:hover { text-decoration: underline; }
+                        a { color: #FF8C00; }
                     </style>
                 </head>
                 <body>
                     <h1>🔍 Noticia no encontrada</h1>
-                    <p>La noticia con slug "${slugBuscado}" no existe.</p>
                     <a href="/">← Volver al inicio</a>
                 </body>
                 </html>
@@ -515,11 +539,10 @@ app.get('/noticia/:slug', async (req, res) => {
 
         const noticia = result.rows[0];
         console.log(`✅ Noticia encontrada: "${noticia.titulo}"`);
+        console.log(`👤 Redactor: ${noticia.redactor}`);
 
-        // ACTUALIZAR VISTAS
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
 
-        // Formatear contenido con párrafos
         const contenidoFormateado = noticia.contenido
             .split('\n')
             .filter(p => p.trim() !== '')
@@ -528,11 +551,8 @@ app.get('/noticia/:slug', async (req, res) => {
 
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
-
-            // Preparar URL para compartir
             const urlCompartir = `${BASE_URL}/noticia/${noticia.slug}`;
             
-            // Meta tags SEO
             const metaTags = `
 <title>${noticia.titulo} | El Farol al Día</title>
 <meta name="description" content="${noticia.seo_description || noticia.titulo}">
@@ -543,9 +563,6 @@ app.get('/noticia/:slug', async (req, res) => {
 <meta property="og:url" content="${urlCompartir}">
 <meta property="og:type" content="article">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${noticia.titulo}">
-<meta name="twitter:description" content="${noticia.seo_description || noticia.titulo}">
-<meta name="twitter:image" content="${noticia.imagen}">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -563,7 +580,6 @@ app.get('/noticia/:slug', async (req, res) => {
 }
 </script>`;
 
-            // Reemplazar variables en el HTML
             html = html.replace('<!-- META_TAGS -->', metaTags);
             html = html.replace(/{{TITULO}}/g, noticia.titulo);
             html = html.replace(/{{CONTENIDO}}/g, contenidoFormateado);
@@ -581,14 +597,13 @@ app.get('/noticia/:slug', async (req, res) => {
             res.send(html);
             
         } catch (error) {
-            console.error('Error leyendo archivo HTML:', error.message);
-            // Fallback: mostrar JSON
+            console.error('Error leyendo HTML:', error.message);
             res.json({ success: true, noticia });
         }
         
     } catch (error) {
-        console.error('❌ Error en ruta /noticia/:slug:', error.message);
-        res.status(500).send('Error interno del servidor');
+        console.error('❌ Error:', error.message);
+        res.status(500).send('Error interno');
     }
 });
 
@@ -658,7 +673,7 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '7.5'
+            version: '7.6'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -677,17 +692,24 @@ async function iniciar() {
         
         const dbOk = await inicializarBase();
         if (!dbOk) {
-            console.log('⚠️ Continuando a pesar de errores de BD...');
+            console.log('⚠️ Continuando...');
         }
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.5 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.6 🏮             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ ✅ Servidor en puerto ${PORT}                                     ║
 ║ ✅ PostgreSQL conectado y migrado                                 ║
-║ ✅ Ruta /noticia/:slug CORREGIDA y con LOGS                      ║
+║ ✅ EQUIPO DE REDACTORES: 9 PERIODISTAS                           ║
+║    - Carlos Méndez (Nacionales)                                   ║
+║    - Laura Santana (Deportes)                                     ║
+║    - Roberto Peña (Internacionales)                               ║
+║    - Ana María Castillo (Economía)                                ║
+║    - José Miguel Fernández (Tecnología)                           ║
+║    - Patricia Jiménez (Espectáculos)                              ║
+║    - Fernando Rivas, Carmen Lora, Miguel Ángel Pérez              ║
 ║ ✅ Búsqueda inteligente de imágenes                               ║
 ║ ✅ Parseo mejorado de Gemini                                      ║
 ║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
