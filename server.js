@@ -1,8 +1,9 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.2
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.3
  * Gemini genera noticias SEO optimizadas para monetizar
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
  * Incluye migración automática para TODAS las columnas necesarias
+ * BÚSQUEDA DE IMÁGENES INTELIGENTE (usa palabras clave del título)
  */
 
 const express = require('express');
@@ -73,52 +74,28 @@ async function inicializarBase() {
         `);
         console.log('✅ Tabla "noticias" asegurada');
 
-        // 2. VERIFICAR Y AGREGAR COLUMNAS FALTANTES UNA POR UNA
-        // Columna slug
-        const checkSlug = await client.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='noticias' AND column_name='slug'
-        `);
-        if (checkSlug.rows.length === 0) {
-            console.log('➕ Agregando columna slug...');
-            await client.query('ALTER TABLE noticias ADD COLUMN slug VARCHAR(255)');
+        // 2. VERIFICAR Y AGREGAR COLUMNAS FALTANTES
+        const columnasNecesarias = [
+            { name: 'slug', type: 'VARCHAR(255)' },
+            { name: 'seo_description', type: 'VARCHAR(160)' },
+            { name: 'seo_keywords', type: 'VARCHAR(255)' },
+            { name: 'imagen_alt', type: 'VARCHAR(255)' }
+        ];
+
+        for (const col of columnasNecesarias) {
+            const checkCol = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='noticias' AND column_name=$1
+            `, [col.name]);
+            
+            if (checkCol.rows.length === 0) {
+                console.log(`➕ Agregando columna ${col.name}...`);
+                await client.query(`ALTER TABLE noticias ADD COLUMN ${col.name} ${col.type}`);
+            }
         }
 
-        // Columna seo_description
-        const checkSeoDesc = await client.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='noticias' AND column_name='seo_description'
-        `);
-        if (checkSeoDesc.rows.length === 0) {
-            console.log('➕ Agregando columna seo_description...');
-            await client.query('ALTER TABLE noticias ADD COLUMN seo_description VARCHAR(160)');
-        }
-
-        // Columna seo_keywords
-        const checkSeoKeywords = await client.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='noticias' AND column_name='seo_keywords'
-        `);
-        if (checkSeoKeywords.rows.length === 0) {
-            console.log('➕ Agregando columna seo_keywords...');
-            await client.query('ALTER TABLE noticias ADD COLUMN seo_keywords VARCHAR(255)');
-        }
-
-        // Columna imagen_alt
-        const checkImagenAlt = await client.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='noticias' AND column_name='imagen_alt'
-        `);
-        if (checkImagenAlt.rows.length === 0) {
-            console.log('➕ Agregando columna imagen_alt...');
-            await client.query('ALTER TABLE noticias ADD COLUMN imagen_alt VARCHAR(255)');
-        }
-
-        // 3. Actualizar slugs nulos (noticias antiguas) usando el título
+        // 3. Actualizar slugs nulos
         console.log('🔄 Generando slugs para noticias sin slug...');
         await client.query(`
             UPDATE noticias 
@@ -158,91 +135,124 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ BUSCAR IMAGEN ====================
+// ==================== 🖼️ BUSCAR IMAGEN MEJORADA (CON PALABRAS CLAVE DEL TÍTULO) ====================
 async function buscarImagen(titulo, categoria) {
     try {
-        console.log(`🔍 Buscando imagen para: ${categoria}`);
+        // Extraer palabras clave del título (las más importantes)
+        const palabrasClave = titulo
+            .toLowerCase()
+            .replace(/[^\w\s]/g, '')
+            .split(' ')
+            .filter(p => p.length > 3)  // solo palabras con más de 3 letras
+            .filter(p => !['para', 'con', 'una', 'este', 'esta', 'estos', 'estas', 'sobre'].includes(p))
+            .slice(0, 3)                 // tomar máximo 3 palabras
+            .join(' ');
+        
+        // Usar la categoría si no hay suficientes palabras clave
+        const query = palabrasClave.length > 5 ? palabrasClave : categoria;
+        
+        console.log(`🔍 Buscando imagen para: "${query}" (desde título: "${titulo}")`);
 
-        // UNSPLASH
-        if (process.env.UNSPLASH_ACCESS_KEY) {
+        // Función auxiliar para intentar con diferentes APIs
+        async function tryAPI(apiFunction) {
             try {
-                const query = encodeURIComponent(categoria);
-                const url = `https://api.unsplash.com/photos/random?query=${query}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape`;
-                
+                return await apiFunction();
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // UNSPLASH (mejor calidad)
+        if (process.env.UNSPLASH_ACCESS_KEY) {
+            const unsplashResult = await tryAPI(async () => {
+                const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&content_filter=high`;
                 const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     if (data && data.urls && data.urls.regular) {
-                        console.log(`✅ Imagen de Unsplash encontrada`);
+                        console.log(`✅ Imagen de Unsplash encontrada para: ${query}`);
                         return {
                             url: data.urls.regular,
-                            alt: `${titulo} - ${categoria}`
+                            alt: `${titulo} - ${categoria}`,
+                            source: 'Unsplash'
                         };
                     }
                 }
-            } catch (e) {
-                console.log('⚠️ Unsplash falló');
-            }
+                return null;
+            });
+            if (unsplashResult) return unsplashResult;
         }
 
         // PEXELS
         if (process.env.PEXELS_API_KEY) {
-            try {
-                const query = encodeURIComponent(categoria);
-                const url = `https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape`;
-                
+            const pexelsResult = await tryAPI(async () => {
+                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
                 const response = await fetch(url, {
                     headers: { 'Authorization': process.env.PEXELS_API_KEY }
                 });
                 if (response.ok) {
                     const data = await response.json();
                     if (data.photos && data.photos[0]) {
-                        console.log(`✅ Imagen de Pexels encontrada`);
+                        console.log(`✅ Imagen de Pexels encontrada para: ${query}`);
                         return {
                             url: data.photos[0].src.landscape,
-                            alt: `${titulo} - ${categoria}`
+                            alt: `${titulo} - ${categoria}`,
+                            source: 'Pexels'
                         };
                     }
                 }
-            } catch (e) {
-                console.log('⚠️ Pexels falló');
-            }
+                return null;
+            });
+            if (pexelsResult) return pexelsResult;
         }
 
         // PIXABAY
         if (process.env.PIXABAY_API_KEY) {
-            try {
-                const query = encodeURIComponent(categoria);
-                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${query}&image_type=photo&orientation=horizontal&per_page=1`;
-                
+            const pixabayResult = await tryAPI(async () => {
+                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=1&safesearch=true`;
                 const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.hits && data.hits[0]) {
-                        console.log(`✅ Imagen de Pixabay encontrada`);
+                        console.log(`✅ Imagen de Pixabay encontrada para: ${query}`);
                         return {
                             url: data.hits[0].webformatURL,
-                            alt: `${titulo} - ${categoria}`
+                            alt: `${titulo} - ${categoria}`,
+                            source: 'Pixabay'
                         };
                     }
                 }
-            } catch (e) {
-                console.log('⚠️ Pixabay falló');
-            }
+                return null;
+            });
+            if (pixabayResult) return pixabayResult;
         }
 
-        // IMAGEN POR DEFECTO
-        console.log('📸 Usando imagen por defecto');
+        // Fallback: imágenes por categoría
+        console.log(`📸 Usando imagen placeholder para categoría: ${categoria}`);
+        
+        // Imágenes placeholder más relevantes por categoría
+        const placeholders = {
+            'Nacionales': 'Gobierno+RD',
+            'Deportes': 'Deportes+RD',
+            'Internacionales': 'Noticias+Mundo',
+            'Economía': 'Economia+RD',
+            'Tecnología': 'Tecnologia+RD'
+        };
+
+        const text = placeholders[categoria] || 'Noticias+RD';
+        
         return {
-            url: `https://via.placeholder.com/800x400?text=${encodeURIComponent(categoria)}`,
-            alt: titulo
+            url: `https://via.placeholder.com/800x400?text=${text}`,
+            alt: `${titulo} - ${categoria}`,
+            source: 'default'
         };
 
     } catch (error) {
         console.error('❌ Error buscando imagen:', error.message);
         return {
-            url: `https://via.placeholder.com/800x400?text=Noticia`,
-            alt: 'Noticia'
+            url: `https://via.placeholder.com/800x400?text=Noticia+RD`,
+            alt: 'Noticia',
+            source: 'error-fallback'
         };
     }
 }
@@ -340,7 +350,7 @@ CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructura
         console.log(`✅ SEO: ${seoDesc.substring(0, 80)}`);
         console.log(`✅ Contenido: ${contenido.substring(0, 100)}...`);
 
-        // 🖼️ BUSCAR IMAGEN
+        // 🖼️ BUSCAR IMAGEN CON PALABRAS CLAVE DEL TÍTULO
         const imagenData = await buscarImagen(titulo, categoria);
 
         // GENERAR SLUG
@@ -354,12 +364,12 @@ CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructura
                 redactor, imagen, imagen_alt, 
                 ubicacion, estado
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-            RETURNING id, slug`,
+            RETURNING id, slug, titulo, imagen`,
             [
                 titulo.substring(0, 255),
                 slug,
                 categoria,
-                contenido.substring(0, 50000),
+                contenido,
                 seoDesc,
                 keywords.substring(0, 255),
                 'IA Gemini',
@@ -373,14 +383,16 @@ CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructura
         const noticia = result.rows[0];
         console.log(`✅ Noticia guardada con ID: ${noticia.id}`);
         console.log(`✅ URL: ${BASE_URL}/noticia/${noticia.slug}`);
+        console.log(`✅ Imagen: ${imagenData.source || 'desconocida'}`);
 
         return {
             success: true,
             id: noticia.id,
             slug: noticia.slug,
-            titulo: titulo,
+            titulo: noticia.titulo,
             url: `${BASE_URL}/noticia/${noticia.slug}`,
-            imagen: imagenData.url,
+            imagen: noticia.imagen,
+            fuente_imagen: imagenData.source || 'desconocida',
             mensaje: '✅ Noticia generada y publicada con SEO'
         };
 
@@ -471,7 +483,27 @@ app.get('/noticia/:slug', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).send('Noticia no encontrada');
+            return res.status(404).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Noticia no encontrada | El Farol al Día</title>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+                        h1 { color: #c62828; }
+                        a { color: #2e7d32; text-decoration: none; font-size: 18px; }
+                        a:hover { text-decoration: underline; }
+                    </style>
+                </head>
+                <body>
+                    <h1>🔍 Noticia no encontrada</h1>
+                    <p>La noticia que buscas no existe o ha sido eliminada.</p>
+                    <a href="/">← Volver al inicio</a>
+                </body>
+                </html>
+            `);
         }
 
         const noticia = result.rows[0];
@@ -479,29 +511,36 @@ app.get('/noticia/:slug', async (req, res) => {
         // ACTUALIZAR VISTAS
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
 
+        // Formatear contenido con párrafos
+        const contenidoFormateado = noticia.contenido
+            .split('\n')
+            .filter(p => p.trim() !== '')
+            .map(p => `<p>${p.trim()}</p>`)
+            .join('');
+
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
 
             // INYECTAR META TAGS SEO
             const metaTags = `
 <title>${noticia.titulo} | El Farol al Día</title>
-<meta name="description" content="${noticia.seo_description}">
-<meta name="keywords" content="${noticia.seo_keywords}">
+<meta name="description" content="${noticia.seo_description || noticia.titulo}">
+<meta name="keywords" content="${noticia.seo_keywords || noticia.seccion}">
 <meta property="og:title" content="${noticia.titulo}">
-<meta property="og:description" content="${noticia.seo_description}">
+<meta property="og:description" content="${noticia.seo_description || noticia.titulo}">
 <meta property="og:image" content="${noticia.imagen}">
 <meta property="og:url" content="${BASE_URL}/noticia/${noticia.slug}">
 <meta property="og:type" content="article">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${noticia.titulo}">
-<meta name="twitter:description" content="${noticia.seo_description}">
+<meta name="twitter:description" content="${noticia.seo_description || noticia.titulo}">
 <meta name="twitter:image" content="${noticia.imagen}">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "NewsArticle",
   "headline": "${noticia.titulo}",
-  "description": "${noticia.seo_description}",
+  "description": "${noticia.seo_description || noticia.titulo}",
   "image": "${noticia.imagen}",
   "datePublished": "${noticia.fecha}",
   "author": {
@@ -521,15 +560,22 @@ app.get('/noticia/:slug', async (req, res) => {
 
             html = html.replace('<!-- META_TAGS -->', metaTags);
             html = html.replace('{{TITULO}}', noticia.titulo);
-            html = html.replace('{{CONTENIDO}}', noticia.contenido);
-            html = html.replace('{{FECHA}}', new Date(noticia.fecha).toLocaleDateString('es-DO'));
+            html = html.replace('{{CONTENIDO}}', contenidoFormateado);
+            html = html.replace('{{FECHA}}', new Date(noticia.fecha).toLocaleDateString('es-DO', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }));
             html = html.replace('{{IMAGEN}}', noticia.imagen);
             html = html.replace('{{ALT}}', noticia.imagen_alt || noticia.titulo);
             html = html.replace('{{VISTAS}}', noticia.vistas);
+            html = html.replace('{{SECCION}}', noticia.seccion);
+            html = html.replace('{{REDACTOR}}', noticia.redactor);
 
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.send(html);
         } catch (e) {
+            // Fallback a JSON si el archivo HTML no existe
             res.json({ success: true, noticia });
         }
     } catch (error) {
@@ -604,7 +650,7 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '7.2'
+            version: '7.3'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -629,19 +675,15 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.2 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.3 🏮             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ ✅ Servidor en puerto ${PORT}                                     ║
 ║ ✅ PostgreSQL conectado y migrado                                 ║
-║ ✅ TODAS las columnas verificadas:                                ║
-║    - slug, seo_description, seo_keywords, imagen_alt             ║
-║ ✅ Campo título ajustado a 255 caracteres                         ║
+║ ✅ TODAS las columnas verificadas                                ║
+║ ✅ BÚSQUEDA INTELIGENTE DE IMÁGENES (usa palabras del título)   ║
 ║ ✅ Gemini IA: ACTIVADO                                            ║
 ║ ✅ SEO OPTIMIZADO: LISTO PARA MONETIZAR                           ║
-║ ✅ Búsqueda de imágenes: ACTIVADA                                 ║
-║ ✅ Automatización:                                                ║
-║    - Cada 6 horas (0, 6, 12, 18 hrs)                              ║
-║    - Diariamente a las 8:00 AM                                    ║
+║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
 ║ ✅ Meta tags dinámicos: Schema.org, OG, Twitter                   ║
 ║ ✅ Sitemap y Robots.txt: GENERADOS                                ║
 ║ ✅ LISTO PARA GOOGLE ADSENSE                                      ║
