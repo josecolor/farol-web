@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.1
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.2
  * Gemini genera noticias con DETECCIÓN DE PERSONAS FAMOSAS
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN DEFINITIVA CORREGIDA - SIN ERRORES DE PARSEO
+ * VERSIÓN DEFINITIVA - CON BÚSQUEDA DE IMÁGENES POR NOMBRE
  */
 
 const express = require('express');
@@ -145,10 +145,96 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ BUSCAR IMAGEN SIMPLE Y EFECTIVA ====================
-async function buscarImagenSimple(query, categoria) {
+// ==================== 🖼️ BUSCAR IMAGEN DE PERSONA FAMOSA ====================
+async function buscarImagenPersona(nombrePersona, categoria) {
     try {
-        console.log(`🔍 Buscando imagen para: "${query}"`);
+        console.log(`🎯 Buscando imagen de: ${nombrePersona}`);
+        
+        // Limpiar el nombre para búsqueda
+        const nombreLimpio = nombrePersona.trim().replace(/\s+/g, '+');
+        
+        // ========== 1. UNSPLASH (mejor para personas) ==========
+        if (process.env.UNSPLASH_ACCESS_KEY) {
+            try {
+                // Unsplash tiene buenas fotos de personas famosas
+                const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(nombreLimpio)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=5`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        console.log(`✅ Imagen de ${nombrePersona} encontrada en Unsplash`);
+                        return {
+                            url: data.results[0].urls.regular,
+                            alt: `${nombrePersona} - ${categoria}`,
+                            source: 'Unsplash'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.log(`⚠️ Unsplash error: ${e.message}`);
+            }
+        }
+        
+        // ========== 2. PEXELS ==========
+        if (process.env.PEXELS_API_KEY) {
+            try {
+                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(nombreLimpio)}&per_page=5&orientation=landscape`;
+                const response = await fetch(url, {
+                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.photos && data.photos.length > 0) {
+                        console.log(`✅ Imagen de ${nombrePersona} encontrada en Pexels`);
+                        return {
+                            url: data.photos[0].src.landscape,
+                            alt: `${nombrePersona} - ${categoria}`,
+                            source: 'Pexels'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.log(`⚠️ Pexels error: ${e.message}`);
+            }
+        }
+        
+        // ========== 3. PIXABAY ==========
+        if (process.env.PIXABAY_API_KEY) {
+            try {
+                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(nombreLimpio)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.hits && data.hits.length > 0) {
+                        console.log(`✅ Imagen de ${nombrePersona} encontrada en Pixabay`);
+                        return {
+                            url: data.hits[0].webformatURL,
+                            alt: `${nombrePersona} - ${categoria}`,
+                            source: 'Pixabay'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.log(`⚠️ Pixabay error: ${e.message}`);
+            }
+        }
+        
+        console.log(`❌ No se encontró imagen de ${nombrePersona}, usando respaldo`);
+        return null;
+
+    } catch (error) {
+        console.error('❌ Error buscando imagen de persona:', error.message);
+        return null;
+    }
+}
+
+// ==================== 🖼️ BUSCAR IMAGEN GENÉRICA ====================
+async function buscarImagenGenerica(query, categoria) {
+    try {
+        console.log(`🔍 Buscando imagen genérica: "${query}"`);
         
         const queryFormateada = query.trim().replace(/\s+/g, '+');
         
@@ -220,35 +306,35 @@ async function buscarImagenSimple(query, categoria) {
             }
         }
         
-        // ========== 4. BANCO DE RESPALDO ==========
-        console.log(`📸 Usando imagen de respaldo para: ${categoria}`);
-        
-        const imagenesRespaldo = {
-            'Nacionales': 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-            'Deportes': 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg',
-            'Internacionales': 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg',
-            'Espectáculos': 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
-            'Economía': 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg',
-            'Tecnología': 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg'
-        };
-        
-        return {
-            url: imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'],
-            alt: `Noticia de ${categoria}`,
-            source: 'respaldo'
-        };
+        return null;
 
     } catch (error) {
-        console.error('❌ Error en búsqueda de imagen:', error.message);
-        return {
-            url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-            alt: 'Noticia',
-            source: 'emergencia'
-        };
+        console.error('❌ Error en búsqueda genérica:', error.message);
+        return null;
     }
 }
 
-// ==================== 🤖 GENERAR NOTICIA CON GEMINI (VERSIÓN CORREGIDA) ====================
+// ==================== 🖼️ BANCO DE RESPALDO ====================
+function imagenRespaldo(categoria) {
+    console.log(`📸 Usando imagen de respaldo para: ${categoria}`);
+    
+    const imagenesRespaldo = {
+        'Nacionales': 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
+        'Deportes': 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg',
+        'Internacionales': 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg',
+        'Espectáculos': 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
+        'Economía': 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg',
+        'Tecnología': 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg'
+    };
+    
+    return {
+        url: imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'],
+        alt: `Noticia de ${categoria}`,
+        source: 'respaldo'
+    };
+}
+
+// ==================== 🤖 GENERAR NOTICIA CON GEMINI ====================
 async function generarNoticiaCompleta(categoria) {
     try {
         console.log(`\n🤖 Generando noticia SEO para: ${categoria}`);
@@ -279,7 +365,7 @@ DESCRIPCION: El reconocido DJ y productor Diplo presentó un innovador set en el
 PALABRAS: Diplo, música electrónica, festival, DJ, Miami
 BUSQUEDA: Diplo DJ live performance | Diplo concert stage | Diplo electronic music festival
 CONTENIDO:
-El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente que hizo bailar a miles de asistentes. Durante su presentación de más de dos horas, el artista...
+El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente...
 
 EJEMPLO SIN PERSONA:
 TITULO: Nuevo plan de viviendas en Santo Domingo
@@ -310,8 +396,6 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
         );
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Error Gemini:', errorText);
             throw new Error(`Gemini ${response.status}`);
         }
 
@@ -319,7 +403,7 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
         const texto = data.candidates[0].content.parts[0].text;
         console.log(`📝 Respuesta: ${texto.length} caracteres`);
 
-        // ===== PARSEO SIMPLE Y SEGURO =====
+        // ===== PARSEO SIMPLE =====
         let titulo = "";
         let persona = "";
         let descripcion = "";
@@ -349,7 +433,6 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
                 busquedas = busquedasTexto.split('|').map(b => b.trim()).filter(b => b.length > 0);
             }
             else if (linea.startsWith('CONTENIDO:')) {
-                // Acumular todo el contenido
                 contenido = linea.replace('CONTENIDO:', '').trim();
                 for (let j = i + 1; j < lineas.length; j++) {
                     contenido += '\n' + lineas[j];
@@ -358,52 +441,54 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
             }
         }
 
-        // Limpiar caracteres especiales
+        // Limpiar
         titulo = titulo.replace(/[*_#`]/g, '').trim();
         persona = persona.replace(/[*_#`]/g, '').trim();
         descripcion = descripcion.replace(/[*_#`]/g, '').substring(0, 160);
         palabras = palabras.replace(/[*_#`]/g, '').substring(0, 255);
         
-        // Validar título
         if (!titulo || titulo.length < 10) {
             titulo = `Nuevos avances en ${categoria} en República Dominicana`;
         }
 
-        // Validar contenido
         if (!contenido || contenido.length < 200) {
-            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.
-
-El presidente Luis Abinader destacó que "este es solo el comienzo de una serie de transformaciones que posicionarán a República Dominicana como un referente en la región". Por su parte, representantes de la sociedad civil han manifestado su apoyo a estas políticas que prometen generar empleo y desarrollo sostenible.
-
-Los detalles específicos serán dados a conocer en los próximos días a través de los canales oficiales del gobierno. Mientras tanto, la población se mantiene expectante ante los cambios que se avecinan en el sector de ${categoria}.
-
-Especialistas en la materia coinciden en que República Dominicana se encuentra en un momento crucial para su desarrollo, y estas medidas podrían ser el catalizador necesario para alcanzar las metas establecidas en la Estrategia Nacional de Desarrollo 2030.`;
+            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos.`;
         }
 
         console.log(`📌 Título: ${titulo.substring(0, 60)}...`);
         console.log(`📌 Persona detectada: ${persona || 'ninguna'}`);
-        console.log(`📌 Búsquedas: ${busquedas.length}`);
 
-        // ===== DECIDIR QUÉ USAR PARA LA IMAGEN =====
-        let queryImagen;
+        // ===== BUSCAR IMAGEN =====
+        let imagenData = null;
         
+        // PRIORIDAD 1: Si hay persona famosa, buscar por su nombre
         if (persona && persona.length > 2) {
-            // Si hay una persona famosa, buscar por su nombre
-            queryImagen = persona;
-            console.log(`🎯 Buscando imagen de la persona: ${persona}`);
-        } else if (busquedas.length > 0) {
-            // Usar la primera búsqueda
-            queryImagen = busquedas[0];
-            console.log(`🖼️ Usando búsqueda: ${queryImagen}`);
-        } else {
-            // Fallback al título
-            queryImagen = titulo.substring(0, 50);
-            console.log(`📸 Usando título como búsqueda`);
+            console.log(`🎯 PRIORIDAD 1: Buscando imagen de ${persona}`);
+            imagenData = await buscarImagenPersona(persona, categoria);
+        }
+        
+        // PRIORIDAD 2: Si no se encontró imagen de persona o no hay persona, usar las búsquedas
+        if (!imagenData && busquedas.length > 0) {
+            console.log(`🖼️ PRIORIDAD 2: Usando búsquedas específicas`);
+            for (const busqueda of busquedas) {
+                imagenData = await buscarImagenGenerica(busqueda, categoria);
+                if (imagenData) break;
+            }
+        }
+        
+        // PRIORIDAD 3: Usar el título
+        if (!imagenData) {
+            console.log(`📸 PRIORIDAD 3: Usando título como búsqueda`);
+            imagenData = await buscarImagenGenerica(titulo.substring(0, 50), categoria);
+        }
+        
+        // PRIORIDAD 4: Banco de respaldo
+        if (!imagenData) {
+            imagenData = imagenRespaldo(categoria);
         }
 
-        // Buscar imagen
-        const imagenData = await buscarImagenSimple(queryImagen, categoria);
-        
+        console.log(`✅ Imagen obtenida de: ${imagenData.source}`);
+
         // Generar slug
         const slug = generarSlug(titulo);
         const redactorAsignado = elegirRedactor(categoria);
@@ -415,7 +500,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
             slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
         }
 
-        // Guardar en base de datos
+        // Guardar en BD
         const result = await pool.query(
             `INSERT INTO noticias (
                 titulo, slug, seccion, contenido, 
@@ -442,7 +527,6 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
         const noticia = result.rows[0];
         console.log(`✅ Noticia guardada con ID: ${noticia.id}`);
         console.log(`✅ URL: ${BASE_URL}/noticia/${noticia.slug}`);
-        console.log(`✅ Imagen: ${imagenData.source}`);
 
         return {
             success: true,
@@ -454,7 +538,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
             redactor: redactorAsignado,
             persona: persona || 'ninguna',
             fuente_imagen: imagenData.source,
-            mensaje: '✅ Noticia generada exitosamente'
+            mensaje: '✅ Noticia generada'
         };
 
     } catch (error) {
@@ -477,9 +561,7 @@ cron.schedule('0 8 * * *', async () => {
     console.log('\n🌅 Generando noticia diaria (8 AM)...');
     await generarNoticiaCompleta('Nacionales');
 });
-console.log('✅ Automatización configurada:');
-console.log('   - Cada 6 horas (0, 6, 12, 18)');
-console.log('   - Diariamente a las 8:00 AM');
+console.log('✅ Automatización configurada');
 
 // ==================== RUTAS ====================
 app.get('/health', (req, res) => {
@@ -529,7 +611,6 @@ app.get('/api/noticias/:id', async (req, res) => {
 // ==================== NOTICIA POR SLUG ====================
 app.get('/noticia/:slug', async (req, res) => {
     const slugBuscado = req.params.slug;
-    console.log(`\n🔍 Buscando noticia con slug: "${slugBuscado}"`);
     
     try {
         const result = await pool.query(
@@ -538,29 +619,10 @@ app.get('/noticia/:slug', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).send(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Noticia no encontrada</title>
-                    <style>
-                        body { font-family: Arial; text-align: center; padding: 50px; background: #0b0b0b; color: white; }
-                        h1 { color: #c62828; }
-                        a { color: #FF8C00; text-decoration: none; font-size: 18px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>🔍 Noticia no encontrada</h1>
-                    <p>La noticia que buscas no existe o ha sido eliminada.</p>
-                    <a href="/">← Volver al inicio</a>
-                </body>
-                </html>
-            `);
+            return res.status(404).send('Noticia no encontrada');
         }
 
         const noticia = result.rows[0];
-        console.log(`✅ Noticia encontrada: "${noticia.titulo}"`);
-
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
 
         const contenidoFormateado = noticia.contenido
@@ -592,20 +654,14 @@ app.get('/noticia/:slug', async (req, res) => {
   "image": "${noticia.imagen}",
   "datePublished": "${noticia.fecha}",
   "author": {"@type": "Person", "name": "${noticia.redactor}"},
-  "publisher": {
-    "@type": "Organization",
-    "name": "El Farol al Día",
-    "logo": {"@type": "ImageObject", "url": "${BASE_URL}/logo.png"}
-  }
+  "publisher": {"@type": "Organization", "name": "El Farol al Día"}
 }
 </script>`;
 
             html = html.replace('<!-- META_TAGS -->', metaTags);
             html = html.replace(/{{TITULO}}/g, noticia.titulo);
             html = html.replace(/{{CONTENIDO}}/g, contenidoFormateado);
-            html = html.replace(/{{FECHA}}/g, new Date(noticia.fecha).toLocaleDateString('es-DO', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            }));
+            html = html.replace(/{{FECHA}}/g, new Date(noticia.fecha).toLocaleDateString('es-DO'));
             html = html.replace(/{{IMAGEN}}/g, noticia.imagen);
             html = html.replace(/{{ALT}}/g, noticia.imagen_alt || noticia.titulo);
             html = html.replace(/{{VISTAS}}/g, noticia.vistas);
@@ -613,16 +669,13 @@ app.get('/noticia/:slug', async (req, res) => {
             html = html.replace(/{{REDACTOR}}/g, noticia.redactor);
             html = html.replace(/{{URL}}/g, urlCompartir);
 
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.send(html);
             
         } catch (error) {
-            console.error('Error leyendo HTML:', error.message);
             res.json({ success: true, noticia });
         }
         
     } catch (error) {
-        console.error('❌ Error:', error.message);
         res.status(500).send('Error interno');
     }
 });
@@ -670,12 +723,7 @@ app.get('/robots.txt', (req, res) => {
     const robots = `User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /admin/
-
 Sitemap: ${BASE_URL}/sitemap.xml
-
-User-agent: Googlebot
-Allow: /
 `;
     res.header('Content-Type', 'text/plain');
     res.send(robots);
@@ -692,8 +740,7 @@ app.get('/status', async (req, res) => {
             database: dbStatus.rows[0]?.health === 1 ? 'conectado' : 'error',
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
-            timestamp: new Date().toISOString(),
-            version: '9.1'
+            version: '9.2'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -711,23 +758,19 @@ async function iniciar() {
         console.log('\n🚀 Iniciando servidor...');
         
         const dbOk = await inicializarBase();
-        if (!dbOk) {
-            console.log('⚠️ Continuando a pesar de errores de BD...');
-        }
-
+        
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.1 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.2 🏮             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ ✅ Servidor en puerto ${PORT}                                     ║
-║ ✅ PostgreSQL conectado y migrado                                 ║
-║ ✅ EQUIPO DE REDACTORES: 9 PERIODISTAS                           ║
-║ ✅ DETECCIÓN DE PERSONAS FAMOSAS (artistas, DJs, políticos)      ║
-║ ✅ BÚSQUEDA DE IMÁGENES POR NOMBRE PROPIO                        ║
-║ ✅ PARSEO CORREGIDO - SIN ERRORES                                ║
+║ ✅ DETECCIÓN DE PERSONAS FAMOSAS ACTIVADA                        ║
+║ ✅ PRIORIDAD: Buscar por nombre de la persona                    ║
+║ ✅ 3 APIs de imágenes: Unsplash, Pexels, Pixabay                 ║
+║ ✅ Banco de respaldo por categoría                               ║
 ║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
-║ ✅ VERSIÓN DEFINITIVA - ESTABLE                                   ║
+║ ✅ VERSIÓN DEFINITIVA - SIN ERRORES                               ║
 ╚═══════════════════════════════════════════════════════════════════╝
             `);
         });
