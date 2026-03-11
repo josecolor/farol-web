@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - V10.5 DEFINITIVA
- * Sistema Blindado contra errores de Redacción
+ * 🏮 EL FAROL AL DÍA - V10.6 LIGHT
+ * Sistema de emergencia con Auto-reparación de tablas
  */
 const express = require('express');
 const path = require('path');
@@ -18,79 +18,73 @@ const pool = new Pool({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'client')));
 
-// 🎯 GENERADOR DE NOTICIAS BLINDADO
-async function generarNoticiaInteligente(categoria) {
+// 🛠️ FUNCIÓN PARA ASEGURAR QUE LA TABLA EXISTE
+async function crearTablaSiNoExiste() {
     try {
-        const prompt = `Genera una noticia de ${categoria} en RD. Responde SOLO con este formato:
-        TITULO: [texto]
-        ENTIDAD: [nombre]
-        DESC: [resumen]
-        CONTENIDO: [texto largo]`;
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS noticias (
+                id SERIAL PRIMARY KEY,
+                titulo TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                seccion TEXT,
+                contenido TEXT,
+                seo_description TEXT,
+                redactor TEXT,
+                imagen TEXT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                estado TEXT DEFAULT 'publicada'
+            );
+        `);
+        console.log('✅ Base de Datos: Tabla "noticias" lista.');
+    } catch (e) { console.error('❌ Error BD:', e.message); }
+}
 
+async function generarNoticiaIA(categoria) {
+    try {
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            body: JSON.stringify({ contents: [{ parts: [{ text: `Noticia corta de ${categoria} en RD. Formato: TITULO: [tit] CONTENIDO: [cont]` }] }] })
         });
-
         const d = await resp.json();
         const texto = d.candidates[0].content.parts[0].text;
-        
         return {
-            titulo: texto.match(/TITULO:\s*(.*)/i)?.[1]?.trim() || "Noticia de Impacto",
-            descripcion: texto.match(/DESC:\s*(.*)/i)?.[1]?.trim() || "Actualidad en RD",
-            contenido: texto.split(/CONTENIDO:\s*/i)[1]?.trim() || "Información en desarrollo...",
+            titulo: texto.match(/TITULO:\s*(.*)/i)?.[1]?.trim() || "Noticia Nueva",
+            contenido: texto.split(/CONTENIDO:\s*/i)[1]?.trim() || "Contenido...",
             categoria
         };
     } catch (e) { return null; }
 }
-
-async function buscarImagen(cat) {
-    return 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=1260';
-}
-// 🤖 PROCESO DE PUBLICACIÓN
-async function publicarNoticia(categoria) {
-    const data = await generarNoticiaInteligente(categoria);
-    if (!data) return { success: false, error: "IA desconectada" };
-
-    const img = await buscarImagen(categoria);
-    const slug = data.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 60) + '-' + Date.now().toString().slice(-4);
-
+// 🤖 PUBLICACIÓN RÁPIDA
+async function publicar(categoria) {
+    const data = await generarNoticiaIA(categoria);
+    if (!data) return { success: false, error: "Fallo de IA" };
+    const slug = data.titulo.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) + '-' + Date.now().toString().slice(-3);
     try {
         const res = await pool.query(
-            `INSERT INTO noticias (titulo, slug, seccion, contenido, seo_description, redactor, imagen, estado) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [data.titulo, slug, categoria, data.contenido, data.descripcion, 'IA Gemini', img, 'publicada']
+            `INSERT INTO noticias (titulo, slug, seccion, contenido, imagen) 
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [data.titulo, slug, categoria, data.contenido, 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg']
         );
         return { success: true, noticia: res.rows[0] };
     } catch (e) { return { success: false, error: e.message }; }
 }
 
-// 🌍 RUTAS
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
-
 app.get('/api/noticias', async (req, res) => {
-    const r = await pool.query('SELECT * FROM noticias ORDER BY fecha DESC LIMIT 15');
+    const r = await pool.query('SELECT * FROM noticias ORDER BY fecha DESC LIMIT 10');
     res.json({ success: true, noticias: r.rows });
 });
-
 app.post('/api/generar-noticia', async (req, res) => {
-    const resultado = await publicarNoticia(req.body.categoria);
-    res.json(resultado);
+    const r = await publicar(req.body.categoria);
+    res.json(r);
 });
 
-app.get('/noticia/:slug', async (req, res) => {
-    const r = await pool.query('SELECT * FROM noticias WHERE slug = $1', [req.params.slug]);
-    if (r.rows.length === 0) return res.status(404).send('No encontrada');
-    const n = r.rows[0];
-    let h = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
-    h = h.replace(/{{TITULO}}/g, n.titulo).replace(/{{IMAGEN}}/g, n.imagen)
-         .replace(/{{CONTENIDO}}/g, n.contenido.split('\n').map(p => `<p>${p}</p>`).join(''))
-         .replace(/{{FECHA}}/g, new Date(n.fecha).toLocaleDateString('es-DO'));
-    res.send(h);
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log('🚀 BÚNKER V10.5 ONLINE - TODO REPARADO');
-});
+// 🔥 ENCENDIDO CON REPARACIÓN
+async function start() {
+    await crearTablaSiNoExiste();
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log('🚀 BÚNKER V10.6 ONLINE - MOTOR LIGERO');
+    });
+}
+start();
