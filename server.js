@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.6
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.7
  * Gemini genera noticias SEO optimizadas para monetizar
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * NUEVO: Múltiples redactores (equipo periodístico real)
+ * VERSIÓN DEFINITIVA - CON IMÁGENES GARANTIZADAS
  */
 
 const express = require('express');
@@ -46,17 +46,11 @@ const REDACTORES = [
     { nombre: 'Miguel Ángel Pérez', especialidad: 'Internacionales' }
 ];
 
-// Función para elegir redactor según categoría
 function elegirRedactor(categoria) {
-    // Filtrar redactores por especialidad
     const especialistas = REDACTORES.filter(r => r.especialidad === categoria);
-    
-    // Si hay especialistas, elegir uno al azar
     if (especialistas.length > 0) {
         return especialistas[Math.floor(Math.random() * especialistas.length)].nombre;
     }
-    
-    // Si no hay especialistas, elegir cualquiera al azar
     return REDACTORES[Math.floor(Math.random() * REDACTORES.length)].nombre;
 }
 
@@ -79,7 +73,6 @@ async function inicializarBase() {
         console.log('🔧 Verificando estructura de base de datos...');
         await client.query('BEGIN');
 
-        // 1. Crear tabla si no existe
         await client.query(`
             CREATE TABLE IF NOT EXISTS noticias (
                 id SERIAL PRIMARY KEY,
@@ -100,7 +93,6 @@ async function inicializarBase() {
         `);
         console.log('✅ Tabla "noticias" asegurada');
 
-        // 2. VERIFICAR Y AGREGAR COLUMNAS FALTANTES
         const columnasNecesarias = [
             { name: 'slug', type: 'VARCHAR(255)' },
             { name: 'seo_description', type: 'VARCHAR(160)' },
@@ -121,7 +113,6 @@ async function inicializarBase() {
             }
         }
 
-        // 3. Actualizar slugs nulos
         console.log('🔄 Generando slugs para noticias sin slug...');
         await client.query(`
             UPDATE noticias 
@@ -129,12 +120,8 @@ async function inicializarBase() {
             WHERE slug IS NULL
         `);
 
-        // 4. Asegurar que slug sea NOT NULL
-        await client.query(`
-            ALTER TABLE noticias ALTER COLUMN slug SET NOT NULL
-        `);
+        await client.query(`ALTER TABLE noticias ALTER COLUMN slug SET NOT NULL`);
 
-        // 5. Agregar constraint UNIQUE en slug si no existe
         const checkUnique = await client.query(`
             SELECT conname FROM pg_constraint 
             WHERE conname = 'noticias_slug_unique'
@@ -144,10 +131,7 @@ async function inicializarBase() {
             await client.query('ALTER TABLE noticias ADD CONSTRAINT noticias_slug_unique UNIQUE (slug)');
         }
 
-        // 6. Asegurar que titulo sea VARCHAR(255)
-        await client.query(`
-            ALTER TABLE noticias ALTER COLUMN titulo TYPE VARCHAR(255)
-        `);
+        await client.query(`ALTER TABLE noticias ALTER COLUMN titulo TYPE VARCHAR(255)`);
 
         await client.query('COMMIT');
         console.log('✅ Base de datos lista y migrada correctamente');
@@ -161,41 +145,52 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ BUSCAR IMAGEN MEJORADA ====================
+// ==================== 🖼️ BUSCAR IMAGEN DEFINITIVA ====================
 async function buscarImagen(titulo, categoria) {
     try {
-        // Extraer palabras clave del título
         const palabrasClave = titulo
             .toLowerCase()
             .replace(/[^\w\s]/g, '')
             .split(' ')
             .filter(p => p.length > 3)
-            .filter(p => !['para', 'con', 'una', 'este', 'esta', 'estos', 'estas', 'sobre', 'entre', 'durante', 'desde'].includes(p))
+            .filter(p => !['para', 'con', 'una', 'este', 'esta', 'estos', 'estas', 'sobre', 'entre', 'durante', 'desde', 'tras', 'ante'].includes(p))
             .slice(0, 3)
             .join(' ');
         
-        const query = palabrasClave.length > 5 ? palabrasClave : categoria;
+        const queryBase = palabrasClave.length > 5 ? palabrasClave : categoria;
+        const queries = [
+            queryBase,
+            `${categoria} República Dominicana`,
+            categoria,
+            'noticias dominicanas',
+            'república dominicana'
+        ];
         
-        console.log(`🔍 Buscando imagen para: "${query}"`);
+        console.log(`🔍 Buscando imagen para: "${queries[0]}"`);
 
-        async function tryAPI(apiFunction) {
-            try {
-                return await apiFunction();
-            } catch (e) {
-                return null;
+        async function tryMultipleQueries(apiFunction) {
+            for (const q of queries) {
+                try {
+                    const result = await apiFunction(q);
+                    if (result) return result;
+                } catch (e) {
+                    continue;
+                }
             }
+            return null;
         }
 
         // UNSPLASH
         if (process.env.UNSPLASH_ACCESS_KEY) {
-            const unsplashResult = await tryAPI(async () => {
-                const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&content_filter=high`;
+            const unsplashResult = await tryMultipleQueries(async (query) => {
+                const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&content_filter=high&count=1`;
                 const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
-                    if (data && data.urls && data.urls.regular) {
+                    if (data && data[0] && data[0].urls && data[0].urls.regular) {
+                        console.log(`✅ Unsplash: "${query}"`);
                         return {
-                            url: data.urls.regular,
+                            url: data[0].urls.regular,
                             alt: `${titulo} - ${categoria}`,
                             source: 'Unsplash'
                         };
@@ -208,7 +203,7 @@ async function buscarImagen(titulo, categoria) {
 
         // PEXELS
         if (process.env.PEXELS_API_KEY) {
-            const pexelsResult = await tryAPI(async () => {
+            const pexelsResult = await tryMultipleQueries(async (query) => {
                 const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
                 const response = await fetch(url, {
                     headers: { 'Authorization': process.env.PEXELS_API_KEY }
@@ -216,6 +211,7 @@ async function buscarImagen(titulo, categoria) {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.photos && data.photos[0]) {
+                        console.log(`✅ Pexels: "${query}"`);
                         return {
                             url: data.photos[0].src.landscape,
                             alt: `${titulo} - ${categoria}`,
@@ -230,14 +226,16 @@ async function buscarImagen(titulo, categoria) {
 
         // PIXABAY
         if (process.env.PIXABAY_API_KEY) {
-            const pixabayResult = await tryAPI(async () => {
-                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=1&safesearch=true`;
+            const pixabayResult = await tryMultipleQueries(async (query) => {
+                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3&safesearch=true`;
                 const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.hits && data.hits[0]) {
+                    if (data.hits && data.hits.length > 0) {
+                        const randomHit = data.hits[Math.floor(Math.random() * data.hits.length)];
+                        console.log(`✅ Pixabay: "${query}"`);
                         return {
-                            url: data.hits[0].webformatURL,
+                            url: randomHit.webformatURL,
                             alt: `${titulo} - ${categoria}`,
                             source: 'Pixabay'
                         };
@@ -248,30 +246,57 @@ async function buscarImagen(titulo, categoria) {
             if (pixabayResult) return pixabayResult;
         }
 
-        // Fallback
-        console.log(`📸 Usando imagen placeholder`);
-        const placeholders = {
-            'Nacionales': 'Gobierno+RD',
-            'Deportes': 'Deportes+RD',
-            'Internacionales': 'Noticias+Mundo',
-            'Espectáculos': 'Espectaculos+RD',
-            'Economía': 'Economia+RD',
-            'Tecnología': 'Tecnologia+RD'
+        // ========== BANCO DE IMÁGENES DE RESPALDO ==========
+        console.log(`📸 Usando imagen de respaldo para: ${categoria}`);
+        
+        const imagenesRespaldo = {
+            'Nacionales': [
+                'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.unsplash.com/photo-1548602088-9d12a4f9c10d?w=1200'
+            ],
+            'Deportes': [
+                'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200'
+            ],
+            'Internacionales': [
+                'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.unsplash.com/photo-1489493585363-d69421e0c3d0?w=1200'
+            ],
+            'Espectáculos': [
+                'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1200'
+            ],
+            'Economía': [
+                'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1200'
+            ],
+            'Tecnología': [
+                'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+                'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200'
+            ]
         };
-        const text = placeholders[categoria] || 'Noticias+RD';
+
+        const imagenes = imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'];
+        const imagenElegida = imagenes[Math.floor(Math.random() * imagenes.length)];
         
         return {
-            url: `https://via.placeholder.com/800x400?text=${text}`,
+            url: imagenElegida,
             alt: `${titulo} - ${categoria}`,
-            source: 'default'
+            source: 'respaldo'
         };
 
     } catch (error) {
         console.error('❌ Error buscando imagen:', error.message);
         return {
-            url: `https://via.placeholder.com/800x400?text=Noticia+RD`,
-            alt: 'Noticia',
-            source: 'error-fallback'
+            url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+            alt: 'Noticia Dominicana',
+            source: 'emergencia'
         };
     }
 }
@@ -328,7 +353,6 @@ CONTENIDO: [contenido completo de 400-500 palabras]`;
         const texto = data.candidates[0].content.parts[0].text;
         console.log(`📝 Respuesta: ${texto.length} caracteres`);
 
-        // PARSEO MEJORADO
         let titulo = "";
         const tituloMatch = texto.match(/(?:TITULO|TÍTULO|Título):\s*(.+?)(?=\n(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción)|$)/i);
         if (tituloMatch) {
@@ -385,12 +409,10 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
 
         const imagenData = await buscarImagen(titulo, categoria);
         const slug = generarSlug(titulo);
-
-        // ELEGIR REDACTOR SEGÚN CATEGORÍA
         const redactorAsignado = elegirRedactor(categoria);
         console.log(`👤 Redactor asignado: ${redactorAsignado}`);
+        console.log(`🖼️ Imagen: ${imagenData.source}`);
 
-        // Verificar slug duplicado
         const slugExistente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
         let slugFinal = slug;
         if (slugExistente.rows.length > 0) {
@@ -412,7 +434,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
                 contenido,
                 seoDesc,
                 keywords.substring(0, 255),
-                redactorAsignado,  // ← REDACTOR VARIABLE
+                redactorAsignado,
                 imagenData.url,
                 imagenData.alt,
                 'Santo Domingo',
@@ -423,7 +445,6 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
         const noticia = result.rows[0];
         console.log(`✅ Noticia guardada con ID: ${noticia.id}`);
         console.log(`✅ URL: ${BASE_URL}/noticia/${noticia.slug}`);
-        console.log(`✅ Redactor: ${redactorAsignado}`);
 
         return {
             success: true,
@@ -433,7 +454,7 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
             url: `${BASE_URL}/noticia/${noticia.slug}`,
             imagen: noticia.imagen,
             redactor: redactorAsignado,
-            fuente_imagen: imagenData.source || 'desconocida',
+            fuente_imagen: imagenData.source,
             mensaje: '✅ Noticia generada y publicada'
         };
 
@@ -540,6 +561,7 @@ app.get('/noticia/:slug', async (req, res) => {
         const noticia = result.rows[0];
         console.log(`✅ Noticia encontrada: "${noticia.titulo}"`);
         console.log(`👤 Redactor: ${noticia.redactor}`);
+        console.log(`🖼️ Imagen: ${noticia.imagen.substring(0, 50)}...`);
 
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
 
@@ -673,7 +695,7 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '7.6'
+            version: '7.7'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -698,20 +720,13 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.6 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.7 🏮             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ ✅ Servidor en puerto ${PORT}                                     ║
 ║ ✅ PostgreSQL conectado y migrado                                 ║
 ║ ✅ EQUIPO DE REDACTORES: 9 PERIODISTAS                           ║
-║    - Carlos Méndez (Nacionales)                                   ║
-║    - Laura Santana (Deportes)                                     ║
-║    - Roberto Peña (Internacionales)                               ║
-║    - Ana María Castillo (Economía)                                ║
-║    - José Miguel Fernández (Tecnología)                           ║
-║    - Patricia Jiménez (Espectáculos)                              ║
-║    - Fernando Rivas, Carmen Lora, Miguel Ángel Pérez              ║
-║ ✅ Búsqueda inteligente de imágenes                               ║
-║ ✅ Parseo mejorado de Gemini                                      ║
+║ ✅ IMÁGENES GARANTIZADAS (APIs + banco de respaldo)              ║
+║ ✅ NUNCA MÁS PLACEHOLDERS                                        ║
 ║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
 ║ ✅ LISTO PARA PRODUCCIÓN                                          ║
 ╚═══════════════════════════════════════════════════════════════════╝
