@@ -1,7 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.0
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.1
  * Gemini genera noticias SEO optimizadas para monetizar
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
+ * Incluye migración automática para columna slug y ajuste de límites
  */
 
 const express = require('express');
@@ -32,17 +33,31 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
-// ==================== INICIALIZAR BD ====================
-async function inicializarBase() {
-    try {
-        await pool.query('SELECT NOW()');
-        console.log('✅ Conexión a PostgreSQL exitosa');
+// ==================== FUNCIÓN PARA GENERAR SLUG ====================
+function generarSlug(texto) {
+    return texto
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 80);
+}
 
-        const createTableQuery = `
+// ==================== MIGRACIÓN / INICIALIZACIÓN DE BD ====================
+async function inicializarBase() {
+    const client = await pool.connect();
+    try {
+        console.log('🔧 Verificando estructura de base de datos...');
+        await client.query('BEGIN');
+
+        // 1. Crear tabla si no existe (estructura base)
+        await client.query(`
             CREATE TABLE IF NOT EXISTS noticias (
                 id SERIAL PRIMARY KEY,
                 titulo VARCHAR(255) NOT NULL,
-                slug VARCHAR(255) UNIQUE NOT NULL,
+                slug VARCHAR(255),
                 seccion VARCHAR(100) NOT NULL,
                 contenido TEXT NOT NULL,
                 seo_description VARCHAR(160),
@@ -55,27 +70,58 @@ async function inicializarBase() {
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 estado VARCHAR(50) DEFAULT 'publicada'
             );
-        `;
+        `);
+        console.log('✅ Tabla "noticias" asegurada');
 
-        await pool.query(createTableQuery);
-        console.log('✅ Tabla "noticias" lista');
+        // 2. Verificar si la columna slug existe y agregarla si no
+        const checkSlugCol = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='noticias' AND column_name='slug'
+        `);
+        if (checkSlugCol.rows.length === 0) {
+            console.log('➕ Agregando columna slug...');
+            await client.query('ALTER TABLE noticias ADD COLUMN slug VARCHAR(255)');
+        }
+
+        // 3. Actualizar slugs nulos (noticias antiguas) usando el título
+        console.log('🔄 Generando slugs para noticias sin slug...');
+        await client.query(`
+            UPDATE noticias 
+            SET slug = lower(regexp_replace(titulo, '[^a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ]+', '-', 'g')) 
+            WHERE slug IS NULL
+        `);
+
+        // 4. Asegurar que slug sea NOT NULL
+        await client.query(`
+            ALTER TABLE noticias ALTER COLUMN slug SET NOT NULL
+        `);
+
+        // 5. Agregar constraint UNIQUE en slug si no existe
+        const checkUnique = await client.query(`
+            SELECT conname FROM pg_constraint 
+            WHERE conname = 'noticias_slug_unique'
+        `);
+        if (checkUnique.rows.length === 0) {
+            console.log('➕ Agregando restricción UNIQUE en slug...');
+            await client.query('ALTER TABLE noticias ADD CONSTRAINT noticias_slug_unique UNIQUE (slug)');
+        }
+
+        // 6. Asegurar que titulo sea VARCHAR(255) (por si acaso)
+        await client.query(`
+            ALTER TABLE noticias ALTER COLUMN titulo TYPE VARCHAR(255)
+        `);
+
+        await client.query('COMMIT');
+        console.log('✅ Base de datos lista y migrada correctamente');
         return true;
     } catch (error) {
-        console.error('❌ Error en base de datos:', error.message);
+        await client.query('ROLLBACK');
+        console.error('❌ Error en migración de base de datos:', error.message);
         return false;
+    } finally {
+        client.release();
     }
-}
-
-// ==================== GENERAR SLUG ====================
-function generarSlug(texto) {
-    return texto
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .substring(0, 80);
 }
 
 // ==================== 🖼️ BUSCAR IMAGEN ====================
@@ -192,7 +238,7 @@ DESCRIPCION_SEO: [descripción para Google, máximo 160 caracteres, incluye ${ca
 PALABRAS_CLAVE: [5 palabras clave separadas por coma, incluye: ${categoria.toLowerCase()}, república dominicana]
 CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructurados]`;
 
-        console.log(`📤 Enviando solicitud a Gemini (modelo: gemini-pro)...`);
+        console.log(`📤 Enviando solicitud a Gemini (modelo: gemini-2.5-flash)...`);
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -524,7 +570,7 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '7.0'
+            version: '7.1'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -543,16 +589,18 @@ async function iniciar() {
         
         const dbOk = await inicializarBase();
         if (!dbOk) {
-            console.log('⚠️ Continuando...');
+            console.log('⚠️ Continuando a pesar de errores de BD...');
         }
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.0 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.1 🏮             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ ✅ Servidor en puerto ${PORT}                                     ║
-║ ✅ PostgreSQL conectado                                           ║
+║ ✅ PostgreSQL conectado y migrado                                 ║
+║ ✅ Columna slug verificada/agregada automáticamente               ║
+║ ✅ Campo título ajustado a 255 caracteres                         ║
 ║ ✅ Gemini IA: ACTIVADO                                            ║
 ║ ✅ SEO OPTIMIZADO: LISTO PARA MONETIZAR                           ║
 ║ ✅ Búsqueda de imágenes: ACTIVADA                                 ║
@@ -574,4 +622,3 @@ async function iniciar() {
 iniciar();
 
 module.exports = app;
-
