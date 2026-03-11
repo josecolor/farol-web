@@ -4,7 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- META_TAGS -->
-    <link rel="stylesheet" href="/styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0b0b0b;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: #1a1a1a;
+            border-bottom: 4px solid #FF8C00;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(255, 140, 0, 0.2);
+        }
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .logo a {
+            color: #FF8C00;
+            text-decoration: none;
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        nav a:hover {
+            color: #FF8C00;
+        }
+        main {
+            padding: 40px 0;
+        }
+        .noticia-completa {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 30px;
+            border-left: 4px solid #FF8C00;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+        }
+        .noticia-header {
+            margin-bottom: 30px;
+        }
+        .seccion {
+            display: inline-block;
+            background: #FF8C00;
+            color: black;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #FF8C00;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+        .meta {
+            display: flex;
+            gap: 20px;
+            color: #aaa;
+            font-size: 0.95rem;
+            flex-wrap: wrap;
+        }
+        .meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .noticia-imagen {
+            margin: 30px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #FF8C00;
+        }
+        .noticia-imagen img {
+            width: 100%;
+            max-height: 500px;
+            object-fit: cover;
+            display: block;
+        }
+        .noticia-contenido {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+        .noticia-contenido p {
+            margin-bottom: 20px;
+        }
+        .noticia-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+        .compartir {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .compartir h3 {
+            color: #FF8C00;
+            font-size: 1.1rem;
+        }
+        .compartir a {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #222;
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            border: 1px solid #FF8C00;
+        }
+        .compartir a:hover {
+            background: #FF8C00;
+            color: black;
+            transform: translateY(-2px);
+        }
+        .noticias-relacionadas {
+            margin-top: 50px;
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 30px;
+            border-left: 4px solid #FF8C00;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+        }
+        .noticias-relacionadas h2 {
+            color: #FF8C00;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+        #relacionadas-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .relacionada-item {
+            background: #222;
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s;
+            border-left: 3px solid #FF8C00;
+        }
+        .relacionada-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+        .relacionada-item a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .relacionada-item h3 {
+            color: #FF8C00;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .relacionada-item .fecha {
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+        footer {
+            background: #1a1a1a;
+            color: #aaa;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid #333;
+        }
+        @media (max-width: 768px) {
+            header .container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            nav a {
+                margin: 0 10px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .compartir {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -21,8 +227,8 @@
         </div>
     </header>
 
-    <main class="container noticia-completa">
-        <article>
+    <main class="container">
+        <article class="noticia-completa">
             <div class="noticia-header">
                 <span class="seccion">{{SECCION}}</span>
                 <h1>{{TITULO}}</h1>
@@ -44,9 +250,9 @@
             <div class="noticia-footer">
                 <div class="compartir">
                     <h3>Compartir esta noticia:</h3>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank">Facebook</a>
-                    <a href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank">Twitter</a>
-                    <a href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank">WhatsApp</a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank" rel="noopener">Facebook</a>
+                    <a href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank" rel="noopener">Twitter</a>
+                    <a href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank" rel="noopener">WhatsApp</a>
                 </div>
             </div>
         </article>
@@ -54,7 +260,7 @@
         <aside class="noticias-relacionadas">
             <h2>Noticias relacionadas</h2>
             <div id="relacionadas-container">
-                <p>Cargando...</p>
+                <p style="color: #aaa;">Cargando...</p>
             </div>
         </aside>
     </main>
@@ -66,26 +272,56 @@
     </footer>
 
     <script>
+        // Obtener la URL actual para compartir
+        const urlActual = window.location.href;
+        const tituloActual = document.querySelector('h1')?.textContent || 'Noticia';
+        
+        // Actualizar los enlaces de compartir
+        document.querySelectorAll('.compartir a').forEach(link => {
+            let href = link.getAttribute('href');
+            href = href.replace('{{URL}}', encodeURIComponent(urlActual));
+            href = href.replace('{{TITULO}}', encodeURIComponent(tituloActual));
+            link.setAttribute('href', href);
+        });
+
         // Cargar noticias relacionadas
         async function cargarRelacionadas() {
             try {
                 const response = await fetch('/api/noticias');
                 const data = await response.json();
-                if (data.success && data.noticias.length > 0) {
+                
+                if (data.success && data.noticias && data.noticias.length > 0) {
                     const container = document.getElementById('relacionadas-container');
-                    container.innerHTML = data.noticias.slice(0, 3).map(noticia => `
+                    
+                    const slugActual = window.location.pathname.split('/').pop();
+                    const relacionadas = data.noticias
+                        .filter(n => n.slug !== slugActual)
+                        .slice(0, 3);
+                    
+                    if (relacionadas.length === 0) {
+                        container.innerHTML = '<p style="color: #aaa;">No hay noticias relacionadas</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = relacionadas.map(noticia => `
                         <div class="relacionada-item">
                             <a href="/noticia/${noticia.slug}">
                                 <h3>${noticia.titulo}</h3>
-                                <span class="fecha">${new Date(noticia.fecha).toLocaleDateString('es-DO')}</span>
+                                <span class="fecha">${new Date(noticia.fecha).toLocaleDateString('es-DO', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}</span>
                             </a>
                         </div>
                     `).join('');
                 }
             } catch (error) {
                 console.error('Error cargando relacionadas:', error);
+                document.getElementById('relacionadas-container').innerHTML = '<p style="color: #f44336;">Error al cargar</p>';
             }
         }
+        
         cargarRelacionadas();
     </script>
 </body>
