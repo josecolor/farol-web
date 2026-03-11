@@ -109,54 +109,6 @@
         .noticia-contenido p {
             margin-bottom: 20px;
         }
-        
-        /* ESTILOS PARA EL SISTEMA "VER MÁS" */
-        .contenido-recortado {
-            max-height: 300px;
-            overflow: hidden;
-            position: relative;
-            transition: max-height 0.5s ease;
-        }
-        .contenido-recortado::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100px;
-            background: linear-gradient(to bottom, transparent, #1a1a1a);
-            pointer-events: none;
-        }
-        .contenido-completo {
-            max-height: none;
-        }
-        .contenido-completo::after {
-            display: none;
-        }
-        .btn-ver-mas {
-            display: inline-block;
-            background: #FF8C00;
-            color: black;
-            font-weight: bold;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 40px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            margin: 20px 0;
-            transition: all 0.3s;
-            border: 2px solid #FF8C00;
-        }
-        .btn-ver-mas:hover {
-            background: transparent;
-            color: #FF8C00;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
-        }
-        .btn-ver-mas.oculto {
-            display: none;
-        }
-        
         .noticia-footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -188,6 +140,8 @@
             color: black;
             transform: translateY(-2px);
         }
+        
+        /* ===== ESTILOS PARA NOTICIAS RELACIONADAS ===== */
         .noticias-relacionadas {
             margin-top: 50px;
             background: #1a1a1a;
@@ -196,14 +150,14 @@
             border-left: 4px solid #FF8C00;
             box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
         }
-        .noticias-relacionadas h2 {
+        .noticias-relacionadas h3 {
             color: #FF8C00;
             margin-bottom: 25px;
             font-size: 1.8rem;
         }
-        #relacionadas-container {
+        .relacionadas {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
         }
         .relacionada-item {
@@ -214,22 +168,31 @@
             border-left: 3px solid #FF8C00;
         }
         .relacionada-item:hover {
-            transform: translateY(-3px);
+            transform: translateY(-5px);
             box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
         }
         .relacionada-item a {
             text-decoration: none;
             color: inherit;
         }
-        .relacionada-item h3 {
-            color: #FF8C00;
-            margin-bottom: 8px;
-            font-size: 1.1rem;
+        .relacionada-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #333;
         }
-        .relacionada-item .fecha {
+        .relacionada-item h4 {
+            color: #FF8C00;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+        .relacionada-item span {
             color: #aaa;
             font-size: 0.85rem;
         }
+        
         footer {
             background: #1a1a1a;
             color: #aaa;
@@ -266,11 +229,7 @@
             <h1 class="logo"><a href="/">🏮 El Farol al Día</a></h1>
             <nav>
                 <a href="/">Inicio</a>
-                <a href="/#nacionales">Nacionales</a>
-                <a href="/#deportes">Deportes</a>
-                <a href="/#internacionales">Internacionales</a>
-                <a href="/#economia">Economía</a>
-                <a href="/#tecnologia">Tecnología</a>
+                <a href="/redaccion">Redacción</a>
             </nav>
         </div>
     </header>
@@ -288,15 +247,11 @@
             </div>
 
             <div class="noticia-imagen">
-                <img src="{{IMAGEN}}" alt="{{ALT}}" loading="lazy">
+                <img src="{{IMAGEN}}" alt="{{ALT}}" loading="lazy" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'">
             </div>
 
-            <!-- CONTENIDO CON SISTEMA VER MÁS -->
             <div class="noticia-contenido">
-                <div id="contenidoNoticia" class="contenido-recortado">
-                    {{CONTENIDO}}
-                </div>
-                <button id="btnVerMas" class="btn-ver-mas">VER MÁS</button>
+                {{CONTENIDO}}
             </div>
 
             <div class="noticia-footer">
@@ -309,11 +264,9 @@
             </div>
         </article>
 
+        <!-- NOTICIAS RELACIONADAS -->
         <aside class="noticias-relacionadas">
-            <h2>Noticias relacionadas</h2>
-            <div id="relacionadas-container">
-                <p style="color: #aaa;">Cargando...</p>
-            </div>
+            <!-- RELACIONADAS -->
         </aside>
     </main>
 
@@ -324,41 +277,7 @@
     </footer>
 
     <script>
-        // ==================== SISTEMA VER MÁS ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            const contenido = document.getElementById('contenidoNoticia');
-            const btnVerMas = document.getElementById('btnVerMas');
-            
-            // Calcular altura real del contenido
-            const alturaCompleta = contenido.scrollHeight;
-            
-            // Si el contenido es más corto que 300px, ocultar el botón
-            if (alturaCompleta <= 300) {
-                btnVerMas.classList.add('oculto');
-                contenido.classList.remove('contenido-recortado');
-                contenido.classList.add('contenido-completo');
-            }
-            
-            // Evento del botón
-            btnVerMas.addEventListener('click', function() {
-                if (contenido.classList.contains('contenido-recortado')) {
-                    // Mostrar completo
-                    contenido.classList.remove('contenido-recortado');
-                    contenido.classList.add('contenido-completo');
-                    btnVerMas.textContent = 'VER MENOS';
-                } else {
-                    // Volver a recortar
-                    contenido.classList.remove('contenido-completo');
-                    contenido.classList.add('contenido-recortado');
-                    btnVerMas.textContent = 'VER MÁS';
-                    
-                    // Scroll suave hacia arriba
-                    contenido.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-
-        // ==================== COMPARTIR ====================
+        // Actualizar enlaces de compartir con la URL actual
         const urlActual = window.location.href;
         const tituloActual = document.querySelector('h1')?.textContent || 'Noticia';
         
@@ -368,46 +287,6 @@
             href = href.replace('{{TITULO}}', encodeURIComponent(tituloActual));
             link.setAttribute('href', href);
         });
-
-        // ==================== NOTICIAS RELACIONADAS ====================
-        async function cargarRelacionadas() {
-            try {
-                const response = await fetch('/api/noticias');
-                const data = await response.json();
-                
-                if (data.success && data.noticias && data.noticias.length > 0) {
-                    const container = document.getElementById('relacionadas-container');
-                    
-                    const slugActual = window.location.pathname.split('/').pop();
-                    const relacionadas = data.noticias
-                        .filter(n => n.slug !== slugActual)
-                        .slice(0, 3);
-                    
-                    if (relacionadas.length === 0) {
-                        container.innerHTML = '<p style="color: #aaa;">No hay noticias relacionadas</p>';
-                        return;
-                    }
-                    
-                    container.innerHTML = relacionadas.map(noticia => `
-                        <div class="relacionada-item">
-                            <a href="/noticia/${noticia.slug}">
-                                <h3>${noticia.titulo}</h3>
-                                <span class="fecha">${new Date(noticia.fecha).toLocaleDateString('es-DO', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}</span>
-                            </a>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error cargando relacionadas:', error);
-                document.getElementById('relacionadas-container').innerHTML = '<p style="color: #f44336;">Error al cargar</p>';
-            }
-        }
-        
-        cargarRelacionadas();
     </script>
 </body>
 </html>
