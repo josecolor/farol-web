@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2 - COMPLETO
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.3 - PARTE 1
  * Gemini con DETECCIÓN DE ENTIDADES PREMIUM (Regla de Oro)
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN DEFINITIVA - TODAS LAS LLAVES CERRADAS
+ * VERSIÓN DEFINITIVA - CODIGO COMPLETO Y SEGURO
  */
 
 const express = require('express');
@@ -559,9 +559,7 @@ cron.schedule('0 8 * * *', async () => {
     console.log('\n🌅 Generando noticia diaria (8 AM)...');
     await generarNoticiaCompleta('Nacionales');
 });
-console.log('✅ Automatización configurada con REGLA DE ORO');
-
-// ==================== RUTAS ====================
+console.log('✅ Automatización configurada con REGLA DE ORO');// ==================== RUTAS ====================
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
@@ -764,7 +762,7 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '10.2',
+            version: '10.3',
             modo: 'EDITOR DE IMÁGENES ACTIVADO'
         });
     } catch (error) {
@@ -790,9 +788,22 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2 🏮            ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.3 🏮            ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║  ✅ Servidor en puerto ${PORT}                                     ║
 ║  ✅ PostgreSQL conectado y migrado                               ║
-║  ✅ EDITOR DE IMÁGENES ACTIVADO                                  ║
-║  ✅ REGLA
+║  ✅ EDITOR DE IMÁGENES ACTIVADO                               ║  ✅ Automatización: Cada 6h + 8 AM                             ║
+║  ✅ Regla de Oro (Entidades): ACTIVADA                        ║
+║  🌍 URL: ${BASE_URL}                                         ║
+╚═══════════════════════════════════════════════════════════════════╝
+            `);
+        });
+    } catch (error) {
+        console.error('❌ Error fatal al iniciar:', error.message);
+        process.exit(1);
+    }
+}
+
+// 🔥 ENCENDER EL MOTOR
+iniciar();
+  
