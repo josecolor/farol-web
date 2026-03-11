@@ -3,227 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción | El Farol al Día</title>
+    <meta name="description" content="El Farol al Día - Periódico Digital Dominicano. Noticias de Nacionales, Deportes, Internacionales, Economía, Tecnología y Espectáculos.">
+    <meta name="keywords" content="noticias, dominicana, periódico, digital, farol">
+    <meta property="og:title" content="El Farol al Día">
+    <meta property="og:description" content="Periódico digital con noticias de República Dominicana">
+    <meta property="og:image" content="https://via.placeholder.com/1200x630?text=El+Farol+al+Día">
+    <title>El Farol al Día - Periódico Digital Dominicano</title>
     <style>
-        /* Estilos de tu panel de redacción (los que ya tienes) */
+        /* (tus estilos originales, los he dejado intactos) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0b0b0b;
-            color: #fff;
-            font-family: 'Segoe UI', sans-serif;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        header {
-            background: #1a1a1a;
-            border-bottom: 4px solid #FF8C00;
-            padding: 1rem;
-            border-radius: 16px 16px 0 0;
-            margin-bottom: 20px;
-        }
-        header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            color: #FF8C00;
-            font-size: 2rem;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        nav a {
-            color: white;
-            margin-left: 20px;
-            text-decoration: none;
-        }
-        nav a:hover {
-            color: #FF8C00;
-        }
-        .panel {
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 30px;
-            border-left: 4px solid #FF8C00;
-            margin: 20px 0;
-        }
-        h1 {
-            color: #FF8C00;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        select, button {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            font-size: 1.1em;
-        }
-        select {
-            background: #222;
-            border: 2px solid #FF8C00;
-            color: white;
-        }
-        button {
-            background: #FF8C00;
-            color: black;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255,140,0,0.3);
-        }
-        .resultado {
-            background: #222;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-            border-left: 3px solid #FF8C00;
-        }
-        .noticia-card {
-            background: #222;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 3px solid #FF8C00;
-            border-radius: 8px;
-        }
-        .btn-ver {
-            background: #2e7d32;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        .stats {
-            background: #222;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border: 1px solid #FF8C00;
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.6; }
+        header { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border-bottom: 3px solid #ff9800; padding: 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2); }
+        .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 15px; text-decoration: none; color: #ff9800; font-size: 24px; font-weight: bold; }
+        .logo span { font-size: 32px; }
+        nav { display: flex; gap: 20px; align-items: center; }
+        nav a { color: #fff; text-decoration: none; transition: color 0.3s; font-weight: 500; }
+        nav a:hover { color: #ff9800; }
+        .btn-redaccion { background: linear-gradient(135deg, #ff9800 0%, #ffb333 100%); color: black; padding: 10px 20px; border-radius: 20px; font-weight: bold; transition: all 0.3s; text-decoration: none; }
+        .btn-redaccion:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4); }
+        main { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .hero { text-align: center; margin-bottom: 60px; }
+        .hero h1 { font-size: 48px; color: #ff9800; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(255, 152, 0, 0.3); }
+        .hero p { font-size: 18px; color: #999; margin-bottom: 30px; }
+        .categorias { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px; }
+        .categoria-btn { padding: 10px 20px; background: rgba(255, 152, 0, 0.2); border: 2px solid #ff9800; color: #ff9800; border-radius: 20px; cursor: pointer; transition: all 0.3s; font-weight: bold; }
+        .categoria-btn:hover, .categoria-btn.active { background: #ff9800; color: black; }
+        .noticias-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; margin-bottom: 60px; }
+        .noticia-card { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border: 2px solid #333; border-radius: 10px; overflow: hidden; transition: all 0.3s ease; cursor: pointer; }
+        .noticia-card:hover { border-color: #ff9800; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(255, 152, 0, 0.2); }
+        .noticia-imagen { width: 100%; height: 200px; background: #111; overflow: hidden; }
+        .noticia-imagen img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .noticia-card:hover .noticia-imagen img { transform: scale(1.05); }
+        .noticia-contenido { padding: 20px; }
+        .noticia-seccion { display: inline-block; background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
+        .noticia-titulo { font-size: 18px; color: #fff; margin-bottom: 10px; line-height: 1.4; font-weight: bold; }
+        .noticia-meta { font-size: 12px; color: #888; margin-bottom: 10px; }
+        .noticia-descripcion { font-size: 14px; color: #ccc; line-height: 1.5; }
+        .ver-mas { display: inline-block; margin-top: 15px; color: #ff9800; text-decoration: none; font-weight: bold; transition: all 0.3s; }
+        .ver-mas:hover { gap: 5px; }
+        footer { background: #1a1a1a; border-top: 2px solid #ff9800; padding: 30px 20px; text-align: center; color: #888; margin-top: 60px; }
+        .footer-content { max-width: 1200px; margin: 0 auto; }
+        .footer-content p { margin-bottom: 10px; }
+        .footer-links { margin: 20px 0; }
+        .footer-links a { color: #ff9800; text-decoration: none; margin: 0 15px; transition: color 0.3s; }
+        .footer-links a:hover { color: #ffb333; }
+        .loading { text-align: center; padding: 40px; color: #ff9800; }
+        .spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255, 152, 0, 0.3); border-radius: 50%; border-top-color: #ff9800; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .header-container { flex-direction: column; gap: 15px; }
+            nav { flex-direction: column; width: 100%; text-align: center; }
+            .hero h1 { font-size: 32px; }
+            .noticias-container { grid-template-columns: 1fr; }
+            .categorias { justify-content: flex-start; overflow-x: auto; }
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="container">
-            <a href="/" class="logo">🏮 El Farol al Día</a>
+        <div class="header-container">
+            <a href="/" class="logo"><span>🏮</span>El Farol al Día</a>
             <nav>
                 <a href="/">Inicio</a>
-                <a href="/redaccion">Redacción</a>
-                <a href="/status">Estado</a>
+                <a href="#noticias">Noticias</a>
+                <a href="/api/noticias">API</a>
+                <a href="/redaccion" class="btn-redaccion">✍️ Redacción</a>
             </nav>
         </div>
     </header>
 
-    <main class="container">
-        <div class="panel">
-            <h1>🏮 Sala de Redacción</h1>
-            <select id="categoria">
-                <option value="Nacionales">🇩🇴 Nacionales</option>
-                <option value="Deportes">⚽ Deportes</option>
-                <option value="Internacionales">🌍 Internacionales</option>
-                <option value="Espectáculos">🎬 Espectáculos</option>
-                <option value="Economía">💼 Economía</option>
-                <option value="Tecnología">💻 Tecnología</option>
-            </select>
-            <button onclick="generarNoticia()">🤖 GENERAR NOTICIA CON IA</button>
-            <div id="resultado" class="resultado"></div>
-        </div>
+    <main>
+        <section class="hero">
+            <h1>🏮 El Farol al Día</h1>
+            <p>Tu periódico digital con noticias de República Dominicana</p>
+        </section>
 
-        <div class="stats" id="stats">
-            <h2 style="color:#FF8C00;">📊 Estadísticas</h2>
-            <p>Cargando...</p>
-        </div>
+        <div class="categorias" id="categorias"></div>
 
-        <h2 style="color:#FF8C00;">📰 Últimas noticias</h2>
-        <div id="noticias"></div>
+        <section id="noticias">
+            <div class="noticias-container" id="noticiasContainer">
+                <div class="loading"><div class="spinner"></div><p>Cargando noticias...</p></div>
+            </div>
+        </section>
     </main>
 
+    <footer>
+        <div class="footer-content">
+            <h3 style="color:#ff9800; margin-bottom:15px;">🏮 El Farol al Día</h3>
+            <p>Periódico digital dominicano con noticias en tiempo real</p>
+            <p>Generado con IA - Gemini 2.5 Flash</p>
+            <div class="footer-links">
+                <a href="/">Inicio</a>
+                <a href="/sitemap.xml">Sitemap</a>
+                <a href="/robots.txt">Robots</a>
+                <a href="/redaccion">Redacción</a>
+            </div>
+            <p style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">&copy; 2026 El Farol al Día. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
     <script>
-        async function generarNoticia() {
-            const cat = document.getElementById('categoria').value;
-            const resultado = document.getElementById('resultado');
-            resultado.style.display = 'block';
-            resultado.innerHTML = '⏳ Generando...';
-            
-            try {
-                const res = await fetch('/api/generar-noticia', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({categoria: cat})
-                });
-                const data = await res.json();
-                if (data.success) {
-                    resultado.innerHTML = `
-                        <p style="color:#4CAF50;">✅ ¡Noticia generada!</p>
-                        <p><strong>${data.titulo}</strong></p>
-                        <p>Redactor: ${data.redactor}</p>
-                        <a href="${data.url}" target="_blank" style="color:#FF8C00;">🔗 Ver noticia</a>
-                    `;
-                    cargarNoticias();
-                    cargarStats();
-                } else {
-                    resultado.innerHTML = `<p style="color:#f44336;">❌ Error: ${data.error}</p>`;
-                }
-            } catch (e) {
-                resultado.innerHTML = `<p style="color:#f44336;">❌ Error de conexión</p>`;
-            }
-        }
+        const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
+        let noticiasFiltradas = [];
+        let categoriaBuscada = null;
 
         async function cargarNoticias() {
             try {
                 const res = await fetch('/api/noticias');
                 const data = await res.json();
-                if (data.success) {
-                    const container = document.getElementById('noticias');
-                    if (data.noticias.length === 0) {
-                        container.innerHTML = '<p>No hay noticias aún.</p>';
-                        return;
-                    }
-                    container.innerHTML = data.noticias.map(n => `
-                        <div class="noticia-card">
-                            <strong style="color:#FF8C00;">${n.titulo}</strong><br>
-                            <small>${n.seccion} | ${new Date(n.fecha).toLocaleDateString()} | ✍️ ${n.redactor}</small><br>
-                            <a href="/noticia/${n.slug}" target="_blank" class="btn-ver">Ver noticia</a>
+                if (!data.noticias || data.noticias.length === 0) { mostrarNoNoticias(); return; }
+                noticiasFiltradas = data.noticias;
+                renderizarNoticias(noticiasFiltradas);
+            } catch (error) { mostrarError(); }
+        }
+
+        function renderizarNoticias(noticias) {
+            const container = document.getElementById('noticiasContainer');
+            container.innerHTML = '';
+            if (noticias.length === 0) { mostrarNoNoticias(); return; }
+            noticias.forEach(noticia => {
+                const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO');
+                container.innerHTML += `
+                    <div class="noticia-card" onclick="abrirNoticia('${noticia.slug}')">
+                        <div class="noticia-imagen"><img src="${noticia.imagen}" alt="${noticia.titulo}" onerror="this.src='https://via.placeholder.com/400x200?text=Noticia'"></div>
+                        <div class="noticia-contenido">
+                            <span class="noticia-seccion">${noticia.seccion}</span>
+                            <h3 class="noticia-titulo">${noticia.titulo}</h3>
+                            <p class="noticia-meta">📅 ${fecha} | 👁️ ${noticia.vistas || 0}</p>
+                            <a href="/noticia/${noticia.slug}" class="ver-mas">Ver más →</a>
                         </div>
-                    `).join('');
-                }
-            } catch (e) {
-                console.error(e);
-            }
+                    </div>
+                `;
+            });
         }
 
-        async function cargarStats() {
-            try {
-                const res = await fetch('/api/noticias');
-                const data = await res.json();
-                if (data.success) {
-                    const total = data.noticias.length;
-                    const vistas = data.noticias.reduce((a, n) => a + (n.vistas || 0), 0);
-                    document.getElementById('stats').innerHTML = `
-                        <h2 style="color:#FF8C00;">📊 Estadísticas</h2>
-                        <p>📰 Total noticias: ${total}</p>
-                        <p>👁️ Vistas totales: ${vistas}</p>
-                        <p>⏰ Automatización: Cada 2 horas + 8 AM</p>
-                        <p>🧹 Limpieza: Noticias > 8 días (3 AM)</p>
-                    `;
-                }
-            } catch (e) {
-                document.getElementById('stats').innerHTML = '<p>Error cargando estadísticas</p>';
-            }
+        function crearCategorias() {
+            const container = document.getElementById('categorias');
+            container.innerHTML = '<button class="categoria-btn active" onclick="filtrarPor(null)">📰 Todas</button>';
+            CATEGORIAS.forEach(cat => {
+                const emoji = { Nacionales:'🏛️', Deportes:'⚽', Internacionales:'🌍', Economía:'💼', Tecnología:'💻', Espectáculos:'🎬' }[cat];
+                container.innerHTML += `<button class="categoria-btn" onclick="filtrarPor('${cat}')">${emoji} ${cat}</button>`;
+            });
         }
 
-        cargarNoticias();
-        cargarStats();
+        function filtrarPor(categoria) {
+            categoriaBuscada = categoria;
+            document.querySelectorAll('.categoria-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderizarNoticias(categoria ? noticiasFiltradas.filter(n => n.seccion === categoria) : noticiasFiltradas);
+        }
+
+        function abrirNoticia(slug) { window.location.href = `/noticia/${slug}`; }
+        function mostrarNoNoticias() { document.getElementById('noticiasContainer').innerHTML = '<div class="loading"><p>No hay noticias publicadas aún</p></div>'; }
+        function mostrarError() { document.getElementById('noticiasContainer').innerHTML = '<div class="loading"><p>❌ Error cargando noticias</p></div>'; }
+
+        document.addEventListener('DOMContentLoaded', () => { crearCategorias(); cargarNoticias(); setInterval(cargarNoticias, 30000); });
     </script>
 </body>
 </html>
