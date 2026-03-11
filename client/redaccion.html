@@ -5,188 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción | El Farol al Día</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0b0b0b;
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        header {
-            background: #1a1a1a;
-            border-bottom: 4px solid #FF8C00;
-            padding: 1rem 0;
-            margin-bottom: 30px;
-            border-radius: 16px 16px 0 0;
-        }
-        header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-        }
-        .logo {
-            color: #FF8C00;
-            font-size: 2rem;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-left: 20px;
-            transition: color 0.3s;
-        }
-        nav a:hover {
-            color: #FF8C00;
-        }
-        .redaccion-panel {
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 30px;
-            border-left: 4px solid #FF8C00;
-            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
-            margin-bottom: 30px;
-        }
-        h1 {
-            color: #FF8C00;
-            margin-bottom: 30px;
-            font-size: 2.2em;
-            text-align: center;
-        }
-        h2 {
-            color: #FF8C00;
-            margin: 30px 0 15px;
-            font-size: 1.8em;
-        }
-        label {
-            display: block;
-            margin: 20px 0 8px;
-            color: #FF8C00;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        select, button {
-            width: 100%;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 1.1em;
-            margin: 10px 0;
-        }
-        select {
-            background: #222;
-            border: 2px solid #FF8C00;
-            color: white;
-        }
-        button {
-            background: #FF8C00;
-            color: black;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.3);
-        }
-        .resultado {
-            background: #222;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            display: none;
-            border-left: 3px solid #FF8C00;
-        }
-        .resultado.success {
-            border-left-color: #4CAF50;
-        }
-        .resultado.error {
-            border-left-color: #f44336;
-        }
-        .noticias-grid {
-            display: grid;
-            gap: 15px;
-        }
-        .noticia-card {
-            background: #222;
-            border-radius: 12px;
-            padding: 20px;
-            border-left: 4px solid #FF8C00;
-            transition: 0.3s;
-        }
-        .noticia-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.2);
-        }
-        .noticia-titulo {
-            font-size: 1.2rem;
-            color: #FF8C00;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .noticia-meta {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-        }
-        .noticia-acciones {
-            display: flex;
-            gap: 10px;
-        }
-        .btn-ver, .btn-editar {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-            transition: 0.3s;
-        }
-        .btn-ver {
-            background: #2e7d32;
-            color: white;
-        }
-        .btn-editar {
-            background: #FF8C00;
-            color: black;
-        }
-        .btn-ver:hover, .btn-editar:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        .stats {
-            background: #222;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            border: 1px solid #FF8C00;
-        }
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        @media (max-width: 768px) {
-            header .container {
-                flex-direction: column;
-                gap: 15px;
-            }
-            nav a {
-                margin: 0 10px;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0b0b0b; color: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        header { background: #1a1a1a; border-bottom: 4px solid #FF8C00; padding: 1rem; border-radius: 16px 16px 0 0; }
+        .logo { color: #FF8C00; font-size: 2rem; font-weight: bold; text-decoration: none; }
+        nav { display: inline-block; float: right; }
+        nav a { color: white; margin-left: 20px; text-decoration: none; }
+        nav a:hover { color: #FF8C00; }
+        .panel { background: #1a1a1a; border-radius: 16px; padding: 30px; border-left: 4px solid #FF8C00; margin: 20px 0; }
+        h1 { color: #FF8C00; text-align: center; margin-bottom: 30px; }
+        select, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; font-size: 1.1em; }
+        select { background: #222; border: 2px solid #FF8C00; color: white; }
+        button { background: #FF8C00; color: black; font-weight: bold; border: none; cursor: pointer; }
+        .resultado { background: #222; padding: 20px; border-radius: 8px; margin: 20px 0; display: none; }
+        .noticia-card { background: #222; padding: 15px; margin: 10px 0; border-left: 3px solid #FF8C00; border-radius: 8px; }
+        .btn-ver { background: #2e7d32; color: white; padding: 8px 15px; border-radius: 20px; text-decoration: none; display: inline-block; }
+        .stats { background: #222; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #FF8C00; }
     </style>
 </head>
 <body>
@@ -196,17 +31,13 @@
             <nav>
                 <a href="/">Inicio</a>
                 <a href="/redaccion">Redacción</a>
-                <a href="/status">Estado</a>
             </nav>
         </div>
     </header>
 
     <main class="container">
-        <!-- PANEL DE REDACCIÓN -->
-        <div class="redaccion-panel">
+        <div class="panel">
             <h1>🏮 Sala de Redacción</h1>
-            
-            <label>📰 Seleccionar sección</label>
             <select id="categoria">
                 <option value="Nacionales">🇩🇴 Nacionales</option>
                 <option value="Deportes">⚽ Deportes</option>
@@ -215,140 +46,69 @@
                 <option value="Economía">💼 Economía</option>
                 <option value="Tecnología">💻 Tecnología</option>
             </select>
-            
-            <button onclick="generarNoticia()">
-                🤖 GENERAR NOTICIA CON IA
-            </button>
-            
+            <button onclick="generarNoticia()">🤖 GENERAR NOTICIA CON IA</button>
             <div id="resultado" class="resultado"></div>
         </div>
 
-        <!-- ESTADÍSTICAS RÁPIDAS -->
-        <div class="stats">
-            <h2 style="color:#FF8C00; margin-bottom:15px;">📊 Estadísticas</h2>
-            <div id="stats">
-                <p>Cargando...</p>
-            </div>
+        <div class="stats" id="stats">
+            <h2 style="color:#FF8C00;">📊 Estadísticas</h2>
+            <p>Cargando...</p>
         </div>
 
-        <!-- ÚLTIMAS NOTICIAS -->
-        <h2 style="color:#FF8C00;">📰 Últimas noticias publicadas</h2>
-        <div id="noticias" class="noticias-grid">
-            <p style="color:#666; text-align:center;">Cargando noticias...</p>
-        </div>
+        <h2 style="color:#FF8C00;">📰 Últimas noticias</h2>
+        <div id="noticias"></div>
     </main>
 
-    <footer>
-        <p>© 2026 El Farol al Día - Redacción automática con IA</p>
-    </footer>
-
     <script>
-        // ==================== GENERAR NOTICIA ====================
         async function generarNoticia() {
-            const categoria = document.getElementById('categoria').value;
-            const resultado = document.getElementById('resultado');
-            
-            resultado.style.display = 'block';
-            resultado.className = 'resultado';
-            resultado.innerHTML = '⏳ Generando noticia con Gemini...';
-            
-            try {
-                const res = await fetch('/api/generar-noticia', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ categoria })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    resultado.className = 'resultado success';
-                    resultado.innerHTML = `
-                        <p style="color:#4CAF50; font-weight:bold;">✅ ¡Noticia generada exitosamente!</p>
-                        <p><strong>Título:</strong> ${data.titulo}</p>
-                        <p><strong>Redactor:</strong> ${data.redactor}</p>
-                        <p><strong>Persona detectada:</strong> ${data.persona || 'ninguna'}</p>
-                        <p><strong>Imagen:</strong> ${data.imagen_fuente || 'banco de respaldo'}</p>
-                        <div style="margin-top:15px;">
-                            <a href="${data.url}" target="_blank" style="background:#2e7d32; color:white; padding:10px 20px; border-radius:40px; text-decoration:none; display:inline-block;">🔗 VER NOTICIA</a>
-                        </div>
-                    `;
-                    cargarNoticias();
-                    cargarStats();
-                } else {
-                    resultado.className = 'resultado error';
-                    resultado.innerHTML = `<p style="color:#f44336;">❌ Error: ${data.error || 'desconocido'}</p>`;
-                }
-            } catch (error) {
-                resultado.className = 'resultado error';
-                resultado.innerHTML = `<p style="color:#f44336;">❌ Error de conexión: ${error.message}</p>`;
+            const cat = document.getElementById('categoria').value;
+            const res = await fetch('/api/generar-noticia', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({categoria: cat})
+            });
+            const data = await res.json();
+            const div = document.getElementById('resultado');
+            div.style.display = 'block';
+            if (data.success) {
+                div.innerHTML = `
+                    <p style="color:#4CAF50;">✅ ¡Noticia generada!</p>
+                    <p><strong>${data.titulo}</strong></p>
+                    <p>Redactor: ${data.redactor}</p>
+                    <a href="${data.url}" target="_blank" style="color:#FF8C00;">🔗 Ver noticia</a>
+                `;
+                cargarNoticias();
+            } else {
+                div.innerHTML = `<p style="color:#f44336;">❌ Error: ${data.error}</p>`;
             }
         }
 
-        // ==================== CARGAR NOTICIAS ====================
         async function cargarNoticias() {
-            try {
-                const res = await fetch('/api/noticias');
-                const data = await res.json();
+            const res = await fetch('/api/noticias');
+            const data = await res.json();
+            if (data.success) {
+                const html = data.noticias.map(n => `
+                    <div class="noticia-card">
+                        <strong style="color:#FF8C00;">${n.titulo}</strong><br>
+                        <small>${n.seccion} | ${new Date(n.fecha).toLocaleDateString()} | ✍️ ${n.redactor}</small><br>
+                        <a href="/noticia/${n.slug}" target="_blank" class="btn-ver">Ver noticia</a>
+                    </div>
+                `).join('');
+                document.getElementById('noticias').innerHTML = html;
                 
-                if (data.success && data.noticias.length > 0) {
-                    const container = document.getElementById('noticias');
-                    container.innerHTML = data.noticias.map(n => `
-                        <div class="noticia-card">
-                            <div class="noticia-titulo">${n.titulo}</div>
-                            <div class="noticia-meta">
-                                ${n.seccion} | ${new Date(n.fecha).toLocaleDateString('es-DO')} | 👁️ ${n.vistas || 0} vistas | ✍️ ${n.redactor}
-                            </div>
-                            <div class="noticia-acciones">
-                                <a href="/noticia/${n.slug}" target="_blank" class="btn-ver">🔗 VER</a>
-                                <button class="btn-editar" onclick="editarNoticia('${n.id}')">✏️ EDITAR</button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    document.getElementById('noticias').innerHTML = '<p style="color:#666; text-align:center;">No hay noticias publicadas aún.</p>';
-                }
-            } catch (error) {
-                console.error('Error cargando noticias:', error);
+                const total = data.noticias.length;
+                const vistas = data.noticias.reduce((a, n) => a + (n.vistas||0), 0);
+                document.getElementById('stats').innerHTML = `
+                    <h2 style="color:#FF8C00;">📊 Estadísticas</h2>
+                    <p>📰 Total: ${total} noticias</p>
+                    <p>👁️ Vistas: ${vistas}</p>
+                    <p>⏰ Cada 2 horas + 8 AM</p>
+                    <p>🧹 Limpieza: 8 días</p>
+                `;
             }
         }
 
-        // ==================== EDITAR NOTICIA ====================
-        window.editarNoticia = function(id) {
-            alert('Función de edición en desarrollo. Por ahora, ve a la noticia y regresa.');
-        }
-
-        // ==================== CARGAR ESTADÍSTICAS ====================
-        async function cargarStats() {
-            try {
-                const res = await fetch('/api/noticias');
-                const data = await res.json();
-                
-                if (data.success) {
-                    const total = data.noticias.length;
-                    const vistas = data.noticias.reduce((acc, n) => acc + (n.vistas || 0), 0);
-                    
-                    document.getElementById('stats').innerHTML = `
-                        <p>📰 Total noticias: <strong>${total}</strong></p>
-                        <p>👁️ Vistas totales: <strong>${vistas}</strong></p>
-                        <p>⏰ Automatización: <strong>Cada 2 horas</strong></p>
-                        <p>🧹 Limpieza: <strong>Noticias > 8 días (3 AM)</strong></p>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('stats').innerHTML = '<p>Error cargando estadísticas</p>';
-            }
-        }
-
-        // ==================== INICIALIZAR ====================
         cargarNoticias();
-        cargarStats();
-
-        // Auto-refrescar cada 30 segundos
-        setInterval(() => {
-            cargarNoticias();
-            cargarStats();
-        }, 30000);
     </script>
 </body>
 </html>
