@@ -5,42 +5,234 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción | El Farol al Día</title>
     <style>
-        /* (tus estilos originales, intactos) */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0b0b0b; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: #1a1a1a; border-radius: 16px; padding: 30px; border-left: 4px solid #FF8C00; box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2); }
-        h1 { color: #FF8C00; margin-bottom: 20px; font-size: 2.2em; text-align: center; }
-        h2 { color: #FF8C00; font-size: 1.5em; margin-bottom: 15px; margin-top: 30px; }
-        label { display: block; margin: 20px 0 8px; color: #FF8C00; font-weight: bold; font-size: 1.1em; }
-        input, select, textarea { width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid #333; background: #222; color: white; font-size: 1em; transition: all 0.3s; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #FF8C00; background: #2a2a2a; }
-        textarea { min-height: 150px; resize: vertical; }
-        .file-area { border: 2px dashed #FF8C00; border-radius: 12px; padding: 30px; text-align: center; background: #222; margin: 15px 0; cursor: pointer; transition: background 0.3s; }
-        .file-area:hover { background: #2a2a2a; }
-        .file-area span { display: block; font-size: 1.2em; color: #FF8C00; margin-bottom: 10px; }
-        .file-area small { color: #888; }
-        #preview { width: 100%; max-height: 300px; object-fit: cover; border-radius: 12px; margin-top: 15px; display: none; border: 2px solid #FF8C00; }
-        .foto-redactor-preview { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #FF8C00; display: none; }
-        .foto-redactor-placeholder { width: 70px; height: 70px; border-radius: 50%; background: #222; border: 3px dashed #FF8C00; display: flex; align-items: center; justify-content: center; color: #FF8C00; cursor: pointer; font-size: 2em; }
-        .pin-input { background: #222; border: 2px solid #FF8C00; color: white; font-size: 1.5em; letter-spacing: 4px; text-align: center; }
-        button { width: 100%; padding: 18px; background: linear-gradient(145deg, #FF8C00, #ffaa33); color: black; border: none; border-radius: 40px; font-size: 1.3em; font-weight: bold; margin: 10px 0; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
-        button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6); }
-        button:disabled { opacity: 0.6; }
-        button.btn-ia { background: linear-gradient(145deg, #4CAF50, #66BB6A); color: white; }
-        button.btn-ia:hover:not(:disabled) { box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6); }
-        .alert { padding: 15px; border-radius: 40px; margin: 20px 0; text-align: center; font-weight: bold; display: none; }
-        .alert.success { background: rgba(76, 175, 80, 0.2); border: 2px solid #4CAF50; color: #4CAF50; }
-        .alert.error { background: rgba(244, 67, 54, 0.2); border: 2px solid #f44336; color: #ff6b6b; }
-        .alert.info { background: rgba(33, 150, 243, 0.2); border: 2px solid #2196F3; color: #2196F3; }
-        .info { color: #888; font-size: 0.9em; margin-top: 5px; }
-        hr { border: 1px solid #333; margin: 30px 0; }
-        .stats { background: #222; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-        .programacion { background: #222; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #FF8C00; }
-        .radio-group { display: flex; gap: 20px; margin: 10px 0; }
-        .radio-group label { display: flex; align-items: center; gap: 5px; color: white; font-weight: normal; }
-        .fecha-input { background: #333; border: 2px solid #FF8C00; color: white; padding: 10px; border-radius: 8px; width: 100%; }
-        .foto-section { display: flex; align-items: center; gap: 20px; }
-        @media (max-width: 600px) { .container { padding: 20px; } h1 { font-size: 1.8em; } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0b0b0b;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 30px;
+            border-left: 4px solid #FF8C00;
+            box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+        }
+        h1 {
+            color: #FF8C00;
+            margin-bottom: 20px;
+            font-size: 2.2em;
+            text-align: center;
+        }
+        h2 {
+            color: #FF8C00;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            margin-top: 30px;
+        }
+        label {
+            display: block;
+            margin: 20px 0 8px;
+            color: #FF8C00;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 2px solid #333;
+            background: #222;
+            color: white;
+            font-size: 1em;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #FF8C00;
+            background: #2a2a2a;
+        }
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        .file-area {
+            border: 2px dashed #FF8C00;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #222;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .file-area:hover {
+            background: #2a2a2a;
+        }
+        .file-area span {
+            display: block;
+            font-size: 1.2em;
+            color: #FF8C00;
+            margin-bottom: 10px;
+        }
+        .file-area small {
+            color: #888;
+        }
+        #preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none;
+            border: 2px solid #FF8C00;
+        }
+        .foto-redactor-preview {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #FF8C00;
+            display: none;
+        }
+        .foto-redactor-placeholder {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #222;
+            border: 3px dashed #FF8C00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FF8C00;
+            cursor: pointer;
+            font-size: 2em;
+        }
+        .pin-input {
+            background: #222;
+            border: 2px solid #FF8C00;
+            color: white;
+            font-size: 1.5em;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(145deg, #FF8C00, #ffaa33);
+            color: black;
+            border: none;
+            border-radius: 40px;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 140, 0, 0.6);
+        }
+        button:disabled {
+            opacity: 0.6;
+            transform: none;
+        }
+        button.btn-ia {
+            background: linear-gradient(145deg, #4CAF50, #66BB6A);
+            color: white;
+        }
+        button.btn-ia:hover:not(:disabled) {
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 40px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .alert.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+            color: #4CAF50;
+        }
+        .alert.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #f44336;
+            color: #ff6b6b;
+        }
+        .alert.info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 2px solid #2196F3;
+            color: #2196F3;
+        }
+        .info {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        hr {
+            border: 1px solid #333;
+            margin: 30px 0;
+        }
+        .stats {
+            background: #222;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .programacion {
+            background: #222;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #FF8C00;
+        }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin: 10px 0;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: white;
+            font-weight: normal;
+        }
+        .fecha-input {
+            background: #333;
+            border: 2px solid #FF8C00;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+        }
+        .foto-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -48,7 +240,7 @@
         <h1>🏮 Redacción del Búnker</h1>
         <div id="alert" class="alert"></div>
 
-        <!-- Formulario manual (opcional, requiere backend adicional) -->
+        <!-- FORMULARIO MANUAL -->
         <form id="formulario">
             <label>📰 Sección</label>
             <select id="seccion" required>
@@ -68,7 +260,10 @@
             <textarea id="contenido" placeholder="Escribe el contenido aquí..." required></textarea>
 
             <label>📸 Imagen / Video</label>
-            <div class="file-area" id="fileArea"><span>📁 Arrastra aquí o haz clic</span><small>JPG, PNG, MP4, WebM - Máx 50MB</small></div>
+            <div class="file-area" id="fileArea">
+                <span>📁 Arrastra aquí o haz clic</span>
+                <small>JPG, PNG, MP4, WebM - Máx 50MB</small>
+            </div>
             <input type="file" id="multimedia" accept="image/*,video/*" style="display: none;">
             <img id="preview">
             <div class="info" id="fileInfo"></div>
@@ -102,6 +297,7 @@
                 <label><input type="radio" name="publicacion" value="ahora" checked> Ahora</label>
                 <label><input type="radio" name="publicacion" value="programar"> Programar</label>
             </div>
+
             <div id="campoFecha" style="display: none;">
                 <label>📅 Fecha y Hora</label>
                 <input type="datetime-local" id="fechaProgramada" class="fecha-input">
@@ -117,8 +313,9 @@
 
         <hr>
 
-        <!-- Generador IA (funciona con nuestro backend) -->
+        <!-- GENERADOR IA -->
         <h2>🤖 Generar Noticia con IA</h2>
+        
         <div class="programacion">
             <label>📰 Selecciona Categoría:</label>
             <select id="categoriaIA" required>
@@ -130,25 +327,33 @@
                 <option value="Tecnología">💻 Tecnología</option>
                 <option value="Espectáculos">🎬 Espectáculos</option>
             </select>
-            <button type="button" id="btnGenerarIA" class="btn-ia">🤖 PROBAR IA - GENERAR NOTICIA AHORA</button>
+            <button type="button" id="btnGenerarIA" class="btn-ia">
+                🤖 PROBAR IA - GENERAR NOTICIA AHORA
+            </button>
         </div>
-        <div id="alertIA" class="alert" style="margin-top:20px;"></div>
+
+        <div id="alertIA" class="alert" style="margin-top: 20px;"></div>
 
         <hr>
 
+        <!-- ESTADÍSTICAS -->
         <h2>📊 Estadísticas</h2>
-        <div class="stats" id="stats"><p>Cargando estadísticas...</p></div>
+        <div class="stats" id="stats">
+            <p>Cargando estadísticas...</p>
+        </div>
 
+        <!-- CONFIGURACIÓN -->
         <h2>🔧 Configuración</h2>
+        
         <div class="programacion">
             <label>Google Analytics ID</label>
             <input type="text" id="analyticsId" placeholder="G-XXXXXXXXXX">
-            <button type="button" id="btnGuardarAnalytics" style="margin-top:15px;">💾 GUARDAR ANALYTICS</button>
+            <button type="button" id="btnGuardarAnalytics" style="margin-top: 15px;">💾 GUARDAR ANALYTICS</button>
         </div>
     </div>
 
     <script>
-        // ===== Script de redacción (tus funciones, intactas) =====
+        // ==================== FORMULARIO MANUAL ====================
         const form = document.getElementById('formulario');
         const btn = document.getElementById('btnPublicar');
         const alertDiv = document.getElementById('alert');
@@ -245,26 +450,41 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
             const titulo = document.getElementById('titulo').value.trim();
             const seccion = document.getElementById('seccion').value;
             const contenido = document.getElementById('contenido').value.trim();
             const redactor = document.getElementById('redactor').value.trim() || 'mxl';
             const pin = document.getElementById('pin').value.trim();
 
-            if (!titulo || !seccion || !contenido) { mostrarAlerta('❌ Faltan campos obligatorios', 'error'); return; }
-            if (pin !== '311') { mostrarAlerta('❌ PIN incorrecto', 'error'); return; }
+            if (!titulo || !seccion || !contenido) {
+                mostrarAlerta('❌ Faltan campos obligatorios', 'error');
+                return;
+            }
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error');
+                return;
+            }
 
             let fechaProgramada = null;
             if (radioProgramar.checked) {
                 fechaProgramada = fechaInput.value;
-                if (!fechaProgramada) { mostrarAlerta('❌ Debes seleccionar una fecha para programar', 'error'); return; }
+                if (!fechaProgramada) {
+                    mostrarAlerta('❌ Debes seleccionar una fecha para programar', 'error');
+                    return;
+                }
             }
 
             btn.disabled = true;
             btn.textContent = '⏳ PROCESANDO...';
 
             const noticia = {
-                pin, titulo, seccion, contenido, ubicacion: '', redactor,
+                pin,
+                titulo,
+                seccion,
+                contenido,
+                ubicacion: '',
+                redactor,
                 redactorFoto: fotoRedactorBase64 || null,
                 imagen: imagenBase64 || null,
                 seoTitle: document.getElementById('seoTitle').value.trim() || undefined,
@@ -274,7 +494,11 @@
             };
 
             try {
-                const res = await fetch('/api/publicar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(noticia) });
+                const res = await fetch('/api/publicar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(noticia)
+                });
                 const data = await res.json();
                 if (data.success) {
                     mostrarAlerta(data.message, 'success');
@@ -282,15 +506,26 @@
                     preview.style.display = 'none';
                     fotoPreview.style.display = 'none';
                     fotoPlaceholder.style.display = 'flex';
-                    imagenBase64 = ''; fotoRedactorBase64 = '';
-                    fileInfo.textContent = ''; fotoInfo.textContent = 'Toca para añadir foto';
+                    imagenBase64 = '';
+                    fotoRedactorBase64 = '';
+                    fileInfo.textContent = '';
+                    fotoInfo.textContent = 'Toca para añadir foto';
                     campoFecha.style.display = 'none';
                     radioAhora.checked = true;
-                    if (data.message.includes('programada')) { setTimeout(() => window.location.reload(), 2000); }
-                    else { setTimeout(() => window.location.href = '/', 2000); }
-                } else { mostrarAlerta('❌ Error: ' + data.error, 'error'); }
-            } catch (error) { mostrarAlerta('❌ Error de conexión', 'error'); }
-            finally { btn.disabled = false; btn.textContent = '🚀 PUBLICAR / PROGRAMAR'; }
+                    if (data.message.includes('programada')) {
+                        setTimeout(() => window.location.reload(), 2000);
+                    } else {
+                        setTimeout(() => window.location.href = '/', 2000);
+                    }
+                } else {
+                    mostrarAlerta('❌ Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                mostrarAlerta('❌ Error de conexión', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 PUBLICAR / PROGRAMAR';
+            }
         });
 
         function mostrarAlerta(mensaje, tipo) {
@@ -300,14 +535,18 @@
             setTimeout(() => alertDiv.style.display = 'none', 4000);
         }
 
-        // ===== Generador IA (funciona) =====
+        // ==================== GENERADOR IA ====================
         const btnIA = document.getElementById('btnGenerarIA');
         const alertIA = document.getElementById('alertIA');
         const categoriaIA = document.getElementById('categoriaIA');
 
         btnIA.addEventListener('click', async () => {
             const categoria = categoriaIA.value;
-            if (!categoria) { mostrarAlertaIA('⚠️ Por favor selecciona una categoría', 'error'); return; }
+            if (!categoria) {
+                mostrarAlertaIA('⚠️ Por favor selecciona una categoría', 'error');
+                return;
+            }
+
             btnIA.disabled = true;
             btnIA.textContent = '⏳ GENERANDO...';
             mostrarAlertaIA(`ℹ️ Generando noticia de ${categoria}...`, 'info');
@@ -318,13 +557,21 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ categoria })
                 });
+
                 const data = await res.json();
+
                 if (data.success) {
-                    mostrarAlertaIA(`✅ Noticia generada. <a href="/noticia/${data.slug}" target="_blank" style="color: inherit; text-decoration: underline;">Ver noticia</a>`, 'success');
+                    mostrarAlertaIA(`✅ Noticia generada. <a href="/noticia/${data.slug}" target="_blank" style="color: inherit; text-decoration: underline;">Ver noticia en 5 minutos</a>`, 'success');
                     categoriaIA.value = '';
-                } else { mostrarAlertaIA(`❌ Error: ${data.error || 'No se pudo generar'}`, 'error'); }
-            } catch (error) { mostrarAlertaIA(`❌ Error: ${error.message}`, 'error'); }
-            finally { btnIA.disabled = false; btnIA.textContent = '🤖 PROBAR IA - GENERAR NOTICIA AHORA'; }
+                } else {
+                    mostrarAlertaIA(`❌ Error: ${data.error || 'No se pudo generar'}`, 'error');
+                }
+            } catch (error) {
+                mostrarAlertaIA(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                btnIA.disabled = false;
+                btnIA.textContent = '🤖 PROBAR IA - GENERAR NOTICIA AHORA';
+            }
         });
 
         function mostrarAlertaIA(mensaje, tipo) {
@@ -334,18 +581,21 @@
             setTimeout(() => alertIA.style.display = 'none', 5000);
         }
 
-        // ===== Analytics y estadísticas (opcional) =====
+        // ==================== ANALYTICS ====================
         (async function () {
-            try {
-                const res = await fetch('/api/configuracion');
-                const data = await res.json();
-                if (data.success && data.config.googleAnalytics) document.getElementById('analyticsId').value = data.config.googleAnalytics;
-            } catch (e) {}
+            const res = await fetch('/api/configuracion');
+            const data = await res.json();
+            if (data.success && data.config.googleAnalytics) {
+                document.getElementById('analyticsId').value = data.config.googleAnalytics;
+            }
         })();
 
         document.getElementById('btnGuardarAnalytics').addEventListener('click', async () => {
             const pin = document.getElementById('pin').value.trim();
-            if (pin !== '311') { mostrarAlerta('❌ PIN incorrecto', 'error'); return; }
+            if (pin !== '311') {
+                mostrarAlerta('❌ PIN incorrecto', 'error');
+                return;
+            }
             const googleAnalytics = document.getElementById('analyticsId').value;
             const res = await fetch('/api/configuracion', {
                 method: 'POST',
@@ -353,18 +603,29 @@
                 body: JSON.stringify({ pin, googleAnalytics })
             });
             const data = await res.json();
-            if (data.success) mostrarAlerta('✅ Analytics guardado', 'success');
-            else mostrarAlerta('❌ Error: ' + data.error, 'error');
+            if (data.success) {
+                mostrarAlerta('✅ Analytics guardado', 'success');
+            } else {
+                mostrarAlerta('❌ Error: ' + data.error, 'error');
+            }
         });
 
+        // ==================== ESTADÍSTICAS ====================
         (async function () {
             try {
                 const res = await fetch('/api/estadisticas');
                 const data = await res.json();
                 if (data.success) {
-                    document.getElementById('stats').innerHTML = `<p>📰 Noticias publicadas: <strong>${data.totalNoticias}</strong></p><p>👁️ Vistas totales: <strong>${data.totalVistas}</strong></p>`;
-                } else { document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>'; }
-            } catch (e) { document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>'; }
+                    document.getElementById('stats').innerHTML = `
+                        <p>📰 Noticias publicadas: <strong>${data.totalNoticias}</strong></p>
+                        <p>👁️ Vistas totales: <strong>${data.totalVistas}</strong></p>
+                    `;
+                } else {
+                    document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
+                }
+            } catch (e) {
+                document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
+            }
         })();
     </script>
 </body>
