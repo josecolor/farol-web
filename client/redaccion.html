@@ -233,8 +233,9 @@
         .botones-accion {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
-        .btn-editar, .btn-eliminar {
+        .btn-ver, .btn-editar, .btn-eliminar {
             flex: 1;
             padding: 10px;
             border: none;
@@ -243,6 +244,12 @@
             cursor: pointer;
             transition: 0.2s;
             text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-ver {
+            background: #2e7d32;
+            color: white;
         }
         .btn-editar {
             background: #FF8C00;
@@ -252,8 +259,9 @@
             background: #d32f2f;
             color: white;
         }
-        .btn-editar:hover, .btn-eliminar:hover {
+        .btn-ver:hover, .btn-editar:hover, .btn-eliminar:hover {
             opacity: 0.8;
+            transform: translateY(-2px);
         }
         @media (max-width: 600px) {
             .container {
@@ -261,6 +269,9 @@
             }
             h1 {
                 font-size: 1.8em;
+            }
+            .botones-accion {
+                flex-direction: column;
             }
         }
     </style>
@@ -279,13 +290,14 @@
                 <option value="Internacionales">🌍 Internacionales</option>
                 <option value="Espectáculos">🎬 Espectáculos</option>
                 <option value="Economía">💼 Economía</option>
+                <option value="Tecnología">💻 Tecnología</option>
             </select>
 
             <label>📝 Título</label>
             <input type="text" id="titulo" placeholder="Ej: ¡Fuego en el terreno de juego!" required maxlength="200">
 
             <label>✍️ Contenido</label>
-            <textarea id="contenido" placeholder="Escribe la noticia aquí..." required maxlength="5000"></textarea>
+            <textarea id="contenido" placeholder="Escribe la noticia aquí..." required maxlength="50000"></textarea>
 
             <label>🎬 Imagen de la noticia (opcional)</label>
             <div class="file-area" id="fileArea">
@@ -357,20 +369,34 @@
             <button type="submit" id="btnPublicar">🚀 PUBLICAR / PROGRAMAR</button>
         </form>
 
-        <!-- SECCIÓN DE NOTICIAS RECIENTES -->
+        <!-- SECCIÓN DE NOTICIAS RECIENTES MEJORADA CON ENLACES -->
         <hr style="border-color:#FF8C00;">
         <h2 style="color:#FF8C00;">📰 Últimas noticias</h2>
-        <div id="noticiasRecientes"></div>
+        <div id="noticiasRecientes">
+            <p style="color:#888; text-align:center;">Cargando noticias...</p>
+        </div>
 
-        <!-- BOTÓN DE PRUEBA PARA GENERAR NOTICIA CON IA (puedes borrarlo después) -->
+        <!-- GENERADOR IA MEJORADO -->
         <hr style="border-color:#FF8C00;">
         <div style="margin-top: 30px; padding: 20px; background: #222; border-radius: 12px;">
-            <button onclick="probarIA()" style="width:100%; padding:18px; background:#FF8C00; color:black; border:none; border-radius:40px; font-size:1.3em; font-weight:bold;">🤖 PROBAR IA – GENERAR NOTICIA AHORA</button>
+            <h3 style="color:#FF8C00; margin-bottom:15px;">🤖 Generar noticia con IA</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <select id="categoriaIA" style="flex: 2; min-width: 200px;">
+                    <option value="Nacionales">🇩🇴 Nacionales</option>
+                    <option value="Deportes">⚽ Deportes</option>
+                    <option value="Internacionales">🌍 Internacionales</option>
+                    <option value="Espectáculos">🎬 Espectáculos</option>
+                    <option value="Economía">💼 Economía</option>
+                    <option value="Tecnología">💻 Tecnología</option>
+                </select>
+                <button onclick="probarIA()" style="flex: 1; padding: 14px; background:#FF8C00; color:black; border:none; border-radius:40px; font-size:1.1em; font-weight:bold;">🚀 GENERAR AHORA</button>
+            </div>
             <div id="resultadoIA" style="margin-top:15px; color:#aaa; text-align:center;"></div>
         </div>
     </div>
 
     <script>
+        // ==================== CONFIGURACIÓN INICIAL ====================
         const form = document.getElementById('formulario');
         const btn = document.getElementById('btnPublicar');
         const alertDiv = document.getElementById('alert');
@@ -387,12 +413,15 @@
         const campoFecha = document.getElementById('campoFecha');
         const fechaInput = document.getElementById('fechaProgramada');
 
-        radioProgramar.addEventListener('change', () => campoFecha.style.display = 'block');
-        radioAhora.addEventListener('change', () => campoFecha.style.display = 'none');
-
+        // Variables para imágenes
         let imagenBase64 = "";
         let fotoRedactorBase64 = "";
 
+        // ==================== EVENTOS ====================
+        radioProgramar.addEventListener('change', () => campoFecha.style.display = 'block');
+        radioAhora.addEventListener('change', () => campoFecha.style.display = 'none');
+
+        // Subir imagen de noticia
         fileArea.addEventListener('click', () => fileInput.click());
 
         fileInput.addEventListener('change', async (e) => {
@@ -420,6 +449,7 @@
             }
         });
 
+        // Subir foto de redactor
         fotoInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -435,6 +465,7 @@
             }
         });
 
+        // Función de compresión de imágenes
         function comprimirImagen(file, maxWidth) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -463,6 +494,7 @@
             });
         }
 
+        // ==================== PUBLICAR NOTICIA ====================
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -529,11 +561,6 @@
                     radioAhora.checked = true;
                     // Recargar lista de noticias recientes
                     cargarNoticiasRecientes();
-                    if (data.message.includes('programada')) {
-                        setTimeout(() => window.location.reload(), 2000);
-                    } else {
-                        setTimeout(() => window.location.href = '/', 2000);
-                    }
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error');
                 }
@@ -545,6 +572,7 @@
             }
         });
 
+        // Mostrar alertas
         function mostrarAlerta(mensaje, tipo) {
             alertDiv.textContent = mensaje;
             alertDiv.className = `alert ${tipo}`;
@@ -552,31 +580,37 @@
             setTimeout(() => alertDiv.style.display = 'none', 4000);
         }
 
-        // ==================== NOTICIAS RECIENTES ====================
+        // ==================== CARGAR NOTICIAS RECIENTES (CON ENLACES) ====================
         async function cargarNoticiasRecientes() {
             try {
-                const res = await fetch('/api/noticias?limit=10');
+                const res = await fetch('/api/noticias');
                 const data = await res.json();
                 if (data.success) {
                     const container = document.getElementById('noticiasRecientes');
-                    container.innerHTML = '';
-                    if (data.noticias.length === 0) {
+                    if (!data.noticias || data.noticias.length === 0) {
                         container.innerHTML = '<p style="color:#888; text-align:center;">No hay noticias publicadas.</p>';
                         return;
                     }
-                    data.noticias.forEach(noticia => {
+                    
+                    container.innerHTML = '';
+                    data.noticias.slice(0, 10).forEach(noticia => {
+                        const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                        
                         const card = document.createElement('div');
                         card.className = 'noticia-reciente';
-                        card.setAttribute('data-id', noticia._id);
-                        const fecha = new Date(noticia.fecha).toLocaleDateString();
                         card.innerHTML = `
-                            <div class="noticia-titulo-reciente">${noticia.titulo.substring(0, 60)}${noticia.titulo.length > 60 ? '...' : ''}</div>
+                            <div class="noticia-titulo-reciente">${noticia.titulo.substring(0, 80)}${noticia.titulo.length > 80 ? '...' : ''}</div>
                             <div class="noticia-meta-reciente">
                                 ${noticia.seccion} | ${fecha} | 👁️ ${noticia.vistas || 0}
                             </div>
                             <div class="botones-accion">
-                                <button class="btn-editar" onclick="editarNoticia('${noticia._id}')">✏️ Editar</button>
-                                <button class="btn-eliminar" onclick="eliminarNoticia('${noticia._id}')">🗑️ Eliminar</button>
+                                <a href="/noticia/${noticia.slug}" target="_blank" class="btn-ver">🔗 VER</a>
+                                <button class="btn-editar" onclick="editarNoticia('${noticia.id}')">✏️ EDITAR</button>
+                                <button class="btn-eliminar" onclick="eliminarNoticia('${noticia.id}')">🗑️ ELIMINAR</button>
                             </div>
                         `;
                         container.appendChild(card);
@@ -584,9 +618,11 @@
                 }
             } catch (error) {
                 console.error('Error cargando noticias recientes:', error);
+                document.getElementById('noticiasRecientes').innerHTML = '<p style="color:#f44336; text-align:center;">Error al cargar noticias</p>';
             }
         }
 
+        // Funciones de edición y eliminación
         window.editarNoticia = function(id) {
             window.location.href = '/redaccion?edit=' + id;
         };
@@ -595,6 +631,7 @@
             if (!confirm('¿Estás seguro de eliminar esta noticia? No podrás recuperarla.')) return;
             const pin = prompt('🔐 Ingresa el PIN para eliminar:');
             if (!pin) return;
+            
             try {
                 const res = await fetch(`/api/noticias/${id}`, {
                     method: 'DELETE',
@@ -604,7 +641,7 @@
                 const data = await res.json();
                 if (data.success) {
                     mostrarAlerta('✅ Noticia eliminada', 'success');
-                    cargarNoticiasRecientes(); // recargar lista
+                    cargarNoticiasRecientes();
                 } else {
                     mostrarAlerta('❌ Error: ' + data.error, 'error');
                 }
@@ -613,15 +650,61 @@
             }
         };
 
+        // ==================== FUNCIÓN PARA PROBAR IA MEJORADA ====================
+        window.probarIA = async function() {
+            const categoria = document.getElementById('categoriaIA').value;
+            const resultado = document.getElementById('resultadoIA');
+            resultado.innerHTML = '⏳ Generando noticia con IA...';
+            
+            try {
+                const res = await fetch('/api/generar-noticia', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-internal-key': 's7d8f9a3s7d6f5a4s3d2f1'
+                    },
+                    body: JSON.stringify({ categoria })
+                });
+                
+                const data = await res.json();
+                console.log('Respuesta IA:', data);
+                
+                if (data.success) {
+                    resultado.innerHTML = `
+                        <div style="background: #2a2a2a; padding: 15px; border-radius: 8px;">
+                            <p style="color: #4CAF50; font-weight: bold;">✅ Noticia generada exitosamente</p>
+                            <p style="margin: 10px 0;"><strong>Título:</strong> ${data.titulo}</p>
+                            ${data.imagen ? `<img src="${data.imagen}" style="max-width: 100%; max-height: 200px; border-radius: 8px; margin: 10px 0;" alt="Vista previa">` : ''}
+                            <p><strong>Fuente de imagen:</strong> ${data.fuente_imagen || 'desconocida'}</p>
+                            <a href="${data.url}" target="_blank" style="display: inline-block; background: #2e7d32; color: white; padding: 10px 20px; border-radius: 40px; text-decoration: none; margin-top: 10px;">🔗 VER NOTICIA</a>
+                        </div>
+                    `;
+                    // Recargar lista de noticias
+                    cargarNoticiasRecientes();
+                } else {
+                    resultado.innerHTML = `<p style="color: #f44336;">❌ Error: ${data.error || 'desconocido'}</p>`;
+                }
+            } catch (e) {
+                console.error('Error en IA:', e);
+                resultado.innerHTML = '<p style="color: #f44336;">❌ Error de conexión con el servidor</p>';
+            }
+        };
+
+        // ==================== CONFIGURACIÓN INICIAL ====================
         // Cargar configuración de Analytics
-        (async function () {
-            const res = await fetch('/api/configuracion');
-            const data = await res.json();
-            if (data.success && data.config.googleAnalytics) {
-                document.getElementById('analyticsId').value = data.config.googleAnalytics;
+        (async function() {
+            try {
+                const res = await fetch('/api/configuracion');
+                const data = await res.json();
+                if (data.success && data.config?.googleAnalytics) {
+                    document.getElementById('analyticsId').value = data.config.googleAnalytics;
+                }
+            } catch (error) {
+                console.error('Error cargando Analytics:', error);
             }
         })();
 
+        // Guardar Analytics
         document.getElementById('btnGuardarAnalytics').addEventListener('click', async () => {
             const pin = document.getElementById('pin').value.trim();
             if (pin !== '311') {
@@ -643,14 +726,14 @@
         });
 
         // Cargar estadísticas
-        (async function () {
+        (async function() {
             try {
                 const res = await fetch('/api/estadisticas');
                 const data = await res.json();
                 if (data.success) {
                     document.getElementById('stats').innerHTML = `
-                        <p>📰 Noticias publicadas: <strong>${data.totalNoticias}</strong></p>
-                        <p>👁️ Vistas totales: <strong>${data.totalVistas}</strong></p>
+                        <p>📰 Noticias publicadas: <strong>${data.totalNoticias || 0}</strong></p>
+                        <p>👁️ Vistas totales: <strong>${data.totalVistas || 0}</strong></p>
                     `;
                 } else {
                     document.getElementById('stats').innerHTML = '<p>Error al cargar estadísticas</p>';
@@ -662,30 +745,6 @@
 
         // Cargar noticias recientes al inicio
         cargarNoticiasRecientes();
-
-        // ==================== FUNCIÓN PARA PROBAR LA IA ====================
-        async function probarIA() {
-            const resultado = document.getElementById('resultadoIA');
-            resultado.innerHTML = '⏳ Generando noticia...';
-            try {
-                const res = await fetch('/api/generar-noticia', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'x-internal-key': 's7d8f9a3s7d6f5a4s3d2f1'  // ← Este es tu INTERNAL_SECRET
-                    },
-                    body: JSON.stringify({ categoria: 'Nacionales' })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    resultado.innerHTML = `✅ Noticia generada.<br>📰 <a href="${data.url}" target="_blank" style="color:#FF8C00;">Ver noticia en 5 minutos</a>`;
-                } else {
-                    resultado.innerHTML = '❌ Error: ' + (data.error || 'desconocido');
-                }
-            } catch (e) {
-                resultado.innerHTML = '❌ Error de conexión';
-            }
-        }
     </script>
 </body>
 </html>
