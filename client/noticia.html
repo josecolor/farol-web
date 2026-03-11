@@ -3,149 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- META_TAGS -->
+    <!-- META_TAGS (el servidor inyectará aquí los metadatos SEO) -->
     <style>
+        /* Mismos estilos que el index para mantener coherencia */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0b0b0b;
-            color: #fff;
-            font-family: 'Segoe UI', sans-serif;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        header {
-            background: #1a1a1a;
-            border-bottom: 4px solid #FF8C00;
-            padding: 1rem 0;
-        }
-        header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo a {
-            color: #FF8C00;
-            text-decoration: none;
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        nav a {
-            color: white;
-            margin-left: 20px;
-            text-decoration: none;
-        }
-        nav a:hover {
-            color: #FF8C00;
-        }
-        .noticia {
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 30px;
-            border-left: 4px solid #FF8C00;
-            margin: 30px 0;
-        }
-        .seccion {
-            display: inline-block;
-            background: #FF8C00;
-            color: black;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        h1 {
-            color: #FF8C00;
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-        }
-        .meta {
-            color: #aaa;
-            margin-bottom: 20px;
-        }
-        .imagen {
-            margin: 30px 0;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid #FF8C00;
-        }
-        .imagen img {
-            width: 100%;
-            max-height: 500px;
-            object-fit: cover;
-        }
-        .contenido {
-            font-size: 1.1rem;
-            line-height: 1.8;
-        }
-        .contenido p {
-            margin-bottom: 20px;
-        }
-        .compartir {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #333;
-        }
-        .compartir a {
-            display: inline-block;
-            background: #222;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 30px;
-            text-decoration: none;
-            margin-right: 10px;
-            border: 1px solid #FF8C00;
-        }
-        .compartir a:hover {
-            background: #FF8C00;
-            color: black;
-        }
-        .relacionadas {
-            background: #1a1a1a;
-            border-radius: 16px;
-            padding: 30px;
-            border-left: 4px solid #FF8C00;
-            margin-top: 30px;
-        }
-        .relacionadas h3 {
-            color: #FF8C00;
-            margin-bottom: 20px;
-        }
-        .relacionadas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-        .relacionada-item {
-            background: #222;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 3px solid #FF8C00;
-        }
-        .relacionada-item a {
-            text-decoration: none;
-            color: inherit;
-        }
-        .relacionada-item h4 {
-            color: #FF8C00;
-            margin: 10px 0;
-        }
-        footer {
-            background: #1a1a1a;
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
-            border-top: 1px solid #333;
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.6; }
+        header { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border-bottom: 3px solid #ff9800; padding: 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2); }
+        .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 15px; text-decoration: none; color: #ff9800; font-size: 24px; font-weight: bold; }
+        .logo span { font-size: 32px; }
+        nav { display: flex; gap: 20px; align-items: center; }
+        nav a { color: #fff; text-decoration: none; transition: color 0.3s; font-weight: 500; }
+        nav a:hover { color: #ff9800; }
+        main { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .noticia { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border-radius: 10px; border-left: 4px solid #ff9800; padding: 30px; margin-bottom: 40px; }
+        .seccion { display: inline-block; background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-bottom: 15px; }
+        h1 { color: #ff9800; font-size: 2.5rem; margin-bottom: 15px; }
+        .meta { color: #888; margin-bottom: 20px; font-size: 0.95rem; }
+        .imagen { margin: 30px 0; border-radius: 10px; overflow: hidden; border: 2px solid #ff9800; }
+        .imagen img { width: 100%; max-height: 500px; object-fit: cover; }
+        .contenido { font-size: 1.1rem; line-height: 1.8; color: #ddd; }
+        .contenido p { margin-bottom: 20px; }
+        .compartir { margin-top: 40px; padding-top: 20px; border-top: 1px solid #333; }
+        .compartir h3 { color: #ff9800; margin-bottom: 10px; }
+        .compartir a { display: inline-block; background: #222; color: white; padding: 8px 20px; border-radius: 30px; text-decoration: none; margin-right: 10px; border: 1px solid #ff9800; transition: 0.3s; }
+        .compartir a:hover { background: #ff9800; color: black; }
+        .relacionadas { background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); border-radius: 10px; border-left: 4px solid #ff9800; padding: 30px; margin-top: 40px; }
+        .relacionadas h3 { color: #ff9800; margin-bottom: 20px; }
+        .relacionadas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .relacionada-item { background: #1f1f1f; padding: 15px; border-radius: 8px; border-left: 3px solid #ff9800; transition: 0.3s; }
+        .relacionada-item:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(255,152,0,0.3); }
+        .relacionada-item a { text-decoration: none; color: inherit; }
+        .relacionada-item img { width: 100%; height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 10px; }
+        .relacionada-item h4 { color: #ff9800; font-size: 1rem; margin-bottom: 5px; }
+        .relacionada-item span { color: #888; font-size: 0.8rem; }
+        footer { background: #1a1a1a; border-top: 2px solid #ff9800; padding: 30px 20px; text-align: center; color: #888; margin-top: 60px; }
+        @media (max-width: 768px) {
+            .header-container { flex-direction: column; gap: 15px; }
+            nav { flex-direction: column; }
+            h1 { font-size: 2rem; }
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="container">
-            <h1 class="logo"><a href="/">🏮 El Farol al Día</a></h1>
+        <div class="header-container">
+            <a href="/" class="logo"><span>🏮</span>El Farol al Día</a>
             <nav>
                 <a href="/">Inicio</a>
                 <a href="/redaccion">Redacción</a>
@@ -153,7 +56,7 @@
         </div>
     </header>
 
-    <main class="container">
+    <main>
         <article class="noticia">
             <span class="seccion">{{SECCION}}</span>
             <h1>{{TITULO}}</h1>
@@ -167,7 +70,7 @@
                 {{CONTENIDO}}
             </div>
             <div class="compartir">
-                <h3>Compartir:</h3>
+                <h3>Compartir esta noticia:</h3>
                 <a href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank">Facebook</a>
                 <a href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank">Twitter</a>
                 <a href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank">WhatsApp</a>
@@ -175,12 +78,14 @@
         </article>
 
         <aside class="relacionadas">
-            <!-- RELACIONADAS -->
+            <!-- RELACIONADAS (el servidor inyectará aquí las noticias relacionadas) -->
         </aside>
     </main>
 
     <footer>
-        <p>© 2026 El Farol al Día - Noticias con IA</p>
+        <div class="footer-content">
+            <p>© 2026 El Farol al Día - Noticias con IA</p>
+        </div>
     </footer>
 </body>
 </html>
