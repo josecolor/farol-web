@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.2
- * Gemini genera noticias con DETECCIÓN DE PERSONAS FAMOSAS
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.0
+ * Gemini con DETECCIÓN DE ENTIDADES PREMIUM
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN DEFINITIVA - CON BÚSQUEDA DE IMÁGENES POR NOMBRE
+ * VERSIÓN DEFINITIVA - CON FOTOS DE IMPACTO REAL
  */
 
 const express = require('express');
@@ -145,238 +145,74 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ BUSCAR IMAGEN DE PERSONA FAMOSA ====================
-async function buscarImagenPersona(nombrePersona, categoria) {
+// ==================== 🎯 DETECCIÓN DE ENTIDADES Y GENERACIÓN (GEMINI COMO EDITOR) ====================
+async function generarNoticiaInteligente(categoria) {
     try {
-        console.log(`🎯 Buscando imagen de: ${nombrePersona}`);
-        
-        // Limpiar el nombre para búsqueda
-        const nombreLimpio = nombrePersona.trim().replace(/\s+/g, '+');
-        
-        // ========== 1. UNSPLASH (mejor para personas) ==========
-        if (process.env.UNSPLASH_ACCESS_KEY) {
-            try {
-                // Unsplash tiene buenas fotos de personas famosas
-                const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(nombreLimpio)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=5`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.results && data.results.length > 0) {
-                        console.log(`✅ Imagen de ${nombrePersona} encontrada en Unsplash`);
-                        return {
-                            url: data.results[0].urls.regular,
-                            alt: `${nombrePersona} - ${categoria}`,
-                            source: 'Unsplash'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Unsplash error: ${e.message}`);
-            }
-        }
-        
-        // ========== 2. PEXELS ==========
-        if (process.env.PEXELS_API_KEY) {
-            try {
-                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(nombreLimpio)}&per_page=5&orientation=landscape`;
-                const response = await fetch(url, {
-                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.photos && data.photos.length > 0) {
-                        console.log(`✅ Imagen de ${nombrePersona} encontrada en Pexels`);
-                        return {
-                            url: data.photos[0].src.landscape,
-                            alt: `${nombrePersona} - ${categoria}`,
-                            source: 'Pexels'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Pexels error: ${e.message}`);
-            }
-        }
-        
-        // ========== 3. PIXABAY ==========
-        if (process.env.PIXABAY_API_KEY) {
-            try {
-                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(nombreLimpio)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.hits && data.hits.length > 0) {
-                        console.log(`✅ Imagen de ${nombrePersona} encontrada en Pixabay`);
-                        return {
-                            url: data.hits[0].webformatURL,
-                            alt: `${nombrePersona} - ${categoria}`,
-                            source: 'Pixabay'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Pixabay error: ${e.message}`);
-            }
-        }
-        
-        console.log(`❌ No se encontró imagen de ${nombrePersona}, usando respaldo`);
-        return null;
+        console.log(`\n🤖 Editor de imágenes analizando noticia de: ${categoria}`);
 
-    } catch (error) {
-        console.error('❌ Error buscando imagen de persona:', error.message);
-        return null;
-    }
-}
+        const prompt = `Actúa como el EDITOR DE FOTOGRAFÍA de un periódico profesional.
 
-// ==================== 🖼️ BUSCAR IMAGEN GENÉRICA ====================
-async function buscarImagenGenerica(query, categoria) {
-    try {
-        console.log(`🔍 Buscando imagen genérica: "${query}"`);
-        
-        const queryFormateada = query.trim().replace(/\s+/g, '+');
-        
-        // ========== 1. UNSPLASH ==========
-        if (process.env.UNSPLASH_ACCESS_KEY) {
-            try {
-                const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(queryFormateada)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=5`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.results && data.results.length > 0) {
-                        console.log(`✅ Imagen encontrada en Unsplash`);
-                        return {
-                            url: data.results[0].urls.regular,
-                            alt: data.results[0].alt_description || query,
-                            source: 'Unsplash'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Unsplash error: ${e.message}`);
-            }
-        }
-        
-        // ========== 2. PEXELS ==========
-        if (process.env.PEXELS_API_KEY) {
-            try {
-                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(queryFormateada)}&per_page=5&orientation=landscape`;
-                const response = await fetch(url, {
-                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.photos && data.photos.length > 0) {
-                        console.log(`✅ Imagen encontrada en Pexels`);
-                        return {
-                            url: data.photos[0].src.landscape,
-                            alt: data.photos[0].alt || query,
-                            source: 'Pexels'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Pexels error: ${e.message}`);
-            }
-        }
-        
-        // ========== 3. PIXABAY ==========
-        if (process.env.PIXABAY_API_KEY) {
-            try {
-                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(queryFormateada)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.hits && data.hits.length > 0) {
-                        console.log(`✅ Imagen encontrada en Pixabay`);
-                        return {
-                            url: data.hits[0].webformatURL,
-                            alt: data.hits[0].tags || query,
-                            source: 'Pixabay'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Pixabay error: ${e.message}`);
-            }
-        }
-        
-        return null;
+Tu tarea es analizar la noticia y extraer la ENTIDAD principal (la persona, artista, equipo o cosa protagonista).
 
-    } catch (error) {
-        console.error('❌ Error en búsqueda genérica:', error.message);
-        return null;
-    }
-}
+Noticia sobre: ${categoria} en República Dominicana.
 
-// ==================== 🖼️ BANCO DE RESPALDO ====================
-function imagenRespaldo(categoria) {
-    console.log(`📸 Usando imagen de respaldo para: ${categoria}`);
-    
-    const imagenesRespaldo = {
-        'Nacionales': 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-        'Deportes': 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg',
-        'Internacionales': 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg',
-        'Espectáculos': 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
-        'Economía': 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg',
-        'Tecnología': 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg'
-    };
-    
-    return {
-        url: imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'],
-        alt: `Noticia de ${categoria}`,
-        source: 'respaldo'
-    };
-}
+REGLAS DE ORO:
+1. Si la noticia es sobre una PERSONA FAMOSA (artista, DJ, político, deportista), la ENTIDAD es su NOMBRE.
+2. La CATEGORIA es su profesión (DJ, Presidente, Cantante, Equipo).
+3. El IMAGE_QUERY debe ser UNA BÚSQUEDA ULTRA-ESPECÍFICA en inglés para obtener la foto exacta.
 
-// ==================== 🤖 GENERAR NOTICIA CON GEMINI ====================
-async function generarNoticiaCompleta(categoria) {
-    try {
-        console.log(`\n🤖 Generando noticia SEO para: ${categoria}`);
+Genera UNA noticia profesional con ESTE FORMATO EXACTO:
 
-        const prompt = `Genera una noticia profesional sobre ${categoria} en República Dominicana.
-
-REGLAS IMPORTANTES:
-- Título: Atractivo, único, 50-60 caracteres
-- Contenido: 400-500 palabras
-- Incluye datos específicos de RD, lugares, fechas
-- Si la noticia es sobre una persona famosa (artista, DJ, político, deportista, cantante), incluye su nombre
-- Sin asteriscos, sin formato especial
-
-Responde EXACTAMENTE con este formato:
-
-TITULO: [título de la noticia]
-PERSONA: [nombre de la persona principal si existe, o dejar vacío si no aplica]
-DESCRIPCION: [descripción para SEO, máximo 160 caracteres]
+TITULO: [título atractivo, 50-60 caracteres]
+ENTIDAD: [nombre de la persona/equipo protagonista, o vacío si no aplica]
+CATEGORIA_ENTIDAD: [DJ, Presidente, Equipo, Artista, etc., o vacío]
+IMAGE_QUERY: [UNA frase de búsqueda ultra-específica en inglés]
+DESCRIPCION: [descripción SEO, máx 160 caracteres]
 PALABRAS: [5 palabras clave separadas por coma]
-BUSQUEDA: [3 frases de búsqueda de imágenes en inglés separadas por | ]
 CONTENIDO:
-[contenido completo de 400-500 palabras en párrafos]
+[contenido completo de 400-500 palabras]
 
-EJEMPLO CON PERSONA:
+EJEMPLOS DE CALIDAD:
+
+🔴 NOTICIA DE MÚSICA:
 TITULO: Diplo sorprende con nuevo set en festival de Miami
-PERSONA: Diplo
+ENTIDAD: Diplo
+CATEGORIA_ENTIDAD: DJ
+IMAGE_QUERY: Diplo DJ performing live concert stage
 DESCRIPCION: El reconocido DJ y productor Diplo presentó un innovador set en el festival de Miami
 PALABRAS: Diplo, música electrónica, festival, DJ, Miami
-BUSQUEDA: Diplo DJ live performance | Diplo concert stage | Diplo electronic music festival
-CONTENIDO:
-El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente...
+CONTENIDO: El reconocido DJ estadounidense Diplo se presentó anoche...
 
-EJEMPLO SIN PERSONA:
-TITULO: Nuevo plan de viviendas en Santo Domingo
-PERSONA: 
-DESCRIPCION: El gobierno dominicano anuncia ambicioso programa de viviendas sociales en Santo Domingo
-PALABRAS: viviendas, gobierno, construcción, santo domingo, desarrollo
-BUSQUEDA: government housing project | construction workers building homes | new apartment buildings
-CONTENIDO:
-El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de viviendas...`;
+🔵 NOTICIA DE DEPORTES:
+TITULO: Real Madrid gana la Champions League en emocionante final
+ENTIDAD: Real Madrid
+CATEGORIA_ENTIDAD: Equipo de Fútbol
+IMAGE_QUERY: Real Madrid players celebrating Champions League trophy
+DESCRIPCION: El Real Madrid se coronó campeón de la Champions League
+PALABRAS: Real Madrid, Champions, fútbol, campeón, final
+CONTENIDO: El Real Madrid hizo historia anoche...
 
-        console.log(`📤 Enviando solicitud a Gemini...`);
+🟢 NOTICIA DE POLÍTICA RD:
+TITULO: Luis Abinader anuncia nuevo plan de viviendas en Santo Domingo
+ENTIDAD: Luis Abinader
+CATEGORIA_ENTIDAD: Presidente
+IMAGE_QUERY: Luis Abinader Presidente Dominicana discurso oficial
+DESCRIPCION: El presidente Luis Abinader anunció hoy un ambicioso plan de viviendas
+PALABRAS: Abinader, viviendas, gobierno, Santo Domingo, plan
+CONTENIDO: El presidente Luis Abinader encabezó hoy...
+
+⚪ NOTICIA SIN PERSONA (TECNOLOGÍA):
+TITULO: Apple presenta el nuevo iPhone 15 con innovadoras características
+ENTIDAD: 
+CATEGORIA_ENTIDAD: 
+IMAGE_QUERY: new iPhone 15 product presentation official
+DESCRIPCION: Apple lanzó hoy el nuevo iPhone 15
+PALABRAS: Apple, iPhone, tecnología, lanzamiento, innovación
+CONTENIDO: Apple presentó oficialmente...
+
+Ahora genera una noticia de ${categoria} en República Dominicana:`;
+
+        console.log(`📤 Enviando solicitud a Gemini (Editor de imágenes)...`);
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -401,14 +237,15 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
 
         const data = await response.json();
         const texto = data.candidates[0].content.parts[0].text;
-        console.log(`📝 Respuesta: ${texto.length} caracteres`);
+        console.log(`📝 Respuesta del editor: ${texto.length} caracteres`);
 
-        // ===== PARSEO SIMPLE =====
+        // ===== PARSEO DE LA RESPUESTA =====
         let titulo = "";
-        let persona = "";
+        let entidad = "";
+        let categoriaEntidad = "";
+        let imageQuery = "";
         let descripcion = "";
         let palabras = categoria;
-        let busquedas = [];
         let contenido = "";
 
         const lineas = texto.split('\n');
@@ -419,18 +256,20 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
             if (linea.startsWith('TITULO:')) {
                 titulo = linea.replace('TITULO:', '').trim();
             }
-            else if (linea.startsWith('PERSONA:')) {
-                persona = linea.replace('PERSONA:', '').trim();
+            else if (linea.startsWith('ENTIDAD:')) {
+                entidad = linea.replace('ENTIDAD:', '').trim();
+            }
+            else if (linea.startsWith('CATEGORIA_ENTIDAD:')) {
+                categoriaEntidad = linea.replace('CATEGORIA_ENTIDAD:', '').trim();
+            }
+            else if (linea.startsWith('IMAGE_QUERY:')) {
+                imageQuery = linea.replace('IMAGE_QUERY:', '').trim();
             }
             else if (linea.startsWith('DESCRIPCION:')) {
                 descripcion = linea.replace('DESCRIPCION:', '').trim();
             }
             else if (linea.startsWith('PALABRAS:')) {
                 palabras = linea.replace('PALABRAS:', '').trim();
-            }
-            else if (linea.startsWith('BUSQUEDA:')) {
-                const busquedasTexto = linea.replace('BUSQUEDA:', '').trim();
-                busquedas = busquedasTexto.split('|').map(b => b.trim()).filter(b => b.length > 0);
             }
             else if (linea.startsWith('CONTENIDO:')) {
                 contenido = linea.replace('CONTENIDO:', '').trim();
@@ -443,54 +282,199 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
 
         // Limpiar
         titulo = titulo.replace(/[*_#`]/g, '').trim();
-        persona = persona.replace(/[*_#`]/g, '').trim();
+        entidad = entidad.replace(/[*_#`]/g, '').trim();
+        categoriaEntidad = categoriaEntidad.replace(/[*_#`]/g, '').trim();
+        imageQuery = imageQuery.replace(/[*_#`]/g, '').trim();
         descripcion = descripcion.replace(/[*_#`]/g, '').substring(0, 160);
         palabras = palabras.replace(/[*_#`]/g, '').substring(0, 255);
-        
+
+        // Validaciones
         if (!titulo || titulo.length < 10) {
             titulo = `Nuevos avances en ${categoria} en República Dominicana`;
         }
 
-        if (!contenido || contenido.length < 200) {
-            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos.`;
+        if (!imageQuery) {
+            imageQuery = `${categoria} dominican republic news`;
         }
 
         console.log(`📌 Título: ${titulo.substring(0, 60)}...`);
-        console.log(`📌 Persona detectada: ${persona || 'ninguna'}`);
+        console.log(`🎯 Entidad detectada: ${entidad || 'ninguna'}`);
+        console.log(`🔍 Image Query: ${imageQuery}`);
 
-        // ===== BUSCAR IMAGEN =====
-        let imagenData = null;
-        
-        // PRIORIDAD 1: Si hay persona famosa, buscar por su nombre
-        if (persona && persona.length > 2) {
-            console.log(`🎯 PRIORIDAD 1: Buscando imagen de ${persona}`);
-            imagenData = await buscarImagenPersona(persona, categoria);
+        return {
+            titulo,
+            entidad,
+            categoriaEntidad,
+            imageQuery,
+            descripcion,
+            palabras,
+            contenido,
+            categoria
+        };
+
+    } catch (error) {
+        console.error(`\n❌ ERROR del editor:`, error.message);
+        return null;
+    }
+}
+
+// ==================== 🖼️ REGLA DE ORO: BÚSQUEDA PRIORITARIA ====================
+async function buscarImagenConReglaDeOro(dataNoticia) {
+    try {
+        let busquedaFinal;
+        let tipoBusqueda = "genérica";
+
+        // REGLA DE ORO: Si hay una persona o entidad famosa, ella es la prioridad
+        if (dataNoticia.entidad && dataNoticia.entidad.length > 2) {
+            console.log(`🎯 APLICANDO REGLA DE ORO: Entidad detectada - ${dataNoticia.entidad}`);
+            
+            if (dataNoticia.categoriaEntidad) {
+                busquedaFinal = `${dataNoticia.entidad} ${dataNoticia.categoriaEntidad} official photo`;
+            } else {
+                busquedaFinal = `${dataNoticia.entidad} portrait`;
+            }
+            tipoBusqueda = "por entidad";
+        } 
+        // Si no hay entidad, usar el imageQuery optimizado
+        else if (dataNoticia.imageQuery) {
+            console.log(`🖼️ Usando image query optimizado`);
+            busquedaFinal = dataNoticia.imageQuery;
+            tipoBusqueda = "por query";
+        } 
+        // Último recurso: usar la categoría
+        else {
+            console.log(`📸 Usando categoría como fallback`);
+            busquedaFinal = dataNoticia.categoria;
+            tipoBusqueda = "por categoría";
         }
-        
-        // PRIORIDAD 2: Si no se encontró imagen de persona o no hay persona, usar las búsquedas
-        if (!imagenData && busquedas.length > 0) {
-            console.log(`🖼️ PRIORIDAD 2: Usando búsquedas específicas`);
-            for (const busqueda of busquedas) {
-                imagenData = await buscarImagenGenerica(busqueda, categoria);
-                if (imagenData) break;
+
+        console.log(`🔍 Búsqueda ${tipoBusqueda}: "${busquedaFinal}"`);
+
+        // Formatear para API
+        const busquedaFormateada = busquedaFinal.trim().replace(/\s+/g, '+');
+
+        // ========== 1. PROBAR PEXELS (MEJOR PARA FOTOS PROFESIONALES) ==========
+        if (process.env.PEXELS_API_KEY) {
+            try {
+                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(busquedaFormateada)}&per_page=5&orientation=landscape`;
+                const response = await fetch(url, {
+                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.photos && data.photos.length > 0) {
+                        console.log(`✅ Foto encontrada en Pexels para: ${busquedaFinal}`);
+                        return {
+                            url: data.photos[0].src.landscape,
+                            alt: data.photos[0].alt || busquedaFinal,
+                            source: 'Pexels'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.log(`⚠️ Pexels error: ${e.message}`);
             }
         }
-        
-        // PRIORIDAD 3: Usar el título
-        if (!imagenData) {
-            console.log(`📸 PRIORIDAD 3: Usando título como búsqueda`);
-            imagenData = await buscarImagenGenerica(titulo.substring(0, 50), categoria);
+
+        // ========== 2. PROBAR UNSPLASH ==========
+        if (process.env.UNSPLASH_ACCESS_KEY) {
+            try {
+                const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(busquedaFormateada)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=5`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.results && data.results.length > 0) {
+                        console.log(`✅ Foto encontrada en Unsplash para: ${busquedaFinal}`);
+                        return {
+                            url: data.results[0].urls.regular,
+                            alt: data.results[0].alt_description || busquedaFinal,
+                            source: 'Unsplash'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.log(`⚠️ Unsplash error: ${e.message}`);
+            }
         }
+
+        // ========== 3. PROBAR PIXABAY ==========
+        if (process.env.PIXABAY_API_KEY) {
+            try {
+                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(busquedaFormateada)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.hits && data.hits.length > 0) {
+                        console.log(`✅ Foto encontrada en Pixabay para: ${busquedaFinal}`);
+                        return {
+                            url: data.hits[0].webformatURL,
+                            alt: data.hits[0].tags || busquedaFinal,
+                            source: 'Pixabay'
+                        };
+                    }
+                }
+            } catch (e) {
+                console.log(`⚠️ Pixabay error: ${e.message}`);
+            }
+        }
+
+        console.log(`❌ No se encontró imagen para: ${busquedaFinal}`);
+        return null;
+
+    } catch (error) {
+        console.error('❌ Error en búsqueda de imagen:', error.message);
+        return null;
+    }
+}
+
+// ==================== 🖼️ BANCO DE RESPALDO ====================
+function imagenRespaldo(categoria) {
+    console.log(`📸 Usando imagen de respaldo para: ${categoria}`);
+    
+    const imagenesRespaldo = {
+        'Nacionales': 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
+        'Deportes': 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg',
+        'Internacionales': 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg',
+        'Espectáculos': 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
+        'Economía': 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg',
+        'Tecnología': 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg'
+    };
+    
+    return {
+        url: imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'],
+        alt: `Noticia de ${categoria}`,
+        source: 'respaldo'
+    };
+}
+
+// ==================== 🤖 GENERAR NOTICIA COMPLETA (PROCESO PRINCIPAL) ====================
+async function generarNoticiaCompleta(categoria) {
+    try {
+        // PASO 1: Gemini actúa como EDITOR y genera la noticia con entidades
+        const dataNoticia = await generarNoticiaInteligente(categoria);
         
-        // PRIORIDAD 4: Banco de respaldo
+        if (!dataNoticia) {
+            throw new Error("No se pudo generar la noticia");
+        }
+
+        // PASO 2: Validar contenido
+        if (!dataNoticia.contenido || dataNoticia.contenido.length < 200) {
+            dataNoticia.contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.`;
+        }
+
+        // PASO 3: APLICAR REGLA DE ORO para buscar la imagen
+        let imagenData = await buscarImagenConReglaDeOro(dataNoticia);
+        
+        // PASO 4: Si no se encontró imagen, usar respaldo
         if (!imagenData) {
             imagenData = imagenRespaldo(categoria);
         }
 
-        console.log(`✅ Imagen obtenida de: ${imagenData.source}`);
-
-        // Generar slug
-        const slug = generarSlug(titulo);
+        // PASO 5: Generar slug
+        const slug = generarSlug(dataNoticia.titulo);
         const redactorAsignado = elegirRedactor(categoria);
 
         // Verificar slug duplicado
@@ -500,7 +484,7 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
             slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
         }
 
-        // Guardar en BD
+        // PASO 6: Guardar en BD
         const result = await pool.query(
             `INSERT INTO noticias (
                 titulo, slug, seccion, contenido, 
@@ -510,23 +494,35 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
             RETURNING id, slug, titulo, imagen`,
             [
-                titulo.substring(0, 255),
+                dataNoticia.titulo.substring(0, 255),
                 slugFinal,
                 categoria,
-                contenido,
-                descripcion,
-                palabras.substring(0, 255),
+                dataNoticia.contenido,
+                dataNoticia.descripcion,
+                dataNoticia.palabras.substring(0, 255),
                 redactorAsignado,
                 imagenData.url,
-                imagenData.alt || `Noticia sobre ${persona || categoria}`,
+                imagenData.alt || `Noticia sobre ${dataNoticia.entidad || categoria}`,
                 'Santo Domingo',
                 'publicada'
             ]
         );
 
         const noticia = result.rows[0];
-        console.log(`✅ Noticia guardada con ID: ${noticia.id}`);
-        console.log(`✅ URL: ${BASE_URL}/noticia/${noticia.slug}`);
+        
+        // PASO 7: Mostrar resumen
+        console.log(`
+╔═══════════════════════════════════════════════════════════════════╗
+║  🏮 NOTICIA PUBLICADA CON EDITOR DE IMÁGENES                     ║
+╠═══════════════════════════════════════════════════════════════════╣
+║  📰 Título: ${dataNoticia.titulo.substring(0, 50)}...           ║
+║  🎯 Entidad: ${dataNoticia.entidad || 'ninguna'}                 ║
+║  🔍 Búsqueda: ${dataNoticia.imageQuery}                          ║
+║  🖼️ Fuente: ${imagenData.source}                                 ║
+║  👤 Redactor: ${redactorAsignado}                                ║
+║  🔗 URL: ${BASE_URL}/noticia/${noticia.slug}                     ║
+╚═══════════════════════════════════════════════════════════════════╝
+        `);
 
         return {
             success: true,
@@ -536,9 +532,9 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
             url: `${BASE_URL}/noticia/${noticia.slug}`,
             imagen: noticia.imagen,
             redactor: redactorAsignado,
-            persona: persona || 'ninguna',
+            entidad: dataNoticia.entidad || 'ninguna',
             fuente_imagen: imagenData.source,
-            mensaje: '✅ Noticia generada'
+            mensaje: '✅ Noticia generada con foto de impacto real'
         };
 
     } catch (error) {
@@ -551,7 +547,7 @@ El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de vivie
 const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
 
 // ==================== ⏰ AUTOMATIZACIÓN ====================
-console.log('\n📅 Configurando automatización...');
+console.log('\n📅 Configurando automatización con EDITOR DE IMÁGENES...');
 cron.schedule('0 */6 * * *', async () => {
     console.log('\n⏰ Generando noticia automática (cada 6 horas)...');
     const categoria = CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
@@ -561,7 +557,7 @@ cron.schedule('0 8 * * *', async () => {
     console.log('\n🌅 Generando noticia diaria (8 AM)...');
     await generarNoticiaCompleta('Nacionales');
 });
-console.log('✅ Automatización configurada');
+console.log('✅ Automatización configurada con REGLA DE ORO');
 
 // ==================== RUTAS ====================
 app.get('/health', (req, res) => {
@@ -740,7 +736,8 @@ app.get('/status', async (req, res) => {
             database: dbStatus.rows[0]?.health === 1 ? 'conectado' : 'error',
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
-            version: '9.2'
+            version: '10.0',
+            modo: 'EDITOR DE IMÁGENES ACTIVADO'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -755,22 +752,25 @@ app.use((req, res) => {
 // ==================== INICIAR SERVIDOR ====================
 async function iniciar() {
     try {
-        console.log('\n🚀 Iniciando servidor...');
+        console.log('\n🚀 Iniciando servidor con EDITOR DE IMÁGENES...');
         
         const dbOk = await inicializarBase();
         
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.2 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.0 🏮            ║
 ╠═══════════════════════════════════════════════════════════════════╣
-║ ✅ Servidor en puerto ${PORT}                                     ║
-║ ✅ DETECCIÓN DE PERSONAS FAMOSAS ACTIVADA                        ║
-║ ✅ PRIORIDAD: Buscar por nombre de la persona                    ║
-║ ✅ 3 APIs de imágenes: Unsplash, Pexels, Pixabay                 ║
-║ ✅ Banco de respaldo por categoría                               ║
-║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
-║ ✅ VERSIÓN DEFINITIVA - SIN ERRORES                               ║
+║  ✅ EDITOR DE IMÁGENES ACTIVADO                                  ║
+║  ✅ REGLA DE ORO: Buscar por ENTIDAD primero                     ║
+║  ✅ Ejemplos:                                                     ║
+║     • Diplo → "Diplo DJ performing live"                         ║
+║     • Real Madrid → "Real Madrid players celebrating"            ║
+║     • Luis Abinader → "Luis Abinader Presidente"                 ║
+║  ✅ 3 APIs: Pexels, Unsplash, Pixabay                            ║
+║  ✅ Banco de respaldo por categoría                              ║
+║  ✅ Automatización: Cada 6 horas + 8 AM                           ║
+║  ✅ VERSIÓN DEFINITIVA - FOTOS DE IMPACTO REAL                    ║
 ╚═══════════════════════════════════════════════════════════════════╝
             `);
         });
@@ -780,6 +780,4 @@ async function iniciar() {
     }
 }
 
-iniciar();
-
-module.exports = app;
+iniciar
