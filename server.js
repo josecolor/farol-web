@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.0
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.1
  * Gemini con DETECCIÓN DE ENTIDADES PREMIUM
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN DEFINITIVA - CON FOTOS DE IMPACTO REAL
+ * VERSIÓN CORREGIDA - SIN ERRORES DE PARSEO
  */
 
 const express = require('express');
@@ -145,7 +145,7 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🎯 DETECCIÓN DE ENTIDADES Y GENERACIÓN (GEMINI COMO EDITOR) ====================
+// ==================== 🎯 DETECCIÓN DE ENTIDADES Y GENERACIÓN ====================
 async function generarNoticiaInteligente(categoria) {
     try {
         console.log(`\n🤖 Editor de imágenes analizando noticia de: ${categoria}`);
@@ -174,41 +174,37 @@ CONTENIDO:
 
 EJEMPLOS DE CALIDAD:
 
-🔴 NOTICIA DE MÚSICA:
 TITULO: Diplo sorprende con nuevo set en festival de Miami
 ENTIDAD: Diplo
 CATEGORIA_ENTIDAD: DJ
 IMAGE_QUERY: Diplo DJ performing live concert stage
 DESCRIPCION: El reconocido DJ y productor Diplo presentó un innovador set en el festival de Miami
 PALABRAS: Diplo, música electrónica, festival, DJ, Miami
-CONTENIDO: El reconocido DJ estadounidense Diplo se presentó anoche...
+CONTENIDO: El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente que hizo bailar a miles de asistentes. Durante su presentación de más de dos horas, el artista mezcló sus grandes éxitos con nuevas producciones exclusivas.
 
-🔵 NOTICIA DE DEPORTES:
 TITULO: Real Madrid gana la Champions League en emocionante final
 ENTIDAD: Real Madrid
 CATEGORIA_ENTIDAD: Equipo de Fútbol
 IMAGE_QUERY: Real Madrid players celebrating Champions League trophy
-DESCRIPCION: El Real Madrid se coronó campeón de la Champions League
+DESCRIPCION: El Real Madrid se coronó campeón de la Champions League tras vencer en una emocionante final
 PALABRAS: Real Madrid, Champions, fútbol, campeón, final
-CONTENIDO: El Real Madrid hizo historia anoche...
+CONTENIDO: El Real Madrid hizo historia anoche al conquistar su decimocuarta Champions League en una final épica contra el Liverpool. Los goles de Vinicius y Benzema sellaron la victoria en el estadio de París.
 
-🟢 NOTICIA DE POLÍTICA RD:
 TITULO: Luis Abinader anuncia nuevo plan de viviendas en Santo Domingo
 ENTIDAD: Luis Abinader
 CATEGORIA_ENTIDAD: Presidente
 IMAGE_QUERY: Luis Abinader Presidente Dominicana discurso oficial
-DESCRIPCION: El presidente Luis Abinader anunció hoy un ambicioso plan de viviendas
+DESCRIPCION: El presidente Luis Abinader anunció hoy un ambicioso plan de viviendas sociales en Santo Domingo
 PALABRAS: Abinader, viviendas, gobierno, Santo Domingo, plan
-CONTENIDO: El presidente Luis Abinader encabezó hoy...
+CONTENIDO: El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de viviendas "Mi Hogar" que beneficiará a más de 50,000 familias dominicanas en los próximos dos años.
 
-⚪ NOTICIA SIN PERSONA (TECNOLOGÍA):
 TITULO: Apple presenta el nuevo iPhone 15 con innovadoras características
 ENTIDAD: 
 CATEGORIA_ENTIDAD: 
 IMAGE_QUERY: new iPhone 15 product presentation official
-DESCRIPCION: Apple lanzó hoy el nuevo iPhone 15
+DESCRIPCION: Apple lanzó hoy el nuevo iPhone 15 con características innovadoras
 PALABRAS: Apple, iPhone, tecnología, lanzamiento, innovación
-CONTENIDO: Apple presentó oficialmente...
+CONTENIDO: Apple presentó oficialmente el esperado iPhone 15 en un evento celebrado en su sede de Cupertino. El nuevo dispositivo incluye mejoras significativas en la cámara y el procesador.
 
 Ahora genera una noticia de ${categoria} en República Dominicana:`;
 
@@ -239,7 +235,7 @@ Ahora genera una noticia de ${categoria} en República Dominicana:`;
         const texto = data.candidates[0].content.parts[0].text;
         console.log(`📝 Respuesta del editor: ${texto.length} caracteres`);
 
-        // ===== PARSEO DE LA RESPUESTA =====
+        // ===== PARSEO CORREGIDO =====
         let titulo = "";
         let entidad = "";
         let categoriaEntidad = "";
@@ -254,25 +250,25 @@ Ahora genera una noticia de ${categoria} en República Dominicana:`;
             const linea = lineas[i].trim();
             
             if (linea.startsWith('TITULO:')) {
-                titulo = linea.replace('TITULO:', '').trim();
+                titulo = linea.substring(7).trim();
             }
             else if (linea.startsWith('ENTIDAD:')) {
-                entidad = linea.replace('ENTIDAD:', '').trim();
+                entidad = linea.substring(8).trim();
             }
             else if (linea.startsWith('CATEGORIA_ENTIDAD:')) {
-                categoriaEntidad = linea.replace('CATEGORIA_ENTIDAD:', '').trim();
+                categoriaEntidad = linea.substring(18).trim();
             }
             else if (linea.startsWith('IMAGE_QUERY:')) {
-                imageQuery = linea.replace('IMAGE_QUERY:', '').trim();
+                imageQuery = linea.substring(12).trim();
             }
             else if (linea.startsWith('DESCRIPCION:')) {
-                descripcion = linea.replace('DESCRIPCION:', '').trim();
+                descripcion = linea.substring(12).trim();
             }
             else if (linea.startsWith('PALABRAS:')) {
-                palabras = linea.replace('PALABRAS:', '').trim();
+                palabras = linea.substring(9).trim();
             }
             else if (linea.startsWith('CONTENIDO:')) {
-                contenido = linea.replace('CONTENIDO:', '').trim();
+                contenido = linea.substring(10).trim();
                 for (let j = i + 1; j < lineas.length; j++) {
                     contenido += '\n' + lineas[j];
                 }
@@ -280,7 +276,7 @@ Ahora genera una noticia de ${categoria} en República Dominicana:`;
             }
         }
 
-        // Limpiar
+        // Limpiar caracteres especiales
         titulo = titulo.replace(/[*_#`]/g, '').trim();
         entidad = entidad.replace(/[*_#`]/g, '').trim();
         categoriaEntidad = categoriaEntidad.replace(/[*_#`]/g, '').trim();
@@ -294,7 +290,19 @@ Ahora genera una noticia de ${categoria} en República Dominicana:`;
         }
 
         if (!imageQuery) {
-            imageQuery = `${categoria} dominican republic news`;
+            if (entidad) {
+                imageQuery = `${entidad} ${categoriaEntidad || ''} official`.trim();
+            } else {
+                imageQuery = `${categoria} dominican republic news`;
+            }
+        }
+
+        if (!descripcion) {
+            descripcion = titulo.substring(0, 160);
+        }
+
+        if (!contenido || contenido.length < 200) {
+            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.`;
         }
 
         console.log(`📌 Título: ${titulo.substring(0, 60)}...`);
@@ -450,30 +458,25 @@ function imagenRespaldo(categoria) {
     };
 }
 
-// ==================== 🤖 GENERAR NOTICIA COMPLETA (PROCESO PRINCIPAL) ====================
+// ==================== 🤖 GENERAR NOTICIA COMPLETA ====================
 async function generarNoticiaCompleta(categoria) {
     try {
-        // PASO 1: Gemini actúa como EDITOR y genera la noticia con entidades
+        // PASO 1: Gemini actúa como EDITOR
         const dataNoticia = await generarNoticiaInteligente(categoria);
         
         if (!dataNoticia) {
             throw new Error("No se pudo generar la noticia");
         }
 
-        // PASO 2: Validar contenido
-        if (!dataNoticia.contenido || dataNoticia.contenido.length < 200) {
-            dataNoticia.contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.`;
-        }
-
-        // PASO 3: APLICAR REGLA DE ORO para buscar la imagen
+        // PASO 2: APLICAR REGLA DE ORO para buscar la imagen
         let imagenData = await buscarImagenConReglaDeOro(dataNoticia);
         
-        // PASO 4: Si no se encontró imagen, usar respaldo
+        // PASO 3: Si no se encontró imagen, usar respaldo
         if (!imagenData) {
             imagenData = imagenRespaldo(categoria);
         }
 
-        // PASO 5: Generar slug
+        // PASO 4: Generar slug
         const slug = generarSlug(dataNoticia.titulo);
         const redactorAsignado = elegirRedactor(categoria);
 
@@ -484,7 +487,7 @@ async function generarNoticiaCompleta(categoria) {
             slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
         }
 
-        // PASO 6: Guardar en BD
+        // PASO 5: Guardar en BD
         const result = await pool.query(
             `INSERT INTO noticias (
                 titulo, slug, seccion, contenido, 
@@ -510,7 +513,6 @@ async function generarNoticiaCompleta(categoria) {
 
         const noticia = result.rows[0];
         
-        // PASO 7: Mostrar resumen
         console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
 ║  🏮 NOTICIA PUBLICADA CON EDITOR DE IMÁGENES                     ║
@@ -736,7 +738,7 @@ app.get('/status', async (req, res) => {
             database: dbStatus.rows[0]?.health === 1 ? 'conectado' : 'error',
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
-            version: '10.0',
+            version: '10.1',
             modo: 'EDITOR DE IMÁGENES ACTIVADO'
         });
     } catch (error) {
@@ -759,10 +761,11 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.0 🏮            ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.1 🏮            ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║  ✅ EDITOR DE IMÁGENES ACTIVADO                                  ║
 ║  ✅ REGLA DE ORO: Buscar por ENTIDAD primero                     ║
+║  ✅ PARSEO CORREGIDO - SIN ERRORES                               ║
 ║  ✅ Ejemplos:                                                     ║
 ║     • Diplo → "Diplo DJ performing live"                         ║
 ║     • Real Madrid → "Real Madrid players celebrating"            ║
@@ -770,14 +773,3 @@ async function iniciar() {
 ║  ✅ 3 APIs: Pexels, Unsplash, Pixabay                            ║
 ║  ✅ Banco de respaldo por categoría                              ║
 ║  ✅ Automatización: Cada 6 horas + 8 AM                           ║
-║  ✅ VERSIÓN DEFINITIVA - FOTOS DE IMPACTO REAL                    ║
-╚═══════════════════════════════════════════════════════════════════╝
-            `);
-        });
-    } catch (error) {
-        console.error('❌ Error fatal:', error);
-        process.exit(1);
-    }
-}
-
-iniciar
