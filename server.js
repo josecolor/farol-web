@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2
- * Gemini con DETECCIÓN DE ENTIDADES PREMIUM
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2 - COMPLETO
+ * Gemini con DETECCIÓN DE ENTIDADES PREMIUM (Regla de Oro)
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN COMPLETA - CORREGIDA - SIN ERRORES DE PARSEO
+ * VERSIÓN DEFINITIVA - TODAS LAS LLAVES CERRADAS
  */
 
 const express = require('express');
@@ -793,4 +793,6 @@ async function iniciar() {
 ║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2 🏮            ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║  ✅ Servidor en puerto ${PORT}                                     ║
-║  ✅ PostgreSQL conectado y migrado                                 ║
+║  ✅ PostgreSQL conectado y migrado                               ║
+║  ✅ EDITOR DE IMÁGENES ACTIVADO                                  ║
+║  ✅ REGLA
