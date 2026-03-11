@@ -109,6 +109,54 @@
         .noticia-contenido p {
             margin-bottom: 20px;
         }
+        
+        /* ESTILOS PARA EL SISTEMA "VER MÁS" */
+        .contenido-recortado {
+            max-height: 300px;
+            overflow: hidden;
+            position: relative;
+            transition: max-height 0.5s ease;
+        }
+        .contenido-recortado::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, #1a1a1a);
+            pointer-events: none;
+        }
+        .contenido-completo {
+            max-height: none;
+        }
+        .contenido-completo::after {
+            display: none;
+        }
+        .btn-ver-mas {
+            display: inline-block;
+            background: #FF8C00;
+            color: black;
+            font-weight: bold;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 40px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+            border: 2px solid #FF8C00;
+        }
+        .btn-ver-mas:hover {
+            background: transparent;
+            color: #FF8C00;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 140, 0, 0.3);
+        }
+        .btn-ver-mas.oculto {
+            display: none;
+        }
+        
         .noticia-footer {
             margin-top: 40px;
             padding-top: 20px;
@@ -243,8 +291,12 @@
                 <img src="{{IMAGEN}}" alt="{{ALT}}" loading="lazy">
             </div>
 
+            <!-- CONTENIDO CON SISTEMA VER MÁS -->
             <div class="noticia-contenido">
-                {{CONTENIDO}}
+                <div id="contenidoNoticia" class="contenido-recortado">
+                    {{CONTENIDO}}
+                </div>
+                <button id="btnVerMas" class="btn-ver-mas">VER MÁS</button>
             </div>
 
             <div class="noticia-footer">
@@ -272,11 +324,44 @@
     </footer>
 
     <script>
-        // Obtener la URL actual para compartir
+        // ==================== SISTEMA VER MÁS ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            const contenido = document.getElementById('contenidoNoticia');
+            const btnVerMas = document.getElementById('btnVerMas');
+            
+            // Calcular altura real del contenido
+            const alturaCompleta = contenido.scrollHeight;
+            
+            // Si el contenido es más corto que 300px, ocultar el botón
+            if (alturaCompleta <= 300) {
+                btnVerMas.classList.add('oculto');
+                contenido.classList.remove('contenido-recortado');
+                contenido.classList.add('contenido-completo');
+            }
+            
+            // Evento del botón
+            btnVerMas.addEventListener('click', function() {
+                if (contenido.classList.contains('contenido-recortado')) {
+                    // Mostrar completo
+                    contenido.classList.remove('contenido-recortado');
+                    contenido.classList.add('contenido-completo');
+                    btnVerMas.textContent = 'VER MENOS';
+                } else {
+                    // Volver a recortar
+                    contenido.classList.remove('contenido-completo');
+                    contenido.classList.add('contenido-recortado');
+                    btnVerMas.textContent = 'VER MÁS';
+                    
+                    // Scroll suave hacia arriba
+                    contenido.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // ==================== COMPARTIR ====================
         const urlActual = window.location.href;
         const tituloActual = document.querySelector('h1')?.textContent || 'Noticia';
         
-        // Actualizar los enlaces de compartir
         document.querySelectorAll('.compartir a').forEach(link => {
             let href = link.getAttribute('href');
             href = href.replace('{{URL}}', encodeURIComponent(urlActual));
@@ -284,7 +369,7 @@
             link.setAttribute('href', href);
         });
 
-        // Cargar noticias relacionadas
+        // ==================== NOTICIAS RELACIONADAS ====================
         async function cargarRelacionadas() {
             try {
                 const response = await fetch('/api/noticias');
