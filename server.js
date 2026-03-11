@@ -1,6 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V15.0
- * MEJORAS: Cada 2 horas + Noticias relacionadas + SEO Discover + Anti-duplicados + Sitemap mejorado
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V15.0 COMPLETO
+ * PROMPT MINIMALISTA POTENTE - SIN ERROR 429
+ * MEJORAS: Cada 2 horas + Anti-duplicados + Relacionadas + SEO Discover + Sitemap mejorado
  */
 
 const express = require('express');
@@ -46,41 +47,17 @@ function elegirRedactor(categoria) {
 
 // ==================== SLUG ====================
 function generarSlug(texto) {
-    return texto.toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .substring(0, 80);
+    return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 80);
 }
 
 // ==================== BANCO DE IMÁGENES ====================
 const BANCO_IMAGENES = {
-    'Nacionales': [
-        'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-        'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg'
-    ],
-    'Deportes': [
-        'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg',
-        'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg'
-    ],
-    'Internacionales': [
-        'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg',
-        'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg'
-    ],
-    'Espectáculos': [
-        'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
-        'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg'
-    ],
-    'Economía': [
-        'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg',
-        'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg'
-    ],
-    'Tecnología': [
-        'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg',
-        'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg'
-    ]
+    'Nacionales': ['https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg', 'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg'],
+    'Deportes': ['https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg', 'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg'],
+    'Internacionales': ['https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg', 'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg'],
+    'Espectáculos': ['https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg', 'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg'],
+    'Economía': ['https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg', 'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg'],
+    'Tecnología': ['https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg', 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg']
 };
 
 // ==================== INICIALIZAR BD ====================
@@ -108,6 +85,59 @@ async function inicializarBase() {
         console.error('❌ Error BD:', e.message);
     } finally {
         client.release();
+    }
+}
+
+// ==================== VERIFICAR TÍTULO DUPLICADO ====================
+async function tituloDuplicado(titulo) {
+    try {
+        const tituloNormalizado = titulo.toLowerCase().replace(/[^\w\s]/g, '').substring(0, 50);
+        const result = await pool.query('SELECT titulo FROM noticias WHERE estado = $1', ['publicada']);
+        
+        for (const row of result.rows) {
+            const existente = row.titulo.toLowerCase().replace(/[^\w\s]/g, '').substring(0, 50);
+            let coincidencias = 0;
+            const palabrasTitulo = tituloNormalizado.split(' ');
+            const palabrasExistente = existente.split(' ');
+            
+            for (const palabra of palabrasTitulo) {
+                if (palabra.length > 3 && palabrasExistente.includes(palabra)) coincidencias++;
+            }
+            
+            if (coincidencias / Math.max(palabrasTitulo.length, 1) > 0.6) return true;
+        }
+        return false;
+    } catch (error) {
+        return false;
+    }
+}
+
+// ==================== NOTICIAS RELACIONADAS ====================
+async function obtenerRelacionadas(noticiaId, seccion, keywords, limit = 4) {
+    try {
+        const palabras = keywords ? keywords.split(',').map(k => k.trim().toLowerCase()) : [];
+        let query = 'SELECT id, titulo, slug, seccion, imagen, fecha FROM noticias WHERE id != $1 AND estado = $2';
+        const params = [noticiaId, 'publicada'];
+        
+        if (seccion) {
+            query += ` AND seccion = $3`;
+            params.push(seccion);
+        }
+        
+        if (palabras.length > 0) {
+            for (let i = 0; i < Math.min(palabras.length, 2); i++) {
+                query += ` AND (titulo ILIKE $${params.length + 1} OR contenido ILIKE $${params.length + 1})`;
+                params.push(`%${palabras[i]}%`);
+            }
+        }
+        
+        query += ` ORDER BY fecha DESC LIMIT $${params.length + 1}`;
+        params.push(limit);
+        
+        const result = await pool.query(query, params);
+        return result.rows;
+    } catch (error) {
+        return [];
     }
 }
 
@@ -223,92 +253,6 @@ async function buscarImagen(persona, busqueda, categoria) {
     }
 }
 
-// ==================== VERIFICAR TÍTULO DUPLICADO ====================
-async function tituloDuplicado(titulo) {
-    try {
-        // Normalizar título para comparación
-        const tituloNormalizado = titulo.toLowerCase().replace(/[^\w\s]/g, '').substring(0, 50);
-        
-        const result = await pool.query(
-            `SELECT titulo FROM noticias WHERE estado = $1`,
-            ['publicada']
-        );
-        
-        for (const row of result.rows) {
-            const existenteNormalizado = row.titulo.toLowerCase().replace(/[^\w\s]/g, '').substring(0, 50);
-            
-            // Calcular similitud (simple)
-            let coincidencias = 0;
-            const palabrasTitulo = tituloNormalizado.split(' ');
-            const palabrasExistente = existenteNormalizado.split(' ');
-            
-            for (const palabra of palabrasTitulo) {
-                if (palabra.length > 3 && palabrasExistente.includes(palabra)) {
-                    coincidencias++;
-                }
-            }
-            
-            const similitud = coincidencias / Math.max(palabrasTitulo.length, 1);
-            
-            if (similitud > 0.6) { // 60% de similitud = duplicado
-                console.log(`⚠️ Título similar encontrado: ${row.titulo} (similitud: ${Math.round(similitud*100)}%)`);
-                return true;
-            }
-        }
-        
-        return false;
-    } catch (error) {
-        console.error('❌ Error verificando duplicado:', error.message);
-        return false; // En caso de error, permitir guardar
-    }
-}
-
-// ==================== NOTICIAS RELACIONADAS ====================
-async function obtenerRelacionadas(noticiaId, seccion, keywords, limit = 4) {
-    try {
-        // Extraer palabras clave
-        const palabras = keywords ? keywords.split(',').map(k => k.trim().toLowerCase()) : [];
-        
-        let query = `
-            SELECT id, titulo, slug, seccion, imagen, fecha, redactor 
-            FROM noticias 
-            WHERE id != $1 AND estado = 'publicada'
-        `;
-        const params = [noticiaId];
-        let paramIndex = 2;
-        
-        // Prioridad 1: Misma sección
-        if (seccion) {
-            query += ` AND seccion = $${paramIndex}`;
-            params.push(seccion);
-            paramIndex++;
-        }
-        
-        // Prioridad 2: Coincidencia con palabras clave (si hay)
-        if (palabras.length > 0) {
-            const condiciones = [];
-            for (let i = 0; i < Math.min(palabras.length, 3); i++) {
-                condiciones.push(`(titulo ILIKE $${paramIndex} OR contenido ILIKE $${paramIndex})`);
-                params.push(`%${palabras[i]}%`);
-                paramIndex++;
-            }
-            if (condiciones.length > 0) {
-                query += ` AND (${condiciones.join(' OR ')})`;
-            }
-        }
-        
-        query += ` ORDER BY fecha DESC LIMIT $${paramIndex}`;
-        params.push(limit);
-        
-        const result = await pool.query(query, params);
-        return result.rows;
-        
-    } catch (error) {
-        console.error('❌ Error obteniendo relacionadas:', error.message);
-        return [];
-    }
-}
-
 // ==================== GENERAR NOTICIA ====================
 async function generarNoticia(categoria) {
     try {
@@ -371,10 +315,10 @@ CONTENIDO:
         // Limpiar
         titulo = titulo.replace(/[*_#`]/g, '').trim().substring(0, 255) || `Noticia de ${categoria}`;
         
-        // VERIFICAR SI ES DUPLICADO
+        // MEJORA 4: Verificar duplicados
         const esDuplicado = await tituloDuplicado(titulo);
         if (esDuplicado) {
-            console.log(`⚠️ Título duplicado, se omite generación: ${titulo.substring(0, 50)}`);
+            console.log(`⚠️ Título duplicado, se omite: ${titulo.substring(0, 50)}`);
             return { success: false, error: 'Título similar ya existe' };
         }
         
@@ -386,6 +330,7 @@ CONTENIDO:
 
         console.log(`✅ Título: ${titulo.substring(0, 50)}`);
         console.log(`✅ Persona: ${persona || 'ninguna'}`);
+        console.log(`✅ Búsqueda imagen: ${busqueda_imagen}`);
 
         // Buscar imagen
         const imagen = await buscarImagen(persona, busqueda_imagen, categoria);
@@ -436,7 +381,6 @@ cron.schedule('0 */2 * * *', async () => {
     await generarNoticia(cat);
 });
 
-// Mantener también la de 8 AM por si acaso
 cron.schedule('0 8 * * *', async () => {
     console.log(`\n🌅 [${new Date().toLocaleTimeString()}] Generando noticia diaria: Nacionales`);
     await generarNoticia('Nacionales');
@@ -451,10 +395,7 @@ app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 
 
 app.get('/api/noticias', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT id, titulo, slug, seccion, imagen, fecha, vistas, redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30',
-            ['publicada']
-        );
+        const result = await pool.query('SELECT id, titulo, slug, seccion, imagen, fecha, vistas, redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30', ['publicada']);
         res.json({ success: true, noticias: result.rows });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
@@ -468,17 +409,11 @@ app.post('/api/generar-noticia', async (req, res) => {
     res.status(resultado.success ? 200 : 500).json(resultado);
 });
 
-// ==================== NOTICIA POR SLUG (MEJORA 2: Noticias relacionadas) ====================
+// ==================== NOTICIA POR SLUG (MEJORA 2 y 3) ====================
 app.get('/noticia/:slug', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM noticias WHERE slug = $1 AND estado = $2',
-            [req.params.slug, 'publicada']
-        );
-        
-        if (result.rows.length === 0) {
-            return res.status(404).send('Noticia no encontrada');
-        }
+        const result = await pool.query('SELECT * FROM noticias WHERE slug = $1 AND estado = $2', [req.params.slug, 'publicada']);
+        if (result.rows.length === 0) return res.status(404).send('Noticia no encontrada');
 
         const n = result.rows[0];
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [n.id]);
@@ -489,11 +424,11 @@ app.get('/noticia/:slug', async (req, res) => {
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
             
-            // MEJORA 3: SEO mejorado para Google Discover
+            // MEJORA 3: SEO para Google Discover
             const fechaISO = new Date(n.fecha).toISOString();
             const meta = `<title>${n.titulo} | El Farol al Día</title>
 <meta name="description" content="${n.seo_description || n.titulo}">
-<meta name="keywords" content="${n.seo_keywords || n.seccion}">
+<meta name="keywords" content="${n.seo_keywords}">
 <meta property="og:title" content="${n.titulo}">
 <meta property="og:description" content="${n.seo_description || n.titulo}">
 <meta property="og:image" content="${n.imagen}">
@@ -502,9 +437,6 @@ app.get('/noticia/:slug', async (req, res) => {
 <meta property="article:published_time" content="${fechaISO}">
 <meta property="article:author" content="${n.redactor}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${n.titulo}">
-<meta name="twitter:description" content="${n.seo_description || n.titulo}">
-<meta name="twitter:image" content="${n.imagen}">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -514,11 +446,7 @@ app.get('/noticia/:slug', async (req, res) => {
   "image": "${n.imagen}",
   "datePublished": "${fechaISO}",
   "author": {"@type": "Person", "name": "${n.redactor}"},
-  "publisher": {
-    "@type": "Organization",
-    "name": "El Farol al Día",
-    "logo": {"@type": "ImageObject", "url": "${BASE_URL}/logo.png"}
-  }
+  "publisher": {"@type": "Organization", "name": "El Farol al Día"}
 }
 </script>`;
 
@@ -555,66 +483,38 @@ app.get('/noticia/:slug', async (req, res) => {
 
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.send(html);
-            
         } catch (e) {
-            // Fallback si no existe el HTML
-            res.json({ 
-                success: true, 
-                noticia: n,
-                relacionadas: relacionadas 
-            });
+            res.json({ success: true, noticia: n, relacionadas });
         }
-        
     } catch (e) {
-        console.error('Error:', e.message);
-        res.status(500).send('Error interno');
+        res.status(500).send('Error');
     }
 });
 
 // ==================== SITEMAP MEJORADO (MEJORA 5) ====================
 app.get('/sitemap.xml', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT slug, fecha FROM noticias WHERE estado=$1 ORDER BY fecha DESC',
-            ['publicada']
-        );
+        const result = await pool.query('SELECT slug, fecha FROM noticias WHERE estado=$1 ORDER BY fecha DESC', ['publicada']);
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
         
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        xml += '<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        xml += `<url><loc>${BASE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
         
-        // Página principal
-        xml += `<url>
-  <loc>${BASE_URL}/</loc>
-  <changefreq>daily</changefreq>
-  <priority>1.0</priority>
-</url>\n`;
-
-        // Noticias
         result.rows.forEach(n => {
             const fecha = new Date(n.fecha).toISOString().split('T')[0];
-            xml += `<url>
-  <loc>${BASE_URL}/noticia/${n.slug}</loc>
-  <lastmod>${fecha}</lastmod>
-  <changefreq>daily</changefreq>
-  <priority>0.8</priority>
-</url>\n`;
+            xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${fecha}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>\n`;
         });
-
-        xml += '</urlset>';
         
+        xml += '</urlset>';
         res.header('Content-Type', 'application/xml');
         res.send(xml);
     } catch (e) {
-        res.status(500).send('Error generando sitemap');
+        res.status(500).send('Error');
     }
 });
 
 app.get('/robots.txt', (req, res) => {
     res.header('Content-Type', 'text/plain');
-    res.send(`User-agent: *
-Allow: /
-Disallow: /api/
-Sitemap: ${BASE_URL}/sitemap.xml`);
+    res.send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${BASE_URL}/sitemap.xml`);
 });
 
 app.get('/status', async (req, res) => {
@@ -644,8 +544,8 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔════════════════════════════════════════════════════════════════════╗
-║      🏮 EL FAROL AL DÍA - SERVIDOR V15.0 FINAL 🏮                ║
-║                 MEJORAS COMPLETAS IMPLEMENTADAS                    ║
+║      🏮 EL FAROL AL DÍA - SERVIDOR V15.0 COMPLETO 🏮             ║
+║        PROMPT MINIMALISTA POTENTE - TODAS LAS MEJORAS              ║
 ╠════════════════════════════════════════════════════════════════════╣
 ║ ✅ Puerto: ${PORT}                                                  ║
 ║ ✅ PostgreSQL: Conectado                                           ║
