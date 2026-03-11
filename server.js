@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V11.0 FINAL
- * DETECCIÓN DE ENTIDADES + BÚSQUEDA INTELIGENTE DE IMÁGENES
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V12 COMPLETO
+ * PROMPT DEFINITIVO V13 INTEGRADO
+ * EDITOR VISUAL PROFESIONAL + BÚSQUEDA INTELIGENTE DE IMÁGENES
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * SISTEMA COMO EDITOR DE PERIÓDICO PROFESIONAL
  */
 
 const express = require('express');
@@ -161,7 +161,7 @@ async function inicializarBase() {
     }
 }
 
-// ==================== BUSCAR IMAGEN CON REINTENTOS ====================
+// ==================== BUSCAR IMAGEN INTELIGENTE ====================
 async function buscarImagenInteligente(persona, busquedas, categoria) {
     try {
         console.log(`\n🎬 BÚSQUEDA INTELIGENTE DE IMÁGENES`);
@@ -250,9 +250,9 @@ async function buscarImagenInteligente(persona, busquedas, categoria) {
             }
         }
 
-        // PRIORIDAD 2: Usar las búsquedas genéricas
+        // PRIORIDAD 2: Usar las búsquedas principales
         if (busquedas && busquedas.length > 0) {
-            console.log(`📸 PRIORIDAD 2: Buscando por queries genéricas`);
+            console.log(`📸 PRIORIDAD 2: Buscando por queries inteligentes`);
             
             for (const query of busquedas.slice(0, 2)) {
                 // UNSPLASH
@@ -270,7 +270,7 @@ async function buscarImagenInteligente(persona, busquedas, categoria) {
                                     source: 'Unsplash',
                                     query: query
                                 };
-                                console.log(`✅ Imagen genérica en Unsplash`);
+                                console.log(`✅ Imagen inteligente en Unsplash`);
                                 return imagen;
                             }
                         }
@@ -297,7 +297,7 @@ async function buscarImagenInteligente(persona, busquedas, categoria) {
                                     source: 'Pexels',
                                     query: query
                                 };
-                                console.log(`✅ Imagen genérica en Pexels`);
+                                console.log(`✅ Imagen inteligente en Pexels`);
                                 return imagen;
                             }
                         }
@@ -322,7 +322,7 @@ async function buscarImagenInteligente(persona, busquedas, categoria) {
                                     source: 'Pixabay',
                                     query: query
                                 };
-                                console.log(`✅ Imagen genérica en Pixabay`);
+                                console.log(`✅ Imagen inteligente en Pixabay`);
                                 return imagen;
                             }
                         }
@@ -361,30 +361,124 @@ async function buscarImagenInteligente(persona, busquedas, categoria) {
     }
 }
 
+// ==================== PROMPT DEFINITIVO V13 ====================
+function obtenerPrompt(categoria) {
+    return `Eres un EDITOR VISUAL de un periódico digital profesional (como CNN, BBC, El Comercio).
+
+Tu trabajo:
+1. Escribir la noticia
+2. Elegir la imagen CORRECTA
+3. Hacer un análisis de referencia antes de decidir
+
+===== PASO 1: ANALIZAR LA NOTICIA =====
+
+Antes de escribir, analiza profundamente:
+
+¿QUIÉN es el protagonista?
+- ¿Una persona famosa?
+- ¿Un equipo?
+- ¿Una empresa?
+- ¿Un grupo de personas?
+
+¿CUÁL es el evento principal?
+- ¿Una actuación?
+- ¿Un lanzamiento?
+- ¿Un partido?
+- ¿Una ceremonia?
+- ¿Un anuncio?
+
+¿QUÉ ELEMENTO VISUAL representa mejor la historia?
+Puede ser:
+- Una PERSONA (Diplo, Messi, Luis Abinader)
+- Un OBJETO (iPhone, Tesla, trofeo)
+- Una ACCIÓN (celebración, presentación, actuación)
+- Un LUGAR (estadio, ciudad, escena)
+- Un MOMENTO (gol, lanzamiento, discurso)
+
+===== PASO 2: IMAGINAR OTROS ARTÍCULOS =====
+
+Piensa como si buscaras esta noticia en Google.
+
+Si CNN cubriera esta noticia, ¿qué imagen usaría?
+Si BBC cubriera esta noticia, ¿qué mostrarían?
+Si un periódico local cubriera esto, ¿qué capturarían?
+
+===== PASO 3: DEFINIR LA IMAGEN IDEAL =====
+
+REGLAS:
+
+✓ Si habla de PERSONA FAMOSA → Imagen DEBE mostrar a esa persona
+✓ Si habla de PRODUCTO → Imagen DEBE mostrar el producto
+✓ Si habla de DEPORTE → Imagen DEBE mostrar acción o celebración
+✓ Si habla de LUGAR → Imagen DEBE mostrar el lugar
+✓ Si habla de POLÍTICA → Imagen DEBE mostrar al político o el evento
+
+===== PASO 4: CREAR BÚSQUEDAS DE IMAGEN =====
+
+Las búsquedas DEBEN:
+✓ Tener 3-5 palabras específicas
+✓ Usar nombres reales
+✓ Evitar palabras genéricas
+✓ Usar descriptores de acción
+
+Ejemplos CORRECTOS:
+✓ "Diplo DJ performing live"
+✓ "Messi goal celebration"
+✓ "Real Madrid champions league trophy"
+✓ "iPhone 16 product presentation"
+
+Ejemplos INCORRECTOS:
+✗ "music festival"
+✗ "football player"
+✗ "technology event"
+
+===== PASO 5: GENERAR RESULTADO =====
+
+Responde con esta estructura EXACTA:
+
+TITULO:
+[título 50-60 caracteres]
+
+TIPO_NOTICIA:
+[Persona / Producto / Deporte / Lugar / Política / Evento]
+
+ANALISIS_VISUAL:
+[Tu análisis como editor: qué elemento es protagonista y por qué]
+
+PROTAGONISTA_VISUAL:
+[Describe qué debe estar en la imagen]
+
+PATRON_VISUAL:
+[Qué harían CNN/BBC - describe el patrón]
+
+BUSQUEDA_PRINCIPAL:
+[búsqueda más precisa]
+
+BUSQUEDAS_SECUNDARIAS:
+[búsqueda] | [búsqueda] | [búsqueda]
+
+DESCRIPCION:
+[descripción SEO máximo 160 caracteres]
+
+PALABRAS:
+[5 palabras clave separadas por coma]
+
+CONTENIDO:
+[400-500 palabras de noticia profesional]
+
+---
+
+Ahora genera una noticia de ${categoria} en República Dominicana.
+
+Aplica TODOS estos pasos como EDITOR VISUAL PROFESIONAL.`;
+}
+
 // ==================== GENERAR NOTICIA ====================
 async function generarNoticiaCompleta(categoria) {
     try {
         console.log(`\n🤖 Generando noticia para: ${categoria}`);
 
-        const prompt = `Genera una noticia profesional sobre ${categoria} en República Dominicana.
-
-REGLAS IMPORTANTES:
-- Título: Atractivo, único, 50-60 caracteres
-- Contenido: 400-500 palabras
-- Incluye datos específicos de RD
-- Si es sobre una persona famosa, artista, DJ, político o celebridad, INCLUYE su nombre
-- Sin asteriscos, sin formato especial
-
-Responde EXACTAMENTE así:
-
-TITULO: [título aquí]
-PERSONA: [nombre de persona si aplica, sino dejar vacío]
-DESCRIPCION: [descripción 160 caracteres máximo]
-PALABRAS: [5 palabras clave separadas por coma]
-BUSQUEDA: [3 búsquedas en inglés separadas por | ]
-CONTENIDO:
-[contenido 400-500 palabras]`;
-
+        const prompt = obtenerPrompt(categoria);
         console.log(`📤 Enviando a Gemini...`);
 
         const response = await fetch(
@@ -413,10 +507,15 @@ CONTENIDO:
 
         // PARSEAR RESPUESTA
         let titulo = "";
+        let tipo_noticia = "";
+        let analisis_visual = "";
+        let protagonista_visual = "";
+        let patron_visual = "";
         let persona = "";
+        let busqueda_principal = "";
+        let busquedas_secundarias = [];
         let descripcion = "";
         let palabras = categoria;
-        let busquedas = [];
         let contenido = "";
 
         const lineas = texto.split('\n');
@@ -426,18 +525,30 @@ CONTENIDO:
             if (linea.startsWith('TITULO:')) {
                 titulo = linea.replace('TITULO:', '').trim();
             }
-            else if (linea.startsWith('PERSONA:')) {
-                persona = linea.replace('PERSONA:', '').trim();
+            else if (linea.startsWith('TIPO_NOTICIA:')) {
+                tipo_noticia = linea.replace('TIPO_NOTICIA:', '').trim();
+            }
+            else if (linea.startsWith('ANALISIS_VISUAL:')) {
+                analisis_visual = linea.replace('ANALISIS_VISUAL:', '').trim();
+            }
+            else if (linea.startsWith('PROTAGONISTA_VISUAL:')) {
+                protagonista_visual = linea.replace('PROTAGONISTA_VISUAL:', '').trim();
+            }
+            else if (linea.startsWith('PATRON_VISUAL:')) {
+                patron_visual = linea.replace('PATRON_VISUAL:', '').trim();
+            }
+            else if (linea.startsWith('BUSQUEDA_PRINCIPAL:')) {
+                busqueda_principal = linea.replace('BUSQUEDA_PRINCIPAL:', '').trim();
+            }
+            else if (linea.startsWith('BUSQUEDAS_SECUNDARIAS:')) {
+                const sec = linea.replace('BUSQUEDAS_SECUNDARIAS:', '').trim();
+                busquedas_secundarias = sec.split('|').map(b => b.trim()).filter(b => b.length > 0);
             }
             else if (linea.startsWith('DESCRIPCION:')) {
                 descripcion = linea.replace('DESCRIPCION:', '').trim();
             }
             else if (linea.startsWith('PALABRAS:')) {
                 palabras = linea.replace('PALABRAS:', '').trim();
-            }
-            else if (linea.startsWith('BUSQUEDA:')) {
-                const busquedasTexto = linea.replace('BUSQUEDA:', '').trim();
-                busquedas = busquedasTexto.split('|').map(b => b.trim()).filter(b => b.length > 0);
             }
             else if (linea.startsWith('CONTENIDO:')) {
                 contenido = linea.replace('CONTENIDO:', '').trim();
@@ -450,9 +561,9 @@ CONTENIDO:
 
         // Limpiar
         titulo = titulo.replace(/[*_#`]/g, '').trim().substring(0, 255);
-        persona = persona.replace(/[*_#`]/g, '').trim();
         descripcion = descripcion.replace(/[*_#`]/g, '').trim().substring(0, 160);
         palabras = palabras.replace(/[*_#`]/g, '').trim().substring(0, 255);
+        busqueda_principal = busqueda_principal.replace(/[*_#`]/g, '').trim();
 
         if (!titulo || titulo.length < 10) {
             titulo = `Nuevos avances en ${categoria} en RD`;
@@ -463,10 +574,14 @@ CONTENIDO:
         }
 
         console.log(`✅ Título: ${titulo.substring(0, 60)}`);
-        console.log(`✅ Persona: ${persona || 'ninguna'}`);
+        console.log(`✅ Tipo: ${tipo_noticia}`);
+        console.log(`✅ Búsqueda principal: ${busqueda_principal}`);
 
+        // Combinar búsquedas
+        const todasLasBusquedas = [busqueda_principal, ...busquedas_secundarias].filter(b => b && b.length > 0);
+        
         // BUSCAR IMAGEN
-        const imagenData = await buscarImagenInteligente(persona, busquedas, categoria);
+        const imagenData = await buscarImagenInteligente(persona, todasLasBusquedas, categoria);
         
         const slug = generarSlug(titulo);
         const redactor = elegirRedactor(categoria);
@@ -509,13 +624,13 @@ CONTENIDO:
             url: `${BASE_URL}/noticia/${noticia.slug}`,
             imagen: imagenData.url,
             redactor: redactor,
-            persona: persona || 'ninguna',
+            tipo_noticia: tipo_noticia,
             imagen_source: imagenData.source,
             mensaje: '✅ Noticia publicada'
         };
 
     } catch (error) {
-        console.error(`❌ ERROR:`, error.message);
+        console.error(`\n❌ ERROR:`, error.message);
         return { success: false, error: error.message };
     }
 }
@@ -668,7 +783,8 @@ app.get('/status', async (req, res) => {
             status: 'OK',
             noticias: parseInt(result.rows[0].count),
             uptime: Math.floor(process.uptime()),
-            version: '11.0'
+            version: '12.0',
+            sistema: 'Editor Visual Profesional V13'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -683,24 +799,30 @@ app.use((req, res) => {
 // ==================== INICIAR ====================
 async function iniciar() {
     try {
-        console.log('\n🚀 Iniciando servidor V11.0...\n');
+        console.log('\n🚀 Iniciando servidor V12...\n');
         await inicializarBase();
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
-╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR V11.0 FINAL 🏮                  ║
-║        BÚSQUEDA INTELIGENTE DE IMÁGENES + DETECCIÓN ENTIDADES    ║
-╠═══════════════════════════════════════════════════════════════════╣
-║ ✅ Servidor en puerto ${PORT}                                     ║
-║ ✅ DETECCIÓN DE PERSONAS: ACTIVO                                  ║
-║ ✅ BÚSQUEDA POR APIs: Unsplash, Pexels, Pixabay                   ║
-║ ✅ BANCO INTELIGENTE: Respaldo por categoría                      ║
-║ ✅ REINTENTOS: Con delays para evitar 429                         ║
-║ ✅ Automatización: Cada 6 horas + 8 AM                             ║
-║ ✅ COMO EDITOR DE PERIÓDICO PROFESIONAL                           ║
-║ ✅ LISTO PARA MONETIZAR CON GOOGLE ADSENSE                        ║
-╚═══════════════════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════════════╗
+║   🏮 EL FAROL AL DÍA - SERVIDOR V12 COMPLETO 🏮                     ║
+║        EDITOR VISUAL PROFESIONAL + PROMPT DEFINITIVO V13              ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║ ✅ Servidor en puerto ${PORT}                                         ║
+║ ✅ PostgreSQL conectado                                               ║
+║ ✅ Gemini 2.5 Flash: ACTIVADO                                         ║
+║ ✅ EDITOR VISUAL PROFESIONAL: ACTIVO                                  ║
+║    - Análisis profundo de noticias                                    ║
+║    - Búsquedas inteligentes de imágenes                               ║
+║    - Patrón visual como CNN/BBC                                       ║
+║    - Imagen acorde 100% a la noticia                                  ║
+║ ✅ Búsqueda en: Unsplash, Pexels, Pixabay                             ║
+║ ✅ Banco de respaldo inteligente                                      ║
+║ ✅ Automatización: Cada 6 horas + 8 AM                                ║
+║ ✅ Redactores asignados automáticamente                               ║
+║ ✅ SEO optimizado para monetizar                                      ║
+║ ✅ LISTO PARA GOOGLE ADSENSE                                          ║
+╚═══════════════════════════════════════════════════════════════════════╝
             `);
         });
     } catch (error) {
@@ -712,4 +834,3 @@ async function iniciar() {
 iniciar();
 
 module.exports = app;
-
