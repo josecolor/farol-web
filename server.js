@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.7
- * Gemini genera noticias SEO optimizadas para monetizar
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V8.0
+ * Gemini genera noticias con IMAGE_QUERY para imágenes PERFECTAS
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN DEFINITIVA - CON IMÁGENES GARANTIZADAS
+ * VERSIÓN DEFINITIVA - CON BÚSQUEDA DE IMÁGENES INTELIGENTE
  */
 
 const express = require('express');
@@ -145,140 +145,212 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ BUSCAR IMAGEN DEFINITIVA ====================
-async function buscarImagen(titulo, categoria) {
-    try {
-        const palabrasClave = titulo
-            .toLowerCase()
-            .replace(/[^\w\s]/g, '')
-            .split(' ')
-            .filter(p => p.length > 3)
-            .filter(p => !['para', 'con', 'una', 'este', 'esta', 'estos', 'estas', 'sobre', 'entre', 'durante', 'desde', 'tras', 'ante'].includes(p))
-            .slice(0, 3)
-            .join(' ');
-        
-        const queryBase = palabrasClave.length > 5 ? palabrasClave : categoria;
-        const queries = [
-            queryBase,
-            `${categoria} República Dominicana`,
-            categoria,
-            'noticias dominicanas',
-            'república dominicana'
-        ];
-        
-        console.log(`🔍 Buscando imagen para: "${queries[0]}"`);
+// ==================== 🖼️ SISTEMA DE SELECCIÓN DE IMAGEN ====================
+function calcularRelevancia(imagen, keywords, categoria) {
+    let puntuacion = 0;
+    
+    const textoCompleto = [
+        imagen.titulo || '',
+        imagen.descripcion || '',
+        imagen.etiquetas || [],
+        imagen.categoria || ''
+    ].flat().join(' ').toLowerCase();
+    
+    // Palabras clave principales
+    keywords.forEach(kw => {
+        if (textoCompleto.includes(kw.toLowerCase())) {
+            puntuacion += 5;
+        }
+    });
+    
+    // Categoría
+    if (textoCompleto.includes(categoria.toLowerCase())) {
+        puntuacion += 3;
+    }
+    
+    // Palabras clave específicas de fotografía periodística
+    const palabrasPeriodisticas = ['official', 'government', 'president', 'congress', 'meeting', 'conference', 'ceremony', 'announcement'];
+    palabrasPeriodisticas.forEach(p => {
+        if (textoCompleto.includes(p)) {
+            puntuacion += 2;
+        }
+    });
+    
+    return puntuacion;
+}
 
-        async function tryMultipleQueries(apiFunction) {
-            for (const q of queries) {
+// ==================== 🖼️ BUSCAR IMAGEN CON IMAGE_QUERY ====================
+async function buscarImagen(imageQueries, categoria) {
+    try {
+        console.log(`🔍 Buscando imagen con ${imageQueries.length} queries...`);
+        
+        // Convertir las frases a formato de búsqueda
+        const queries = imageQueries.map(q => q.trim().replace(/\s+/g, '+'));
+        
+        let mejoresImagenes = [];
+        
+        // ========== 1. UNSPLASH ==========
+        if (process.env.UNSPLASH_ACCESS_KEY) {
+            console.log('📸 Probando Unsplash...');
+            for (const query of queries) {
                 try {
-                    const result = await apiFunction(q);
-                    if (result) return result;
+                    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=5`;
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.results && data.results.length > 0) {
+                            const keywords = query.split('+');
+                            
+                            data.results.forEach(img => {
+                                mejoresImagenes.push({
+                                    url: img.urls.regular,
+                                    alt: img.alt_description || img.description || 'Noticia',
+                                    titulo: img.description || '',
+                                    etiquetas: img.tags?.map(t => t.title) || [],
+                                    puntuacion: calcularRelevancia({
+                                        titulo: img.description,
+                                        etiquetas: img.tags?.map(t => t.title)
+                                    }, keywords, categoria),
+                                    fuente: 'Unsplash',
+                                    autor: img.user.name
+                                });
+                            });
+                        }
+                    }
                 } catch (e) {
-                    continue;
+                    console.log(`⚠️ Error en Unsplash con query "${query}":`, e.message);
                 }
             }
-            return null;
         }
-
-        // UNSPLASH
-        if (process.env.UNSPLASH_ACCESS_KEY) {
-            const unsplashResult = await tryMultipleQueries(async (query) => {
-                const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&content_filter=high&count=1`;
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data[0] && data[0].urls && data[0].urls.regular) {
-                        console.log(`✅ Unsplash: "${query}"`);
-                        return {
-                            url: data[0].urls.regular,
-                            alt: `${titulo} - ${categoria}`,
-                            source: 'Unsplash'
-                        };
+        
+        // ========== 2. PEXELS ==========
+        if (process.env.PEXELS_API_KEY && mejoresImagenes.length < 10) {
+            console.log('📸 Probando Pexels...');
+            for (const query of queries) {
+                try {
+                    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`;
+                    const response = await fetch(url, {
+                        headers: { 'Authorization': process.env.PEXELS_API_KEY }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.photos && data.photos.length > 0) {
+                            const keywords = query.split('+');
+                            
+                            data.photos.forEach(img => {
+                                mejoresImagenes.push({
+                                    url: img.src.landscape,
+                                    alt: img.alt || 'Noticia',
+                                    titulo: img.alt || '',
+                                    etiquetas: [img.photographer],
+                                    puntuacion: calcularRelevancia({
+                                        titulo: img.alt,
+                                        etiquetas: [img.photographer]
+                                    }, keywords, categoria),
+                                    fuente: 'Pexels',
+                                    autor: img.photographer
+                                });
+                            });
+                        }
                     }
+                } catch (e) {
+                    console.log(`⚠️ Error en Pexels con query "${query}":`, e.message);
                 }
-                return null;
-            });
-            if (unsplashResult) return unsplashResult;
+            }
         }
-
-        // PEXELS
-        if (process.env.PEXELS_API_KEY) {
-            const pexelsResult = await tryMultipleQueries(async (query) => {
-                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
-                const response = await fetch(url, {
-                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.photos && data.photos[0]) {
-                        console.log(`✅ Pexels: "${query}"`);
-                        return {
-                            url: data.photos[0].src.landscape,
-                            alt: `${titulo} - ${categoria}`,
-                            source: 'Pexels'
-                        };
+        
+        // ========== 3. PIXABAY ==========
+        if (process.env.PIXABAY_API_KEY && mejoresImagenes.length < 10) {
+            console.log('📸 Probando Pixabay...');
+            for (const query of queries) {
+                try {
+                    const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`;
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.hits && data.hits.length > 0) {
+                            const keywords = query.split('+');
+                            
+                            data.hits.forEach(img => {
+                                mejoresImagenes.push({
+                                    url: img.webformatURL,
+                                    alt: img.tags || 'Noticia',
+                                    titulo: img.tags || '',
+                                    etiquetas: img.tags?.split(', ') || [],
+                                    puntuacion: calcularRelevancia({
+                                        titulo: img.tags,
+                                        etiquetas: img.tags?.split(', ')
+                                    }, keywords, categoria),
+                                    fuente: 'Pixabay',
+                                    autor: img.user
+                                });
+                            });
+                        }
                     }
+                } catch (e) {
+                    console.log(`⚠️ Error en Pixabay con query "${query}":`, e.message);
                 }
-                return null;
-            });
-            if (pexelsResult) return pexelsResult;
+            }
         }
-
-        // PIXABAY
-        if (process.env.PIXABAY_API_KEY) {
-            const pixabayResult = await tryMultipleQueries(async (query) => {
-                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3&safesearch=true`;
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.hits && data.hits.length > 0) {
-                        const randomHit = data.hits[Math.floor(Math.random() * data.hits.length)];
-                        console.log(`✅ Pixabay: "${query}"`);
-                        return {
-                            url: randomHit.webformatURL,
-                            alt: `${titulo} - ${categoria}`,
-                            source: 'Pixabay'
-                        };
-                    }
-                }
-                return null;
-            });
-            if (pixabayResult) return pixabayResult;
+        
+        // ========== SELECCIONAR LA MEJOR IMAGEN ==========
+        if (mejoresImagenes.length > 0) {
+            // Ordenar por puntuación
+            mejoresImagenes.sort((a, b) => b.puntuacion - a.puntuacion);
+            
+            // Tomar la mejor (primeras 3 y elegir una aleatoria entre ellas para variar)
+            const topImagenes = mejoresImagenes.slice(0, 3);
+            const imagenSeleccionada = topImagenes[Math.floor(Math.random() * topImagenes.length)];
+            
+            console.log(`✅ Mejor imagen encontrada:`);
+            console.log(`   Fuente: ${imagenSeleccionada.fuente}`);
+            console.log(`   Autor: ${imagenSeleccionada.autor}`);
+            console.log(`   Puntuación: ${imagenSeleccionada.puntuacion}`);
+            
+            return {
+                url: imagenSeleccionada.url,
+                alt: imagenSeleccionada.alt,
+                source: imagenSeleccionada.fuente,
+                autor: imagenSeleccionada.autor
+            };
         }
-
-        // ========== BANCO DE IMÁGENES DE RESPALDO ==========
-        console.log(`📸 Usando imagen de respaldo para: ${categoria}`);
+        
+        // ========== BANCO DE IMÁGENES DE RESPALDO POR CATEGORÍA ==========
+        console.log(`📸 Usando banco de respaldo para: ${categoria}`);
         
         const imagenesRespaldo = {
             'Nacionales': [
-                'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.unsplash.com/photo-1548602088-9d12a4f9c10d?w=1200'
+                { url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg', alt: 'Palacio Nacional' },
+                { url: 'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg', alt: 'Congreso Nacional' },
+                { url: 'https://images.unsplash.com/photo-1548602088-9d12a4f9c10d', alt: 'Gobierno' }
             ],
             'Deportes': [
-                'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200'
+                { url: 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg', alt: 'Estadio' },
+                { url: 'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg', alt: 'Béisbol' },
+                { url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211', alt: 'Deportes' }
             ],
             'Internacionales': [
-                'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.unsplash.com/photo-1489493585363-d69421e0c3d0?w=1200'
+                { url: 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg', alt: 'Relaciones internacionales' },
+                { url: 'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg', alt: 'Mundo' },
+                { url: 'https://images.unsplash.com/photo-1489493585363-d69421e0c3d0', alt: 'Internacional' }
             ],
             'Espectáculos': [
-                'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=1200'
+                { url: 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg', alt: 'Concierto' },
+                { url: 'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg', alt: 'Espectáculo' },
+                { url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4', alt: 'Arte' }
             ],
             'Economía': [
-                'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1200'
+                { url: 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg', alt: 'Negocios' },
+                { url: 'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg', alt: 'Economía' },
+                { url: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e', alt: 'Finanzas' }
             ],
             'Tecnología': [
-                'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-                'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200'
+                { url: 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg', alt: 'Tecnología' },
+                { url: 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg', alt: 'Innovación' },
+                { url: 'https://images.unsplash.com/photo-1518770660439-4636190af475', alt: 'Digital' }
             ]
         };
 
@@ -286,22 +358,24 @@ async function buscarImagen(titulo, categoria) {
         const imagenElegida = imagenes[Math.floor(Math.random() * imagenes.length)];
         
         return {
-            url: imagenElegida,
-            alt: `${titulo} - ${categoria}`,
-            source: 'respaldo'
+            url: imagenElegida.url,
+            alt: imagenElegida.alt,
+            source: 'respaldo',
+            autor: 'Banco interno'
         };
 
     } catch (error) {
         console.error('❌ Error buscando imagen:', error.message);
         return {
-            url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+            url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
             alt: 'Noticia Dominicana',
-            source: 'emergencia'
+            source: 'emergencia',
+            autor: 'Sistema'
         };
     }
 }
 
-// ==================== 🤖 GENERAR NOTICIA CON GEMINI ====================
+// ==================== 🤖 GENERAR NOTICIA CON GEMINI (VERSIÓN IMAGE_QUERY) ====================
 async function generarNoticiaCompleta(categoria) {
     try {
         console.log(`\n🤖 Generando noticia SEO para: ${categoria}`);
@@ -317,12 +391,21 @@ IMPORTANTE:
 - Usa palabras clave: ${categoria.toLowerCase()}, república dominicana, santo domingo
 - Sin asteriscos, sin formato especial
 
-Responde EXACTAMENTE:
+Responde EXACTAMENTE con este formato:
 
 TITULO: [título]
 DESCRIPCION_SEO: [descripción, máx 160 caracteres]
 PALABRAS_CLAVE: [5 palabras clave separadas por coma]
-CONTENIDO: [contenido completo de 400-500 palabras]`;
+IMAGE_QUERY: 
+[4 frases de búsqueda de imágenes en inglés, una por línea, relacionadas con la noticia]
+CONTENIDO: [contenido completo de 400-500 palabras]
+
+Ejemplo de IMAGE_QUERY correcto:
+IMAGE_QUERY:
+government housing project construction
+workers building residential homes
+modern apartment construction site
+urban housing development dominican republic`;
 
         console.log(`📤 Enviando solicitud a Gemini...`);
 
@@ -337,7 +420,7 @@ CONTENIDO: [contenido completo de 400-500 palabras]`;
                     }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 3000,
+                        maxOutputTokens: 3500,
                         topK: 40,
                         topP: 0.95
                     }
@@ -353,17 +436,15 @@ CONTENIDO: [contenido completo de 400-500 palabras]`;
         const texto = data.candidates[0].content.parts[0].text;
         console.log(`📝 Respuesta: ${texto.length} caracteres`);
 
+        // ===== PARSEO MEJORADO CON IMAGE_QUERY =====
         let titulo = "";
         const tituloMatch = texto.match(/(?:TITULO|TÍTULO|Título):\s*(.+?)(?=\n(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción)|$)/i);
         if (tituloMatch) {
             titulo = tituloMatch[1].trim().replace(/[*_#`]/g, '');
-        } else {
-            const lineas = texto.split('\n').filter(l => l.trim() !== '');
-            titulo = lineas[0].substring(0, 100).replace(/[*_#`]/g, '').trim();
         }
 
         let seoDesc = "";
-        const descMatch = texto.match(/(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción(?:_SEO)?):\s*(.+?)(?=\n(?:PALABRAS_CLAVE|Palabras clave|CONTENIDO)|$)/i);
+        const descMatch = texto.match(/(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción(?:_SEO)?):\s*(.+?)(?=\n(?:PALABRAS_CLAVE|Palabras clave|IMAGE_QUERY|CONTENIDO)|$)/i);
         if (descMatch) {
             seoDesc = descMatch[1].trim().substring(0, 160).replace(/[*_#`]/g, '');
         } else {
@@ -371,54 +452,78 @@ CONTENIDO: [contenido completo de 400-500 palabras]`;
         }
 
         let keywords = categoria;
-        const keywordsMatch = texto.match(/(?:PALABRAS_CLAVE|Palabras clave|Keywords):\s*(.+?)(?=\n(?:CONTENIDO|Contenido)|$)/i);
+        const keywordsMatch = texto.match(/(?:PALABRAS_CLAVE|Palabras clave|Keywords):\s*(.+?)(?=\n(?:IMAGE_QUERY|CONTENIDO|Contenido)|$)/i);
         if (keywordsMatch) {
             keywords = keywordsMatch[1].trim().substring(0, 255).replace(/[*_#`]/g, '');
         }
 
+        // ===== NUEVO: EXTRAER IMAGE_QUERY =====
+        let imageQueries = [];
+        const imageQueryMatch = texto.match(/IMAGE_QUERY:\s*([\s\S]+?)(?=\nCONTENIDO:|Contenido:|$)/i);
+        if (imageQueryMatch) {
+            const queriesTexto = imageQueryMatch[1].trim();
+            imageQueries = queriesTexto
+                .split('\n')
+                .map(q => q.trim())
+                .filter(q => q.length > 0 && !q.startsWith('CONTENIDO'));
+        }
+
+        // Si no hay IMAGE_QUERY, generar queries básicas del título
+        if (imageQueries.length === 0) {
+            console.log('⚠️ No se encontró IMAGE_QUERY, generando desde título...');
+            const palabras = titulo
+                .toLowerCase()
+                .replace(/[^\w\s]/g, '')
+                .split(' ')
+                .filter(p => p.length > 3)
+                .slice(0, 4);
+            
+            imageQueries = [
+                palabras.join(' '),
+                `${categoria} dominican republic`,
+                `noticias ${categoria}`,
+                `${categoria} santo domingo`
+            ];
+        }
+
+        console.log(`📸 IMAGE_QUERY encontradas:`);
+        imageQueries.forEach((q, i) => console.log(`   ${i+1}. ${q}`));
+
         let contenido = "";
         const contenidoMatch = texto.match(/(?:CONTENIDO|Contenido):\s*([\s\S]+?)$/i);
         if (contenidoMatch) {
-            contenido = contenidoMatch[1].trim();
-        } else {
-            const partes = texto.split(/\n(?:PALABRAS_CLAVE|Palabras clave|CONTENIDO|Contenido):/i);
-            contenido = partes.length > 1 ? partes[partes.length - 1].trim() : texto;
+            contenido = contenidoMatch[1].trim().replace(/[*_#`]/g, '');
         }
 
-        contenido = contenido.replace(/[*_#`]/g, '');
-        
-        const parrafos = contenido.split('\n').map(p => p.trim()).filter(p => p.length > 30);
-        contenido = parrafos.length > 0 ? parrafos.join('\n\n') : contenido;
-
+        // Validaciones
         if (!titulo || titulo.length < 10) {
             titulo = `Nuevos avances en ${categoria} transforman la realidad dominicana`;
         }
 
         if (!contenido || contenido.length < 200) {
-            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.
-
-El presidente Luis Abinader destacó que "este es solo el comienzo de una serie de transformaciones que posicionarán a República Dominicana como un referente en la región". Por su parte, representantes de la sociedad civil han manifestado su apoyo a estas políticas que prometen generar empleo y desarrollo sostenible.
-
-Los detalles específicos serán dados a conocer en los próximos días a través de los canales oficiales del gobierno. Mientras tanto, la población se mantiene expectante ante los cambios que se avecinan en el sector de ${categoria}.
-
-Especialistas en la materia coinciden en que República Dominicana se encuentra en un momento crucial para su desarrollo, y estas medidas podrían ser el catalizador necesario para alcanzar las metas establecidas en la Estrategia Nacional de Desarrollo 2030.`;
+            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria}...`;
         }
 
         console.log(`✅ Título: ${titulo.substring(0, 70)}`);
         console.log(`✅ Contenido: ${contenido.length} caracteres`);
 
-        const imagenData = await buscarImagen(titulo, categoria);
+        // ===== BUSCAR IMAGEN CON LAS QUERIES =====
+        const imagenData = await buscarImagen(imageQueries, categoria);
+        
         const slug = generarSlug(titulo);
         const redactorAsignado = elegirRedactor(categoria);
+        
         console.log(`👤 Redactor asignado: ${redactorAsignado}`);
-        console.log(`🖼️ Imagen: ${imagenData.source}`);
+        console.log(`🖼️ Imagen obtenida de: ${imagenData.source}`);
 
+        // Verificar slug duplicado
         const slugExistente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
         let slugFinal = slug;
         if (slugExistente.rows.length > 0) {
             slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
         }
 
+        // Guardar en BD
         const result = await pool.query(
             `INSERT INTO noticias (
                 titulo, slug, seccion, contenido, 
@@ -455,7 +560,8 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
             imagen: noticia.imagen,
             redactor: redactorAsignado,
             fuente_imagen: imagenData.source,
-            mensaje: '✅ Noticia generada y publicada'
+            autor_imagen: imagenData.autor,
+            mensaje: '✅ Noticia generada con imagen perfecta'
         };
 
     } catch (error) {
@@ -536,8 +642,6 @@ app.get('/noticia/:slug', async (req, res) => {
             [slugBuscado, 'publicada']
         );
 
-        console.log(`📦 Resultado: ${result.rows.length} noticia(s)`);
-
         if (result.rows.length === 0) {
             return res.status(404).send(`
                 <!DOCTYPE html>
@@ -560,8 +664,6 @@ app.get('/noticia/:slug', async (req, res) => {
 
         const noticia = result.rows[0];
         console.log(`✅ Noticia encontrada: "${noticia.titulo}"`);
-        console.log(`👤 Redactor: ${noticia.redactor}`);
-        console.log(`🖼️ Imagen: ${noticia.imagen.substring(0, 50)}...`);
 
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
 
@@ -695,49 +797,6 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '7.7'
+            version: '8.0'
         });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ==================== FALLBACK ====================
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
-});
-
-// ==================== INICIAR SERVIDOR ====================
-async function iniciar() {
-    try {
-        console.log('\n🚀 Iniciando servidor...');
-        
-        const dbOk = await inicializarBase();
-        if (!dbOk) {
-            console.log('⚠️ Continuando...');
-        }
-
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`
-╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.7 🏮             ║
-╠═══════════════════════════════════════════════════════════════════╣
-║ ✅ Servidor en puerto ${PORT}                                     ║
-║ ✅ PostgreSQL conectado y migrado                                 ║
-║ ✅ EQUIPO DE REDACTORES: 9 PERIODISTAS                           ║
-║ ✅ IMÁGENES GARANTIZADAS (APIs + banco de respaldo)              ║
-║ ✅ NUNCA MÁS PLACEHOLDERS                                        ║
-║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
-║ ✅ LISTO PARA PRODUCCIÓN                                          ║
-╚═══════════════════════════════════════════════════════════════════╝
-            `);
-        });
-    } catch (error) {
-        console.error('❌ Error fatal:', error);
-        process.exit(1);
-    }
-}
-
-iniciar();
-
-module.exports = app;
+    } catch (error
