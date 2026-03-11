@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.1
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2
  * Gemini con DETECCIÓN DE ENTIDADES PREMIUM
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN CORREGIDA - SIN ERRORES DE PARSEO
+ * VERSIÓN COMPLETA - CORREGIDA - SIN ERRORES DE PARSEO
  */
 
 const express = require('express');
@@ -180,23 +180,23 @@ CATEGORIA_ENTIDAD: DJ
 IMAGE_QUERY: Diplo DJ performing live concert stage
 DESCRIPCION: El reconocido DJ y productor Diplo presentó un innovador set en el festival de Miami
 PALABRAS: Diplo, música electrónica, festival, DJ, Miami
-CONTENIDO: El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente que hizo bailar a miles de asistentes. Durante su presentación de más de dos horas, el artista mezcló sus grandes éxitos con nuevas producciones exclusivas.
+CONTENIDO: El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente que hizo bailar a miles de asistentes.
 
 TITULO: Real Madrid gana la Champions League en emocionante final
 ENTIDAD: Real Madrid
 CATEGORIA_ENTIDAD: Equipo de Fútbol
 IMAGE_QUERY: Real Madrid players celebrating Champions League trophy
-DESCRIPCION: El Real Madrid se coronó campeón de la Champions League tras vencer en una emocionante final
+DESCRIPCION: El Real Madrid se coronó campeón de la Champions League
 PALABRAS: Real Madrid, Champions, fútbol, campeón, final
-CONTENIDO: El Real Madrid hizo historia anoche al conquistar su decimocuarta Champions League en una final épica contra el Liverpool. Los goles de Vinicius y Benzema sellaron la victoria en el estadio de París.
+CONTENIDO: El Real Madrid hizo historia anoche al conquistar su decimocuarta Champions League.
 
 TITULO: Luis Abinader anuncia nuevo plan de viviendas en Santo Domingo
 ENTIDAD: Luis Abinader
 CATEGORIA_ENTIDAD: Presidente
 IMAGE_QUERY: Luis Abinader Presidente Dominicana discurso oficial
-DESCRIPCION: El presidente Luis Abinader anunció hoy un ambicioso plan de viviendas sociales en Santo Domingo
+DESCRIPCION: El presidente Luis Abinader anunció hoy un ambicioso plan de viviendas
 PALABRAS: Abinader, viviendas, gobierno, Santo Domingo, plan
-CONTENIDO: El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de viviendas "Mi Hogar" que beneficiará a más de 50,000 familias dominicanas en los próximos dos años.
+CONTENIDO: El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de viviendas.
 
 TITULO: Apple presenta el nuevo iPhone 15 con innovadoras características
 ENTIDAD: 
@@ -204,7 +204,7 @@ CATEGORIA_ENTIDAD:
 IMAGE_QUERY: new iPhone 15 product presentation official
 DESCRIPCION: Apple lanzó hoy el nuevo iPhone 15 con características innovadoras
 PALABRAS: Apple, iPhone, tecnología, lanzamiento, innovación
-CONTENIDO: Apple presentó oficialmente el esperado iPhone 15 en un evento celebrado en su sede de Cupertino. El nuevo dispositivo incluye mejoras significativas en la cámara y el procesador.
+CONTENIDO: Apple presentó oficialmente el esperado iPhone 15.
 
 Ahora genera una noticia de ${categoria} en República Dominicana:`;
 
@@ -361,7 +361,7 @@ async function buscarImagenConReglaDeOro(dataNoticia) {
         // Formatear para API
         const busquedaFormateada = busquedaFinal.trim().replace(/\s+/g, '+');
 
-        // ========== 1. PROBAR PEXELS (MEJOR PARA FOTOS PROFESIONALES) ==========
+        // ========== 1. PROBAR PEXELS ==========
         if (process.env.PEXELS_API_KEY) {
             try {
                 const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(busquedaFormateada)}&per_page=5&orientation=landscape`;
@@ -617,7 +617,24 @@ app.get('/noticia/:slug', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).send('Noticia no encontrada');
+            return res.status(404).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Noticia no encontrada | El Farol al Día</title>
+                    <style>
+                        body { font-family: Arial; text-align: center; padding: 50px; background: #0b0b0b; color: white; }
+                        h1 { color: #c62828; }
+                        a { color: #FF8C00; text-decoration: none; font-size: 18px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>🔍 Noticia no encontrada</h1>
+                    <p>La noticia que buscas no existe o ha sido eliminada.</p>
+                    <a href="/">← Volver al inicio</a>
+                </body>
+                </html>
+            `);
         }
 
         const noticia = result.rows[0];
@@ -667,13 +684,16 @@ app.get('/noticia/:slug', async (req, res) => {
             html = html.replace(/{{REDACTOR}}/g, noticia.redactor);
             html = html.replace(/{{URL}}/g, urlCompartir);
 
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.send(html);
             
         } catch (error) {
+            console.error('Error leyendo HTML:', error.message);
             res.json({ success: true, noticia });
         }
         
     } catch (error) {
+        console.error('❌ Error:', error.message);
         res.status(500).send('Error interno');
     }
 });
@@ -721,7 +741,12 @@ app.get('/robots.txt', (req, res) => {
     const robots = `User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /admin/
+
 Sitemap: ${BASE_URL}/sitemap.xml
+
+User-agent: Googlebot
+Allow: /
 `;
     res.header('Content-Type', 'text/plain');
     res.send(robots);
@@ -738,7 +763,8 @@ app.get('/status', async (req, res) => {
             database: dbStatus.rows[0]?.health === 1 ? 'conectado' : 'error',
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
-            version: '10.1',
+            timestamp: new Date().toISOString(),
+            version: '10.2',
             modo: 'EDITOR DE IMÁGENES ACTIVADO'
         });
     } catch (error) {
@@ -757,19 +783,14 @@ async function iniciar() {
         console.log('\n🚀 Iniciando servidor con EDITOR DE IMÁGENES...');
         
         const dbOk = await inicializarBase();
-        
+        if (!dbOk) {
+            console.log('⚠️ Continuando a pesar de errores de BD...');
+        }
+
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.1 🏮            ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.2 🏮            ║
 ╠═══════════════════════════════════════════════════════════════════╣
-║  ✅ EDITOR DE IMÁGENES ACTIVADO                                  ║
-║  ✅ REGLA DE ORO: Buscar por ENTIDAD primero                     ║
-║  ✅ PARSEO CORREGIDO - SIN ERRORES                               ║
-║  ✅ Ejemplos:                                                     ║
-║     • Diplo → "Diplo DJ performing live"                         ║
-║     • Real Madrid → "Real Madrid players celebrating"            ║
-║     • Luis Abinader → "Luis Abinader Presidente"                 ║
-║  ✅ 3 APIs: Pexels, Unsplash, Pixabay                            ║
-║  ✅ Banco de respaldo por categoría                              ║
-║  ✅ Automatización: Cada 6 horas + 8 AM                           ║
+║  ✅ Servidor en puerto ${PORT}                                     ║
+║  ✅ PostgreSQL conectado y migrado                                 ║
