@@ -1,10 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.4
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.5
  * Gemini genera noticias SEO optimizadas para monetizar
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * Incluye migración automática para TODAS las columnas necesarias
- * BÚSQUEDA DE IMÁGENES INTELIGENTE (usa palabras clave del título)
- * PARSEO MEJORADO DE RESPUESTAS DE GEMINI
+ * CORREGIDO: Ruta /noticia/:slug funcionando al 100%
  */
 
 const express = require('express');
@@ -54,7 +52,7 @@ async function inicializarBase() {
         console.log('🔧 Verificando estructura de base de datos...');
         await client.query('BEGIN');
 
-        // 1. Crear tabla si no existe (estructura base COMPLETA)
+        // 1. Crear tabla si no existe
         await client.query(`
             CREATE TABLE IF NOT EXISTS noticias (
                 id SERIAL PRIMARY KEY,
@@ -136,25 +134,23 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ BUSCAR IMAGEN MEJORADA (CON PALABRAS CLAVE DEL TÍTULO) ====================
+// ==================== 🖼️ BUSCAR IMAGEN MEJORADA ====================
 async function buscarImagen(titulo, categoria) {
     try {
-        // Extraer palabras clave del título (las más importantes)
+        // Extraer palabras clave del título
         const palabrasClave = titulo
             .toLowerCase()
             .replace(/[^\w\s]/g, '')
             .split(' ')
-            .filter(p => p.length > 3)  // solo palabras con más de 3 letras
+            .filter(p => p.length > 3)
             .filter(p => !['para', 'con', 'una', 'este', 'esta', 'estos', 'estas', 'sobre', 'entre', 'durante', 'desde'].includes(p))
-            .slice(0, 3)                 // tomar máximo 3 palabras
+            .slice(0, 3)
             .join(' ');
         
-        // Usar la categoría si no hay suficientes palabras clave
         const query = palabrasClave.length > 5 ? palabrasClave : categoria;
         
-        console.log(`🔍 Buscando imagen para: "${query}" (desde título: "${titulo}")`);
+        console.log(`🔍 Buscando imagen para: "${query}"`);
 
-        // Función auxiliar para intentar con diferentes APIs
         async function tryAPI(apiFunction) {
             try {
                 return await apiFunction();
@@ -163,7 +159,7 @@ async function buscarImagen(titulo, categoria) {
             }
         }
 
-        // UNSPLASH (mejor calidad)
+        // UNSPLASH
         if (process.env.UNSPLASH_ACCESS_KEY) {
             const unsplashResult = await tryAPI(async () => {
                 const url = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&content_filter=high`;
@@ -171,7 +167,6 @@ async function buscarImagen(titulo, categoria) {
                 if (response.ok) {
                     const data = await response.json();
                     if (data && data.urls && data.urls.regular) {
-                        console.log(`✅ Imagen de Unsplash encontrada para: ${query}`);
                         return {
                             url: data.urls.regular,
                             alt: `${titulo} - ${categoria}`,
@@ -194,7 +189,6 @@ async function buscarImagen(titulo, categoria) {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.photos && data.photos[0]) {
-                        console.log(`✅ Imagen de Pexels encontrada para: ${query}`);
                         return {
                             url: data.photos[0].src.landscape,
                             alt: `${titulo} - ${categoria}`,
@@ -215,7 +209,6 @@ async function buscarImagen(titulo, categoria) {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.hits && data.hits[0]) {
-                        console.log(`✅ Imagen de Pixabay encontrada para: ${query}`);
                         return {
                             url: data.hits[0].webformatURL,
                             alt: `${titulo} - ${categoria}`,
@@ -228,10 +221,8 @@ async function buscarImagen(titulo, categoria) {
             if (pixabayResult) return pixabayResult;
         }
 
-        // Fallback: imágenes por categoría
-        console.log(`📸 Usando imagen placeholder para categoría: ${categoria}`);
-        
-        // Imágenes placeholder más relevantes por categoría
+        // Fallback
+        console.log(`📸 Usando imagen placeholder`);
         const placeholders = {
             'Nacionales': 'Gobierno+RD',
             'Deportes': 'Deportes+RD',
@@ -240,7 +231,6 @@ async function buscarImagen(titulo, categoria) {
             'Economía': 'Economia+RD',
             'Tecnología': 'Tecnologia+RD'
         };
-
         const text = placeholders[categoria] || 'Noticias+RD';
         
         return {
@@ -259,7 +249,7 @@ async function buscarImagen(titulo, categoria) {
     }
 }
 
-// ==================== 🤖 GENERAR NOTICIA CON GEMINI (VERSIÓN MEJORADA) ====================
+// ==================== 🤖 GENERAR NOTICIA CON GEMINI ====================
 async function generarNoticiaCompleta(categoria) {
     try {
         console.log(`\n🤖 Generando noticia SEO para: ${categoria}`);
@@ -268,36 +258,30 @@ async function generarNoticiaCompleta(categoria) {
 
 IMPORTANTE:
 - Título: Atractivo, único, 50-60 caracteres
-- Contenido: 400-500 palabras (Google ama contenido largo)
+- Contenido: 400-500 palabras
 - Incluye datos específicos de RD, lugares, fechas
 - Estructura: Párrafos cortos (2-3 líneas)
-- Primero el dato más importante
 - Cita a "expertos" o "autoridades"
 - Usa palabras clave: ${categoria.toLowerCase()}, república dominicana, santo domingo
 - Sin asteriscos, sin formato especial
-- Texto limpio y profesional
 
-Responde EXACTAMENTE con este formato, sin usar asteriscos ni markdown:
+Responde EXACTAMENTE:
 
-TITULO: [título único y atractivo]
-DESCRIPCION_SEO: [descripción para Google, máximo 160 caracteres, incluye ${categoria}]
-PALABRAS_CLAVE: [5 palabras clave separadas por coma, incluye: ${categoria.toLowerCase()}, república dominicana]
-CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructurados]`;
+TITULO: [título]
+DESCRIPCION_SEO: [descripción, máx 160 caracteres]
+PALABRAS_CLAVE: [5 palabras clave separadas por coma]
+CONTENIDO: [contenido completo de 400-500 palabras]`;
 
-        console.log(`📤 Enviando solicitud a Gemini (modelo: gemini-2.5-flash)...`);
+        console.log(`📤 Enviando solicitud a Gemini...`);
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
             {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
+                        parts: [{ text: prompt }]
                     }],
                     generationConfig: {
                         temperature: 0.7,
@@ -309,41 +293,24 @@ CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructura
             }
         );
 
-        console.log(`📬 Respuesta Gemini: ${response.status}`);
-
         if (!response.ok) {
-            const errorData = await response.text();
-            console.error('❌ Error Gemini:', errorData);
-            throw new Error(`Gemini ${response.status}: ${errorData.substring(0, 200)}`);
+            throw new Error(`Gemini ${response.status}`);
         }
 
         const data = await response.json();
-
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
-            console.error('❌ Respuesta incompleta de Gemini');
-            throw new Error('Gemini no devolvió contenido válido');
-        }
-
         const texto = data.candidates[0].content.parts[0].text;
         console.log(`📝 Respuesta: ${texto.length} caracteres`);
-        console.log(`📝 Primeros 200 caracteres: ${texto.substring(0, 200)}`);
 
-        // ===== PARSEO MEJORADO =====
-        // Buscar TITULO (puede venir como TÍTULO, TITULO:, Título:, etc.)
+        // PARSEO MEJORADO
         let titulo = "";
         const tituloMatch = texto.match(/(?:TITULO|TÍTULO|Título):\s*(.+?)(?=\n(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción)|$)/i);
         if (tituloMatch) {
-            titulo = tituloMatch[1].trim();
+            titulo = tituloMatch[1].trim().replace(/[*_#`]/g, '');
         } else {
-            // Si no encuentra, tomar la primera línea como título
             const lineas = texto.split('\n').filter(l => l.trim() !== '');
-            titulo = lineas[0].substring(0, 100).replace(/[#*_]/g, '').trim();
+            titulo = lineas[0].substring(0, 100).replace(/[*_#`]/g, '').trim();
         }
 
-        // Limpiar el título de caracteres extraños
-        titulo = titulo.replace(/[*_#`]/g, '').trim();
-
-        // Buscar DESCRIPCION_SEO
         let seoDesc = "";
         const descMatch = texto.match(/(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción(?:_SEO)?):\s*(.+?)(?=\n(?:PALABRAS_CLAVE|Palabras clave|CONTENIDO)|$)/i);
         if (descMatch) {
@@ -352,53 +319,31 @@ CONTENIDO: [contenido completo de 400-500 palabras con párrafos bien estructura
             seoDesc = titulo.substring(0, 160);
         }
 
-        // Buscar PALABRAS_CLAVE
         let keywords = categoria;
         const keywordsMatch = texto.match(/(?:PALABRAS_CLAVE|Palabras clave|Keywords):\s*(.+?)(?=\n(?:CONTENIDO|Contenido)|$)/i);
         if (keywordsMatch) {
             keywords = keywordsMatch[1].trim().substring(0, 255).replace(/[*_#`]/g, '');
         }
 
-        // Buscar CONTENIDO - TODO lo que sigue después
         let contenido = "";
         const contenidoMatch = texto.match(/(?:CONTENIDO|Contenido):\s*([\s\S]+?)$/i);
         if (contenidoMatch) {
             contenido = contenidoMatch[1].trim();
         } else {
-            // Si no encuentra, tomar todo el texto después de las palabras clave
             const partes = texto.split(/\n(?:PALABRAS_CLAVE|Palabras clave|CONTENIDO|Contenido):/i);
-            if (partes.length > 1) {
-                contenido = partes[partes.length - 1].trim();
-            } else {
-                contenido = texto;
-            }
+            contenido = partes.length > 1 ? partes[partes.length - 1].trim() : texto;
         }
 
-        // Limpiar el contenido de markdown y asteriscos
         contenido = contenido.replace(/[*_#`]/g, '');
         
-        // Dividir en párrafos y filtrar líneas vacías o muy cortas
-        const parrafos = contenido.split('\n')
-            .map(p => p.trim())
-            .filter(p => p.length > 30); // Solo párrafos con más de 30 caracteres
-        
-        if (parrafos.length === 0) {
-            // Si no hay párrafos válidos, usar el contenido original
-            contenido = contenido;
-        } else {
-            contenido = parrafos.join('\n\n');
-        }
+        const parrafos = contenido.split('\n').map(p => p.trim()).filter(p => p.length > 30);
+        contenido = parrafos.length > 0 ? parrafos.join('\n\n') : contenido;
 
-        // Validaciones
         if (!titulo || titulo.length < 10) {
-            console.error('❌ Título muy corto:', titulo);
-            // Generar un título por defecto
             titulo = `Nuevos avances en ${categoria} transforman la realidad dominicana`;
         }
 
         if (!contenido || contenido.length < 200) {
-            console.error('❌ Contenido muy corto:', contenido.length, 'caracteres');
-            // Usar contenido de respaldo
             contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.
 
 El presidente Luis Abinader destacó que "este es solo el comienzo de una serie de transformaciones que posicionarán a República Dominicana como un referente en la región". Por su parte, representantes de la sociedad civil han manifestado su apoyo a estas políticas que prometen generar empleo y desarrollo sostenible.
@@ -409,24 +354,18 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
         }
 
         console.log(`✅ Título: ${titulo.substring(0, 70)}`);
-        console.log(`✅ SEO: ${seoDesc.substring(0, 80)}`);
-        console.log(`✅ Contenido: ${contenido.substring(0, 100)}... (${contenido.length} caracteres)`);
+        console.log(`✅ Contenido: ${contenido.length} caracteres`);
 
-        // 🖼️ BUSCAR IMAGEN CON PALABRAS CLAVE DEL TÍTULO
         const imagenData = await buscarImagen(titulo, categoria);
-
-        // GENERAR SLUG
         const slug = generarSlug(titulo);
 
-        // Verificar si el slug ya existe
+        // Verificar slug duplicado
         const slugExistente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
         let slugFinal = slug;
         if (slugExistente.rows.length > 0) {
             slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
-            console.log(`⚠️ Slug duplicado, usando: ${slugFinal}`);
         }
 
-        // GUARDAR EN BD
         const result = await pool.query(
             `INSERT INTO noticias (
                 titulo, slug, seccion, contenido, 
@@ -453,7 +392,6 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
         const noticia = result.rows[0];
         console.log(`✅ Noticia guardada con ID: ${noticia.id}`);
         console.log(`✅ URL: ${BASE_URL}/noticia/${noticia.slug}`);
-        console.log(`✅ Imagen: ${imagenData.source || 'desconocida'}`);
 
         return {
             success: true,
@@ -463,15 +401,12 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
             url: `${BASE_URL}/noticia/${noticia.slug}`,
             imagen: noticia.imagen,
             fuente_imagen: imagenData.source || 'desconocida',
-            mensaje: '✅ Noticia generada y publicada con SEO'
+            mensaje: '✅ Noticia generada y publicada'
         };
 
     } catch (error) {
         console.error(`\n❌ ERROR:`, error.message);
-        return { 
-            success: false, 
-            error: error.message 
-        };
+        return { success: false, error: error.message };
     }
 }
 
@@ -479,24 +414,17 @@ Especialistas en la materia coinciden en que República Dominicana se encuentra 
 const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
 
 // ==================== ⏰ AUTOMATIZACIÓN ====================
-console.log('\n📅 Configurando automatización de noticias...');
-
-// Cada 6 horas
+console.log('\n📅 Configurando automatización...');
 cron.schedule('0 */6 * * *', async () => {
-    console.log('\n⏰ [6 HORAS] Generando noticia automática...');
+    console.log('\n⏰ Generando noticia automática...');
     const categoria = CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
     await generarNoticiaCompleta(categoria);
 });
-
-// Cada día a las 8 AM
 cron.schedule('0 8 * * *', async () => {
-    console.log('\n🌅 [8 AM] Generando noticia diaria...');
+    console.log('\n🌅 Generando noticia diaria...');
     await generarNoticiaCompleta('Nacionales');
 });
-
-console.log('✅ Automatización configurada:');
-console.log('   - Cada 6 horas (0, 6, 12, 18 horas)');
-console.log('   - Diariamente a las 8:00 AM');
+console.log('✅ Automatización configurada');
 
 // ==================== RUTAS ====================
 app.get('/health', (req, res) => {
@@ -537,22 +465,31 @@ app.get('/api/noticias/:id', async (req, res) => {
         }
 
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [req.params.id]);
-
         res.json({ success: true, noticia: result.rows[0] });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ==================== NOTICIA POR SLUG ====================
+// ==================== NOTICIA POR SLUG (CORREGIDA) ====================
 app.get('/noticia/:slug', async (req, res) => {
+    const slugBuscado = req.params.slug;
+    console.log(`\n🔍 Buscando noticia con slug: "${slugBuscado}"`);
+    
     try {
+        // Buscar en la base de datos
         const result = await pool.query(
             'SELECT * FROM noticias WHERE slug = $1 AND estado = $2',
-            [req.params.slug, 'publicada']
+            [slugBuscado, 'publicada']
         );
 
+        console.log(`📦 Resultado: ${result.rows.length} noticia(s) encontrada(s)`);
+
         if (result.rows.length === 0) {
+            // Mostrar slugs disponibles para depuración
+            const slugs = await pool.query('SELECT slug FROM noticias LIMIT 5');
+            console.log('📋 Slugs disponibles:', slugs.rows.map(r => r.slug));
+            
             return res.status(404).send(`
                 <!DOCTYPE html>
                 <html>
@@ -569,7 +506,7 @@ app.get('/noticia/:slug', async (req, res) => {
                 </head>
                 <body>
                     <h1>🔍 Noticia no encontrada</h1>
-                    <p>La noticia que buscas no existe o ha sido eliminada.</p>
+                    <p>La noticia con slug "${slugBuscado}" no existe.</p>
                     <a href="/">← Volver al inicio</a>
                 </body>
                 </html>
@@ -577,6 +514,7 @@ app.get('/noticia/:slug', async (req, res) => {
         }
 
         const noticia = result.rows[0];
+        console.log(`✅ Noticia encontrada: "${noticia.titulo}"`);
 
         // ACTUALIZAR VISTAS
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
@@ -591,7 +529,10 @@ app.get('/noticia/:slug', async (req, res) => {
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
 
-            // INYECTAR META TAGS SEO
+            // Preparar URL para compartir
+            const urlCompartir = `${BASE_URL}/noticia/${noticia.slug}`;
+            
+            // Meta tags SEO
             const metaTags = `
 <title>${noticia.titulo} | El Farol al Día</title>
 <meta name="description" content="${noticia.seo_description || noticia.titulo}">
@@ -599,7 +540,7 @@ app.get('/noticia/:slug', async (req, res) => {
 <meta property="og:title" content="${noticia.titulo}">
 <meta property="og:description" content="${noticia.seo_description || noticia.titulo}">
 <meta property="og:image" content="${noticia.imagen}">
-<meta property="og:url" content="${BASE_URL}/noticia/${noticia.slug}">
+<meta property="og:url" content="${urlCompartir}">
 <meta property="og:type" content="article">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${noticia.titulo}">
@@ -613,44 +554,41 @@ app.get('/noticia/:slug', async (req, res) => {
   "description": "${noticia.seo_description || noticia.titulo}",
   "image": "${noticia.imagen}",
   "datePublished": "${noticia.fecha}",
-  "author": {
-    "@type": "Person",
-    "name": "${noticia.redactor}"
-  },
+  "author": {"@type": "Person", "name": "${noticia.redactor}"},
   "publisher": {
     "@type": "Organization",
     "name": "El Farol al Día",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "${BASE_URL}/logo.png"
-    }
+    "logo": {"@type": "ImageObject", "url": "${BASE_URL}/logo.png"}
   }
 }
 </script>`;
 
+            // Reemplazar variables en el HTML
             html = html.replace('<!-- META_TAGS -->', metaTags);
-            html = html.replace('{{TITULO}}', noticia.titulo);
-            html = html.replace('{{CONTENIDO}}', contenidoFormateado);
-            html = html.replace('{{FECHA}}', new Date(noticia.fecha).toLocaleDateString('es-DO', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+            html = html.replace(/{{TITULO}}/g, noticia.titulo);
+            html = html.replace(/{{CONTENIDO}}/g, contenidoFormateado);
+            html = html.replace(/{{FECHA}}/g, new Date(noticia.fecha).toLocaleDateString('es-DO', {
+                year: 'numeric', month: 'long', day: 'numeric'
             }));
-            html = html.replace('{{IMAGEN}}', noticia.imagen);
-            html = html.replace('{{ALT}}', noticia.imagen_alt || noticia.titulo);
-            html = html.replace('{{VISTAS}}', noticia.vistas);
-            html = html.replace('{{SECCION}}', noticia.seccion);
-            html = html.replace('{{REDACTOR}}', noticia.redactor);
+            html = html.replace(/{{IMAGEN}}/g, noticia.imagen);
+            html = html.replace(/{{ALT}}/g, noticia.imagen_alt || noticia.titulo);
+            html = html.replace(/{{VISTAS}}/g, noticia.vistas);
+            html = html.replace(/{{SECCION}}/g, noticia.seccion);
+            html = html.replace(/{{REDACTOR}}/g, noticia.redactor);
+            html = html.replace(/{{URL}}/g, urlCompartir);
 
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
             res.send(html);
-        } catch (e) {
-            // Fallback a JSON si el archivo HTML no existe
+            
+        } catch (error) {
+            console.error('Error leyendo archivo HTML:', error.message);
+            // Fallback: mostrar JSON
             res.json({ success: true, noticia });
         }
+        
     } catch (error) {
-        console.error('Error:', error.message);
-        res.status(500).send('Error interno');
+        console.error('❌ Error en ruta /noticia/:slug:', error.message);
+        res.status(500).send('Error interno del servidor');
     }
 });
 
@@ -720,7 +658,7 @@ app.get('/status', async (req, res) => {
             noticias_publicadas: parseInt(noticiasCount.rows[0].count),
             uptime: Math.floor(process.uptime()),
             timestamp: new Date().toISOString(),
-            version: '7.4'
+            version: '7.5'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -745,20 +683,15 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔═══════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.4 🏮             ║
+║   🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V7.5 🏮             ║
 ╠═══════════════════════════════════════════════════════════════════╣
 ║ ✅ Servidor en puerto ${PORT}                                     ║
 ║ ✅ PostgreSQL conectado y migrado                                 ║
-║ ✅ TODAS las columnas verificadas                                ║
-║ ✅ BÚSQUEDA INTELIGENTE DE IMÁGENES (usa palabras del título)   ║
-║ ✅ PARSEO MEJORADO DE GEMINI (soporta variaciones de formato)   ║
-║ ✅ CONTENIDO DE RESPALDO (evita errores de contenido corto)     ║
-║ ✅ Gemini IA: ACTIVADO (modelo 2.5-flash)                         ║
-║ ✅ SEO OPTIMIZADO: LISTO PARA MONETIZAR                           ║
+║ ✅ Ruta /noticia/:slug CORREGIDA y con LOGS                      ║
+║ ✅ Búsqueda inteligente de imágenes                               ║
+║ ✅ Parseo mejorado de Gemini                                      ║
 ║ ✅ Automatización: Cada 6 horas + 8 AM                            ║
-║ ✅ Meta tags dinámicos: Schema.org, OG, Twitter                   ║
-║ ✅ Sitemap y Robots.txt: GENERADOS                                ║
-║ ✅ LISTO PARA GOOGLE ADSENSE                                      ║
+║ ✅ LISTO PARA PRODUCCIÓN                                          ║
 ╚═══════════════════════════════════════════════════════════════════╝
             `);
         });
