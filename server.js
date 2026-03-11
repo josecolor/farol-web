@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V8.0
- * Gemini genera noticias con IMAGE_QUERY para imágenes PERFECTAS
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V9.0
+ * Gemini genera noticias con DETECCIÓN DE ENTIDADES
  * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN DEFINITIVA - CON BÚSQUEDA DE IMÁGENES INTELIGENTE
+ * VERSIÓN DEFINITIVA - CON BÚSQUEDA INTELIGENTE DE PERSONAJES FAMOSOS
  */
 
 const express = require('express');
@@ -145,54 +145,69 @@ async function inicializarBase() {
     }
 }
 
-// ==================== 🖼️ SISTEMA DE SELECCIÓN DE IMAGEN ====================
-function calcularRelevancia(imagen, keywords, categoria) {
-    let puntuacion = 0;
-    
-    const textoCompleto = [
-        imagen.titulo || '',
-        imagen.descripcion || '',
-        imagen.etiquetas || [],
-        imagen.categoria || ''
-    ].flat().join(' ').toLowerCase();
-    
-    // Palabras clave principales
-    keywords.forEach(kw => {
-        if (textoCompleto.includes(kw.toLowerCase())) {
-            puntuacion += 5;
-        }
-    });
-    
-    // Categoría
-    if (textoCompleto.includes(categoria.toLowerCase())) {
-        puntuacion += 3;
-    }
-    
-    // Palabras clave específicas de fotografía periodística
-    const palabrasPeriodisticas = ['official', 'government', 'president', 'congress', 'meeting', 'conference', 'ceremony', 'announcement'];
-    palabrasPeriodisticas.forEach(p => {
-        if (textoCompleto.includes(p)) {
-            puntuacion += 2;
-        }
-    });
-    
-    return puntuacion;
-}
-
-// ==================== 🖼️ BUSCAR IMAGEN CON IMAGE_QUERY ====================
-async function buscarImagen(imageQueries, categoria) {
+// ==================== 🖼️ BUSCAR IMAGEN CON ENTIDADES PRIORITARIAS ====================
+async function buscarImagen(entity, imageQueries, categoria) {
     try {
-        console.log(`🔍 Buscando imagen con ${imageQueries.length} queries...`);
+        console.log(`🔍 Búsqueda de imágenes:`);
+        console.log(`   Entity: ${entity || 'ninguna'}`);
+        console.log(`   Queries: ${imageQueries.length}`);
         
-        // Convertir las frases a formato de búsqueda
-        const queries = imageQueries.map(q => q.trim().replace(/\s+/g, '+'));
+        // Si imageQueries no es un array, convertirlo
+        if (!Array.isArray(imageQueries)) {
+            imageQueries = [imageQueries];
+        }
         
-        let mejoresImagenes = [];
+        // CONSTRUIR LISTA DE QUERIES PRIORITARIAS
+        let queriesPrioritarias = [];
+        
+        // Si hay ENTITY, crear queries con esa entidad
+        if (entity && entity.length > 2) {
+            console.log(`🎯 Usando ENTITY como prioridad: ${entity}`);
+            
+            // Queries específicas para la entidad según la categoría
+            if (categoria === 'Espectáculos' || categoria === 'Deportes' || categoria === 'Internacionales') {
+                queriesPrioritarias = [
+                    `${entity} celebrity`,
+                    `${entity} person`,
+                    `${entity} portrait`,
+                    `${entity} photo`,
+                    `${entity} ${categoria.toLowerCase()}`
+                ];
+            } else if (categoria === 'Nacionales') {
+                queriesPrioritarias = [
+                    `${entity} político`,
+                    `${entity} gobierno`,
+                    `${entity} presidente`,
+                    `${entity} funcionario`
+                ];
+            } else {
+                queriesPrioritarias = [
+                    `${entity}`,
+                    `${entity} news`,
+                    `${entity} ${categoria.toLowerCase()}`
+                ];
+            }
+            
+            // Traducir a inglés para las APIs
+            queriesPrioritarias = queriesPrioritarias.map(q => q.replace(/[áéíóú]/g, (letra) => {
+                const map = { 'á':'a', 'é':'e', 'í':'i', 'ó':'o', 'ú':'u' };
+                return map[letra] || letra;
+            }));
+        }
+        
+        // Combinar queries: primero las prioritarias, luego las de IMAGE_QUERY
+        const todasLasQueries = [...queriesPrioritarias, ...imageQueries].filter(q => q.length > 3);
+        
+        console.log(`📋 Queries a probar (${todasLasQueries.length}):`, todasLasQueries.slice(0, 3));
+        
+        // Convertir a formato de búsqueda
+        const queriesFormateadas = todasLasQueries.map(q => q.trim().replace(/\s+/g, '+'));
+        
+        let imagenesEncontradas = [];
         
         // ========== 1. UNSPLASH ==========
         if (process.env.UNSPLASH_ACCESS_KEY) {
-            console.log('📸 Probando Unsplash...');
-            for (const query of queries) {
+            for (const query of queriesFormateadas) {
                 try {
                     const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=5`;
                     const response = await fetch(url);
@@ -200,34 +215,37 @@ async function buscarImagen(imageQueries, categoria) {
                     if (response.ok) {
                         const data = await response.json();
                         if (data.results && data.results.length > 0) {
-                            const keywords = query.split('+');
-                            
                             data.results.forEach(img => {
-                                mejoresImagenes.push({
+                                // Calcular relevancia
+                                let relevancia = 0;
+                                const descripcion = (img.alt_description || img.description || '').toLowerCase();
+                                const tags = img.tags?.map(t => t.title.toLowerCase()) || [];
+                                
+                                // Si es la primera query (la más prioritaria), dar bonus
+                                if (query === queriesFormateadas[0]) relevancia += 5;
+                                
+                                // Si contiene el nombre de la entidad
+                                if (entity && descripcion.includes(entity.toLowerCase())) relevancia += 10;
+                                
+                                imagenesEncontradas.push({
                                     url: img.urls.regular,
                                     alt: img.alt_description || img.description || 'Noticia',
-                                    titulo: img.description || '',
-                                    etiquetas: img.tags?.map(t => t.title) || [],
-                                    puntuacion: calcularRelevancia({
-                                        titulo: img.description,
-                                        etiquetas: img.tags?.map(t => t.title)
-                                    }, keywords, categoria),
-                                    fuente: 'Unsplash',
-                                    autor: img.user.name
+                                    source: 'Unsplash',
+                                    relevancia: relevancia,
+                                    query: query
                                 });
                             });
                         }
                     }
                 } catch (e) {
-                    console.log(`⚠️ Error en Unsplash con query "${query}":`, e.message);
+                    console.log(`⚠️ Unsplash error: ${e.message}`);
                 }
             }
         }
         
         // ========== 2. PEXELS ==========
-        if (process.env.PEXELS_API_KEY && mejoresImagenes.length < 10) {
-            console.log('📸 Probando Pexels...');
-            for (const query of queries) {
+        if (process.env.PEXELS_API_KEY && imagenesEncontradas.length < 10) {
+            for (const query of queriesFormateadas) {
                 try {
                     const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`;
                     const response = await fetch(url, {
@@ -237,34 +255,29 @@ async function buscarImagen(imageQueries, categoria) {
                     if (response.ok) {
                         const data = await response.json();
                         if (data.photos && data.photos.length > 0) {
-                            const keywords = query.split('+');
-                            
                             data.photos.forEach(img => {
-                                mejoresImagenes.push({
+                                let relevancia = 0;
+                                if (query === queriesFormateadas[0]) relevancia += 5;
+                                
+                                imagenesEncontradas.push({
                                     url: img.src.landscape,
                                     alt: img.alt || 'Noticia',
-                                    titulo: img.alt || '',
-                                    etiquetas: [img.photographer],
-                                    puntuacion: calcularRelevancia({
-                                        titulo: img.alt,
-                                        etiquetas: [img.photographer]
-                                    }, keywords, categoria),
-                                    fuente: 'Pexels',
-                                    autor: img.photographer
+                                    source: 'Pexels',
+                                    relevancia: relevancia,
+                                    query: query
                                 });
                             });
                         }
                     }
                 } catch (e) {
-                    console.log(`⚠️ Error en Pexels con query "${query}":`, e.message);
+                    console.log(`⚠️ Pexels error: ${e.message}`);
                 }
             }
         }
         
         // ========== 3. PIXABAY ==========
-        if (process.env.PIXABAY_API_KEY && mejoresImagenes.length < 10) {
-            console.log('📸 Probando Pixabay...');
-            for (const query of queries) {
+        if (process.env.PIXABAY_API_KEY && imagenesEncontradas.length < 10) {
+            for (const query of queriesFormateadas) {
                 try {
                     const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`;
                     const response = await fetch(url);
@@ -272,110 +285,92 @@ async function buscarImagen(imageQueries, categoria) {
                     if (response.ok) {
                         const data = await response.json();
                         if (data.hits && data.hits.length > 0) {
-                            const keywords = query.split('+');
-                            
                             data.hits.forEach(img => {
-                                mejoresImagenes.push({
+                                let relevancia = 0;
+                                if (query === queriesFormateadas[0]) relevancia += 5;
+                                
+                                imagenesEncontradas.push({
                                     url: img.webformatURL,
                                     alt: img.tags || 'Noticia',
-                                    titulo: img.tags || '',
-                                    etiquetas: img.tags?.split(', ') || [],
-                                    puntuacion: calcularRelevancia({
-                                        titulo: img.tags,
-                                        etiquetas: img.tags?.split(', ')
-                                    }, keywords, categoria),
-                                    fuente: 'Pixabay',
-                                    autor: img.user
+                                    source: 'Pixabay',
+                                    relevancia: relevancia,
+                                    query: query
                                 });
                             });
                         }
                     }
                 } catch (e) {
-                    console.log(`⚠️ Error en Pixabay con query "${query}":`, e.message);
+                    console.log(`⚠️ Pixabay error: ${e.message}`);
                 }
             }
         }
         
         // ========== SELECCIONAR LA MEJOR IMAGEN ==========
-        if (mejoresImagenes.length > 0) {
-            // Ordenar por puntuación
-            mejoresImagenes.sort((a, b) => b.puntuacion - a.puntuacion);
+        if (imagenesEncontradas.length > 0) {
+            // Ordenar por relevancia
+            imagenesEncontradas.sort((a, b) => (b.relevancia || 0) - (a.relevancia || 0));
             
-            // Tomar la mejor (primeras 3 y elegir una aleatoria entre ellas para variar)
-            const topImagenes = mejoresImagenes.slice(0, 3);
-            const imagenSeleccionada = topImagenes[Math.floor(Math.random() * topImagenes.length)];
+            // Mostrar top resultados
+            console.log(`📊 Mejores resultados:`);
+            imagenesEncontradas.slice(0, 3).forEach((img, i) => {
+                console.log(`   ${i+1}. ${img.source} | relevancia: ${img.relevancia || 0} | query: ${img.query}`);
+            });
             
-            console.log(`✅ Mejor imagen encontrada:`);
-            console.log(`   Fuente: ${imagenSeleccionada.fuente}`);
-            console.log(`   Autor: ${imagenSeleccionada.autor}`);
-            console.log(`   Puntuación: ${imagenSeleccionada.puntuacion}`);
+            // Elegir el primero (mayor relevancia)
+            const seleccionada = imagenesEncontradas[0];
+            console.log(`✅ Imagen seleccionada de ${seleccionada.source} (relevancia: ${seleccionada.relevancia || 0})`);
             
             return {
-                url: imagenSeleccionada.url,
-                alt: imagenSeleccionada.alt,
-                source: imagenSeleccionada.fuente,
-                autor: imagenSeleccionada.autor
+                url: seleccionada.url,
+                alt: seleccionada.alt || `Noticia sobre ${entity || categoria}`,
+                source: seleccionada.source
             };
         }
         
-        // ========== BANCO DE IMÁGENES DE RESPALDO POR CATEGORÍA ==========
+        // ========== BANCO DE RESPALDO POR CATEGORÍA ==========
         console.log(`📸 Usando banco de respaldo para: ${categoria}`);
         
         const imagenesRespaldo = {
             'Nacionales': [
-                { url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg', alt: 'Palacio Nacional' },
-                { url: 'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg', alt: 'Congreso Nacional' },
-                { url: 'https://images.unsplash.com/photo-1548602088-9d12a4f9c10d', alt: 'Gobierno' }
+                { url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg', alt: 'Gobierno dominicano', source: 'respaldo' },
+                { url: 'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg', alt: 'Congreso', source: 'respaldo' }
             ],
             'Deportes': [
-                { url: 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg', alt: 'Estadio' },
-                { url: 'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg', alt: 'Béisbol' },
-                { url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211', alt: 'Deportes' }
+                { url: 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg', alt: 'Estadio', source: 'respaldo' },
+                { url: 'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg', alt: 'Béisbol', source: 'respaldo' }
             ],
             'Internacionales': [
-                { url: 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg', alt: 'Relaciones internacionales' },
-                { url: 'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg', alt: 'Mundo' },
-                { url: 'https://images.unsplash.com/photo-1489493585363-d69421e0c3d0', alt: 'Internacional' }
+                { url: 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg', alt: 'Relaciones internacionales', source: 'respaldo' },
+                { url: 'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg', alt: 'Mundo', source: 'respaldo' }
             ],
             'Espectáculos': [
-                { url: 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg', alt: 'Concierto' },
-                { url: 'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg', alt: 'Espectáculo' },
-                { url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4', alt: 'Arte' }
+                { url: 'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg', alt: 'Concierto', source: 'respaldo' },
+                { url: 'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg', alt: 'Espectáculo', source: 'respaldo' }
             ],
             'Economía': [
-                { url: 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg', alt: 'Negocios' },
-                { url: 'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg', alt: 'Economía' },
-                { url: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e', alt: 'Finanzas' }
+                { url: 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg', alt: 'Negocios', source: 'respaldo' },
+                { url: 'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg', alt: 'Economía', source: 'respaldo' }
             ],
             'Tecnología': [
-                { url: 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg', alt: 'Tecnología' },
-                { url: 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg', alt: 'Innovación' },
-                { url: 'https://images.unsplash.com/photo-1518770660439-4636190af475', alt: 'Digital' }
+                { url: 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg', alt: 'Tecnología', source: 'respaldo' },
+                { url: 'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg', alt: 'Innovación', source: 'respaldo' }
             ]
         };
 
         const imagenes = imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'];
-        const imagenElegida = imagenes[Math.floor(Math.random() * imagenes.length)];
-        
-        return {
-            url: imagenElegida.url,
-            alt: imagenElegida.alt,
-            source: 'respaldo',
-            autor: 'Banco interno'
-        };
+        return imagenes[Math.floor(Math.random() * imagenes.length)];
 
     } catch (error) {
         console.error('❌ Error buscando imagen:', error.message);
         return {
             url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-            alt: 'Noticia Dominicana',
-            source: 'emergencia',
-            autor: 'Sistema'
+            alt: 'Noticia',
+            source: 'emergencia'
         };
     }
 }
 
-// ==================== 🤖 GENERAR NOTICIA CON GEMINI (VERSIÓN IMAGE_QUERY) ====================
+// ==================== 🤖 GENERAR NOTICIA CON GEMINI (VERSIÓN CON ENTIDADES) ====================
 async function generarNoticiaCompleta(categoria) {
     try {
         console.log(`\n🤖 Generando noticia SEO para: ${categoria}`);
@@ -394,18 +389,27 @@ IMPORTANTE:
 Responde EXACTAMENTE con este formato:
 
 TITULO: [título]
+ENTITY: [nombre de la persona principal, artista, DJ, político, equipo, o dejar vacío si no aplica]
 DESCRIPCION_SEO: [descripción, máx 160 caracteres]
 PALABRAS_CLAVE: [5 palabras clave separadas por coma]
-IMAGE_QUERY: 
-[4 frases de búsqueda de imágenes en inglés, una por línea, relacionadas con la noticia]
+IMAGE_QUERY: [4 frases de búsqueda de imágenes en inglés, separadas por comas]
 CONTENIDO: [contenido completo de 400-500 palabras]
 
-Ejemplo de IMAGE_QUERY correcto:
-IMAGE_QUERY:
-government housing project construction
-workers building residential homes
-modern apartment construction site
-urban housing development dominican republic`;
+Ejemplo con ENTITY:
+TITULO: Diplo sorprende con nuevo set en festival de Miami
+ENTITY: Diplo
+DESCRIPCION_SEO: El reconocido DJ y productor Diplo presentó un innovador set en el festival de Miami
+PALABRAS_CLAVE: Diplo, música electrónica, festival, DJ, Miami
+IMAGE_QUERY: Diplo DJ performing live, Diplo festival stage, Diplo electronic music performance
+CONTENIDO: El reconocido DJ estadounidense...
+
+Ejemplo sin ENTITY:
+TITULO: Nuevo plan de viviendas en Santo Domingo
+ENTITY: 
+DESCRIPCION_SEO: El gobierno anuncia plan de viviendas sociales
+PALABRAS_CLAVE: viviendas, gobierno, construcción, santo domingo
+IMAGE_QUERY: government housing project, construction workers building homes
+CONTENIDO: El presidente...`;
 
         console.log(`📤 Enviando solicitud a Gemini...`);
 
@@ -429,6 +433,8 @@ urban housing development dominican republic`;
         );
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error Gemini:', errorText);
             throw new Error(`Gemini ${response.status}`);
         }
 
@@ -436,39 +442,71 @@ urban housing development dominican republic`;
         const texto = data.candidates[0].content.parts[0].text;
         console.log(`📝 Respuesta: ${texto.length} caracteres`);
 
-        // ===== PARSEO MEJORADO CON IMAGE_QUERY =====
+        // PARSEO CORREGIDO
+        const lineas = texto.split('\n').filter(l => l.trim() !== '');
+        
         let titulo = "";
-        const tituloMatch = texto.match(/(?:TITULO|TÍTULO|Título):\s*(.+?)(?=\n(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción)|$)/i);
-        if (tituloMatch) {
-            titulo = tituloMatch[1].trim().replace(/[*_#`]/g, '');
-        }
-
+        let entity = "";
         let seoDesc = "";
-        const descMatch = texto.match(/(?:DESCRIPCION_SEO|DESCRIPCIÓN|Descripción(?:_SEO)?):\s*(.+?)(?=\n(?:PALABRAS_CLAVE|Palabras clave|IMAGE_QUERY|CONTENIDO)|$)/i);
-        if (descMatch) {
-            seoDesc = descMatch[1].trim().substring(0, 160).replace(/[*_#`]/g, '');
-        } else {
-            seoDesc = titulo.substring(0, 160);
-        }
-
         let keywords = categoria;
-        const keywordsMatch = texto.match(/(?:PALABRAS_CLAVE|Palabras clave|Keywords):\s*(.+?)(?=\n(?:IMAGE_QUERY|CONTENIDO|Contenido)|$)/i);
-        if (keywordsMatch) {
-            keywords = keywordsMatch[1].trim().substring(0, 255).replace(/[*_#`]/g, '');
-        }
-
-        // ===== NUEVO: EXTRAER IMAGE_QUERY =====
         let imageQueries = [];
-        const imageQueryMatch = texto.match(/IMAGE_QUERY:\s*([\s\S]+?)(?=\nCONTENIDO:|Contenido:|$)/i);
-        if (imageQueryMatch) {
-            const queriesTexto = imageQueryMatch[1].trim();
-            imageQueries = queriesTexto
-                .split('\n')
-                .map(q => q.trim())
-                .filter(q => q.length > 0 && !q.startsWith('CONTENIDO'));
+        let contenido = "";
+
+        let seccionActual = "";
+        for (const linea of lineas) {
+            const lineaUpper = linea.toUpperCase();
+            
+            if (lineaUpper.includes('TITULO:') || lineaUpper.includes('TÍTULO:')) {
+                seccionActual = 'titulo';
+                titulo = linea.replace(/TITULO:|TÍTULO:|Título:/i, '').trim();
+            }
+            else if (lineaUpper.includes('ENTITY:')) {
+                seccionActual = 'entity';
+                entity = linea.replace(/ENTITY:/i, '').trim();
+            }
+            else if (lineaUpper.includes('DESCRIPCION_SEO:') || lineaUpper.includes('DESCRIPCIÓN:')) {
+                seccionActual = 'desc';
+                seoDesc = linea.replace(/DESCRIPCION_SEO:|DESCRIPCIÓN:|Descripción:/i, '').trim();
+            }
+            else if (lineaUpper.includes('PALABRAS_CLAVE:') || lineaUpper.includes('PALABRAS CLAVE:')) {
+                seccionActual = 'keywords';
+                keywords = linea.replace(/PALABRAS_CLAVE:|PALABRAS CLAVE:|Palabras clave:/i, '').trim();
+            }
+            else if (lineaUpper.includes('IMAGE_QUERY:')) {
+                seccionActual = 'image_query';
+                const queriesTexto = linea.replace(/IMAGE_QUERY:/i, '').trim();
+                imageQueries = queriesTexto.split(',').map(q => q.trim()).filter(q => q.length > 0);
+            }
+            else if (lineaUpper.includes('CONTENIDO:')) {
+                seccionActual = 'contenido';
+                contenido = linea.replace(/CONTENIDO:/i, '').trim();
+            }
+            else {
+                // Acumular según la sección actual
+                if (seccionActual === 'titulo' && linea) {
+                    titulo += ' ' + linea.trim();
+                } else if (seccionActual === 'entity' && linea) {
+                    entity += ' ' + linea.trim();
+                } else if (seccionActual === 'desc' && linea) {
+                    seoDesc += ' ' + linea.trim();
+                } else if (seccionActual === 'keywords' && linea) {
+                    keywords += ' ' + linea.trim();
+                } else if (seccionActual === 'image_query' && linea) {
+                    const nuevasQueries = linea.split(',').map(q => q.trim()).filter(q => q.length > 0);
+                    imageQueries = [...imageQueries, ...nuevasQueries];
+                } else if (seccionActual === 'contenido' && linea) {
+                    contenido += '\n' + linea.trim();
+                }
+            }
         }
 
-        // Si no hay IMAGE_QUERY, generar queries básicas del título
+        // Limpiar y validar
+        titulo = titulo.replace(/[*_#`]/g, '').trim();
+        entity = entity.replace(/[*_#`]/g, '').trim();
+        seoDesc = seoDesc.replace(/[*_#`]/g, '').substring(0, 160).trim();
+        keywords = keywords.replace(/[*_#`]/g, '').substring(0, 255).trim();
+        
+        // Si no hay IMAGE_QUERY, generar algunas
         if (imageQueries.length === 0) {
             console.log('⚠️ No se encontró IMAGE_QUERY, generando desde título...');
             const palabras = titulo
@@ -486,35 +524,28 @@ urban housing development dominican republic`;
             ];
         }
 
-        console.log(`📸 IMAGE_QUERY encontradas:`);
-        imageQueries.forEach((q, i) => console.log(`   ${i+1}. ${q}`));
+        console.log(`📌 ENTITY detectada: ${entity || 'ninguna'}`);
+        console.log(`📸 IMAGE_QUERY (${imageQueries.length}):`, imageQueries.slice(0, 3));
 
-        let contenido = "";
-        const contenidoMatch = texto.match(/(?:CONTENIDO|Contenido):\s*([\s\S]+?)$/i);
-        if (contenidoMatch) {
-            contenido = contenidoMatch[1].trim().replace(/[*_#`]/g, '');
-        }
-
-        // Validaciones
         if (!titulo || titulo.length < 10) {
             titulo = `Nuevos avances en ${categoria} transforman la realidad dominicana`;
         }
 
         if (!contenido || contenido.length < 200) {
-            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria}...`;
+            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.`;
         }
 
         console.log(`✅ Título: ${titulo.substring(0, 70)}`);
         console.log(`✅ Contenido: ${contenido.length} caracteres`);
 
-        // ===== BUSCAR IMAGEN CON LAS QUERIES =====
-        const imagenData = await buscarImagen(imageQueries, categoria);
+        // BUSCAR IMAGEN CON ENTIDAD PRIORITARIA
+        const imagenData = await buscarImagen(entity, imageQueries, categoria);
         
         const slug = generarSlug(titulo);
         const redactorAsignado = elegirRedactor(categoria);
         
         console.log(`👤 Redactor asignado: ${redactorAsignado}`);
-        console.log(`🖼️ Imagen obtenida de: ${imagenData.source}`);
+        console.log(`🖼️ Imagen: ${imagenData.source || 'desconocida'}`);
 
         // Verificar slug duplicado
         const slugExistente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
@@ -523,7 +554,6 @@ urban housing development dominican republic`;
             slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
         }
 
-        // Guardar en BD
         const result = await pool.query(
             `INSERT INTO noticias (
                 titulo, slug, seccion, contenido, 
@@ -541,7 +571,7 @@ urban housing development dominican republic`;
                 keywords.substring(0, 255),
                 redactorAsignado,
                 imagenData.url,
-                imagenData.alt,
+                imagenData.alt || `Noticia sobre ${entity || categoria}`,
                 'Santo Domingo',
                 'publicada'
             ]
@@ -559,9 +589,9 @@ urban housing development dominican republic`;
             url: `${BASE_URL}/noticia/${noticia.slug}`,
             imagen: noticia.imagen,
             redactor: redactorAsignado,
+            entity: entity || 'ninguna',
             fuente_imagen: imagenData.source,
-            autor_imagen: imagenData.autor,
-            mensaje: '✅ Noticia generada con imagen perfecta'
+            mensaje: '✅ Noticia generada'
         };
 
     } catch (error) {
@@ -753,50 +783,4 @@ app.get('/sitemap.xml', async (req, res) => {
             ['publicada']
         );
 
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        xml += '<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
-        xml += `  <url><loc>${BASE_URL}/</loc><priority>1.0</priority></url>\n`;
-
-        result.rows.forEach(n => {
-            xml += `  <url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><priority>0.8</priority></url>\n`;
-        });
-
-        xml += '</urlset>';
-        res.header('Content-Type', 'application/xml');
-        res.send(xml);
-    } catch (error) {
-        res.status(500).send('Error');
-    }
-});
-
-// ==================== ROBOTS.TXT ====================
-app.get('/robots.txt', (req, res) => {
-    const robots = `User-agent: *
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-Sitemap: ${BASE_URL}/sitemap.xml
-
-User-agent: Googlebot
-Allow: /
-`;
-    res.header('Content-Type', 'text/plain');
-    res.send(robots);
-});
-
-// ==================== STATUS ====================
-app.get('/status', async (req, res) => {
-    try {
-        const dbStatus = await pool.query('SELECT 1 as health');
-        const noticiasCount = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado = $1', ['publicada']);
-
-        res.json({
-            status: 'OK',
-            database: dbStatus.rows[0]?.health === 1 ? 'conectado' : 'error',
-            noticias_publicadas: parseInt(noticiasCount.rows[0].count),
-            uptime: Math.floor(process.uptime()),
-            timestamp: new Date().toISOString(),
-            version: '8.0'
-        });
-    } catch (error
+        let xml = '<?xml version="1.0
