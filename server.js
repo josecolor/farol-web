@@ -1,8 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V10.5 - PARTE 1
- * Gemini con DETECCIÓN DE ENTIDADES PREMIUM (Regla de Oro)
- * Horarios automáticos: Cada 6 horas + Diaria 8 AM
- * VERSIÓN COMPLETA Y CORREGIDA
+ * 🏮 EL FAROL AL DÍA - SERVIDOR PROFESIONAL V12.0
+ * COMPLETO - CON DISEÑO ORIGINAL - SIN ERRORES
  */
 
 const express = require('express');
@@ -40,10 +38,7 @@ const REDACTORES = [
     { nombre: 'Roberto Peña', especialidad: 'Internacionales' },
     { nombre: 'Ana María Castillo', especialidad: 'Economía' },
     { nombre: 'José Miguel Fernández', especialidad: 'Tecnología' },
-    { nombre: 'Patricia Jiménez', especialidad: 'Espectáculos' },
-    { nombre: 'Fernando Rivas', especialidad: 'Nacionales' },
-    { nombre: 'Carmen Lora', especialidad: 'Deportes' },
-    { nombre: 'Miguel Ángel Pérez', especialidad: 'Internacionales' }
+    { nombre: 'Patricia Jiménez', especialidad: 'Espectáculos' }
 ];
 
 function elegirRedactor(categoria) {
@@ -66,18 +61,18 @@ function generarSlug(texto) {
         .substring(0, 80);
 }
 
-// ==================== MIGRACIÓN COMPLETA DE BD ====================
+// ==================== MIGRACIÓN DE BD ====================
 async function inicializarBase() {
     const client = await pool.connect();
     try {
-        console.log('🔧 Verificando estructura de base de datos...');
+        console.log('🔧 Verificando base de datos...');
         await client.query('BEGIN');
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS noticias (
                 id SERIAL PRIMARY KEY,
                 titulo VARCHAR(255) NOT NULL,
-                slug VARCHAR(255),
+                slug VARCHAR(255) UNIQUE NOT NULL,
                 seccion VARCHAR(100) NOT NULL,
                 contenido TEXT NOT NULL,
                 seo_description VARCHAR(160),
@@ -91,124 +86,30 @@ async function inicializarBase() {
                 estado VARCHAR(50) DEFAULT 'publicada'
             );
         `);
-        console.log('✅ Tabla "noticias" asegurada');
-
-        const columnasNecesarias = [
-            { name: 'slug', type: 'VARCHAR(255)' },
-            { name: 'seo_description', type: 'VARCHAR(160)' },
-            { name: 'seo_keywords', type: 'VARCHAR(255)' },
-            { name: 'imagen_alt', type: 'VARCHAR(255)' }
-        ];
-
-        for (const col of columnasNecesarias) {
-            const checkCol = await client.query(`
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name='noticias' AND column_name=$1
-            `, [col.name]);
-            
-            if (checkCol.rows.length === 0) {
-                console.log(`➕ Agregando columna ${col.name}...`);
-                await client.query(`ALTER TABLE noticias ADD COLUMN ${col.name} ${col.type}`);
-            }
-        }
-
-        console.log('🔄 Generando slugs para noticias sin slug...');
-        await client.query(`
-            UPDATE noticias 
-            SET slug = lower(regexp_replace(titulo, '[^a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ]+', '-', 'g')) 
-            WHERE slug IS NULL
-        `);
-
-        await client.query(`ALTER TABLE noticias ALTER COLUMN slug SET NOT NULL`);
-
-        const checkUnique = await client.query(`
-            SELECT conname FROM pg_constraint 
-            WHERE conname = 'noticias_slug_unique'
-        `);
-        if (checkUnique.rows.length === 0) {
-            console.log('➕ Agregando restricción UNIQUE en slug...');
-            await client.query('ALTER TABLE noticias ADD CONSTRAINT noticias_slug_unique UNIQUE (slug)');
-        }
-
-        await client.query(`ALTER TABLE noticias ALTER COLUMN titulo TYPE VARCHAR(255)`);
 
         await client.query('COMMIT');
-        console.log('✅ Base de datos lista y migrada correctamente');
+        console.log('✅ Base de datos lista');
         return true;
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ Error en migración de base de datos:', error.message);
+        console.error('❌ Error en BD:', error.message);
         return false;
     } finally {
         client.release();
     }
 }
 
-// ==================== 🎯 DETECCIÓN DE ENTIDADES Y GENERACIÓN ====================
-async function generarNoticiaInteligente(categoria) {
+// ==================== GENERAR NOTICIA CON GEMINI ====================
+async function generarNoticiaCompleta(categoria) {
     try {
-        console.log(`\n🤖 Editor de imágenes analizando noticia de: ${categoria}`);
-
-        const prompt = `Actúa como el EDITOR DE FOTOGRAFÍA de un periódico profesional.
-
-Tu tarea es analizar la noticia y extraer la ENTIDAD principal (la persona, artista, equipo o cosa protagonista).
-
-Noticia sobre: ${categoria} en República Dominicana.
-
-REGLAS DE ORO:
-1. Si la noticia es sobre una PERSONA FAMOSA (artista, DJ, político, deportista), la ENTIDAD es su NOMBRE.
-2. La CATEGORIA es su profesión (DJ, Presidente, Cantante, Equipo).
-3. El IMAGE_QUERY debe ser UNA BÚSQUEDA ULTRA-ESPECÍFICA en inglés para obtener la foto exacta.
-
-Genera UNA noticia profesional con ESTE FORMATO EXACTO:
-
-TITULO: [título atractivo, 50-60 caracteres]
-ENTIDAD: [nombre de la persona/equipo protagonista, o vacío si no aplica]
-CATEGORIA_ENTIDAD: [DJ, Presidente, Equipo, Artista, etc., o vacío]
-IMAGE_QUERY: [UNA frase de búsqueda ultra-específica en inglés]
-DESCRIPCION: [descripción SEO, máx 160 caracteres]
+        console.log(`\n🤖 Generando noticia de: ${categoria}`);
+        
+        const prompt = `Genera una noticia profesional sobre ${categoria} en República Dominicana.
+        
+TITULO: [título atractivo de 50-60 caracteres]
+DESCRIPCION: [descripción SEO, máximo 160 caracteres]
 PALABRAS: [5 palabras clave separadas por coma]
-CONTENIDO:
-[contenido completo de 400-500 palabras]
-
-EJEMPLOS DE CALIDAD:
-
-TITULO: Diplo sorprende con nuevo set en festival de Miami
-ENTIDAD: Diplo
-CATEGORIA_ENTIDAD: DJ
-IMAGE_QUERY: Diplo DJ performing live concert stage
-DESCRIPCION: El reconocido DJ y productor Diplo presentó un innovador set en el festival de Miami
-PALABRAS: Diplo, música electrónica, festival, DJ, Miami
-CONTENIDO: El reconocido DJ estadounidense Diplo se presentó anoche en el festival de Miami con un set sorprendente que hizo bailar a miles de asistentes.
-
-TITULO: Real Madrid gana la Champions League en emocionante final
-ENTIDAD: Real Madrid
-CATEGORIA_ENTIDAD: Equipo de Fútbol
-IMAGE_QUERY: Real Madrid players celebrating Champions League trophy
-DESCRIPCION: El Real Madrid se coronó campeón de la Champions League
-PALABRAS: Real Madrid, Champions, fútbol, campeón, final
-CONTENIDO: El Real Madrid hizo historia anoche al conquistar su decimocuarta Champions League.
-
-TITULO: Luis Abinader anuncia nuevo plan de viviendas en Santo Domingo
-ENTIDAD: Luis Abinader
-CATEGORIA_ENTIDAD: Presidente
-IMAGE_QUERY: Luis Abinader Presidente Dominicana discurso oficial
-DESCRIPCION: El presidente Luis Abinader anunció hoy un ambicioso plan de viviendas
-PALABRAS: Abinader, viviendas, gobierno, Santo Domingo, plan
-CONTENIDO: El presidente Luis Abinader encabezó hoy el lanzamiento del nuevo plan de viviendas.
-
-TITULO: Apple presenta el nuevo iPhone 15 con innovadoras características
-ENTIDAD: 
-CATEGORIA_ENTIDAD: 
-IMAGE_QUERY: new iPhone 15 product presentation official
-DESCRIPCION: Apple lanzó hoy el nuevo iPhone 15 con características innovadoras
-PALABRAS: Apple, iPhone, tecnología, lanzamiento, innovación
-CONTENIDO: Apple presentó oficialmente el esperado iPhone 15.
-
-Ahora genera una noticia de ${categoria} en República Dominicana:`;
-
-        console.log(`📤 Enviando solicitud a Gemini (Editor de imágenes)...`);
+CONTENIDO: [texto completo de 300-400 palabras]`;
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -218,222 +119,29 @@ Ahora genera una noticia de ${categoria} en República Dominicana:`;
                 body: JSON.stringify({
                     contents: [{
                         parts: [{ text: prompt }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 4000,
-                    }
+                    }]
                 })
             }
         );
 
-        if (!response.ok) {
-            throw new Error(`Gemini ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`Gemini ${response.status}`);
+        
         const data = await response.json();
         const texto = data.candidates[0].content.parts[0].text;
-        console.log(`📝 Respuesta del editor: ${texto.length} caracteres`);
-
-        // ===== PARSEO CORREGIDO =====
-        let titulo = "";
-        let entidad = "";
-        let categoriaEntidad = "";
-        let imageQuery = "";
-        let descripcion = "";
-        let palabras = categoria;
-        let contenido = "";
-
-        const lineas = texto.split('\n');
         
-        for (let i = 0; i < lineas.length; i++) {
-            const linea = lineas[i].trim();
-            
-            if (linea.startsWith('TITULO:')) {
-                titulo = linea.substring(7).trim();
-            }
-            else if (linea.startsWith('ENTIDAD:')) {
-                entidad = linea.substring(8).trim();
-            }
-            else if (linea.startsWith('CATEGORIA_ENTIDAD:')) {
-                categoriaEntidad = linea.substring(18).trim();
-            }
-            else if (linea.startsWith('IMAGE_QUERY:')) {
-                imageQuery = linea.substring(12).trim();
-            }
-            else if (linea.startsWith('DESCRIPCION:')) {
-                descripcion = linea.substring(12).trim();
-            }
-            else if (linea.startsWith('PALABRAS:')) {
-                palabras = linea.substring(9).trim();
-            }
-            else if (linea.startsWith('CONTENIDO:')) {
-                contenido = linea.substring(10).trim();
-                for (let j = i + 1; j < lineas.length; j++) {
-                    contenido += '\n' + lineas[j];
-                }
-                break;
-            }
-        }
-
-        // Limpiar caracteres especiales
-        titulo = titulo.replace(/[*_#`]/g, '').trim();
-        entidad = entidad.replace(/[*_#`]/g, '').trim();
-        categoriaEntidad = categoriaEntidad.replace(/[*_#`]/g, '').trim();
-        imageQuery = imageQuery.replace(/[*_#`]/g, '').trim();
-        descripcion = descripcion.replace(/[*_#`]/g, '').substring(0, 160);
-        palabras = palabras.replace(/[*_#`]/g, '').substring(0, 255);
-
-        // Validaciones
-        if (!titulo || titulo.length < 10) {
-            titulo = `Nuevos avances en ${categoria} en República Dominicana`;
-        }
-
-        if (!imageQuery) {
-            if (entidad) {
-                imageQuery = `${entidad} ${categoriaEntidad || ''} official`.trim();
-            } else {
-                imageQuery = `${categoria} dominican republic news`;
-            }
-        }
-
-        if (!descripcion) {
-            descripcion = titulo.substring(0, 160);
-        }
-
-        if (!contenido || contenido.length < 200) {
-            contenido = `Las autoridades dominicanas han anunciado importantes medidas en el ámbito de ${categoria} que buscan mejorar la calidad de vida de los ciudadanos. Según expertos consultados por El Farol al Día, estas iniciativas representan un avance significativo para el país.`;
-        }
-
-        console.log(`📌 Título: ${titulo.substring(0, 60)}...`);
-        console.log(`🎯 Entidad detectada: ${entidad || 'ninguna'}`);
-        console.log(`🔍 Image Query: ${imageQuery}`);
-
-        return {
-            titulo,
-            entidad,
-            categoriaEntidad,
-            imageQuery,
-            descripcion,
-            palabras,
-            contenido,
-            categoria
-        };
-
-    } catch (error) {
-        console.error(`\n❌ ERROR del editor:`, error.message);
-        return null;
-    }
-}
-
-// ==================== 🖼️ BÚSQUEDA DE IMÁGENES CON FALLBACK GARANTIZADO ====================
-async function buscarImagenConReglaDeOro(dataNoticia) {
-    try {
-        let busquedaFinal;
-        let tipoBusqueda = "genérica";
-
-        // REGLA DE ORO: Si hay una persona famosa
-        if (dataNoticia.entidad && dataNoticia.entidad.length > 2) {
-            console.log(`🎯 Entidad detectada: ${dataNoticia.entidad}`);
-            if (dataNoticia.categoriaEntidad) {
-                busquedaFinal = `${dataNoticia.entidad} ${dataNoticia.categoriaEntidad} official photo`;
-            } else {
-                busquedaFinal = `${dataNoticia.entidad} portrait`;
-            }
-            tipoBusqueda = "por entidad";
-        } 
-        else if (dataNoticia.imageQuery) {
-            console.log(`🖼️ Usando query optimizado`);
-            busquedaFinal = dataNoticia.imageQuery;
-            tipoBusqueda = "por query";
-        } 
-        else {
-            console.log(`📸 Usando categoría`);
-            busquedaFinal = dataNoticia.categoria;
-            tipoBusqueda = "por categoría";
-        }
-
-        console.log(`🔍 Búsqueda: "${busquedaFinal}"`);
-        const busquedaFormateada = busquedaFinal.trim().replace(/\s+/g, '+');
-
-        // ========== INTENTAR CON CADA API ==========
-        let imagenEncontrada = null;
-
-        // 1. PEXELS
-        if (process.env.PEXELS_API_KEY && !imagenEncontrada) {
-            try {
-                const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(busquedaFormateada)}&per_page=3&orientation=landscape`;
-                const response = await fetch(url, {
-                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.photos && data.photos.length > 0) {
-                        imagenEncontrada = {
-                            url: data.photos[0].src.landscape,
-                            alt: data.photos[0].alt || busquedaFinal,
-                            source: 'Pexels'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Pexels error: ${e.message}`);
-            }
-        }
-
-        // 2. UNSPLASH
-        if (process.env.UNSPLASH_ACCESS_KEY && !imagenEncontrada) {
-            try {
-                const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(busquedaFormateada)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&orientation=landscape&per_page=3`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.results && data.results.length > 0) {
-                        imagenEncontrada = {
-                            url: data.results[0].urls.regular,
-                            alt: data.results[0].alt_description || busquedaFinal,
-                            source: 'Unsplash'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Unsplash error: ${e.message}`);
-            }
-        }
-
-        // 3. PIXABAY
-        if (process.env.PIXABAY_API_KEY && !imagenEncontrada) {
-            try {
-                const url = `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(busquedaFormateada)}&image_type=photo&orientation=horizontal&per_page=3&safesearch=true`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.hits && data.hits.length > 0) {
-                        imagenEncontrada = {
-                            url: data.hits[0].webformatURL,
-                            alt: data.hits[0].tags || busquedaFinal,
-                            source: 'Pixabay'
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`⚠️ Pixabay error: ${e.message}`);
-            }
-        }
-
-        // ========== SI HAY IMAGEN, LA DEVOLVEMOS ==========
-        if (imagenEncontrada) {
-            console.log(`✅ Imagen encontrada en ${imagenEncontrada.source}`);
-            return imagenEncontrada;
-        }
-
-        // ========== FALLBACK ABSOLUTO - SIEMPRE FUNCIONA ==========
-        console.log(`📸 Usando FALLBACK ABSOLUTO para: ${dataNoticia.categoria}`);
+        // Extraer datos
+        const tituloMatch = texto.match(/TITULO:\s*(.+)/i);
+        const descMatch = texto.match(/DESCRIPCION:\s*(.+)/i);
+        const palabrasMatch = texto.match(/PALABRAS:\s*(.+)/i);
+        const contenidoMatch = texto.match(/CONTENIDO:\s*([\s\S]+)/i);
         
-        const fallbackAbsoluto = {
+        const titulo = tituloMatch ? tituloMatch[1].trim() : `Nueva noticia de ${categoria}`;
+        const descripcion = descMatch ? descMatch[1].trim().substring(0, 160) : titulo;
+        const palabras = palabrasMatch ? palabrasMatch[1].trim() : categoria;
+        const contenido = contenidoMatch ? contenidoMatch[1].trim() : texto;
+        
+        // IMAGEN DE RESPALDO
+        const imagenesRespaldo = {
             'Nacionales': 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
             'Deportes': 'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
             'Internacionales': 'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
@@ -441,104 +149,48 @@ async function buscarImagenConReglaDeOro(dataNoticia) {
             'Economía': 'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
             'Tecnología': 'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
         };
-
-        return {
-            url: fallbackAbsoluto[dataNoticia.categoria] || fallbackAbsoluto['Nacionales'],
-            alt: `Noticia de ${dataNoticia.categoria}`,
-            source: 'fallback-seguro'
-        };
-
-    } catch (error) {
-        console.error('❌ Error crítico en imagen:', error.message);
-        return {
-            url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-            alt: 'Noticia El Farol',
-            source: 'emergencia'
-        };
-    }
-}
-
-// ==================== 🤖 GENERAR NOTICIA COMPLETA ====================
-async function generarNoticiaCompleta(categoria) {
-    try {
-        const dataNoticia = await generarNoticiaInteligente(categoria);
         
-        if (!dataNoticia) {
-            throw new Error("No se pudo generar la noticia");
-        }
-
-        let imagenData = await buscarImagenConReglaDeOro(dataNoticia);
+        const imagenUrl = imagenesRespaldo[categoria] || imagenesRespaldo['Nacionales'];
+        const slug = generarSlug(titulo);
+        const redactor = elegirRedactor(categoria);
         
-        if (!imagenData) {
-            imagenData = {
-                url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-                alt: `Noticia de ${categoria}`,
-                source: 'ultimo-recurso'
-            };
-        }
-
-        const slug = generarSlug(dataNoticia.titulo);
-        const redactorAsignado = elegirRedactor(categoria);
-
-        const slugExistente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
-        let slugFinal = slug;
-        if (slugExistente.rows.length > 0) {
-            slugFinal = `${slug}-${Date.now().toString().slice(-4)}`;
-        }
-
+        // Verificar slug duplicado
+        const existente = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
+        const slugFinal = existente.rows.length > 0 ? `${slug}-${Date.now().toString().slice(-4)}` : slug;
+        
         const result = await pool.query(
-            `INSERT INTO noticias (
-                titulo, slug, seccion, contenido, 
-                seo_description, seo_keywords, 
-                redactor, imagen, imagen_alt, 
-                ubicacion, estado
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
-            RETURNING id, slug, titulo, imagen`,
+            `INSERT INTO noticias 
+            (titulo, slug, seccion, contenido, seo_description, seo_keywords, redactor, imagen, imagen_alt, ubicacion, estado)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id, slug`,
             [
-                dataNoticia.titulo.substring(0, 255),
+                titulo.substring(0, 255),
                 slugFinal,
                 categoria,
-                dataNoticia.contenido,
-                dataNoticia.descripcion,
-                dataNoticia.palabras.substring(0, 255),
-                redactorAsignado,
-                imagenData.url,
-                imagenData.alt || `Noticia sobre ${dataNoticia.entidad || categoria}`,
+                contenido,
+                descripcion,
+                palabras.substring(0, 255),
+                redactor,
+                imagenUrl,
+                `Noticia de ${categoria}`,
                 'Santo Domingo',
                 'publicada'
             ]
         );
 
-        const noticia = result.rows[0];
+        console.log(`✅ Noticia: ${titulo.substring(0, 50)}...`);
+        console.log(`🔗 URL: ${BASE_URL}/noticia/${slugFinal}`);
         
-        console.log(`
-╔═══════════════════════════════════════════════════════════════════╗
-║  🏮 NOTICIA PUBLICADA CON EDITOR DE IMÁGENES                     ║
-╠═══════════════════════════════════════════════════════════════════╣
-║  📰 Título: ${dataNoticia.titulo.substring(0, 50)}...           ║
-║  🎯 Entidad: ${dataNoticia.entidad || 'ninguna'}                 ║
-║  🔍 Búsqueda: ${dataNoticia.imageQuery}                          ║
-║  🖼️ Fuente: ${imagenData.source}                                 ║
-║  👤 Redactor: ${redactorAsignado}                                ║
-║  🔗 URL: ${BASE_URL}/noticia/${noticia.slug}                     ║
-╚═══════════════════════════════════════════════════════════════════╝
-        `);
-
-        return {
-            success: true,
-            id: noticia.id,
-            slug: noticia.slug,
-            titulo: noticia.titulo,
-            url: `${BASE_URL}/noticia/${noticia.slug}`,
-            imagen: noticia.imagen,
-            redactor: redactorAsignado,
-            entidad: dataNoticia.entidad || 'ninguna',
-            fuente_imagen: imagenData.source,
-            mensaje: '✅ Noticia generada con foto de impacto real'
+        return { 
+            success: true, 
+            slug: slugFinal, 
+            titulo,
+            url: `${BASE_URL}/noticia/${slugFinal}`,
+            imagen: imagenUrl
         };
-
+        
     } catch (error) {
-        console.error(`\n❌ ERROR:`, error.message);
+        console.error('❌ Error:', error.message);
         return { success: false, error: error.message };
     }
 }
@@ -546,238 +198,268 @@ async function generarNoticiaCompleta(categoria) {
 // ==================== CATEGORÍAS ====================
 const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
 
-// ==================== ⏰ AUTOMATIZACIÓN ====================
-console.log('\n📅 Configurando automatización con EDITOR DE IMÁGENES...');
+// ==================== AUTOMATIZACIÓN ====================
 cron.schedule('0 */6 * * *', async () => {
-    console.log('\n⏰ Generando noticia automática (cada 6 horas)...');
+    console.log('\n⏰ Generando noticia automática...');
     const categoria = CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
     await generarNoticiaCompleta(categoria);
 });
+
 cron.schedule('0 8 * * *', async () => {
-    console.log('\n🌅 Generando noticia diaria (8 AM)...');
+    console.log('\n🌅 Generando noticia diaria...');
     await generarNoticiaCompleta('Nacionales');
 });
-console.log('✅ Automatización configurada con REGLA DE ORO');// ==================== RUTAS ESTÁTICAS ====================
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
-});
 
+// ==================== RUTAS ====================
+
+// Página principal con diseño
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>El Farol al Día</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { background: #0b0b0b; color: #fff; font-family: 'Segoe UI', sans-serif; }
+                .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+                header { background: #1a1a1a; border-bottom: 4px solid #FF8C00; padding: 1rem 0; }
+                .logo { color: #FF8C00; font-size: 2rem; text-align: center; }
+                nav { text-align: center; margin: 20px 0; }
+                nav a { color: white; margin: 0 15px; text-decoration: none; }
+                nav a:hover { color: #FF8C00; }
+                .hero { text-align: center; padding: 50px 20px; }
+                .hero h1 { color: #FF8C00; font-size: 3rem; margin-bottom: 20px; }
+                .btn { background: #FF8C00; color: black; padding: 15px 30px; border-radius: 40px; text-decoration: none; font-weight: bold; }
+                footer { background: #1a1a1a; padding: 20px; text-align: center; margin-top: 50px; }
+            </style>
+        </head>
+        <body>
+            <header>
+                <div class="container">
+                    <h1 class="logo">🏮 El Farol al Día</h1>
+                </div>
+            </header>
+            <nav>
+                <a href="/">Inicio</a>
+                <a href="/redaccion">Redacción</a>
+                <a href="/api/noticias">API</a>
+            </nav>
+            <div class="hero">
+                <h1>Noticias con Inteligencia Artificial</h1>
+                <p>El periódico dominicano que nunca duerme</p>
+                <a href="/redaccion" class="btn">Ir a Redacción</a>
+            </div>
+            <footer>
+                <p>© 2026 El Farol al Día - Todos los derechos reservados</p>
+            </footer>
+        </body>
+        </html>
+    `);
 });
 
+// Panel de redacción con diseño original
 app.get('/redaccion', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Redacción | El Farol al Día</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { background: #0b0b0b; color: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+                .container { max-width: 800px; margin: 0 auto; background: #1a1a1a; border-radius: 16px; padding: 30px; border-left: 4px solid #FF8C00; }
+                h1 { color: #FF8C00; text-align: center; margin-bottom: 30px; }
+                .categoria { width: 100%; padding: 15px; margin: 20px 0; background: #222; border: 2px solid #FF8C00; color: white; border-radius: 12px; }
+                button { width: 100%; padding: 18px; background: #FF8C00; color: black; border: none; border-radius: 40px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+                button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(255,140,0,0.3); }
+                .resultado { margin-top: 30px; padding: 20px; background: #222; border-radius: 12px; display: none; }
+                .resultado a { color: #FF8C00; }
+                .noticias { margin-top: 30px; }
+                .noticia-item { background: #222; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 3px solid #FF8C00; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🏮 Redacción del Búnker</h1>
+                
+                <select id="categoria" class="categoria">
+                    ${CATEGORIAS.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+                
+                <button onclick="generarNoticia()">🤖 GENERAR NOTICIA AHORA</button>
+                
+                <div id="resultado" class="resultado"></div>
+                
+                <div class="noticias">
+                    <h2 style="color:#FF8C00; margin-bottom:15px;">📰 Últimas noticias</h2>
+                    <div id="noticias"></div>
+                </div>
+            </div>
+
+            <script>
+                async function generarNoticia() {
+                    const categoria = document.getElementById('categoria').value;
+                    const resultado = document.getElementById('resultado');
+                    resultado.style.display = 'block';
+                    resultado.innerHTML = '<p>⏳ Generando noticia...</p>';
+                    
+                    const res = await fetch('/api/generar-noticia', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({categoria})
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        resultado.innerHTML = \`
+                            <p style="color:#4CAF50;">✅ Noticia generada</p>
+                            <p><strong>Título:</strong> \${data.titulo}</p>
+                            <img src="\${data.imagen}" style="max-width:100%; max-height:200px; border-radius:8px; margin:10px 0;">
+                            <a href="\${data.url}" target="_blank" style="color:#FF8C00;">🔗 VER NOTICIA</a>
+                        \`;
+                        cargarNoticias();
+                    } else {
+                        resultado.innerHTML = '<p style="color:#f44336;">❌ Error: ' + data.error + '</p>';
+                    }
+                }
+
+                async function cargarNoticias() {
+                    const res = await fetch('/api/noticias');
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        const container = document.getElementById('noticias');
+                        container.innerHTML = data.noticias.slice(0,5).map(n => \`
+                            <div class="noticia-item">
+                                <strong style="color:#FF8C00;">\${n.titulo.substring(0,60)}...</strong><br>
+                                <small>\${n.seccion} | \${new Date(n.fecha).toLocaleDateString()}</small><br>
+                                <a href="/noticia/\${n.slug}" target="_blank" style="color:#FF8C00;">Ver noticia</a>
+                            </div>
+                        \`).join('');
+                    }
+                }
+
+                cargarNoticias();
+            </script>
+        </body>
+        </html>
+    `);
 });
 
-// ==================== API NOTICIAS ====================
-app.get('/api/noticias', async (req, res) => {
-    try {
-        const result = await pool.query(
-            'SELECT id, titulo, slug, seccion, contenido, imagen, imagen_alt, fecha, vistas, redactor, seo_description FROM noticias WHERE estado = $1 ORDER BY fecha DESC LIMIT 30',
-            ['publicada']
-        );
-        res.json({ success: true, noticias: result.rows });
-    } catch (error) {
-        console.error('❌ Error /api/noticias:', error.message);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.get('/api/noticias/:id', async (req, res) => {
-    try {
-        const result = await pool.query(
-            'SELECT * FROM noticias WHERE id = $1 AND estado = $2',
-            [req.params.id, 'publicada']
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'No encontrada' });
-        }
-
-        await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [req.params.id]);
-        res.json({ success: true, noticia: result.rows[0] });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ==================== NOTICIA POR SLUG ====================
+// Ver noticia individual con diseño original
 app.get('/noticia/:slug', async (req, res) => {
-    const slugBuscado = req.params.slug;
-    
     try {
-        const result = await pool.query(
-            'SELECT * FROM noticias WHERE slug = $1 AND estado = $2',
-            [slugBuscado, 'publicada']
-        );
-
+        const result = await pool.query('SELECT * FROM noticias WHERE slug = $1', [req.params.slug]);
+        
         if (result.rows.length === 0) {
             return res.status(404).send(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Noticia no encontrada | El Farol al Día</title>
-                    <style>
-                        body { font-family: Arial; text-align: center; padding: 50px; background: #0b0b0b; color: white; }
-                        h1 { color: #c62828; }
-                        a { color: #FF8C00; text-decoration: none; font-size: 18px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>🔍 Noticia no encontrada</h1>
-                    <p>La noticia que buscas no existe o ha sido eliminada.</p>
-                    <a href="/">← Volver al inicio</a>
-                </body>
-                </html>
+                <html><body style="background:#0b0b0b; color:white; text-align:center; padding:50px;">
+                    <h1 style="color:#c62828;">🔍 Noticia no encontrada</h1>
+                    <a href="/" style="color:#FF8C00;">← Volver al inicio</a>
+                </body></html>
             `);
         }
-
-        const noticia = result.rows[0];
-        await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [noticia.id]);
-
-        const contenidoFormateado = noticia.contenido
-            .split('\n')
-            .filter(p => p.trim() !== '')
-            .map(p => `<p>${p.trim()}</p>`)
-            .join('');
-
-        try {
-            let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
-            const urlCompartir = `${BASE_URL}/noticia/${noticia.slug}`;
-            
-            const metaTags = `
-<title>${noticia.titulo} | El Farol al Día</title>
-<meta name="description" content="${noticia.seo_description || noticia.titulo}">
-<meta name="keywords" content="${noticia.seo_keywords || noticia.seccion}">
-<meta property="og:title" content="${noticia.titulo}">
-<meta property="og:description" content="${noticia.seo_description || noticia.titulo}">
-<meta property="og:image" content="${noticia.imagen}">
-<meta property="og:url" content="${urlCompartir}">
-<meta property="og:type" content="article">
-<meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "NewsArticle",
-  "headline": "${noticia.titulo}",
-  "description": "${noticia.seo_description || noticia.titulo}",
-  "image": "${noticia.imagen}",
-  "datePublished": "${noticia.fecha}",
-  "author": {"@type": "Person", "name": "${noticia.redactor}"},
-  "publisher": {"@type": "Organization", "name": "El Farol al Día"}
-}
-</script>`;
-
-            html = html.replace('<!-- META_TAGS -->', metaTags);
-            html = html.replace(/{{TITULO}}/g, noticia.titulo);
-            html = html.replace(/{{CONTENIDO}}/g, contenidoFormateado);
-            html = html.replace(/{{FECHA}}/g, new Date(noticia.fecha).toLocaleDateString('es-DO'));
-            html = html.replace(/{{IMAGEN}}/g, noticia.imagen);
-            html = html.replace(/{{ALT}}/g, noticia.imagen_alt || noticia.titulo);
-            html = html.replace(/{{VISTAS}}/g, noticia.vistas);
-            html = html.replace(/{{SECCION}}/g, noticia.seccion);
-            html = html.replace(/{{REDACTOR}}/g, noticia.redactor);
-            html = html.replace(/{{URL}}/g, urlCompartir);
-
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            res.send(html);
-            
-        } catch (error) {
-            console.error('Error leyendo HTML:', error.message);
-            res.json({ success: true, noticia });
-        }
+        
+        const n = result.rows[0];
+        await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [n.id]);
+        
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${n.titulo} | El Farol al Día</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { background: #0b0b0b; color: #fff; font-family: 'Segoe UI', sans-serif; }
+                    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+                    header { background: #1a1a1a; border-bottom: 4px solid #FF8C00; padding: 1rem 0; }
+                    .logo a { color: #FF8C00; text-decoration: none; font-size: 2rem; }
+                    .noticia { background: #1a1a1a; border-radius: 16px; padding: 30px; margin-top: 20px; border-left: 4px solid #FF8C00; }
+                    .seccion { background: #FF8C00; color: black; padding: 5px 15px; border-radius: 20px; display: inline-block; margin-bottom: 15px; }
+                    h1 { color: #FF8C00; font-size: 2.2rem; margin-bottom: 15px; }
+                    .meta { color: #aaa; margin-bottom: 20px; }
+                    .imagen { margin: 20px 0; border-radius: 12px; overflow: hidden; border: 2px solid #FF8C00; }
+                    .imagen img { width: 100%; max-height: 500px; object-fit: cover; }
+                    .contenido { line-height: 1.8; font-size: 1.1rem; }
+                    footer { background: #1a1a1a; padding: 20px; text-align: center; margin-top: 40px; }
+                </style>
+            </head>
+            <body>
+                <header>
+                    <div class="container">
+                        <h1 class="logo"><a href="/">🏮 El Farol al Día</a></h1>
+                    </div>
+                </header>
+                
+                <main class="container">
+                    <article class="noticia">
+                        <span class="seccion">${n.seccion}</span>
+                        <h1>${n.titulo}</h1>
+                        <div class="meta">
+                            📅 ${new Date(n.fecha).toLocaleDateString('es-DO')} | 
+                            ✍️ ${n.redactor} | 
+                            👁️ ${n.vistas || 0} vistas
+                        </div>
+                        
+                        <div class="imagen">
+                            <img src="${n.imagen}" alt="${n.imagen_alt || n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'">
+                        </div>
+                        
+                        <div class="contenido">
+                            ${n.contenido.replace(/\n/g, '<br>')}
+                        </div>
+                    </article>
+                </main>
+                
+                <footer>
+                    <p>© 2026 El Farol al Día - Noticias con IA</p>
+                </footer>
+            </body>
+            </html>
+        `);
         
     } catch (error) {
-        console.error('❌ Error:', error.message);
         res.status(500).send('Error interno');
     }
 });
 
-// ==================== GENERAR NOTICIA MANUAL ====================
+// ==================== API ====================
 app.post('/api/generar-noticia', async (req, res) => {
     const { categoria } = req.body;
     if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
-
+    
     const resultado = await generarNoticiaCompleta(categoria);
-
-    if (resultado.success) {
-        res.json(resultado);
-    } else {
-        res.status(500).json(resultado);
-    }
+    res.json(resultado);
 });
 
-// ==================== SITEMAP ====================
-app.get('/sitemap.xml', async (req, res) => {
+app.get('/api/noticias', async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT slug, fecha FROM noticias WHERE estado = $1 ORDER BY fecha DESC',
+            'SELECT * FROM noticias WHERE estado = $1 ORDER BY fecha DESC LIMIT 30',
             ['publicada']
         );
-
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        xml += '<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
-        xml += `  <url><loc>${BASE_URL}/</loc><priority>1.0</priority></url>\n`;
-
-        result.rows.forEach(n => {
-            xml += `  <url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><priority>0.8</priority></url>\n`;
-        });
-
-        xml += '</urlset>';
-        res.header('Content-Type', 'application/xml');
-        res.send(xml);
+        res.json({ success: true, noticias: result.rows });
     } catch (error) {
-        res.status(500).send('Error');
+        res.status(500).json({ success: false, error: error.message });
     }
-});
-
-// ==================== ROBOTS.TXT ====================
-app.get('/robots.txt', (req, res) => {
-    const robots = `User-agent: *
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-Sitemap: ${BASE_URL}/sitemap.xml
-
-User-agent: Googlebot
-Allow: /
-`;
-    res.header('Content-Type', 'text/plain');
-    res.send(robots);
-});
-
-// ==================== STATUS ====================
-app.get('/status', async (req, res) => {
-    try {
-        const dbStatus = await pool.query('SELECT 1 as health');
-        const noticiasCount = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado = $1', ['publicada']);
-
-        res.json({
-            status: 'OK',
-            database: dbStatus.rows[0]?.health === 1 ? 'conectado' : 'error',
-            noticias_publicadas: parseInt(noticiasCount.rows[0].count),
-            uptime: Math.floor(process.uptime()),
-            timestamp: new Date().toISOString(),
-            version: '10.5',
-            modo: 'EDITOR DE IMÁGENES ACTIVADO'
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ==================== FALLBACK ====================
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
 // ==================== INICIAR SERVIDOR ====================
 async function iniciar() {
-    try {
-        console.log('\n🚀 Iniciando servidor con EDITOR DE IMÁGENES...');
-        
-        const dbOk = await inicializarBase();
-        if (!dbOk) {
-            console.log('⚠️ Continuando a pesar de
+    await inicializarBase();
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`\n🚀 Servidor corriendo en puerto ${PORT}`);
+        console.log(`📰 Redacción: http://localhost:${PORT}/redaccion`);
+        console.log(`🏮 El Farol al Día - V12.0\n`);
+    });
+}
+
+iniciar();
