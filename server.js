@@ -379,12 +379,16 @@ const CATEGORIAS = ['Nacionales','Deportes','Internacionales','Economía','Tecno
 
 console.log('\n📅 Configurando automatización...');
 
-cron.schedule('0 */6 * * *', async () => {
+cron.schedule('0 */2 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
-    const delay = Math.floor(Math.random() * 10 * 60 * 1000);
-    console.log(`\n⏰ Noticia automática en ${Math.round(delay/60000)}min...`);
-    await new Promise(r => setTimeout(r, delay));
-    await generarConCola(CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)]);
+    console.log(`\n⏰ Ciclo automático: 3 noticias cada 2h`);
+    // Seleccionar 3 categorías distintas al azar
+    const shuffled = [...CATEGORIAS].sort(() => Math.random() - 0.5);
+    const seleccionadas = shuffled.slice(0, 3);
+    for (const cat of seleccionadas) {
+        await generarConCola(cat);
+        await new Promise(r => setTimeout(r, 15000)); // 15s entre cada una
+    }
 });
 
 cron.schedule('0 8 * * *', async () => {
@@ -393,7 +397,7 @@ cron.schedule('0 8 * * *', async () => {
     await generarConCola('Nacionales');
 });
 
-console.log('✅ Automatización: cada 6h + cola');
+console.log('✅ Automatización: 3 noticias cada 2h + Nacionales a las 8am');
 
 // ====== RUTAS ======
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '18.3' }));
@@ -565,3 +569,4 @@ async function iniciar() {
 
 iniciar();
 module.exports = app;
+
