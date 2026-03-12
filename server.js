@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V18.6 (ANTIBALAS + XML + CRON 2H)
- * CAMBIOS: Parseo antibalas, fallback texto plano, XML prompt, cron 3 noticias cada 2h
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V18.7 (PANEL DE TIEMPO IA)
+ * CAMBIOS: Estado de generación en tiempo real + endpoint /api/estado-generacion
  */
 
 const express = require('express');
@@ -37,9 +37,46 @@ const limiterGeneracion = rateLimit({
     handler: (req, res) => { console.log(`⛔ Spam generación IP: ${req.ip}`); res.status(429).json({ error: 'Demasiadas generaciones.' }); }
 });
 
-// ====== COLA DE GENERACIÓN ======
+// ====== ESTADO DE GENERACIÓN EN TIEMPO REAL ======
 let generandoAhora = false;
 
+const FASES_GEN = [
+    { id: 'fetch',   label: 'Recopilando noticias',  duracion: 5  },
+    { id: 'gemini',  label: 'Gemini redactando',      duracion: 45 },
+    { id: 'seo',     label: 'Optimizando SEO',        duracion: 5  },
+    { id: 'image',   label: 'Buscando imagen',        duracion: 15 },
+    { id: 'review',  label: 'Revisión y validación',  duracion: 5  },
+    { id: 'publish', label: 'Publicando en BD',       duracion: 5  },
+];
+
+const ESTADO_GEN = {
+    activo: false,
+    categoria: null,
+    fase: null,
+    faseLabel: null,
+    faseIndex: -1,
+    inicio: null,
+    faseInicio: null,
+    faseDuracionEst: 0,
+    duracionEstTotal: FASES_GEN.reduce((s, f) => s + f.duracion, 0),
+    ultimaPublicacion: null,
+    ultimoTitulo: null,
+    error: null,
+};
+
+function setFase(faseId) {
+    const idx = FASES_GEN.findIndex(f => f.id === faseId);
+    if (idx === -1) return;
+    const f = FASES_GEN[idx];
+    ESTADO_GEN.fase            = f.id;
+    ESTADO_GEN.faseLabel       = f.label;
+    ESTADO_GEN.faseIndex       = idx;
+    ESTADO_GEN.faseInicio      = Date.now();
+    ESTADO_GEN.faseDuracionEst = f.duracion;
+    console.log(`⚙️  Fase [${idx + 1}/${FASES_GEN.length}]: ${f.label}`);
+}
+
+// ====== COLA DE GENERACIÓN ======
 async function generarConCola(categoria) {
     if (generandoAhora) {
         console.log(`⏳ Cola: sistema ocupado, esperando 30s para ${categoria}...`);
@@ -49,12 +86,27 @@ async function generarConCola(categoria) {
             return { success: false, error: 'Sistema ocupado, intenta más tarde' };
         }
     }
-    generandoAhora = true;
+    generandoAhora       = true;
+    ESTADO_GEN.activo    = true;
+    ESTADO_GEN.categoria = categoria;
+    ESTADO_GEN.inicio    = Date.now();
+    ESTADO_GEN.error     = null;
+    setFase('fetch');
     console.log(`🔒 Cola: iniciando ${categoria}`);
     try {
-        return await generarNoticia(categoria);
+        const result = await generarNoticia(categoria);
+        if (result.success) {
+            ESTADO_GEN.ultimaPublicacion = new Date().toISOString();
+            ESTADO_GEN.ultimoTitulo      = result.titulo || null;
+            ESTADO_GEN.error             = null;
+        } else {
+            ESTADO_GEN.error = result.error || 'Error desconocido';
+        }
+        return result;
     } finally {
-        generandoAhora = false;
+        generandoAhora    = false;
+        ESTADO_GEN.activo = false;
+        ESTADO_GEN.fase   = null;
         console.log(`🔓 Cola: sistema libre`);
     }
 }
@@ -126,12 +178,12 @@ function generarSlug(texto) {
 
 // ====== BANCO IMÁGENES ======
 const BANCO_IMAGENES_ILUSTRATIVAS = {
-    'Nacionales': { urls: ['https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg','https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg','https://images.pexels.com/photos/3616480/pexels-photo-3616480.jpeg','https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg'], alt: 'Congreso Nacional - República Dominicana' },
-    'Deportes': { urls: ['https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg','https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg','https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg','https://images.pexels.com/photos/3621943/pexels-photo-3621943.jpeg'], alt: 'Estadio de fútbol - Deportes' },
+    'Nacionales':      { urls: ['https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg','https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg','https://images.pexels.com/photos/3616480/pexels-photo-3616480.jpeg','https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg'], alt: 'Congreso Nacional - República Dominicana' },
+    'Deportes':        { urls: ['https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg','https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg','https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg','https://images.pexels.com/photos/3621943/pexels-photo-3621943.jpeg'], alt: 'Estadio de fútbol - Deportes' },
     'Internacionales': { urls: ['https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg','https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg','https://images.pexels.com/photos/2869499/pexels-photo-2869499.jpeg','https://images.pexels.com/photos/3407617/pexels-photo-3407617.jpeg'], alt: 'Noticias Internacionales' },
-    'Espectáculos': { urls: ['https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg','https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg','https://images.pexels.com/photos/3651308/pexels-photo-3651308.jpeg','https://images.pexels.com/photos/3587478/pexels-photo-3587478.jpeg'], alt: 'Entretenimiento y Espectáculos' },
-    'Economía': { urls: ['https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg','https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg','https://images.pexels.com/photos/3184591/pexels-photo-3184591.jpeg','https://images.pexels.com/photos/3532557/pexels-photo-3532557.jpeg'], alt: 'Gráficos de Economía' },
-    'Tecnología': { urls: ['https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg','https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg','https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg','https://images.pexels.com/photos/3932499/pexels-photo-3932499.jpeg'], alt: 'Tecnología e Innovación' }
+    'Espectáculos':    { urls: ['https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg','https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg','https://images.pexels.com/photos/3651308/pexels-photo-3651308.jpeg','https://images.pexels.com/photos/3587478/pexels-photo-3587478.jpeg'], alt: 'Entretenimiento y Espectáculos' },
+    'Economía':        { urls: ['https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg','https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg','https://images.pexels.com/photos/3184591/pexels-photo-3184591.jpeg','https://images.pexels.com/photos/3532557/pexels-photo-3532557.jpeg'], alt: 'Gráficos de Economía' },
+    'Tecnología':      { urls: ['https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg','https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg','https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg','https://images.pexels.com/photos/3932499/pexels-photo-3932499.jpeg'], alt: 'Tecnología e Innovación' }
 };
 
 // ====== CACHE IMÁGENES ======
@@ -265,7 +317,6 @@ async function inicializarBase() {
             activa BOOLEAN DEFAULT true,
             fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
-        // Lecciones base si no existen
         await client.query(`INSERT INTO lecciones (categoria, leccion) SELECT * FROM (VALUES
             ('General', 'Títulos máximo 60 caracteres, sin asteriscos ni símbolos'),
             ('General', 'Enfoque primario: Santo Domingo Este y zona oriental de RD'),
@@ -274,7 +325,7 @@ async function inicializarBase() {
             ('Nacionales', 'Buscar siempre el ángulo de impacto en Santo Domingo Este'),
             ('General', 'Estilo: autoridad del Listín Diario + dinamismo del Diario Libre')
         ) AS v(categoria, leccion) WHERE NOT EXISTS (SELECT 1 FROM lecciones LIMIT 1)`);
-        console.log('✅ BD lista — migración aplicada');
+        console.log('✅ BD lista');
     } catch (e) { console.error('❌ Error BD:', e.message); } finally { client.release(); }
 }
 
@@ -330,15 +381,17 @@ async function obtenerRelacionadas(noticiaId, seccion, keywords, limit = 4) {
     } catch (e) { return []; }
 }
 
-// ====== GENERAR NOTICIA ======
+// ====== GENERAR NOTICIA (con fases instrumentadas) ======
 async function generarNoticia(categoria) {
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada por admin' };
 
         console.log(`\n🤖 GENERANDO: ${categoria} | ${CONFIG_IA.tono}/${CONFIG_IA.extension}`);
 
+        setFase('fetch');
         const lecciones = await obtenerLecciones();
         const memoriaStr = lecciones ? 'LECCIONES APRENDIDAS - LEE ANTES DE ESCRIBIR:\n' + lecciones + '\n\n' : '';
+
         const prompt = `Eres Director Editorial de El Farol al Dia, diario digital lider de Santo Domingo Este, RD. Estilo: Listin Diario (autoridad) + Diario Libre (dinamismo). SEO elite para Google News RD.
 
 ${memoriaStr}Escribe una noticia de ${categoria}. 400-500 palabras. Sin asteriscos ni simbolos en titulos.
@@ -351,10 +404,11 @@ IMAGEN_Q: [busqueda en ingles 3-5 palabras]
 CONTENIDO:
 [noticia completa en parrafos]`;
 
+        setFase('gemini');
         const data = await llamarGeminiConRetry(prompt);
         const texto = data.candidates[0].content.parts[0].text;
 
-        // PARSEO ANTIBALAS — extrae datos sin importar texto extra de Gemini
+        setFase('seo');
         const limpiar = (t) => t.replace(/\*\*/g, '').replace(/[*_#`]/g, '').trim();
         console.log('Gemini:', texto.substring(0, 150));
 
@@ -373,7 +427,6 @@ CONTENIDO:
         const splitContenido = texto.split(/CONTENIDO:/i);
         if (splitContenido[1]) contenido = limpiar(splitContenido[1]);
 
-        // FALLBACK: si Gemini respondio libre sin formato
         if (!titulo || !contenido) {
             console.log('Fallback texto libre');
             const lineas = texto.split('\n').map(l => limpiar(l)).filter(l => l.length > 10);
@@ -391,13 +444,16 @@ CONTENIDO:
             return { success: false, error: 'Título similar ya existe' };
         }
 
+        setFase('image');
         const imagen = await buscarImagenInteligente(persona, busqueda_imagen, categoria);
 
+        setFase('review');
         titulo      = titulo.substring(0,255);
         descripcion = descripcion.substring(0,160);
         palabras    = palabras.substring(0,255);
         contenido   = contenido.substring(0,10000);
 
+        setFase('publish');
         const slug = generarSlug(titulo);
         const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slug]);
         const slugFinal = existe.rows.length > 0 ? `${slug}-${Date.now()}` : slug;
@@ -429,12 +485,11 @@ console.log('\n📅 Configurando automatización...');
 cron.schedule('0 */2 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
     console.log(`\n⏰ Ciclo automático: 3 noticias cada 2h`);
-    // Seleccionar 3 categorías distintas al azar
     const shuffled = [...CATEGORIAS].sort(() => Math.random() - 0.5);
     const seleccionadas = shuffled.slice(0, 3);
     for (const cat of seleccionadas) {
         await generarConCola(cat);
-        await new Promise(r => setTimeout(r, 15000)); // 15s entre cada una
+        await new Promise(r => setTimeout(r, 15000));
     }
 });
 
@@ -446,8 +501,8 @@ cron.schedule('0 8 * * *', async () => {
 
 console.log('✅ Automatización: 3 noticias cada 2h + Nacionales a las 8am');
 
-// ====== RUTAS ======
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '18.3' }));
+// ====== RUTAS BÁSICAS ======
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '18.7' }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 
@@ -463,6 +518,47 @@ app.post('/api/generar-noticia', limiterGeneracion, async (req, res) => {
     if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
     const resultado = await generarConCola(categoria);
     res.status(resultado.success ? 200 : 500).json(resultado);
+});
+
+// ====== ENDPOINT ESTADO GENERACIÓN (NUEVO) ======
+app.get('/api/estado-generacion', (req, res) => {
+    const ahora = Date.now();
+    let tiempoTotal   = null;
+    let tiempoFase    = null;
+    let restanteTotal = null;
+    let restanteFase  = null;
+    let progresoTotal = 0;
+    let progresoFase  = 0;
+
+    if (ESTADO_GEN.activo && ESTADO_GEN.inicio) {
+        tiempoTotal   = Math.floor((ahora - ESTADO_GEN.inicio) / 1000);
+        restanteTotal = Math.max(0, ESTADO_GEN.duracionEstTotal - tiempoTotal);
+        progresoTotal = Math.min(100, Math.round((tiempoTotal / ESTADO_GEN.duracionEstTotal) * 100));
+    }
+    if (ESTADO_GEN.activo && ESTADO_GEN.faseInicio) {
+        tiempoFase   = Math.floor((ahora - ESTADO_GEN.faseInicio) / 1000);
+        restanteFase = Math.max(0, ESTADO_GEN.faseDuracionEst - tiempoFase);
+        progresoFase = Math.min(100, Math.round((tiempoFase / ESTADO_GEN.faseDuracionEst) * 100));
+    }
+
+    res.json({
+        activo:            ESTADO_GEN.activo,
+        categoria:         ESTADO_GEN.categoria,
+        fase:              ESTADO_GEN.fase,
+        faseLabel:         ESTADO_GEN.faseLabel,
+        faseIndex:         ESTADO_GEN.faseIndex,
+        fasesTotal:        FASES_GEN.length,
+        fases:             FASES_GEN,
+        tiempoTotal,
+        restanteTotal,
+        progresoTotal,
+        tiempoFase,
+        restanteFase,
+        progresoFase,
+        ultimaPublicacion: ESTADO_GEN.ultimaPublicacion,
+        ultimoTitulo:      ESTADO_GEN.ultimoTitulo,
+        error:             ESTADO_GEN.error,
+    });
 });
 
 app.get('/noticia/:slug', async (req, res) => {
@@ -566,7 +662,7 @@ app.post('/api/publicar', express.json(), async (req, res) => {
 app.get('/status', async (req, res) => {
     try {
         const r = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
-        res.json({ status: 'OK', version: '18.3', noticias: parseInt(r.rows[0].count), ia_enabled: CONFIG_IA.enabled, generando_ahora: generandoAhora, cache_imagenes: CACHE_IMAGENES.size });
+        res.json({ status: 'OK', version: '18.7', noticias: parseInt(r.rows[0].count), ia_enabled: CONFIG_IA.enabled, generando_ahora: generandoAhora, cache_imagenes: CACHE_IMAGENES.size });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -587,7 +683,6 @@ app.post('/api/admin/config', express.json(), (req, res) => {
     guardarConfigIA(CONFIG_IA) ? res.json({ success: true, mensaje: 'Guardado' }) : res.status(500).json({ error: 'Error' });
 });
 
-// ====== RUTAS LECCIONES ======
 app.get('/api/admin/lecciones', async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     try {
@@ -602,7 +697,7 @@ app.post('/api/admin/lecciones', express.json(), async (req, res) => {
     if (!leccion) return res.status(400).json({ error: 'Leccion requerida' });
     try {
         await pool.query('INSERT INTO lecciones (categoria, leccion) VALUES ($1, $2)', [categoria || 'General', leccion]);
-        res.json({ success: true, mensaje: 'Lección guardada. Gemini la leerá en la próxima noticia.' });
+        res.json({ success: true, mensaje: 'Lección guardada.' });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -623,19 +718,20 @@ app.use((req, res) => { res.sendFile(path.join(__dirname, 'client', 'index.html'
 
 async function iniciar() {
     try {
-        console.log('\n🚀 Iniciando V18.3...\n');
+        console.log('\n🚀 Iniciando V18.7...\n');
         await inicializarBase();
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - V18.3 (COLA + REINTENTOS LARGOS) 🏮        ║
+║   🏮 EL FAROL AL DÍA - V18.7 (PANEL DE TIEMPO IA) 🏮              ║
 ╠══════════════════════════════════════════════════════════════════════╣
-║ ✅ Cola: nunca dos Gemini al mismo tiempo                            ║
+║ ✅ Panel de tiempo en /redaccion en tiempo real                     ║
+║ ✅ Endpoint /api/estado-generacion                                  ║
+║ ✅ Cola: nunca dos Gemini al mismo tiempo                           ║
 ║ ✅ Reintentos: 15s→30s→60s→120s→240s (5 intentos)                 ║
-║ ✅ Cron: cada 6h + delay aleatorio                                  ║
-║ ✅ BD migración automática                                           ║
+║ ✅ Cron: 3 noticias cada 2h + Nacionales 8am                       ║
+║ ✅ BD migración automática                                          ║
 ║ ✅ Cache imágenes 24h                                               ║
-║ ✅ Frontend 100% intacto                                            ║
 ╚══════════════════════════════════════════════════════════════════════╝`);
         });
     } catch (error) { console.error('❌ Error fatal:', error); process.exit(1); }
@@ -643,3 +739,4 @@ async function iniciar() {
 
 iniciar();
 module.exports = app;
+
