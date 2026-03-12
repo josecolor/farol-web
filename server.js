@@ -258,8 +258,42 @@ async function inicializarBase() {
         )`);
         await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_alt VARCHAR(255)`);
         await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_source VARCHAR(50)`);
+        await client.query(`CREATE TABLE IF NOT EXISTS lecciones (
+            id SERIAL PRIMARY KEY,
+            categoria VARCHAR(100) DEFAULT 'General',
+            leccion TEXT NOT NULL,
+            activa BOOLEAN DEFAULT true,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+        // Lecciones base si no existen
+        await client.query(`INSERT INTO lecciones (categoria, leccion) SELECT * FROM (VALUES
+            ('General', 'Títulos máximo 60 caracteres, sin asteriscos ni símbolos'),
+            ('General', 'Enfoque primario: Santo Domingo Este y zona oriental de RD'),
+            ('Economía', 'Imágenes: torres, puertos, comercio, empresarios. Prohibido hospitales'),
+            ('Deportes', 'Imágenes: atletas dominicanos, estadios, béisbol, fútbol'),
+            ('Nacionales', 'Buscar siempre el ángulo de impacto en Santo Domingo Este'),
+            ('General', 'Estilo: autoridad del Listín Diario + dinamismo del Diario Libre')
+        ) AS v(categoria, leccion) WHERE NOT EXISTS (SELECT 1 FROM lecciones LIMIT 1)`);
         console.log('✅ BD lista — migración aplicada');
     } catch (e) { console.error('❌ Error BD:', e.message); } finally { client.release(); }
+}
+
+// ====== LECCIONES APRENDIDAS ======
+async function obtenerLecciones() {
+    try {
+        const result = await pool.query('SELECT categoria, leccion FROM lecciones WHERE activa=true ORDER BY categoria, id');
+        const general = result.rows.filter(r => r.categoria === 'General').map(r => '- ' + r.leccion).join('\n');
+        const porCat = {};
+        result.rows.filter(r => r.categoria !== 'General').forEach(r => {
+            if (!porCat[r.categoria]) porCat[r.categoria] = [];
+            porCat[r.categoria].push('- ' + r.leccion);
+        });
+        let texto = general ? 'REGLAS GENERALES:\n' + general + '\n' : '';
+        for (const [cat, items] of Object.entries(porCat)) {
+            texto += cat.toUpperCase() + ':\n' + items.join('\n') + '\n';
+        }
+        return texto.trim();
+    } catch (e) { return ''; }
 }
 
 // ====== TÍTULO DUPLICADO ======
@@ -303,15 +337,19 @@ async function generarNoticia(categoria) {
 
         console.log(`\n🤖 GENERANDO: ${categoria} | ${CONFIG_IA.tono}/${CONFIG_IA.extension}`);
 
-        const prompt = `Eres periodista dominicano. Escribe una noticia de ${categoria} en República Dominicana. 400-500 palabras. Sin asteriscos.
+        const lecciones = await obtenerLecciones();
+        const memoriaStr = lecciones ? 'LECCIONES APRENDIDAS - LEE ANTES DE ESCRIBIR:\n' + lecciones + '\n\n' : '';
+        const prompt = `Eres Director Editorial de El Farol al Dia, diario digital lider de Santo Domingo Este, RD. Estilo: Listin Diario (autoridad) + Diario Libre (dinamismo). SEO elite para Google News RD.
 
-TITULO: [título directo sin símbolos]
-PERSONA: [nombre o vacío]
-DESC: [descripción SEO 150-160 caracteres]
+${memoriaStr}Escribe una noticia de ${categoria}. 400-500 palabras. Sin asteriscos ni simbolos en titulos.
+
+TITULO: [titulo directo sin simbolos]
+PERSONA: [nombre o vacio]
+DESC: [descripcion SEO 150-160 caracteres]
 PALABRAS: [keywords separadas por coma]
-IMAGEN_Q: [búsqueda en inglés 3-5 palabras]
+IMAGEN_Q: [busqueda en ingles 3-5 palabras]
 CONTENIDO:
-[noticia completa en párrafos]`;
+[noticia completa en parrafos]`;
 
         const data = await llamarGeminiConRetry(prompt);
         const texto = data.candidates[0].content.parts[0].text;
@@ -547,6 +585,33 @@ app.post('/api/admin/config', express.json(), (req, res) => {
     if (evitar)    CONFIG_IA.evitar    = evitar;
     if (enabled !== undefined) CONFIG_IA.enabled = enabled;
     guardarConfigIA(CONFIG_IA) ? res.json({ success: true, mensaje: 'Guardado' }) : res.status(500).json({ error: 'Error' });
+});
+
+// ====== RUTAS LECCIONES ======
+app.get('/api/admin/lecciones', async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
+    try {
+        const result = await pool.query('SELECT * FROM lecciones ORDER BY categoria, id');
+        res.json(result.rows);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/lecciones', express.json(), async (req, res) => {
+    const { pin, categoria, leccion } = req.body;
+    if (pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
+    if (!leccion) return res.status(400).json({ error: 'Leccion requerida' });
+    try {
+        await pool.query('INSERT INTO lecciones (categoria, leccion) VALUES ($1, $2)', [categoria || 'General', leccion]);
+        res.json({ success: true, mensaje: 'Lección guardada. Gemini la leerá en la próxima noticia.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/admin/lecciones/:id', async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
+    try {
+        await pool.query('UPDATE lecciones SET activa=false WHERE id=$1', [req.params.id]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/admin/errores', (req, res) => {
