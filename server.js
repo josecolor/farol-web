@@ -10,7 +10,6 @@
  * 6. ✅ Historial de errores
  * 7. ✅ Logs detallados
  * 8. ✅ NO se modifica nada que ya funciona
- * 9. ✅ CORREGIDO: trust proxy para Railway
  */
 
 const express = require('express');
@@ -21,8 +20,6 @@ const cron = require('node-cron');
 const { Pool } = require('pg');
 
 const app = express();
-app.set('trust proxy', 1); // ← SOLUCIÓN PARA EL PROXY DE RAILWAY
-
 const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
@@ -1000,7 +997,6 @@ async function iniciar() {
 ║    ✅ Frontend intacto (index.html, redaccion.html, noticia.html)        ║
 ║    ✅ Todas las rutas previas funcionan                                   ║
 ║    ✅ NO rompe nada existente                                             ║
-║    ✅ CORREGIDO: trust proxy para Railway                                 ║
 ║    ✅ LISTO PARA GOOGLE ADSENSE                                           ║
 ╚═══════════════════════════════════════════════════════════════════════════╝
             `);
