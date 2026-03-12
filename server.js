@@ -321,9 +321,11 @@ Responde SOLO en XML:
         const texto = data.candidates[0].content.parts[0].text;
 
         // Parseo XML con regex — limpia backticks de markdown primero
-        const textoLimpio = texto.replace(/```xml|```/g, '').trim();
+        const textoLimpio = texto.replace(/```xml/gi, '').replace(/```/g, '').trim();
+        console.log('📥 Gemini respuesta:', textoLimpio.substring(0, 200));
         const extraer = (tag) => {
-            const m = textoLimpio.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
+            const patron = new RegExp('<' + tag + '>([\\s\\S]*?)<\\/' + tag + '>');
+            const m = textoLimpio.match(patron);
             return m ? m[1].trim().replace(/[*_#`]/g, '') : '';
         };
 
