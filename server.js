@@ -1,9 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V18.2 (FIX COLUMNAS BD)
- *
- * CAMBIOS RESPECTO A V18.1:
- * ✅ Migración automática al arrancar: agrega imagen_alt e imagen_source si no existen
- * ✅ Todo lo demás idéntico a V18.1
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V18.3 (COLA + REINTENTOS LARGOS)
+ * CAMBIOS: Cola generación + 5 reintentos (15s→30s→60s→120s→240s) + Cron 6h + Migración BD
  */
 
 const express = require('express');
@@ -20,239 +17,139 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
-if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL requerido');
-    process.exit(1);
-}
+if (!process.env.DATABASE_URL) { console.error('❌ DATABASE_URL requerido'); process.exit(1); }
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
-// ==================== RATE LIMITERS ====================
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 1000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        console.log(`⛔ Rate limit general excedido para IP: ${req.ip}`);
-        res.status(429).json({ error: 'Demasiadas solicitudes, intente más tarde.' });
-    }
+    windowMs: 15 * 60 * 1000, max: 1000, standardHeaders: true, legacyHeaders: false,
+    handler: (req, res) => { console.log(`⛔ Rate limit IP: ${req.ip}`); res.status(429).json({ error: 'Demasiadas solicitudes.' }); }
 });
 app.use(limiter);
 
 const limiterGeneracion = rateLimit({
-    windowMs: 60 * 1000,
-    max: 3,
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => {
-        console.log(`⛔ Spam en generación desde IP: ${req.ip}`);
-        res.status(429).json({ error: 'Demasiadas generaciones, espera un momento.' });
-    }
+    windowMs: 60 * 1000, max: 3, standardHeaders: true, legacyHeaders: false,
+    handler: (req, res) => { console.log(`⛔ Spam generación IP: ${req.ip}`); res.status(429).json({ error: 'Demasiadas generaciones.' }); }
 });
 
-// ==================== CONFIGURACIÓN IA ====================
+// ====== COLA DE GENERACIÓN ======
+let generandoAhora = false;
+
+async function generarConCola(categoria) {
+    if (generandoAhora) {
+        console.log(`⏳ Cola: sistema ocupado, esperando 30s para ${categoria}...`);
+        await new Promise(r => setTimeout(r, 30000));
+        if (generandoAhora) {
+            guardarError('cola', `Timeout esperando turno para ${categoria}`);
+            return { success: false, error: 'Sistema ocupado, intenta más tarde' };
+        }
+    }
+    generandoAhora = true;
+    console.log(`🔒 Cola: iniciando ${categoria}`);
+    try {
+        return await generarNoticia(categoria);
+    } finally {
+        generandoAhora = false;
+        console.log(`🔓 Cola: sistema libre`);
+    }
+}
+
+// ====== CONFIG IA ======
 const CONFIG_IA_PATH = path.join(__dirname, 'config-ia.json');
 
 function cargarConfigIA() {
-    const defaultConfig = {
-        enabled: true,
-        maxNoticias: 10,
-        creditosMensuales: 500,
+    const d = {
+        enabled: true, maxNoticias: 10, creditosMensuales: 500,
         instruccion_principal: 'Eres un periodista profesional dominicano. Escribe noticias verificadas, equilibradas y profesionales.',
-        tono: 'profesional',
-        extension: 'media',
+        tono: 'profesional', extension: 'media',
         enfasis: 'Noticias locales con contexto histórico',
         evitar: 'Especulación sin fuentes, titulares sensacionalistas, desinformación',
-        prioridades: {
-            'Nacionales': 10,
-            'Deportes': 8,
-            'Internacionales': 6,
-            'Economía': 7,
-            'Tecnología': 6,
-            'Espectáculos': 5
-        },
-        imagenes: {
-            buscar_personas: true,
-            validar_relevancia: true,
-            usar_fallback_ilustrativo: true,
-            max_intentos_imagen: 3
-        }
+        prioridades: { 'Nacionales': 10, 'Deportes': 8, 'Internacionales': 6, 'Economía': 7, 'Tecnología': 6, 'Espectáculos': 5 },
+        imagenes: { buscar_personas: true, validar_relevancia: true, usar_fallback_ilustrativo: true, max_intentos_imagen: 3 }
     };
-
     try {
-        if (fs.existsSync(CONFIG_IA_PATH)) {
-            const config = JSON.parse(fs.readFileSync(CONFIG_IA_PATH, 'utf8'));
-            return { ...defaultConfig, ...config };
-        }
-    } catch (e) {
-        console.warn('⚠️ Error leyendo config IA, usando default');
-    }
-
-    fs.writeFileSync(CONFIG_IA_PATH, JSON.stringify(defaultConfig, null, 2));
-    return defaultConfig;
+        if (fs.existsSync(CONFIG_IA_PATH)) return { ...d, ...JSON.parse(fs.readFileSync(CONFIG_IA_PATH, 'utf8')) };
+    } catch (e) { console.warn('⚠️ Error config IA'); }
+    fs.writeFileSync(CONFIG_IA_PATH, JSON.stringify(d, null, 2));
+    return d;
 }
 
 function guardarConfigIA(config) {
-    try {
-        fs.writeFileSync(CONFIG_IA_PATH, JSON.stringify(config, null, 2));
-        console.log('✅ Configuración IA guardada');
-        return true;
-    } catch (e) {
-        console.error('❌ Error guardando config:', e.message);
-        return false;
-    }
+    try { fs.writeFileSync(CONFIG_IA_PATH, JSON.stringify(config, null, 2)); return true; }
+    catch (e) { console.error('❌ Error guardando config:', e.message); return false; }
 }
 
 let CONFIG_IA = cargarConfigIA();
 
-// ==================== HISTORIAL DE ERRORES ====================
+// ====== HISTORIAL ERRORES ======
 const HISTORIAL_ERRORES_PATH = path.join(__dirname, 'historial-errores.json');
 
 function cargarHistorial() {
-    try {
-        if (fs.existsSync(HISTORIAL_ERRORES_PATH)) {
-            return JSON.parse(fs.readFileSync(HISTORIAL_ERRORES_PATH, 'utf8'));
-        }
-    } catch (e) {
-        console.warn('⚠️ Error leyendo historial');
-    }
+    try { if (fs.existsSync(HISTORIAL_ERRORES_PATH)) return JSON.parse(fs.readFileSync(HISTORIAL_ERRORES_PATH, 'utf8')); }
+    catch (e) {}
     return [];
 }
 
 function guardarError(tipo, descripcion, detalles = {}) {
     try {
-        let historial = cargarHistorial();
-        historial.push({
-            timestamp: new Date().toISOString(),
-            tipo,
-            descripcion,
-            detalles,
-            resuelto: false
-        });
-        if (historial.length > 100) historial = historial.slice(-100);
-        fs.writeFileSync(HISTORIAL_ERRORES_PATH, JSON.stringify(historial, null, 2));
-        console.log(`📝 Error registrado: ${tipo} - ${descripcion}`);
-    } catch (e) {
-        console.error('❌ Error guardando historial:', e.message);
-    }
+        let h = cargarHistorial();
+        h.push({ timestamp: new Date().toISOString(), tipo, descripcion, detalles, resuelto: false });
+        if (h.length > 100) h = h.slice(-100);
+        fs.writeFileSync(HISTORIAL_ERRORES_PATH, JSON.stringify(h, null, 2));
+        console.log(`📝 Error: ${tipo} - ${descripcion}`);
+    } catch (e) {}
 }
 
-// ==================== REDACTORES ====================
+// ====== REDACTORES ======
 const REDACTORES = [
-    { nombre: 'Carlos Méndez',         especialidad: 'Nacionales'      },
-    { nombre: 'Laura Santana',          especialidad: 'Deportes'        },
-    { nombre: 'Roberto Peña',           especialidad: 'Internacionales' },
-    { nombre: 'Ana María Castillo',     especialidad: 'Economía'        },
-    { nombre: 'José Miguel Fernández',  especialidad: 'Tecnología'      },
-    { nombre: 'Patricia Jiménez',       especialidad: 'Espectáculos'    }
+    { nombre: 'Carlos Méndez', especialidad: 'Nacionales' },
+    { nombre: 'Laura Santana', especialidad: 'Deportes' },
+    { nombre: 'Roberto Peña', especialidad: 'Internacionales' },
+    { nombre: 'Ana María Castillo', especialidad: 'Economía' },
+    { nombre: 'José Miguel Fernández', especialidad: 'Tecnología' },
+    { nombre: 'Patricia Jiménez', especialidad: 'Espectáculos' }
 ];
 
 function elegirRedactor(categoria) {
     const esp = REDACTORES.filter(r => r.especialidad === categoria);
-    return esp.length > 0
-        ? esp[Math.floor(Math.random() * esp.length)].nombre
-        : 'IA Gemini';
+    return esp.length > 0 ? esp[Math.floor(Math.random() * esp.length)].nombre : 'IA Gemini';
 }
 
-// ==================== SLUG ====================
 function generarSlug(texto) {
-    return texto.toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .substring(0, 80);
+    return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 80);
 }
 
-// ==================== BANCO DE IMÁGENES ILUSTRATIVAS ====================
+// ====== BANCO IMÁGENES ======
 const BANCO_IMAGENES_ILUSTRATIVAS = {
-    'Nacionales': {
-        urls: [
-            'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-            'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg',
-            'https://images.pexels.com/photos/3616480/pexels-photo-3616480.jpeg',
-            'https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg'
-        ],
-        alt: 'Congreso Nacional - República Dominicana'
-    },
-    'Deportes': {
-        urls: [
-            'https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg',
-            'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg',
-            'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg',
-            'https://images.pexels.com/photos/3621943/pexels-photo-3621943.jpeg'
-        ],
-        alt: 'Estadio de fútbol - Deportes'
-    },
-    'Internacionales': {
-        urls: [
-            'https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg',
-            'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg',
-            'https://images.pexels.com/photos/2869499/pexels-photo-2869499.jpeg',
-            'https://images.pexels.com/photos/3407617/pexels-photo-3407617.jpeg'
-        ],
-        alt: 'Noticias Internacionales'
-    },
-    'Espectáculos': {
-        urls: [
-            'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg',
-            'https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg',
-            'https://images.pexels.com/photos/3651308/pexels-photo-3651308.jpeg',
-            'https://images.pexels.com/photos/3587478/pexels-photo-3587478.jpeg'
-        ],
-        alt: 'Entretenimiento y Espectáculos'
-    },
-    'Economía': {
-        urls: [
-            'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg',
-            'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg',
-            'https://images.pexels.com/photos/3184591/pexels-photo-3184591.jpeg',
-            'https://images.pexels.com/photos/3532557/pexels-photo-3532557.jpeg'
-        ],
-        alt: 'Gráficos de Economía'
-    },
-    'Tecnología': {
-        urls: [
-            'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg',
-            'https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg',
-            'https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg',
-            'https://images.pexels.com/photos/3932499/pexels-photo-3932499.jpeg'
-        ],
-        alt: 'Tecnología e Innovación'
-    }
+    'Nacionales': { urls: ['https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg','https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg','https://images.pexels.com/photos/3616480/pexels-photo-3616480.jpeg','https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg'], alt: 'Congreso Nacional - República Dominicana' },
+    'Deportes': { urls: ['https://images.pexels.com/photos/46798/the-ball-stadion-football-the-pitch-46798.jpeg','https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg','https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg','https://images.pexels.com/photos/3621943/pexels-photo-3621943.jpeg'], alt: 'Estadio de fútbol - Deportes' },
+    'Internacionales': { urls: ['https://images.pexels.com/photos/2860705/pexels-photo-2860705.jpeg','https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg','https://images.pexels.com/photos/2869499/pexels-photo-2869499.jpeg','https://images.pexels.com/photos/3407617/pexels-photo-3407617.jpeg'], alt: 'Noticias Internacionales' },
+    'Espectáculos': { urls: ['https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg','https://images.pexels.com/photos/1540406/pexels-photo-1540406.jpeg','https://images.pexels.com/photos/3651308/pexels-photo-3651308.jpeg','https://images.pexels.com/photos/3587478/pexels-photo-3587478.jpeg'], alt: 'Entretenimiento y Espectáculos' },
+    'Economía': { urls: ['https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg','https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg','https://images.pexels.com/photos/3184591/pexels-photo-3184591.jpeg','https://images.pexels.com/photos/3532557/pexels-photo-3532557.jpeg'], alt: 'Gráficos de Economía' },
+    'Tecnología': { urls: ['https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg','https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg','https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg','https://images.pexels.com/photos/3932499/pexels-photo-3932499.jpeg'], alt: 'Tecnología e Innovación' }
 };
 
-// ==================== CACHE DE IMÁGENES ====================
+// ====== CACHE IMÁGENES ======
 const CACHE_IMAGENES = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
-function guardarEnCache(clave, imagen) {
-    CACHE_IMAGENES.set(clave, { imagen, timestamp: Date.now() });
+function guardarEnCache(k, v) { CACHE_IMAGENES.set(k, { imagen: v, timestamp: Date.now() }); }
+function obtenerDeCache(k) {
+    if (!CACHE_IMAGENES.has(k)) return null;
+    const e = CACHE_IMAGENES.get(k);
+    if (Date.now() - e.timestamp > CACHE_TTL) { CACHE_IMAGENES.delete(k); return null; }
+    return e.imagen;
 }
 
-function obtenerDeCache(clave) {
-    if (!CACHE_IMAGENES.has(clave)) return null;
-    const entrada = CACHE_IMAGENES.get(clave);
-    if (Date.now() - entrada.timestamp > CACHE_TTL) {
-        CACHE_IMAGENES.delete(clave);
-        return null;
-    }
-    return entrada.imagen;
-}
-
-// ==================== GEMINI CON RETRY Y BACKOFF ====================
-async function llamarGeminiConRetry(prompt, maxIntentos = 3) {
+// ====== GEMINI CON RETRY LARGO ======
+async function llamarGeminiConRetry(prompt, maxIntentos = 5) {
     const delay = ms => new Promise(r => setTimeout(r, ms));
+    const tiempos = [15000, 30000, 60000, 120000, 240000];
 
     for (let i = 0; i < maxIntentos; i++) {
         try {
@@ -263,398 +160,211 @@ async function llamarGeminiConRetry(prompt, maxIntentos = 3) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature: 0.8,
-                            maxOutputTokens: 2500,
-                            topP: 0.95
-                        }
+                        generationConfig: { temperature: 0.8, maxOutputTokens: 2500, topP: 0.95 }
                     })
                 }
             );
 
             if (response.status === 429) {
-                const espera = Math.pow(2, i) * 5000;
-                console.log(`⏳ Gemini 429 — esperando ${espera / 1000}s (intento ${i + 1}/${maxIntentos})`);
-                guardarError('gemini_429', `Rate limit Gemini, reintentando en ${espera / 1000}s`, { intento: i + 1 });
+                const espera = tiempos[i] || 240000;
+                console.log(`⏳ Gemini 429 — esperando ${espera/1000}s (intento ${i+1}/${maxIntentos})`);
+                guardarError('gemini_429', `Rate limit, reintentando en ${espera/1000}s`, { intento: i+1 });
                 await delay(espera);
                 continue;
             }
-
             if (!response.ok) throw new Error(`Gemini error ${response.status}`);
             return await response.json();
 
         } catch (e) {
             if (i === maxIntentos - 1) throw e;
-            console.log(`⚠️ Gemini error en intento ${i + 1}: ${e.message}, reintentando...`);
-            await delay(3000);
+            console.log(`⚠️ Gemini error intento ${i+1}: ${e.message}`);
+            await delay(tiempos[i] || 15000);
         }
     }
     throw new Error('Gemini no respondió después de todos los reintentos');
 }
 
-// ==================== BUSCAR IMAGEN INTELIGENTE ====================
+// ====== BUSCAR IMAGEN INTELIGENTE ======
 async function buscarImagenInteligente(persona, busqueda, categoria) {
     const delay = ms => new Promise(r => setTimeout(r, ms));
-
-    const cacheKey = `${persona || ''}-${busqueda || ''}-${categoria}`.toLowerCase().replace(/\s+/g, '_');
-    const imagenCacheada = obtenerDeCache(cacheKey);
-    if (imagenCacheada) {
-        console.log(`📦 Imagen desde cache: ${cacheKey}`);
-        return imagenCacheada;
-    }
+    const cacheKey = `${persona||''}-${busqueda||''}-${categoria}`.toLowerCase().replace(/\s+/g,'_');
+    const cached = obtenerDeCache(cacheKey);
+    if (cached) { console.log(`📦 Imagen cache: ${cacheKey}`); return cached; }
 
     let intento = 0;
-    const maxIntentos = CONFIG_IA.imagenes.max_intentos_imagen;
+    const max = CONFIG_IA.imagenes.max_intentos_imagen;
+    console.log(`\n🎬 IMÁGENES — Persona: ${persona||'ninguna'} | Búsqueda: ${busqueda||'ninguna'} | Cat: ${categoria}`);
 
-    console.log(`\n🎬 === BÚSQUEDA INTELIGENTE DE IMÁGENES ===`);
-    console.log(`   Persona: ${persona || 'ninguna'}`);
-    console.log(`   Búsqueda: ${busqueda || 'ninguna'}`);
-    console.log(`   Categoría: ${categoria}`);
-
-    // CAPA 1: IMAGEN DE PERSONA
     if (persona && CONFIG_IA.imagenes.buscar_personas) {
-        console.log(`\n📍 CAPA 1: Buscando imagen de "${persona}"...`);
-
         if (process.env.UNSPLASH_ACCESS_KEY) {
             try {
                 intento++;
                 const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(persona)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&per_page=1`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.results?.length > 0) {
-                        const img = data.results[0];
-                        const resultado = { url: img.urls.regular, alt: persona, source: 'Unsplash', tipo: 'persona', validada: true };
-                        guardarEnCache(cacheKey, resultado);
-                        console.log(`   ✅ ENCONTRADA en Unsplash`);
-                        return resultado;
-                    }
-                }
-            } catch (e) {
-                console.log(`   ⚠️ Error Unsplash`);
-                guardarError('imagen_unsplash', `Error buscando ${persona}`, { error: e.message });
-            }
+                if (res.ok) { const d = await res.json(); if (d.results?.length > 0) { const r = { url: d.results[0].urls.regular, alt: persona, source: 'Unsplash', tipo: 'persona', validada: true }; guardarEnCache(cacheKey, r); return r; } }
+            } catch (e) { guardarError('imagen_unsplash', `Error ${persona}`, { error: e.message }); }
             await delay(300);
         }
-
         if (process.env.PEXELS_API_KEY) {
             try {
                 intento++;
-                const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(persona)}&per_page=1`, {
-                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.photos?.length > 0) {
-                        const img = data.photos[0];
-                        const resultado = { url: img.src.landscape, alt: persona, source: 'Pexels', tipo: 'persona', validada: true };
-                        guardarEnCache(cacheKey, resultado);
-                        console.log(`   ✅ ENCONTRADA en Pexels`);
-                        return resultado;
-                    }
-                }
-            } catch (e) {
-                console.log(`   ⚠️ Error Pexels`);
-                guardarError('imagen_pexels', `Error buscando ${persona}`, { error: e.message });
-            }
+                const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(persona)}&per_page=1`, { headers: { 'Authorization': process.env.PEXELS_API_KEY } });
+                if (res.ok) { const d = await res.json(); if (d.photos?.length > 0) { const r = { url: d.photos[0].src.landscape, alt: persona, source: 'Pexels', tipo: 'persona', validada: true }; guardarEnCache(cacheKey, r); return r; } }
+            } catch (e) { guardarError('imagen_pexels', `Error ${persona}`, { error: e.message }); }
             await delay(300);
         }
-
         if (process.env.PIXABAY_API_KEY) {
             try {
                 intento++;
                 const res = await fetch(`https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(persona)}&per_page=1`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.hits?.length > 0) {
-                        const img = data.hits[0];
-                        const resultado = { url: img.webformatURL, alt: persona, source: 'Pixabay', tipo: 'persona', validada: true };
-                        guardarEnCache(cacheKey, resultado);
-                        console.log(`   ✅ ENCONTRADA en Pixabay`);
-                        return resultado;
-                    }
-                }
-            } catch (e) {
-                console.log(`   ⚠️ Error Pixabay`);
-                guardarError('imagen_pixabay', `Error buscando ${persona}`, { error: e.message });
-            }
+                if (res.ok) { const d = await res.json(); if (d.hits?.length > 0) { const r = { url: d.hits[0].webformatURL, alt: persona, source: 'Pixabay', tipo: 'persona', validada: true }; guardarEnCache(cacheKey, r); return r; } }
+            } catch (e) { guardarError('imagen_pixabay', `Error ${persona}`, { error: e.message }); }
         }
-
-        console.log(`   ❌ No se encontró imagen de persona`);
     }
 
-    // CAPA 2: IMAGEN TEMÁTICA
-    if (busqueda && intento < maxIntentos) {
-        console.log(`\n🔍 CAPA 2: Buscando imagen temática "${busqueda}"...`);
-
+    if (busqueda && intento < max) {
         if (process.env.UNSPLASH_ACCESS_KEY) {
             try {
                 intento++;
                 const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(busqueda)}&client_id=${process.env.UNSPLASH_ACCESS_KEY}&per_page=1`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.results?.length > 0) {
-                        const img = data.results[0];
-                        const resultado = { url: img.urls.regular, alt: busqueda, source: 'Unsplash', tipo: 'tematica', validada: true };
-                        guardarEnCache(cacheKey, resultado);
-                        console.log(`   ✅ ENCONTRADA en Unsplash`);
-                        return resultado;
-                    }
-                }
-            } catch (e) {
-                console.log(`   ⚠️ Error Unsplash`);
-            }
+                if (res.ok) { const d = await res.json(); if (d.results?.length > 0) { const r = { url: d.results[0].urls.regular, alt: busqueda, source: 'Unsplash', tipo: 'tematica', validada: true }; guardarEnCache(cacheKey, r); return r; } }
+            } catch (e) {}
             await delay(300);
         }
-
         if (process.env.PEXELS_API_KEY) {
             try {
                 intento++;
-                const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(busqueda)}&per_page=1`, {
-                    headers: { 'Authorization': process.env.PEXELS_API_KEY }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.photos?.length > 0) {
-                        const img = data.photos[0];
-                        const resultado = { url: img.src.landscape, alt: busqueda, source: 'Pexels', tipo: 'tematica', validada: true };
-                        guardarEnCache(cacheKey, resultado);
-                        console.log(`   ✅ ENCONTRADA en Pexels`);
-                        return resultado;
-                    }
-                }
-            } catch (e) {
-                console.log(`   ⚠️ Error Pexels`);
-            }
+                const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(busqueda)}&per_page=1`, { headers: { 'Authorization': process.env.PEXELS_API_KEY } });
+                if (res.ok) { const d = await res.json(); if (d.photos?.length > 0) { const r = { url: d.photos[0].src.landscape, alt: busqueda, source: 'Pexels', tipo: 'tematica', validada: true }; guardarEnCache(cacheKey, r); return r; } }
+            } catch (e) {}
         }
-
-        console.log(`   ❌ No se encontró imagen temática`);
     }
 
-    // CAPA 3: FALLBACK ILUSTRATIVO
-    if (CONFIG_IA.imagenes.usar_fallback_ilustrativo) {
-        console.log(`\n🎨 CAPA 3: Usando imagen ilustrativa de respaldo...`);
-        const banco = BANCO_IMAGENES_ILUSTRATIVAS[categoria] || BANCO_IMAGENES_ILUSTRATIVAS['Nacionales'];
-        const img = banco.urls[Math.floor(Math.random() * banco.urls.length)];
-        const resultado = {
-            url: img,
-            alt: banco.alt,
-            source: 'ilustrativa',
-            tipo: 'ilustrativa',
-            validada: true,
-            nota: 'Imagen ilustrativa'
-        };
-        guardarEnCache(cacheKey, resultado);
-        console.log(`   ✅ Imagen ilustrativa: ${categoria}`);
-        return resultado;
-    }
-
-    return {
-        url: BANCO_IMAGENES_ILUSTRATIVAS['Nacionales'].urls[0],
-        alt: 'El Farol al Día',
-        source: 'emergencia',
-        tipo: 'emergencia',
-        validada: false
-    };
+    const banco = BANCO_IMAGENES_ILUSTRATIVAS[categoria] || BANCO_IMAGENES_ILUSTRATIVAS['Nacionales'];
+    const resultado = { url: banco.urls[Math.floor(Math.random() * banco.urls.length)], alt: banco.alt, source: 'ilustrativa', tipo: 'ilustrativa', validada: true };
+    guardarEnCache(cacheKey, resultado);
+    return resultado;
 }
 
-// ==================== INICIALIZAR BD (con migración automática) ====================
+// ====== INICIALIZAR BD ======
 async function inicializarBase() {
     const client = await pool.connect();
     try {
         console.log('🔧 Inicializando BD...');
-
-        // Crear tabla si no existe
         await client.query(`CREATE TABLE IF NOT EXISTS noticias (
-            id SERIAL PRIMARY KEY,
-            titulo VARCHAR(255) NOT NULL,
-            slug VARCHAR(255) UNIQUE,
-            seccion VARCHAR(100),
-            contenido TEXT,
-            seo_description VARCHAR(160),
-            seo_keywords VARCHAR(255),
-            redactor VARCHAR(100),
-            imagen TEXT,
-            imagen_alt VARCHAR(255),
-            imagen_source VARCHAR(50),
-            vistas INTEGER DEFAULT 0,
-            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            estado VARCHAR(50) DEFAULT 'publicada'
+            id SERIAL PRIMARY KEY, titulo VARCHAR(255) NOT NULL, slug VARCHAR(255) UNIQUE,
+            seccion VARCHAR(100), contenido TEXT, seo_description VARCHAR(160), seo_keywords VARCHAR(255),
+            redactor VARCHAR(100), imagen TEXT, imagen_alt VARCHAR(255), imagen_source VARCHAR(50),
+            vistas INTEGER DEFAULT 0, fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP, estado VARCHAR(50) DEFAULT 'publicada'
         )`);
-
-        // ✅ MIGRACIÓN AUTOMÁTICA — agrega las columnas si la tabla ya existía sin ellas
-        // Esto no falla si las columnas ya existen (IF NOT EXISTS)
         await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_alt VARCHAR(255)`);
         await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_source VARCHAR(50)`);
-
-        console.log('✅ BD lista — migración imagen_alt + imagen_source aplicada');
-    } catch (e) {
-        console.error('❌ Error BD:', e.message);
-    } finally {
-        client.release();
-    }
+        console.log('✅ BD lista — migración aplicada');
+    } catch (e) { console.error('❌ Error BD:', e.message); } finally { client.release(); }
 }
 
-// ==================== VERIFICAR TÍTULO DUPLICADO ====================
+// ====== TÍTULO DUPLICADO ======
 async function tituloDuplicado(titulo) {
     try {
-        const tituloNormalizado = titulo.toLowerCase().replace(/[^\w\s]/g, '').substring(0, 50);
-        const result = await pool.query('SELECT titulo FROM noticias WHERE estado = $1', ['publicada']);
+        const norm = titulo.toLowerCase().replace(/[^\w\s]/g,'').substring(0,50);
+        const result = await pool.query('SELECT titulo FROM noticias WHERE estado=$1', ['publicada']);
         for (const row of result.rows) {
-            const existente = row.titulo.toLowerCase().replace(/[^\w\s]/g, '').substring(0, 50);
-            let coincidencias = 0;
-            const palabrasTitulo = tituloNormalizado.split(' ');
-            const palabrasExistente = existente.split(' ');
-            for (const palabra of palabrasTitulo) {
-                if (palabra.length > 3 && palabrasExistente.includes(palabra)) coincidencias++;
-            }
-            if (coincidencias / Math.max(palabrasTitulo.length, 1) > 0.6) return true;
+            const ex = row.titulo.toLowerCase().replace(/[^\w\s]/g,'').substring(0,50);
+            let c = 0; const pt = norm.split(' '); const pe = ex.split(' ');
+            for (const p of pt) { if (p.length > 3 && pe.includes(p)) c++; }
+            if (c / Math.max(pt.length, 1) > 0.6) return true;
         }
         return false;
-    } catch (error) {
-        return false;
-    }
+    } catch (e) { return false; }
 }
 
-// ==================== OBTENER NOTICIAS RELACIONADAS ====================
+// ====== RELACIONADAS ======
 async function obtenerRelacionadas(noticiaId, seccion, keywords, limit = 4) {
     try {
         const palabras = keywords ? keywords.split(',').map(k => k.trim().toLowerCase()) : [];
         let query = 'SELECT id, titulo, slug, seccion, imagen, fecha FROM noticias WHERE id != $1 AND estado = $2';
         const params = [noticiaId, 'publicada'];
-        if (seccion) {
-            query += ` AND seccion = $3`;
-            params.push(seccion);
-        }
+        if (seccion) { query += ` AND seccion = $3`; params.push(seccion); }
         if (palabras.length > 0) {
             for (let i = 0; i < Math.min(palabras.length, 2); i++) {
-                query += ` AND (titulo ILIKE $${params.length + 1} OR contenido ILIKE $${params.length + 1})`;
+                query += ` AND (titulo ILIKE $${params.length+1} OR contenido ILIKE $${params.length+1})`;
                 params.push(`%${palabras[i]}%`);
             }
         }
-        query += ` ORDER BY fecha DESC LIMIT $${params.length + 1}`;
+        query += ` ORDER BY fecha DESC LIMIT $${params.length+1}`;
         params.push(limit);
-        const result = await pool.query(query, params);
-        return result.rows;
-    } catch (error) {
-        return [];
-    }
+        return (await pool.query(query, params)).rows;
+    } catch (e) { return []; }
 }
 
-// ==================== GENERAR NOTICIA ====================
+// ====== GENERAR NOTICIA ======
 async function generarNoticia(categoria) {
     try {
-        if (!CONFIG_IA.enabled) {
-            console.log(`⚠️ IA desactivada`);
-            return { success: false, error: 'IA desactivada por admin' };
-        }
+        if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada por admin' };
 
-        console.log(`\n🤖 === GENERANDO NOTICIA ===`);
-        console.log(`   Categoría: ${categoria}`);
-        console.log(`   Config: ${CONFIG_IA.tono} / ${CONFIG_IA.extension}`);
+        console.log(`\n🤖 GENERANDO: ${categoria} | ${CONFIG_IA.tono}/${CONFIG_IA.extension}`);
 
         const prompt = `${CONFIG_IA.instruccion_principal}
 
-Escribe una noticia profesional y COMPLETA sobre ${categoria} en República Dominicana.
+Noticia sobre ${categoria} en RD. Tono: ${CONFIG_IA.tono}. 400-500 palabras. Sin asteriscos en títulos.
 
-TONO: ${CONFIG_IA.tono}
-EXTENSIÓN: ${CONFIG_IA.extension} (400-500 palabras)
-ÉNFASIS: ${CONFIG_IA.enfasis}
-EVITA: ${CONFIG_IA.evitar}
+Responde SOLO en XML:
+<noticia>
+<titulo>título 50-60 caracteres, sin asteriscos</titulo>
+<persona>nombre o vacío</persona>
+<descripcion>SEO 150-160 caracteres</descripcion>
+<palabras>5-7 keywords separadas por coma</palabras>
+<busqueda_imagen>3-5 palabras en inglés</busqueda_imagen>
+<contenido>noticia completa en párrafos</contenido>
+</noticia>`;
 
-RESPONDE EXACTAMENTE CON ESTE FORMATO:
-
-TITULO: [título impactante 50-60 caracteres]
-PERSONA: [nombre si la noticia es sobre alguien, sino vacío]
-DESCRIPCION: [descripción SEO 150-160 caracteres]
-PALABRAS: [5-7 palabras clave separadas por coma]
-BUSQUEDA_IMAGEN: [búsqueda en inglés 3-5 palabras]
-CONTENIDO:
-[noticia COMPLETA en párrafos separados]`;
-
-        console.log(`📤 Enviando a Gemini...`);
         const data = await llamarGeminiConRetry(prompt);
         const texto = data.candidates[0].content.parts[0].text;
 
-        let titulo = "", persona = "", descripcion = "", palabras = categoria, busqueda_imagen = "", contenido = "";
-        const lineas = texto.split('\n');
-        let enContenido = false;
-        let contenidoTemp = [];
+        // Parseo XML con regex
+        const extraer = (tag) => {
+            const m = texto.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
+            return m ? m[1].trim().replace(/[*_#`]/g, '') : '';
+        };
 
-        for (let i = 0; i < lineas.length; i++) {
-            const linea = lineas[i].trim();
-            if (linea.startsWith('TITULO:'))               titulo           = linea.replace('TITULO:', '').trim();
-            else if (linea.startsWith('PERSONA:'))         persona          = linea.replace('PERSONA:', '').trim();
-            else if (linea.startsWith('DESCRIPCION:'))     descripcion      = linea.replace('DESCRIPCION:', '').trim();
-            else if (linea.startsWith('PALABRAS:'))        palabras         = linea.replace('PALABRAS:', '').trim();
-            else if (linea.startsWith('BUSQUEDA_IMAGEN:')) busqueda_imagen  = linea.replace('BUSQUEDA_IMAGEN:', '').trim();
-            else if (linea.startsWith('CONTENIDO:'))       enContenido      = true;
-            else if (enContenido && linea.length > 0)      contenidoTemp.push(linea);
-        }
+        let titulo          = extraer('titulo');
+        let persona         = extraer('persona');
+        let descripcion     = extraer('descripcion');
+        let palabras        = extraer('palabras') || categoria;
+        let busqueda_imagen = extraer('busqueda_imagen');
+        let contenido       = extraer('contenido');
 
-        contenido = contenidoTemp.join('\n\n');
-
-        titulo          = titulo.replace(/[*_#`]/g, '').trim();
-        persona         = persona.replace(/[*_#`]/g, '').trim();
-        descripcion     = descripcion.replace(/[*_#`]/g, '').trim();
-        palabras        = palabras.replace(/[*_#`]/g, '').trim();
-        busqueda_imagen = busqueda_imagen.replace(/[*_#`]/g, '').trim();
-
-        const errores = [];
-        if (!titulo || titulo.length < 20) errores.push('Título muy corto');
-        if (!contenido || contenido.length < 300) errores.push('Contenido insuficiente');
-
-        if (errores.length > 0) {
-            guardarError('validacion', `Generación inválida: ${errores.join(', ')}`);
-            throw new Error(errores.join(', '));
+        if (!titulo || titulo.length < 20 || !contenido || contenido.length < 300) {
+            guardarError('validacion', 'Generación inválida');
+            throw new Error('Contenido insuficiente de Gemini');
         }
 
         if (await tituloDuplicado(titulo)) {
-            console.log(`⚠️ Título duplicado`);
-            guardarError('duplicado', `Título similar ya existe: ${titulo.substring(0, 50)}`);
+            guardarError('duplicado', titulo.substring(0,50));
             return { success: false, error: 'Título similar ya existe' };
         }
 
         const imagen = await buscarImagenInteligente(persona, busqueda_imagen, categoria);
 
-        titulo      = titulo.substring(0, 255);
-        descripcion = descripcion.substring(0, 160);
-        palabras    = palabras.substring(0, 255);
-        contenido   = contenido.substring(0, 10000);
+        titulo      = titulo.substring(0,255);
+        descripcion = descripcion.substring(0,160);
+        palabras    = palabras.substring(0,255);
+        contenido   = contenido.substring(0,10000);
 
         const slug = generarSlug(titulo);
-        const existe = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
+        const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slug]);
         const slugFinal = existe.rows.length > 0 ? `${slug}-${Date.now()}` : slug;
         const redactor = elegirRedactor(categoria);
 
         const result = await pool.query(
-            `INSERT INTO noticias (titulo, slug, seccion, contenido, seo_description, seo_keywords, redactor, imagen, imagen_alt, imagen_source, estado)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id, slug`,
-            [titulo, slugFinal, categoria, contenido, descripcion, palabras, redactor,
-             imagen.url, imagen.alt, imagen.source, 'publicada']
+            `INSERT INTO noticias (titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_source,estado)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,slug`,
+            [titulo, slugFinal, categoria, contenido, descripcion, palabras, redactor, imagen.url, imagen.alt, imagen.source, 'publicada']
         );
 
         const noticia = result.rows[0];
+        console.log(`✅ PUBLICADA: ID ${noticia.id} | ${titulo.substring(0,50)}... | ${imagen.tipo}`);
 
-        console.log(`\n✅ === NOTICIA PUBLICADA ===`);
-        console.log(`   ID: ${noticia.id}`);
-        console.log(`   Título: ${titulo.substring(0, 50)}...`);
-        console.log(`   Imagen: ${imagen.tipo} (${imagen.source})`);
-        console.log(`   URL: ${BASE_URL}/noticia/${noticia.slug}`);
-
-        return {
-            success: true,
-            id: noticia.id,
-            slug: noticia.slug,
-            titulo,
-            url: `${BASE_URL}/noticia/${noticia.slug}`,
-            imagen: imagen.url,
-            imagen_tipo: imagen.tipo,
-            imagen_source: imagen.source,
-            redactor,
-            persona: persona || 'ninguna',
-            mensaje: '✅ Noticia generada'
-        };
+        return { success: true, id: noticia.id, slug: noticia.slug, titulo, url: `${BASE_URL}/noticia/${noticia.slug}`, imagen: imagen.url, imagen_tipo: imagen.tipo, redactor, persona: persona||'ninguna', mensaje: '✅ Noticia generada' };
 
     } catch (error) {
         console.error(`❌ ERROR:`, error.message);
@@ -663,269 +373,153 @@ CONTENIDO:
     }
 }
 
-// ==================== CATEGORÍAS ====================
-const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
+// ====== CATEGORÍAS Y CRON ======
+const CATEGORIAS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 
-// ==================== AUTOMATIZACIÓN ====================
 console.log('\n📅 Configurando automatización...');
 
-cron.schedule('0 */3 * * *', async () => {
+cron.schedule('0 */6 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
-    const delayAleatorio = Math.floor(Math.random() * 10 * 60 * 1000);
-    console.log(`\n⏰ [${new Date().toLocaleTimeString()}] Noticia automática en ${Math.round(delayAleatorio / 60000)}min...`);
-    await new Promise(r => setTimeout(r, delayAleatorio));
-    const cat = CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
-    console.log(`   Generando: ${cat}`);
-    await generarNoticia(cat);
+    const delay = Math.floor(Math.random() * 10 * 60 * 1000);
+    console.log(`\n⏰ Noticia automática en ${Math.round(delay/60000)}min...`);
+    await new Promise(r => setTimeout(r, delay));
+    await generarConCola(CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)]);
 });
 
 cron.schedule('0 8 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
-    console.log(`\n🌅 [${new Date().toLocaleTimeString()}] Noticia diaria: Nacionales`);
-    await generarNoticia('Nacionales');
+    console.log(`\n🌅 Noticia diaria: Nacionales`);
+    await generarConCola('Nacionales');
 });
 
-console.log('✅ Automatización configurada (cada 3h + delay aleatorio)');
+console.log('✅ Automatización: cada 6h + cola');
 
-// ==================== RUTAS FRONTEND ====================
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '18.2' }));
+// ====== RUTAS ======
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '18.3' }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 
-// ==================== RUTAS API PÚBLICAS ====================
 app.get('/api/noticias', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT id, titulo, slug, seccion, imagen, fecha, vistas, redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30',
-            ['publicada']
-        );
-        res.json({ success: true, noticias: result.rows });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+        const r = await pool.query('SELECT id,titulo,slug,seccion,imagen,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30', ['publicada']);
+        res.json({ success: true, noticias: r.rows });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.post('/api/generar-noticia', limiterGeneracion, async (req, res) => {
     const { categoria } = req.body;
     if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
-    const resultado = await generarNoticia(categoria);
+    const resultado = await generarConCola(categoria);
     res.status(resultado.success ? 200 : 500).json(resultado);
 });
 
-// ==================== NOTICIA POR SLUG ====================
 app.get('/noticia/:slug', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM noticias WHERE slug = $1 AND estado = $2',
-            [req.params.slug, 'publicada']
-        );
-
+        const result = await pool.query('SELECT * FROM noticias WHERE slug=$1 AND estado=$2', [req.params.slug, 'publicada']);
         if (result.rows.length === 0) return res.status(404).send('Noticia no encontrada');
-
         const n = result.rows[0];
-        await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [n.id]);
-
+        await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1', [n.id]);
         const relacionadas = await obtenerRelacionadas(n.id, n.seccion, n.seo_keywords, 4);
-
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
-
             const fechaISO = new Date(n.fecha).toISOString();
             const meta = `<title>${n.titulo} | El Farol al Día</title>
-<meta name="description" content="${n.seo_description || n.titulo}">
-<meta name="keywords" content="${n.seo_keywords || ''}">
+<meta name="description" content="${n.seo_description||n.titulo}">
+<meta name="keywords" content="${n.seo_keywords||''}">
 <meta property="og:title" content="${n.titulo}">
-<meta property="og:description" content="${n.seo_description || n.titulo}">
+<meta property="og:description" content="${n.seo_description||n.titulo}">
 <meta property="og:image" content="${n.imagen}">
 <meta property="og:url" content="${BASE_URL}/noticia/${n.slug}">
 <meta property="og:type" content="article">
 <meta property="article:published_time" content="${fechaISO}">
 <meta property="article:author" content="${n.redactor}">
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "NewsArticle",
-  "headline": "${n.titulo}",
-  "description": "${n.seo_description || n.titulo}",
-  "image": "${n.imagen}",
-  "datePublished": "${fechaISO}",
-  "author": {"@type": "Person", "name": "${n.redactor}"},
-  "publisher": {"@type": "Organization", "name": "El Farol al Día"}
-}
-</script>`;
-
-            let relacionadasHTML = '';
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"NewsArticle","headline":"${n.titulo}","description":"${n.seo_description||n.titulo}","image":"${n.imagen}","datePublished":"${fechaISO}","author":{"@type":"Person","name":"${n.redactor}"},"publisher":{"@type":"Organization","name":"El Farol al Día"}}</script>`;
+            let relHTML = '';
             if (relacionadas.length > 0) {
-                relacionadasHTML = '<h3>Noticias relacionadas</h3><div class="relacionadas">';
-                relacionadas.forEach(r => {
-                    relacionadasHTML += `
-                        <div class="relacionada-item">
-                            <a href="/noticia/${r.slug}">
-                                <img src="${r.imagen}" alt="${r.titulo}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x150?text=Noticia'">
-                                <h4>${r.titulo}</h4>
-                                <span>${new Date(r.fecha).toLocaleDateString('es-DO')}</span>
-                            </a>
-                        </div>
-                    `;
-                });
-                relacionadasHTML += '</div>';
+                relHTML = '<h3>Noticias relacionadas</h3><div class="relacionadas">';
+                relacionadas.forEach(r => { relHTML += `<div class="relacionada-item"><a href="/noticia/${r.slug}"><img src="${r.imagen}" alt="${r.titulo}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x150?text=Noticia'"><h4>${r.titulo}</h4><span>${new Date(r.fecha).toLocaleDateString('es-DO')}</span></a></div>`; });
+                relHTML += '</div>';
             }
-
-            const contenidoHTML = n.contenido.split('\n')
-                .filter(p => p.trim() !== '')
-                .map(p => `<p>${p.trim()}</p>`)
-                .join('');
-
+            const cHTML = n.contenido.split('\n').filter(p=>p.trim()!=='').map(p=>`<p>${p.trim()}</p>`).join('');
             html = html.replace('<!-- META_TAGS -->', meta);
             html = html.replace(/{{TITULO}}/g, n.titulo);
-            html = html.replace(/{{CONTENIDO}}/g, contenidoHTML || '<p>Contenido no disponible</p>');
-            html = html.replace(/{{FECHA}}/g, new Date(n.fecha).toLocaleDateString('es-DO', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            }));
+            html = html.replace(/{{CONTENIDO}}/g, cHTML||'<p>Contenido no disponible</p>');
+            html = html.replace(/{{FECHA}}/g, new Date(n.fecha).toLocaleDateString('es-DO',{year:'numeric',month:'long',day:'numeric'}));
             html = html.replace(/{{IMAGEN}}/g, n.imagen);
-            html = html.replace(/{{ALT}}/g, n.imagen_alt || n.titulo);
+            html = html.replace(/{{ALT}}/g, n.imagen_alt||n.titulo);
             html = html.replace(/{{VISTAS}}/g, n.vistas);
             html = html.replace(/{{REDACTOR}}/g, n.redactor);
             html = html.replace(/{{SECCION}}/g, n.seccion);
-            html = html.replace('<!-- RELACIONADAS -->', relacionadasHTML);
-
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            html = html.replace('<!-- RELACIONADAS -->', relHTML);
+            res.setHeader('Content-Type','text/html; charset=utf-8');
             res.send(html);
-
-        } catch (e) {
-            res.json({ success: true, noticia: n, relacionadas });
-        }
-    } catch (e) {
-        console.error('Error en /noticia/:slug', e.message);
-        res.status(500).send('Error interno');
-    }
+        } catch (e) { res.json({ success: true, noticia: n, relacionadas }); }
+    } catch (e) { console.error('Error /noticia/:slug', e.message); res.status(500).send('Error interno'); }
 });
 
-// ==================== SITEMAP ====================
 app.get('/sitemap.xml', async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT slug, fecha FROM noticias WHERE estado=$1 ORDER BY fecha DESC',
-            ['publicada']
-        );
+        const r = await pool.query('SELECT slug,fecha FROM noticias WHERE estado=$1 ORDER BY fecha DESC', ['publicada']);
         let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
         xml += `<url><loc>${BASE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
-        result.rows.forEach(n => {
-            const fecha = new Date(n.fecha).toISOString().split('T')[0];
-            xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${fecha}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>\n`;
-        });
+        r.rows.forEach(n => { xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>\n`; });
         xml += '</urlset>';
-        res.header('Content-Type', 'application/xml');
-        res.send(xml);
-    } catch (e) {
-        res.status(500).send('Error');
-    }
+        res.header('Content-Type','application/xml'); res.send(xml);
+    } catch (e) { res.status(500).send('Error'); }
 });
 
-app.get('/robots.txt', (req, res) => {
-    res.header('Content-Type', 'text/plain');
-    res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nSitemap: ${BASE_URL}/sitemap.xml`);
-});
+app.get('/robots.txt', (req, res) => { res.header('Content-Type','text/plain'); res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nSitemap: ${BASE_URL}/sitemap.xml`); });
 
-// ==================== ESTADÍSTICAS ====================
 app.get('/api/estadisticas', async (req, res) => {
     try {
-        const totalResult = await pool.query(
-            'SELECT COUNT(*) as count, SUM(vistas) as vistas FROM noticias WHERE estado=$1',
-            ['publicada']
-        );
-        res.json({
-            success: true,
-            totalNoticias: parseInt(totalResult.rows[0].count),
-            totalVistas: parseInt(totalResult.rows[0].vistas) || 0
-        });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+        const r = await pool.query('SELECT COUNT(*) as count, SUM(vistas) as vistas FROM noticias WHERE estado=$1', ['publicada']);
+        res.json({ success: true, totalNoticias: parseInt(r.rows[0].count), totalVistas: parseInt(r.rows[0].vistas)||0 });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// ==================== CONFIGURACIÓN ====================
 app.get('/api/configuracion', async (req, res) => {
     try {
-        const configPath = path.join(__dirname, 'config.json');
+        const cp = path.join(__dirname,'config.json');
         let config = { googleAnalytics: '' };
-        if (fs.existsSync(configPath)) config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (fs.existsSync(cp)) config = JSON.parse(fs.readFileSync(cp,'utf8'));
         res.json({ success: true, config });
-    } catch (e) {
-        res.json({ success: true, config: { googleAnalytics: '' } });
-    }
+    } catch (e) { res.json({ success: true, config: { googleAnalytics: '' } }); }
 });
 
 app.post('/api/configuracion', express.json(), async (req, res) => {
     try {
         const { pin, googleAnalytics } = req.body;
         if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-        const configPath = path.join(__dirname, 'config.json');
-        fs.writeFileSync(configPath, JSON.stringify({ googleAnalytics }, null, 2));
-        res.json({ success: true, message: 'Configuración guardada' });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+        fs.writeFileSync(path.join(__dirname,'config.json'), JSON.stringify({ googleAnalytics }, null, 2));
+        res.json({ success: true, message: 'Guardado' });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// ==================== PUBLICAR NOTICIA MANUAL ====================
 app.post('/api/publicar', express.json(), async (req, res) => {
     try {
         const { pin, titulo, seccion, contenido, redactor, seoDesc, seoKeywords } = req.body;
         if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-        if (!titulo || !seccion || !contenido) {
-            return res.status(400).json({ success: false, error: 'Faltan campos obligatorios' });
-        }
+        if (!titulo||!seccion||!contenido) return res.status(400).json({ success: false, error: 'Faltan campos' });
         const slug = generarSlug(titulo);
-        const existe = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
+        const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slug]);
         const slugFinal = existe.rows.length > 0 ? `${slug}-${Date.now()}` : slug;
-        const result = await pool.query(
-            `INSERT INTO noticias (titulo, slug, seccion, contenido, seo_description, seo_keywords, redactor, imagen, imagen_alt, imagen_source, estado)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id, slug`,
-            [titulo, slugFinal, seccion, contenido, seoDesc || titulo, seoKeywords || seccion,
-             redactor || 'Manual',
-             'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-             titulo, 'manual', 'publicada']
+        const r = await pool.query(
+            `INSERT INTO noticias (titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_source,estado) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,slug`,
+            [titulo,slugFinal,seccion,contenido,seoDesc||titulo,seoKeywords||seccion,redactor||'Manual','https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',titulo,'manual','publicada']
         );
-        const noticia = result.rows[0];
-        res.json({
-            success: true,
-            id: noticia.id,
-            slug: noticia.slug,
-            message: `✅ Noticia publicada: ${titulo}`,
-            url: `${BASE_URL}/noticia/${noticia.slug}`
-        });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+        res.json({ success: true, id: r.rows[0].id, slug: r.rows[0].slug, url: `${BASE_URL}/noticia/${r.rows[0].slug}` });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// ==================== STATUS ====================
 app.get('/status', async (req, res) => {
     try {
-        const result = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
-        res.json({
-            status: 'OK',
-            version: '18.2',
-            noticias: parseInt(result.rows[0].count),
-            ia_enabled: CONFIG_IA.enabled,
-            cache_imagenes: CACHE_IMAGENES.size,
-            ia_config: {
-                tono: CONFIG_IA.tono,
-                extension: CONFIG_IA.extension,
-                imagen_system: 'Inteligente 3 capas + cache'
-            }
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+        const r = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
+        res.json({ status: 'OK', version: '18.3', noticias: parseInt(r.rows[0].count), ia_enabled: CONFIG_IA.enabled, generando_ahora: generandoAhora, cache_imagenes: CACHE_IMAGENES.size });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ==================== RUTAS ADMIN ====================
 app.get('/api/admin/config', (req, res) => {
-    const pin = req.query.pin;
-    if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
     res.json(CONFIG_IA);
 });
 
@@ -938,50 +532,34 @@ app.post('/api/admin/config', express.json(), (req, res) => {
     if (enfasis)   CONFIG_IA.enfasis   = enfasis;
     if (evitar)    CONFIG_IA.evitar    = evitar;
     if (enabled !== undefined) CONFIG_IA.enabled = enabled;
-    if (guardarConfigIA(CONFIG_IA)) {
-        res.json({ success: true, mensaje: 'Configuración guardada' });
-    } else {
-        res.status(500).json({ error: 'Error guardando configuración' });
-    }
+    guardarConfigIA(CONFIG_IA) ? res.json({ success: true, mensaje: 'Guardado' }) : res.status(500).json({ error: 'Error' });
 });
 
 app.get('/api/admin/errores', (req, res) => {
-    const pin = req.query.pin;
-    if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
     res.json({ success: true, errores: cargarHistorial() });
 });
 
-// ==================== CATCH ALL ====================
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
-});
+app.use((req, res) => { res.sendFile(path.join(__dirname, 'client', 'index.html')); });
 
-// ==================== INICIAR ====================
 async function iniciar() {
     try {
-        console.log('\n🚀 Iniciando servidor V18.2...\n');
+        console.log('\n🚀 Iniciando V18.3...\n');
         await inicializarBase();
-
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║   🏮 EL FAROL AL DÍA - SERVIDOR V18.2 (COLUMNAS AUTO-MIGRADAS) 🏮 ║
+║   🏮 EL FAROL AL DÍA - V18.3 (COLA + REINTENTOS LARGOS) 🏮        ║
 ╠══════════════════════════════════════════════════════════════════════╣
-║ ✅ Puerto: ${PORT}                                                    ║
-║ ✅ PostgreSQL: Conectado                                              ║
-║ ✅ Migración automática: imagen_alt + imagen_source                  ║
-║ ✅ Gemini con retry backoff (5s → 10s → 20s)                        ║
-║ ✅ Cron cada 3h + delay aleatorio                                    ║
-║ ✅ Cache imágenes 24h                                                ║
-║ ✅ Rate limiter generación: 3/min                                    ║
-║ ✅ Frontend intacto — index, redaccion, noticia                      ║
-╚══════════════════════════════════════════════════════════════════════╝
-            `);
+║ ✅ Cola: nunca dos Gemini al mismo tiempo                            ║
+║ ✅ Reintentos: 15s→30s→60s→120s→240s (5 intentos)                 ║
+║ ✅ Cron: cada 6h + delay aleatorio                                  ║
+║ ✅ BD migración automática                                           ║
+║ ✅ Cache imágenes 24h                                               ║
+║ ✅ Frontend 100% intacto                                            ║
+╚══════════════════════════════════════════════════════════════════════╝`);
         });
-    } catch (error) {
-        console.error('❌ Error fatal:', error);
-        process.exit(1);
-    }
+    } catch (error) { console.error('❌ Error fatal:', error); process.exit(1); }
 }
 
 iniciar();
