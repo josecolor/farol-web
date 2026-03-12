@@ -303,43 +303,51 @@ async function generarNoticia(categoria) {
 
         console.log(`\n🤖 GENERANDO: ${categoria} | ${CONFIG_IA.tono}/${CONFIG_IA.extension}`);
 
-        const prompt = `INSTRUCCIÓN CRÍTICA: Responde ÚNICAMENTE con el bloque XML. Cero texto antes o después. Cero asteriscos. Cero markdown.
+        const prompt = `Eres periodista dominicano. Escribe una noticia de ${categoria} en República Dominicana. 400-500 palabras. Sin asteriscos.
 
-Escribe una noticia de ${categoria} en República Dominicana. 400-500 palabras.
-
-<noticia>
-<titulo>título sin asteriscos ni símbolos</titulo>
-<persona>nombre si aplica, sino vacío</persona>
-<descripcion>descripción SEO 150-160 caracteres</descripcion>
-<palabras>keywords separadas por coma</palabras>
-<busqueda_imagen>3-5 palabras en inglés</busqueda_imagen>
-<contenido>cuerpo completo de la noticia en párrafos, sin asteriscos</contenido>
-</noticia>`;
+TITULO: [título directo sin símbolos]
+PERSONA: [nombre o vacío]
+DESC: [descripción SEO 150-160 caracteres]
+PALABRAS: [keywords separadas por coma]
+IMAGEN_Q: [búsqueda en inglés 3-5 palabras]
+CONTENIDO:
+[noticia completa en párrafos]`;
 
         const data = await llamarGeminiConRetry(prompt);
         const texto = data.candidates[0].content.parts[0].text;
 
-        // Parseo XML con regex — limpia backticks de markdown primero
-        const textoLimpio = texto.replace(/```xml/gi, '').replace(/```/g, '').trim();
-        console.log('📥 Gemini respuesta:', textoLimpio.substring(0, 200));
-        const extraer = (tag) => {
-            const patron = new RegExp('<' + tag + '>([\\s\\S]*?)<\\/' + tag + '>');
-            const m = textoLimpio.match(patron);
-            return m ? m[1].trim().replace(/[*_#`]/g, '') : '';
+        // PARSEO ANTIBALAS — extrae datos sin importar texto extra de Gemini
+        const limpiar = (t) => t.replace(/\*\*/g, '').replace(/[*_#`]/g, '').trim();
+        console.log('Gemini:', texto.substring(0, 150));
+
+        const buscar = (regex) => {
+            const m = texto.match(regex);
+            return m ? limpiar(m[1]) : '';
         };
 
-        let titulo          = extraer('titulo');
-        let persona         = extraer('persona');
-        let descripcion     = extraer('descripcion');
-        let palabras        = extraer('palabras') || categoria;
-        let busqueda_imagen = extraer('busqueda_imagen');
-        let contenido       = extraer('contenido');
+        let titulo          = buscar(/TITULO:\s*([^\n]+)/i);
+        let persona         = buscar(/PERSONA:\s*([^\n]+)/i);
+        let descripcion     = buscar(/DESC(?:RIPCION)?:\s*([^\n]+)/i);
+        let palabras        = buscar(/PALABRAS:\s*([^\n]+)/i) || categoria;
+        let busqueda_imagen = buscar(/IMAGEN_Q:\s*([^\n]+)/i) || buscar(/BUSQUEDA_IMAGEN:\s*([^\n]+)/i);
+        let contenido       = '';
 
-        if (!titulo || titulo.length < 20 || !contenido || contenido.length < 300) {
-            guardarError('validacion', 'Generación inválida');
-            throw new Error('Contenido insuficiente de Gemini');
+        const splitContenido = texto.split(/CONTENIDO:/i);
+        if (splitContenido[1]) contenido = limpiar(splitContenido[1]);
+
+        // FALLBACK: si Gemini respondio libre sin formato
+        if (!titulo || !contenido) {
+            console.log('Fallback texto libre');
+            const lineas = texto.split('\n').map(l => limpiar(l)).filter(l => l.length > 10);
+            if (!titulo) titulo = lineas.find(l => l.length >= 15 && l.length <= 120) || categoria + ' en RD';
+            if (!contenido) contenido = lineas.filter(l => l !== titulo && l.length > 40).join('\n\n');
+            if (!descripcion) descripcion = (lineas.find(l => l.length > 60) || '').substring(0, 155);
         }
 
+        if (!titulo || titulo.length < 10 || !contenido || contenido.length < 150) {
+            guardarError('validacion', 'Sin contenido: ' + titulo.substring(0, 30));
+            throw new Error('Contenido insuficiente de Gemini');
+        }
         if (await tituloDuplicado(titulo)) {
             guardarError('duplicado', titulo.substring(0,50));
             return { success: false, error: 'Título similar ya existe' };
