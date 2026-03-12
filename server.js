@@ -10,6 +10,10 @@
  * 6. ✅ Historial de errores
  * 7. ✅ Logs detallados
  * 8. ✅ NO se modifica nada que ya funciona
+ * 
+ * CORRECCIÓN ERROR 429:
+ * - Se agregó `app.set('trust proxy', 1)` para detectar IP real en Railway.
+ * - Se instaló y configuró `express-rate-limit` con ventana de 15 min / 1000 peticiones.
  */
 
 const express = require('express');
@@ -18,14 +22,12 @@ const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
 const { Pool } = require('pg');
-// ===== POSIBLE IMPORTACIÓN DEL RATE LIMITER (si ya existe, se mantiene) =====
-// Si no existe, descomenta la siguiente línea:
-// const rateLimit = require('express-rate-limit');
+// ========== NUEVO: IMPORTAR RATE LIMITER ==========
+const rateLimit = require('express-rate-limit');
 
 const app = express();
-// ========== CAMBIO 1: ACTIVAR TRUST PROXY ==========
-app.set('trust proxy', 1);  // <--- NUEVA LÍNEA AGREGADA
-// ===================================================
+// ========== ACTIVAR TRUST PROXY (OBLIGATORIO EN RAILWAY) ==========
+app.set('trust proxy', 1);  // Permite obtener la IP real del cliente
 
 const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
@@ -45,19 +47,19 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
-// ========== CAMBIO 2: CONFIGURACIÓN DEL RATE LIMITER ==========
-// (Si ya tienes definido el limiter en otra parte, solo cambia sus valores.
-//  Si no existe, descomenta las siguientes líneas para crearlo y aplicarlo.)
-/*
+// ========== CONFIGURACIÓN DEL RATE LIMITER ==========
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
     max: 1000,                 // máximo 1000 solicitudes por IP
-    standardHeaders: true,     // headers RateLimit-*
-    legacyHeaders: false       // desactivar X-RateLimit-*
+    standardHeaders: true,     // devuelve headers estándar RateLimit-*
+    legacyHeaders: false,      // desactiva headers antiguos X-RateLimit-*
+    handler: (req, res) => {
+        console.log(`⛔ Rate limit excedido para IP: ${req.ip}`);
+        res.status(429).json({ error: 'Demasiadas solicitudes, intente más tarde.' });
+    }
 });
+// Aplicar el rate limiter a todas las rutas
 app.use(limiter);
-*/
-// ===============================================================
 
 // ==================== CONFIGURACIÓN IA (ENTRENABLE SIN CÓDIGO) ====================
 const CONFIG_IA_PATH = path.join(__dirname, 'config-ia.json');
