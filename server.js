@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V18.3 (COLA + REINTENTOS LARGOS)
- * CAMBIOS: Cola generación + 5 reintentos (15s→30s→60s→120s→240s) + Cron 6h + Migración BD
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V18.6 (ANTIBALAS + XML + CRON 2H)
+ * CAMBIOS: Parseo antibalas, fallback texto plano, XML prompt, cron 3 noticias cada 2h
  */
 
 const express = require('express');
@@ -578,4 +578,3 @@ async function iniciar() {
 
 iniciar();
 module.exports = app;
-
