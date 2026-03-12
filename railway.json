@@ -1,10 +1,13 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "dockerfile",
+    "context": ".",
+    "dockerfile": "./Dockerfile"
   },
   "deploy": {
-    "startCommand": "npm start",
-    "restartPolicyType": "ON_FAILURE"
+    "startCommand": "node server.js",
+    "restartPolicyType": "on_failure",
+    "restartPolicyMaxRetries": 5
   }
 }
