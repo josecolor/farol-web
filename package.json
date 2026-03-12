@@ -1,7 +1,7 @@
 {
-  "name": "farol-al-dia",
-  "version": "1.0.0",
-  "description": "El Farol al Día - Periódico Digital",
+  "name": "el-farol-al-dia",
+  "version": "18.1.0",
+  "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,12 +9,22 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "pg": "^8.11.3",
     "cors": "^2.8.5",
-    "compression": "^1.7.4",
-    "express-rate-limit": "^7.1.5",
-    "node-cron": "^3.0.0"
+    "pg": "^8.11.3",
+    "node-cron": "^3.0.3"
   },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "noticias",
+    "periódico",
+    "dominicana",
+    "ia",
+    "gemini"
+  ],
+  "author": "El Farol al Día",
+  "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   }
