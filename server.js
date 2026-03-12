@@ -320,9 +320,10 @@ Responde SOLO en XML:
         const data = await llamarGeminiConRetry(prompt);
         const texto = data.candidates[0].content.parts[0].text;
 
-        // Parseo XML con regex
+        // Parseo XML con regex — limpia backticks de markdown primero
+        const textoLimpio = texto.replace(/```xml|```/g, '').trim();
         const extraer = (tag) => {
-            const m = texto.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
+            const m = textoLimpio.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
             return m ? m[1].trim().replace(/[*_#`]/g, '') : '';
         };
 
@@ -564,4 +565,3 @@ async function iniciar() {
 
 iniciar();
 module.exports = app;
-
