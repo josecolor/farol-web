@@ -303,18 +303,17 @@ async function generarNoticia(categoria) {
 
         console.log(`\n🤖 GENERANDO: ${categoria} | ${CONFIG_IA.tono}/${CONFIG_IA.extension}`);
 
-        const prompt = `${CONFIG_IA.instruccion_principal}
+        const prompt = `INSTRUCCIÓN CRÍTICA: Responde ÚNICAMENTE con el bloque XML. Cero texto antes o después. Cero asteriscos. Cero markdown.
 
-Noticia sobre ${categoria} en RD. Tono: ${CONFIG_IA.tono}. 400-500 palabras. Sin asteriscos en títulos.
+Escribe una noticia de ${categoria} en República Dominicana. 400-500 palabras.
 
-Responde SOLO en XML:
 <noticia>
-<titulo>título 50-60 caracteres, sin asteriscos</titulo>
-<persona>nombre o vacío</persona>
-<descripcion>SEO 150-160 caracteres</descripcion>
-<palabras>5-7 keywords separadas por coma</palabras>
+<titulo>título sin asteriscos ni símbolos</titulo>
+<persona>nombre si aplica, sino vacío</persona>
+<descripcion>descripción SEO 150-160 caracteres</descripcion>
+<palabras>keywords separadas por coma</palabras>
 <busqueda_imagen>3-5 palabras en inglés</busqueda_imagen>
-<contenido>noticia completa en párrafos</contenido>
+<contenido>cuerpo completo de la noticia en párrafos, sin asteriscos</contenido>
 </noticia>`;
 
         const data = await llamarGeminiConRetry(prompt);
