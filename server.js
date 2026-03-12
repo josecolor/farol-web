@@ -18,12 +18,13 @@ const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
 const { Pool } = require('pg');
-// Si aún no tienes importado rateLimit, debes agregarlo:
+// ===== POSIBLE IMPORTACIÓN DEL RATE LIMITER (si ya existe, se mantiene) =====
+// Si no existe, descomenta la siguiente línea:
 // const rateLimit = require('express-rate-limit');
 
 const app = express();
 // ========== CAMBIO 1: ACTIVAR TRUST PROXY ==========
-app.set('trust proxy', 1);  // <--- NUEVA LÍNEA
+app.set('trust proxy', 1);  // <--- NUEVA LÍNEA AGREGADA
 // ===================================================
 
 const PORT = process.env.PORT || 8080;
@@ -45,16 +46,17 @@ app.use(express.static(path.join(__dirname, 'client')));
 app.use(cors());
 
 // ========== CAMBIO 2: CONFIGURACIÓN DEL RATE LIMITER ==========
-// (Asumiendo que ya tienes el limiter definido en alguna parte.
-//  Si no existe, debes definirla y aplicarla con app.use(limiter))
+// (Si ya tienes definido el limiter en otra parte, solo cambia sus valores.
+//  Si no existe, descomenta las siguientes líneas para crearlo y aplicarlo.)
+/*
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
     max: 1000,                 // máximo 1000 solicitudes por IP
     standardHeaders: true,     // headers RateLimit-*
     legacyHeaders: false       // desactivar X-RateLimit-*
 });
-// Aplica el limiter a todas las rutas (si no lo tenías antes)
 app.use(limiter);
+*/
 // ===============================================================
 
 // ==================== CONFIGURACIÓN IA (ENTRENABLE SIN CÓDIGO) ====================
