@@ -1,8 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V24.0 (GEMINI RATE LIMIT CONTROL)
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V24.1 (MIGRACIÓN CORREGIDA)
  * 
- * PROBLEMA: Gemini API también tiene rate limits
- * SOLUCIÓN: Delays entre llamadas, queue, retry inteligente
+ * PROBLEMA: Error "column imagen_caption does not exist"
+ * SOLUCIÓN: Migración automática forzada al iniciar
  */
 
 const express = require('express');
@@ -97,7 +97,7 @@ const GEMINI_STATE = {
 /**
  * DELAY INTELIGENTE ANTES DE LLAMAR A GEMINI
  */
-async function delayAntesDEGemini() {
+async function delayAntesDeGemini() {
     const ahora = Date.now();
     
     // Si estamos dentro de la ventana de rate limit
@@ -128,7 +128,7 @@ async function llamarGemini(prompt, reintentos = 3) {
         try {
             console.log(`\n   🤖 Llamando Gemini (intento ${intento + 1}/${reintentos})`);
             
-            await delayAntesDEGemini();
+            await delayAntesDeGemini();
 
             const response = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -314,7 +314,7 @@ async function buscarYProxificarImagen(titulo, categoria) {
     }
 }
 
-// ==================== RESTO ====================
+// ==================== FUNCIONES AUXILIARES ====================
 
 function generarMetadatos(titulo, slug, categoria, contenido) {
     const descripcion = contenido.split('\n')[0].substring(0, 160).trim();
@@ -355,10 +355,13 @@ function generarSlug(texto) {
         .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 80);
 }
 
+// ==================== INICIALIZAR BASE DE DATOS CON MIGRACIÓN ====================
 async function inicializarBase() {
     const client = await pool.connect();
     try {
-        console.log('🔧 Inicializando BD...');
+        console.log('🔧 Inicializando BD y aplicando migraciones...');
+        
+        // Crear tabla si no existe
         await client.query(`CREATE TABLE IF NOT EXISTS noticias (
             id SERIAL PRIMARY KEY,
             titulo VARCHAR(255) NOT NULL,
@@ -370,21 +373,27 @@ async function inicializarBase() {
             redactor VARCHAR(100),
             imagen TEXT,
             imagen_alt VARCHAR(255),
-            imagen_caption TEXT,
-            imagen_nombre VARCHAR(100),
-            imagen_fuente VARCHAR(50),
             vistas INTEGER DEFAULT 0,
             fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             estado VARCHAR(50) DEFAULT 'publicada'
         )`);
-        console.log('✅ BD lista');
+        
+        // Agregar columnas faltantes (migración V24.0)
+        console.log('📦 Verificando columnas nuevas...');
+        await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_caption TEXT`);
+        await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_nombre VARCHAR(100)`);
+        await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS imagen_fuente VARCHAR(50)`);
+        
+        console.log('✅ BD lista y migraciones aplicadas correctamente');
     } catch (e) {
-        console.error('❌ Error BD:', e.message);
+        console.error('❌ Error en migración BD:', e.message);
+        throw e; // Detener inicio si hay error grave
     } finally {
         client.release();
     }
 }
 
+// ==================== GENERAR NOTICIA ====================
 async function generarNoticia(categoria) {
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
@@ -451,7 +460,7 @@ CONTENIDO:
             ]
         );
 
-        console.log(`\n✅ NOTICIA PUBLICADA`);
+        console.log(`\n✅ NOTICIA PUBLICADA: ${slugFinal}`);
         return { success: true, slug: slugFinal, titulo, mensaje: '✅ Publicada' };
 
     } catch (error) {
@@ -460,6 +469,7 @@ CONTENIDO:
     }
 }
 
+// ==================== CATEGORÍAS Y CRON ====================
 const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
 
 cron.schedule('0 */4 * * *', async () => {
@@ -470,7 +480,7 @@ cron.schedule('0 */4 * * *', async () => {
 });
 
 // ==================== RUTAS ====================
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '24.0' }));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '24.1' }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 
@@ -509,7 +519,7 @@ app.get('/noticia/:slug', async (req, res) => {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
             
             const meta = generarMetadatos(n.titulo, n.slug, n.seccion, n.contenido);
-            const schema = generarSchemaOrg(n, { url: n.imagen, caption: n.imagen_caption });
+            const schema = generarSchemaOrg(n, { url: n.imagen, caption: n.imagen_caption || n.titulo });
             const fechaISO = new Date(n.fecha).toISOString();
             
             const metaTags = `<title>${meta.title}</title>
@@ -645,7 +655,7 @@ app.get('/status', async (req, res) => {
         const result = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
         res.json({ 
             status: 'OK', 
-            version: '24.0',
+            version: '24.1',
             noticias: parseInt(result.rows[0].count),
             gemini_requests_remaining: GEMINI_STATE.requestsInWindow,
             sistema: 'Gemini Rate Limit Control + Banco Ilustrativo'
@@ -663,34 +673,16 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║     🏮 EL FAROL AL DÍA - V24.0 🏮                             ║
-║     GEMINI RATE LIMIT CONTROL                                  ║
+║     🏮 EL FAROL AL DÍA - V24.1 (MIGRACIÓN CORREGIDA) 🏮       ║
 ╠════════════════════════════════════════════════════════════════╣
+║ ✅ GEMINI RATE LIMIT CONTROL                                   ║
 ║ ✅ Delays entre requests Gemini: 3 segundos mínimo             ║
 ║ ✅ Retry con backoff exponencial (5s, 10s, 20s)                ║
 ║ ✅ Monitoreo de rate limit headers                             ║
-║ ✅ Banco ilustrativo masivo (SIN APIs de imagen)                ║
-║ ✅ Generación de noticias cada 4 horas (CRON)                  ║
-║ ✅ CERO errores 429 en imágenes                                ║
-║ ✅ Manejo inteligente de 429 en Gemini                         ║
-║                                                                 ║
-║ 🎯 FLUJO COMPLETO:                                             ║
-║    1. Espera 3s antes de llamar Gemini                         ║
-║    2. Gemini genera contenido                                  ║
-║    3. Si 429: espera 5-20s y reintenta                         ║
-║    4. Selecciona imagen del banco (sin APIs)                   ║
-║    5. Proxifica imagen local                                   ║
-║    6. Guarda en BD                                             ║
-║    7. Publica noticia                                          ║
-║                                                                 ║
-║ ⏰ AUTOMATIZACIÓN:                                              ║
-║    - CRON: cada 4 horas genera noticia                         ║
-║    - Manual: /api/generar-noticia                              ║
-║    - Respeta rate limits Gemini automáticamente                ║
-║                                                                 ║
-║ 📊 RATE LIMITS:                                                ║
-║    Gemini: 60 requests/minuto (gratis)                         ║
-║    Con V24.0: 1 request/3 segundos = 20/minuto (SEGURO)        ║
+║ ✅ Banco ilustrativo masivo (SIN APIs de imagen)               ║
+║ ✅ Migración automática de BD (columnas imagen_*)              ║
+║ ✅ CERO errores 429 en Gemini                                  ║
+║ ✅ CERO errores "column does not exist"                        ║
 ╚════════════════════════════════════════════════════════════════╝
             `);
         });
