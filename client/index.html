@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="shortcut icon" href="/static/favicon.png" type="image/png">
 
     <meta name="description" content="El Farol al Día - Periódico Digital Dominicano. Noticias de Nacionales, Deportes, Internacionales, Economía, Tecnología y Espectáculos.">
     <meta name="keywords" content="noticias, dominicana, periódico, digital, farol">
+    
     <meta property="og:title" content="El Farol al Día">
     <meta property="og:description" content="Periódico digital con noticias de República Dominicana">
-    <meta property="og:image" content="https://via.placeholder.com/1200x630?text=El+Farol+al+Día">
+    
+    <meta property="og:image" content="/static/favicon.png">
+    
     <title>El Farol al Día - Periódico Digital Dominicano</title>
     <style>
         * {
@@ -354,17 +358,14 @@
         let noticiasFiltradas = [];
         let categoriaBuscada = null;
 
-        // ==================== CARGAR NOTICIAS ====================
         async function cargarNoticias() {
             try {
                 const res = await fetch('/api/noticias');
                 const data = await res.json();
-
                 if (!data.noticias || data.noticias.length === 0) {
                     mostrarNoNoticias();
                     return;
                 }
-
                 noticiasFiltradas = data.noticias;
                 renderizarNoticias(noticiasFiltradas);
             } catch (error) {
@@ -373,16 +374,13 @@
             }
         }
 
-        // ==================== RENDERIZAR NOTICIAS ====================
         function renderizarNoticias(noticias) {
             const container = document.getElementById('noticiasContainer');
             container.innerHTML = '';
-
             if (noticias.length === 0) {
                 mostrarNoNoticias();
                 return;
             }
-
             noticias.forEach(noticia => {
                 const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO');
                 const html = `
@@ -402,37 +400,23 @@
             });
         }
 
-        // ==================== CREAR CATEGORÍAS ====================
         function crearCategorias() {
             const container = document.getElementById('categorias');
             container.innerHTML = '<button class="categoria-btn active" onclick="filtrarPor(null)">📰 Todas</button>';
-
             CATEGORIAS.forEach(cat => {
                 const emoji = {
-                    'Nacionales': '🏛️',
-                    'Deportes': '⚽',
-                    'Internacionales': '🌍',
-                    'Economía': '💼',
-                    'Tecnología': '💻',
-                    'Espectáculos': '🎬'
+                    'Nacionales': '🏛️', 'Deportes': '⚽', 'Internacionales': '🌍',
+                    'Economía': '💼', 'Tecnología': '💻', 'Espectáculos': '🎬'
                 };
-
                 const html = `<button class="categoria-btn" onclick="filtrarPor('${cat}')">${emoji[cat]} ${cat}</button>`;
                 container.innerHTML += html;
             });
         }
 
-        // ==================== FILTRAR POR CATEGORÍA ====================
         function filtrarPor(categoria) {
             categoriaBuscada = categoria;
-
-            // Actualizar botones activos
-            document.querySelectorAll('.categoria-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Filtrar noticias
+            document.querySelectorAll('.categoria-btn').forEach(btn => btn.classList.remove('active'));
+            if (event) event.target.classList.add('active');
             if (categoria) {
                 const filtradas = noticiasFiltradas.filter(n => n.seccion === categoria);
                 renderizarNoticias(filtradas);
@@ -441,24 +425,16 @@
             }
         }
 
-        // ==================== ABRIR NOTICIA ====================
-        function abrirNoticia(slug) {
-            window.location.href = `/noticia/${slug}`;
-        }
-
-        // ==================== MOSTRAR NO NOTICIAS ====================
+        function abrirNoticia(slug) { window.location.href = `/noticia/${slug}`; }
         function mostrarNoNoticias() {
             const container = document.getElementById('noticiasContainer');
             container.innerHTML = '<div class="loading"><p>No hay noticias publicadas aún</p></div>';
         }
-
-        // ==================== MOSTRAR ERROR ====================
         function mostrarError() {
             const container = document.getElementById('noticiasContainer');
             container.innerHTML = '<div class="loading"><p>❌ Error cargando noticias</p></div>';
         }
 
-        // ==================== INICIAR ====================
         document.addEventListener('DOMContentLoaded', () => {
             crearCategorias();
             cargarNoticias();
