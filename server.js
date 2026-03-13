@@ -473,6 +473,9 @@ cron.schedule('0 */4 * * *', async () => {
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '24.0' }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/contacto', (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
+app.get('/nosotros', (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
+app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
 
 app.get('/api/noticias', async (req, res) => {
     try {
@@ -702,4 +705,4 @@ async function iniciar() {
 
 iniciar();
 
-module.exports = app;      
+module.exports = app;
