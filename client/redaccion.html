@@ -5,162 +5,598 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción | El Farol al Día</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: #e0e0e0;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
             padding: 20px;
         }
+
         .container {
-            width: 100%;
-            max-width: 500px;
-            background: #1a1a1a;
-            padding: 30px;
-            border-radius: 15px;
-            border-top: 4px solid #ff9800;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        h1 {
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-bottom: 3px solid #ff9800;
+        }
+
+        header h1 {
+            font-size: 2.5em;
             color: #ff9800;
-            text-align: center;
             margin-bottom: 10px;
-            font-size: 1.8rem;
         }
-        p.subtitle {
-            text-align: center;
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 30px;
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
         }
+
+        .section {
+            background: rgba(50, 50, 50, 0.8);
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section h2 {
+            color: #ff9800;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ff9800;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
         label {
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             color: #ff9800;
             font-weight: bold;
+            font-size: 0.95em;
         }
-        select {
+
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
             width: 100%;
             padding: 12px;
-            background: #252525;
-            border: 1px solid #333;
-            color: #fff;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 1rem;
+            background: rgba(30, 30, 30, 0.9);
+            border: 2px solid #555;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
         }
-        button {
-            width: 100%;
-            padding: 15px;
-            background: #ff9800;
-            color: #000;
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #ff9800;
+            outline: none;
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 15px 30px;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
+            font-size: 1em;
             font-weight: bold;
-            font-size: 1rem;
             cursor: pointer;
-            transition: 0.3s;
-            text-transform: uppercase;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
         }
-        button:hover {
-            background: #e68a00;
+
+        .btn-primary {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e68900;
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
         }
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
+
+        .btn-secondary {
+            background: #4CAF50;
+            color: white;
         }
-        .alert {
-            margin-top: 20px;
+
+        .btn-secondary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(30, 30, 30, 0.9);
             padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            display: none;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .status-text {
             font-weight: bold;
+            color: #ff9800;
         }
-        .alert.success { display: block; background: rgba(76, 175, 80, 0.2); color: #4caf50; border: 1px solid #4caf50; }
-        .alert.error { display: block; background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid #f44336; }
-        .back-link {
-            display: block;
+
+        .status-text.active {
+            color: #4CAF50;
+        }
+
+        .info-box {
+            background: rgba(255, 152, 0, 0.1);
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box p {
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            display: none;
             text-align: center;
-            margin-top: 25px;
-            color: #888;
-            text-decoration: none;
-            font-size: 0.9rem;
+            padding: 20px;
         }
-        .back-link:hover { color: #ff9800; }
+
+        .spinner {
+            border: 4px solid #555;
+            border-top: 4px solid #ff9800;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            display: block;
+        }
+
+        .message.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(30, 30, 30, 0.9);
+            padding: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff9800;
+        }
+
+        .stat-label {
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>🏮 Panel de Redacción</h1>
+            <p>El Farol al Día - Sistema de Generación de Noticias</p>
+        </header>
 
-<div class="container">
-    <h1>🏮 Redacción IA</h1>
-    <p class="subtitle">El Farol al Día - Panel de Control</p>
-    
-    <label>Sección de la noticia:</label>
-    <select id="categoriaIA">
-        <option value="">-- Selecciona una categoría --</option>
-        <option value="Nacionales">🏛️ Nacionales</option>
-        <option value="Deportes">⚽ Deportes</option>
-        <option value="Internacionales">🌍 Internacionales</option>
-        <option value="Economía">💼 Economía</option>
-        <option value="Tecnología">💻 Tecnología</option>
-        <option value="Espectáculos">🎬 Espectáculos</option>
-    </select>
+        <div class="main-content">
+            <!-- Sección Principal -->
+            <div>
+                <!-- Control IA -->
+                <div class="section">
+                    <h2>⚙️ Control de IA</h2>
 
-    <button id="btnGenerar">🤖 Generar Noticia Ahora</button>
+                    <div class="switch-container">
+                        <div>
+                            <label>Estado de IA:</label>
+                            <span class="status-text" id="iaStatus">🔴 DESACTIVADO</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="iaToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
 
-    <div id="resultado" class="alert"></div>
+                    <div class="info-box">
+                        <p>✅ Sin Pexels API</p>
+                        <p>✅ Sin Pixabay API</p>
+                        <p>✅ Banco ilustrativo masivo (6 imágenes/categoría)</p>
+                        <p>✅ CERO errores 429, 100% confiable</p>
+                    </div>
+                </div>
 
-    <a href="/" class="back-link">← Volver al Periódico</a>
-</div>
+                <!-- Instrucciones Gemini -->
+                <div class="section">
+                    <h2>📝 Instrucciones para Gemini</h2>
 
-<script>
-    const btn = document.getElementById('btnGenerar');
-    const resDiv = document.getElementById('resultado');
+                    <div class="form-group">
+                        <label>Instrucción Principal:</label>
+                        <textarea id="instruccionPrincipal" placeholder="Ej: Eres un periodista profesional dominicano..."></textarea>
+                    </div>
 
-    btn.addEventListener('click', async () => {
-        const categoria = document.getElementById('categoriaIA').value;
-        
-        if (!categoria) {
-            resDiv.textContent = "⚠️ Elige una categoría primero";
-            resDiv.className = "alert error";
-            return;
-        }
+                    <div class="form-group">
+                        <label>Tono de Noticias:</label>
+                        <select id="tono">
+                            <option value="profesional">Profesional</option>
+                            <option value="informal">Informal</option>
+                            <option value="académico">Académico</option>
+                            <option value="narrativo">Narrativo</option>
+                        </select>
+                    </div>
 
-        btn.disabled = true;
-        btn.textContent = "⏳ Escribiendo noticia...";
-        resDiv.style.display = "none";
+                    <div class="form-group">
+                        <label>Extensión:</label>
+                        <select id="extension">
+                            <option value="corta">Corta (200-300 palabras)</option>
+                            <option value="media">Media (400-500 palabras)</option>
+                            <option value="larga">Larga (600-800 palabras)</option>
+                        </select>
+                    </div>
 
-        try {
-            const response = await fetch('/api/generar-noticia', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ categoria })
-            });
+                    <div class="form-group">
+                        <label>Cosas que debe Evitar:</label>
+                        <textarea id="evitar" placeholder="Ej: Especulación sin fuentes, titulares sensacionalistas..."></textarea>
+                    </div>
 
-            const data = await response.json();
+                    <button class="btn btn-primary" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
 
-            if (data.success) {
-                resDiv.innerHTML = `✅ Publicada: <br> <small>${data.titulo}</small>`;
-                resDiv.className = "alert success";
-            } else {
-                resDiv.textContent = "❌ Error: " + data.error;
-                resDiv.className = "alert error";
+                    <div id="messageConfig" class="message"></div>
+                </div>
+
+                <!-- Generador de Noticias -->
+                <div class="section">
+                    <h2>🤖 Generar Noticia con IA</h2>
+
+                    <div class="form-group">
+                        <label>Selecciona Categoría:</label>
+                        <select id="categoria">
+                            <option value="Nacionales">📍 Nacionales</option>
+                            <option value="Deportes">⚽ Deportes</option>
+                            <option value="Internacionales">🌍 Internacionales</option>
+                            <option value="Economía">💰 Economía</option>
+                            <option value="Tecnología">💻 Tecnología</option>
+                            <option value="Espectáculos">🎬 Espectáculos</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="generarNoticia()">
+                        <span id="btnText">🚀 GENERAR NOTICIA AHORA</span>
+                        <div id="loadingSpinner" class="spinner" style="display: none;"></div>
+                    </button>
+
+                    <div id="messageGenerar" class="message"></div>
+
+                    <div id="generarLoading" class="loading">
+                        <div class="spinner"></div>
+                        <p>Generando noticia... por favor espera...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Estadísticas -->
+                <div class="section">
+                    <h2>📊 Estadísticas</h2>
+
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalNoticias">0</div>
+                            <div class="stat-label">Noticias Publicadas</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalVistas">0</div>
+                            <div class="stat-label">Vistas Totales</div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="cargarEstadisticas()">🔄 Actualizar</button>
+                </div>
+
+                <!-- Información -->
+                <div class="section">
+                    <h2>ℹ️ Información</h2>
+
+                    <div class="info-box">
+                        <p><strong>Versión:</strong> V24.0</p>
+                        <p><strong>Estado:</strong> 🟢 Online</p>
+                        <p><strong>Sistema:</strong> Gemini Retry + Fallback</p>
+                        <p><strong>Confiabilidad:</strong> 100%</p>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="verStatus()">📡 Ver Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const PIN = '311';
+
+        // ==================== CARGAR CONFIG ====================
+        async function cargarConfig() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/config?pin=${PIN}`);
+                if (res.ok) {
+                    const config = await res.json();
+                    document.getElementById('instruccionPrincipal').value = config.instruccion_principal || '';
+                    document.getElementById('tono').value = config.tono || 'profesional';
+                    document.getElementById('extension').value = config.extension || 'media';
+                    document.getElementById('evitar').value = config.evitar || '';
+                    document.getElementById('iaToggle').checked = config.enabled !== false;
+                    actualizarStatusIA();
+                }
+            } catch (e) {
+                console.error('Error cargando config:', e);
             }
-        } catch (e) {
-            resDiv.textContent = "❌ Error de conexión con el servidor";
-            resDiv.className = "alert error";
-        } finally {
-            btn.disabled = false;
-            btn.textContent = "🤖 Generar Noticia Ahora";
         }
-    });
-</script>
 
+        // ==================== GUARDAR INSTRUCCIONES ====================
+        async function guardarInstrucciones() {
+            const config = {
+                pin: PIN,
+                enabled: document.getElementById('iaToggle').checked,
+                instruccion_principal: document.getElementById('instruccionPrincipal').value,
+                tono: document.getElementById('tono').value,
+                extension: document.getElementById('extension').value,
+                evitar: document.getElementById('evitar').value
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await res.json();
+                mostrarMensaje('messageConfig', data.success ? '✅ Instrucciones guardadas exitosamente' : '❌ Error al guardar', data.success);
+            } catch (e) {
+                mostrarMensaje('messageConfig', '❌ Error: ' + e.message, false);
+            }
+        }
+
+        // ==================== GENERAR NOTICIA ====================
+        async function generarNoticia() {
+            const categoria = document.getElementById('categoria').value;
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('loadingSpinner');
+
+            if (!document.getElementById('iaToggle').checked) {
+                mostrarMensaje('messageGenerar', '❌ Debe activar la IA primero', false);
+                return;
+            }
+
+            btnText.style.display = 'none';
+            spinner.style.display = 'block';
+            document.getElementById('generarLoading').style.display = 'block';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/generar-noticia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categoria })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    mostrarMensaje('messageGenerar', `✅ Noticia generada: "${data.titulo}"`, true);
+                    cargarEstadisticas();
+                } else {
+                    mostrarMensaje('messageGenerar', `❌ Error: ${data.error || 'No especificado'}`, false);
+                }
+            } catch (e) {
+                mostrarMensaje('messageGenerar', '❌ Error: ' + e.message, false);
+            } finally {
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+                document.getElementById('generarLoading').style.display = 'none';
+            }
+        }
+
+        // ==================== CARGAR ESTADÍSTICAS ====================
+        async function cargarEstadisticas() {
+            try {
+                const res = await fetch(`${API_BASE}/api/estadisticas`);
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('totalNoticias').textContent = data.totalNoticias || 0;
+                    document.getElementById('totalVistas').textContent = data.totalVistas || 0;
+                }
+            } catch (e) {
+                console.error('Error cargando estadísticas:', e);
+            }
+        }
+
+        // ==================== VER STATUS ====================
+        async function verStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`
+🏮 EL FAROL AL DÍA - STATUS
+
+Versión: ${data.version}
+Estado: ${data.status}
+Noticias: ${data.noticias}
+Sistema: ${data.sistema}
+                    `);
+                }
+            } catch (e) {
+                alert('Error obteniendo status: ' + e.message);
+            }
+        }
+
+        // ==================== UTILIDADES ====================
+        function mostrarMensaje(elementId, texto, esExito) {
+            const elemento = document.getElementById(elementId);
+            elemento.textContent = texto;
+            elemento.className = 'message ' + (esExito ? 'success' : 'error');
+            setTimeout(() => {
+                elemento.className = 'message';
+            }, 5000);
+        }
+
+        function actualizarStatusIA() {
+            const status = document.getElementById('iaStatus');
+            const enabled = document.getElementById('iaToggle').checked;
+            status.textContent = enabled ? '🟢 ACTIVADO' : '🔴 DESACTIVADO';
+            status.className = 'status-text' + (enabled ? ' active' : '');
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('iaToggle').addEventListener('change', () => {
+            actualizarStatusIA();
+            guardarInstrucciones();
+        });
+
+        // ==================== INICIALIZACIÓN ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarConfig();
+            cargarEstadisticas();
+            setInterval(cargarEstadisticas, 30000); // Actualizar cada 30 segundos
+        });
+    </script>
 </body>
 </html>
