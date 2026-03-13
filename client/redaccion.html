@@ -1,40 +1,87 @@
-<// Busca la función del botón en tu redaccion.html y reemplázala por esta:
-document.getElementById('btnGenerarIA').addEventListener('click', async () => {
-    const categoria = document.getElementById('categoriaIA').value;
-    if (!categoria) {
-        mostrarAlertaIA('⚠️ Selecciona una categoría', 'error');
-        return;
-    }
-
-    const btn = document.getElementById('btnGenerarIA');
-    btn.disabled = true;
-    btn.textContent = '⏳ PROCESANDO...';
-
-    try {
-        // 1. Llamamos a la API de generación
-        const res = await fetch('/api/generar-noticia', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ categoria })
-        });
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redacción | El Farol al Día</title>
+    <style>
+        body { background: #0b0b0b; color: #fff; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #1a1a1a; padding: 30px; border-radius: 15px; border-left: 5px solid #ff9800; }
+        h1 { color: #ff9800; text-align: center; }
+        label { display: block; margin: 20px 0 10px; color: #ff9800; font-weight: bold; }
+        select, button { width: 100%; padding: 15px; border-radius: 10px; border: none; font-size: 1rem; }
+        select { background: #222; color: #white; border: 1px solid #333; color: white; }
+        button { background: #ff9800; color: #000; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #ffa726; transform: translateY(-2px); }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .alert { padding: 15px; border-radius: 10px; margin-top: 20px; display: none; text-align: center; font-weight: bold; }
+        .success { display: block; background: rgba(76, 175, 80, 0.2); color: #4caf50; border: 1px solid #4caf50; }
+        .error { display: block; background: rgba(244, 67, 54, 0.2); color: #f44336; border: 1px solid #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏮 Sala de Redacción IA</h1>
+        <p style="text-align:center; color:#888;">El Farol al Día - Control de Publicaciones</p>
         
-        const data = await res.json();
+        <label>📰 Selecciona Categoría para la IA:</label>
+        <select id="categoriaIA">
+            <option value="">-- Elige una categoría --</option>
+            <option value="Nacionales">🏛️ Nacionales</option>
+            <option value="Deportes">⚽ Deportes</option>
+            <option value="Internacionales">🌍 Internacionales</option>
+            <option value="Economía">💼 Economía</option>
+            <option value="Tecnología">💻 Tecnología</option>
+            <option value="Espectáculos">🎬 Espectáculos</option>
+        </select>
 
-        if (data.success) {
-            mostrarAlertaIA(`✅ ¡Éxito! Noticia: ${data.titulo}`, 'success');
-            cargarEstadisticas(); // Actualiza los números del búnker
-        } else {
-            // Si el error es de columna, informamos que el servidor está migrando
-            if (data.error.includes('column')) {
-                mostrarAlertaIA('🔄 El servidor está actualizando la base de datos. Reintenta en 10 segundos.', 'info');
-            } else {
-                mostrarAlertaIA(`❌ Error: ${data.error}`, 'error');
+        <button id="btnGenerar">🤖 PROBAR IA — GENERAR NOTICIA AHORA</button>
+        <div id="alertIA" class="alert"></div>
+
+        <div style="margin-top:40px; border-top:1px solid #333; padding-top:20px;">
+            <a href="/" style="color:#ff9800; text-decoration:none;">← Volver al Periódico</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('btnGenerar').addEventListener('click', async () => {
+            const categoria = document.getElementById('categoriaIA').value;
+            const alertIA = document.getElementById('alertIA');
+            const btn = document.getElementById('btnGenerar');
+
+            if (!categoria) {
+                alertIA.textContent = "⚠️ Selecciona una categoría";
+                alertIA.className = "alert error";
+                return;
             }
-        }
-    } catch (error) {
-        mostrarAlertaIA('❌ Error de conexión con el servidor', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '🤖 PROBAR IA — GENERAR NOTICIA AHORA';
-    }
-});
+
+            btn.disabled = true;
+            btn.textContent = "⏳ GENERANDO NOTICIA...";
+            alertIA.style.display = "none";
+
+            try {
+                const res = await fetch('/api/generar-noticia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categoria })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alertIA.innerHTML = `✅ Noticia Publicada: <strong>${data.titulo}</strong>`;
+                    alertIA.className = "alert success";
+                } else {
+                    alertIA.textContent = "❌ Error: " + data.error;
+                    alertIA.className = "alert error";
+                }
+            } catch (e) {
+                alertIA.textContent = "❌ Error de conexión";
+                alertIA.className = "alert error";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "🤖 PROBAR IA — GENERAR NOTICIA AHORA";
+            }
+        });
+    </script>
+</body>
+</html>
