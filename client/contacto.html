@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto | El Farol al Día</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border-bottom: 3px solid #ff9800;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-decoration: none;
+            color: #ff9800;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .logo span {
+            font-size: 32px;
+        }
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+        nav a:hover {
+            color: #ff9800;
+        }
+        /* MAIN */
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border-radius: 10px;
+            border-left: 4px solid #ff9800;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #ff9800;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .contact-info {
+            margin: 30px 0;
+            background: #1f1f1f;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .contact-info p {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .contact-info i {
+            color: #ff9800;
+            font-size: 1.2rem;
+            min-width: 30px;
+        }
+        .whatsapp-link {
+            color: #25D366;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .whatsapp-link:hover {
+            text-decoration: underline;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #ff9800;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background: #222;
+            color: white;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        input:focus, textarea:focus {
+            border-color: #ff9800;
+            outline: none;
+            background: #2a2a2a;
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        button {
+            background: #ff9800;
+            color: black;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        button:hover {
+            background: #ffb333;
+            transform: translateY(-2px);
+        }
+        .btn-volver {
+            display: inline-block;
+            background: transparent;
+            border: 2px solid #ff9800;
+            color: #ff9800;
+            padding: 10px 30px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn-volver:hover {
+            background: #ff9800;
+            color: black;
+            transform: translateY(-2px);
+        }
+        /* FOOTER */
+        footer {
+            background: #1a1a1a;
+            border-top: 2px solid #ff9800;
+            padding: 30px 20px;
+            text-align: center;
+            color: #888;
+            margin-top: 60px;
+        }
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .footer-content a {
+            color: #ff9800;
+            text-decoration: none;
+            margin: 0 10px;
+            transition: color 0.3s;
+        }
+        .footer-content a:hover {
+            color: #ffb333;
+        }
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            nav {
+                flex-direction: column;
+                width: 100%;
+                text-align: center;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">
+                <span>🏮</span>
+                El Farol al Día
+            </a>
+            <nav>
+                <a href="/">Inicio</a>
+                <a href="/nosotros">Sobre Nosotros</a>
+                <a href="/contacto">Contacto</a>
+                <a href="/privacidad">Privacidad</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="card">
+            <h1>Contacto</h1>
+            
+            <div class="contact-info">
+                <p><i>📧</i> Correo: <a href="mailto:jose.colorvision@gmail.com" style="color:#ff9800;">jose.colorvision@gmail.com</a></p>
+                <p><i>📱</i> WhatsApp: <a href="https://wa.me/18093041128" class="whatsapp-link" target="_blank">+1 809-304-1128</a></p>
+                <p><i>🏢</i> Santo Domingo Este, República Dominicana</p>
+            </div>
+            
+            <h2 style="color:#ff9800; margin-top: 30px;">Escríbenos</h2>
+            <form id="contactForm" onsubmit="event.preventDefault(); alert('Gracias por contactarnos. Te responderemos a la brevedad.');">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" placeholder="Tu nombre" required>
+                </div>
+                <div class="form-group">
+                    <label>Correo electrónico</label>
+                    <input type="email" placeholder="tucorreo@ejemplo.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Mensaje</label>
+                    <textarea placeholder="Escribe tu mensaje..." required></textarea>
+                </div>
+                <button type="submit">Enviar mensaje</button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="/" class="btn-volver">← Volver al Inicio</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>🏮 El Farol al Día - Periódico Digital Dominicano</p>
+            <p style="margin-top: 10px;">
+                <a href="/">Inicio</a> | 
+                <a href="/nosotros">Nosotros</a> | 
+                <a href="/contacto">Contacto</a> | 
+                <a href="/privacidad">Privacidad</a>
+            </p>
+            <p style="margin-top: 15px;">&copy; 2026 El Farol al Día. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+</body>
+</html>
