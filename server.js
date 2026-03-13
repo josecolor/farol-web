@@ -1,10 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA - SERVIDOR V23.0 (SIN APIs EXTERNAS = SIN 429)
+ * 🏮 EL FAROL AL DÍA - SERVIDOR V24.0 (GEMINI RATE LIMIT CONTROL)
  * 
- * SOLUCIÓN DEFINITIVA:
- * NO llamamos a Unsplash, Pexels, Pixabay
- * USAMOS SOLO banco ilustrativo local
- * SIN errores 429, SIN rate limits, 100% confiable
+ * PROBLEMA: Gemini API también tiene rate limits
+ * SOLUCIÓN: Delays entre llamadas, queue, retry inteligente
  */
 
 const express = require('express');
@@ -61,7 +59,7 @@ function cargarConfigIA() {
         tono: 'profesional',
         extension: 'media',
         enfasis: 'Noticias locales con contexto histórico',
-        evitar: 'Especulación sin fuentes, titulares sensacionalistas'
+        evitar: 'Especulación sin fuentes, titulares sensacionalista'
     };
 
     try {
@@ -87,13 +85,110 @@ function guardarConfigIA(config) {
 
 let CONFIG_IA = cargarConfigIA();
 
-// ==================== BANCO DE IMÁGENES (SIN APIs) ====================
+// ==================== CONTROL DE GEMINI ====================
+
+const GEMINI_STATE = {
+    lastRequest: 0,
+    requestsInWindow: 0,
+    resetTime: 0,
+    queue: []
+};
 
 /**
- * BANCO ILUSTRATIVO MASIVO
- * URLs públicas de Pexels (sin autenticación)
- * Sin rate limits
+ * DELAY INTELIGENTE ANTES DE LLAMAR A GEMINI
  */
+async function delayAntesDEGemini() {
+    const ahora = Date.now();
+    
+    // Si estamos dentro de la ventana de rate limit
+    if (ahora < GEMINI_STATE.resetTime) {
+        const espera = GEMINI_STATE.resetTime - ahora;
+        console.log(`   ⏳ Rate limit Gemini: esperando ${Math.ceil(espera / 1000)}s`);
+        await new Promise(r => setTimeout(r, Math.min(espera, 10000)));
+    }
+
+    // Mínimo 3 segundos entre requests a Gemini
+    const tiempoDesdeUltimo = ahora - GEMINI_STATE.lastRequest;
+    const delayMinimo = 3000;
+
+    if (tiempoDesdeUltimo < delayMinimo) {
+        const espera = delayMinimo - tiempoDesdeUltimo;
+        console.log(`   ⏳ Esperando ${Math.ceil(espera / 1000)}s antes de Gemini...`);
+        await new Promise(r => setTimeout(r, espera));
+    }
+
+    GEMINI_STATE.lastRequest = Date.now();
+}
+
+/**
+ * LLAMADA A GEMINI CON RETRY
+ */
+async function llamarGemini(prompt, reintentos = 3) {
+    for (let intento = 0; intento < reintentos; intento++) {
+        try {
+            console.log(`\n   🤖 Llamando Gemini (intento ${intento + 1}/${reintentos})`);
+            
+            await delayAntesDEGemini();
+
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.8, maxOutputTokens: 2500 }
+                    }),
+                    timeout: 30000
+                }
+            );
+
+            // ACTUALIZAR RATE LIMIT
+            if (response.headers.get('x-ratelimit-remaining')) {
+                GEMINI_STATE.requestsInWindow = parseInt(response.headers.get('x-ratelimit-remaining'));
+                console.log(`   📊 Gemini: ${GEMINI_STATE.requestsInWindow} requests remaining`);
+            }
+
+            if (response.status === 429) {
+                console.log(`   ⚠️ Rate limit Gemini 429 (intento ${intento + 1}/${reintentos})`);
+                
+                // Calcular espera exponencial
+                const espera = Math.pow(2, intento) * 5000; // 5s, 10s, 20s
+                console.log(`   ⏳ Esperando ${Math.ceil(espera / 1000)}s antes de reintentar...`);
+                
+                GEMINI_STATE.resetTime = Date.now() + espera;
+                await new Promise(r => setTimeout(r, espera));
+                continue;
+            }
+
+            if (!response.ok) {
+                throw new Error(`Gemini ${response.status}`);
+            }
+
+            const data = await response.json();
+            const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!texto) throw new Error('Respuesta vacía');
+
+            console.log(`   ✅ Respuesta Gemini exitosa`);
+            return texto;
+
+        } catch (error) {
+            console.error(`   ❌ Error intento ${intento + 1}: ${error.message}`);
+            
+            if (intento < reintentos - 1) {
+                const espera = Math.pow(2, intento) * 3000;
+                console.log(`   ⏳ Reintentando en ${Math.ceil(espera / 1000)}s...`);
+                await new Promise(r => setTimeout(r, espera));
+            }
+        }
+    }
+
+    throw new Error('Gemini no respondió después de ' + reintentos + ' intentos');
+}
+
+// ==================== BANCO DE IMÁGENES ====================
+
 const BANCO_ILUSTRATIVO = {
     'Nacionales': [
         'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
@@ -150,7 +245,7 @@ function elegirImagenAleatorio(categoria) {
     return imagenes[Math.floor(Math.random() * imagenes.length)];
 }
 
-// ==================== PROXY SIN APIs ====================
+// ==================== PROXY ====================
 
 function generarNombreImagen(titulo, categoria) {
     const timestamp = Date.now();
@@ -190,41 +285,28 @@ async function descargarYCachearImagen(urlRemota, nombreLocal) {
     });
 }
 
-async function buscarYProxificarImagenSinAPI(titulo, categoria) {
-    console.log(`\n🎨 === SELECCIONANDO IMAGEN (SIN APIs) ===`);
-    console.log(`   Categoría: ${categoria}`);
-    console.log(`   Método: Banco ilustrativo aleatorio`);
-
+async function buscarYProxificarImagen(titulo, categoria) {
     try {
-        // Elegir imagen aleatoria del banco
         const urlRemota = elegirImagenAleatorio(categoria);
         const nombreLocal = generarNombreImagen(titulo, categoria);
         
         await descargarYCachearImagen(urlRemota, nombreLocal);
         
-        const urlProxy = `${BASE_URL}/images/cache/${nombreLocal}`;
-        
-        console.log(`   ✅ Imagen lista: ${nombreLocal}`);
-        
         return {
-            url: urlProxy,
+            url: `${BASE_URL}/images/cache/${nombreLocal}`,
             nombre: nombreLocal,
             fuente: 'banco-local',
-            busqueda: 'sin-api',
-            confianza: 100,
             alt: titulo,
             title: titulo,
             caption: `Fotografía: ${titulo}`
         };
 
     } catch (error) {
-        console.log(`❌ Error descargando, usando fallback`);
+        console.log(`❌ Error imagen, usando URL directa`);
         return {
-            url: BANCO_ILUSTRATIVO[categoria][0],
+            url: elegirImagenAleatorio(categoria),
             nombre: 'fallback.jpg',
             fuente: 'fallback',
-            busqueda: 'fallback',
-            confianza: 100,
             alt: titulo,
             title: titulo,
             caption: 'Imagen editorial'
@@ -232,7 +314,7 @@ async function buscarYProxificarImagenSinAPI(titulo, categoria) {
     }
 }
 
-// ==================== METADATOS ====================
+// ==================== RESTO ====================
 
 function generarMetadatos(titulo, slug, categoria, contenido) {
     const descripcion = contenido.split('\n')[0].substring(0, 160).trim();
@@ -323,24 +405,10 @@ PALABRAS: [5 palabras clave]
 CONTENIDO:
 [noticia 400-500 palabras]`;
 
-        console.log(`\n🤖 Generando: ${categoria}`);
+        console.log(`\n📰 Generando noticia: ${categoria}`);
 
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.8, maxOutputTokens: 2500 }
-                })
-            }
-        );
-
-        if (!response.ok) throw new Error(`Gemini ${response.status}`);
-
-        const data = await response.json();
-        const texto = data.candidates[0].content.parts[0].text;
+        // LLAMAR A GEMINI CON CONTROL
+        const texto = await llamarGemini(prompt);
 
         let titulo = "", descripcion = "", palabras = categoria, contenido = "";
         const lineas = texto.split('\n');
@@ -361,8 +429,10 @@ CONTENIDO:
 
         if (!titulo || !contenido || contenido.length < 300) throw new Error('Respuesta incompleta');
 
-        // ✨ SIN APIs - SOLO BANCO
-        const imagen = await buscarYProxificarImagenSinAPI(titulo, categoria);
+        console.log(`\n   📝 Título: ${titulo.substring(0, 60)}...`);
+
+        // IMAGEN SIN APIs
+        const imagen = await buscarYProxificarImagen(titulo, categoria);
 
         const slug = generarSlug(titulo);
         const existe = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
@@ -381,24 +451,26 @@ CONTENIDO:
             ]
         );
 
+        console.log(`\n✅ NOTICIA PUBLICADA`);
         return { success: true, slug: slugFinal, titulo, mensaje: '✅ Publicada' };
 
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error('❌ Error generando noticia:', error.message);
         return { success: false, error: error.message };
     }
 }
 
 const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
 
-cron.schedule('0 */2 * * *', async () => {
+cron.schedule('0 */4 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
+    console.log(`\n⏰ CRON: Generando noticia automática...`);
     const cat = CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
     await generarNoticia(cat);
 });
 
 // ==================== RUTAS ====================
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '23.0' }));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '24.0' }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 
@@ -573,9 +645,10 @@ app.get('/status', async (req, res) => {
         const result = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
         res.json({ 
             status: 'OK', 
-            version: '23.0',
+            version: '24.0',
             noticias: parseInt(result.rows[0].count),
-            sistema: 'SIN APIs - Banco Ilustrativo - CERO errores 429'
+            gemini_requests_remaining: GEMINI_STATE.requestsInWindow,
+            sistema: 'Gemini Rate Limit Control + Banco Ilustrativo'
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -590,35 +663,34 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║     🏮 EL FAROL AL DÍA - V23.0 🏮                             ║
-║     SIN APIs = CERO ERRORES 429                                ║
+║     🏮 EL FAROL AL DÍA - V24.0 🏮                             ║
+║     GEMINI RATE LIMIT CONTROL                                  ║
 ╠════════════════════════════════════════════════════════════════╣
-║ ✅ Sin Unsplash API                                            ║
-║ ✅ Sin Pexels API                                              ║
-║ ✅ Sin Pixabay API                                             ║
-║ ✅ Banco ilustrativo masivo (6 imágenes/categoría)             ║
-║ ✅ Selección aleatoria inteligente                             ║
-║ ✅ CERO rate limits, CERO 429, 100% confiable                  ║
+║ ✅ Delays entre requests Gemini: 3 segundos mínimo             ║
+║ ✅ Retry con backoff exponencial (5s, 10s, 20s)                ║
+║ ✅ Monitoreo de rate limit headers                             ║
+║ ✅ Banco ilustrativo masivo (SIN APIs de imagen)                ║
+║ ✅ Generación de noticias cada 4 horas (CRON)                  ║
+║ ✅ CERO errores 429 en imágenes                                ║
+║ ✅ Manejo inteligente de 429 en Gemini                         ║
 ║                                                                 ║
-║ 🎨 BANCO ILUSTRATIVO:                                          ║
-║    Nacionales: 6 imágenes                                      ║
-║    Deportes: 6 imágenes                                        ║
-║    Internacionales: 6 imágenes                                 ║
-║    Espectáculos: 6 imágenes                                    ║
-║    Economía: 6 imágenes                                        ║
-║    Tecnología: 6 imágenes                                      ║
+║ 🎯 FLUJO COMPLETO:                                             ║
+║    1. Espera 3s antes de llamar Gemini                         ║
+║    2. Gemini genera contenido                                  ║
+║    3. Si 429: espera 5-20s y reintenta                         ║
+║    4. Selecciona imagen del banco (sin APIs)                   ║
+║    5. Proxifica imagen local                                   ║
+║    6. Guarda en BD                                             ║
+║    7. Publica noticia                                          ║
 ║                                                                 ║
-║    Total: 36 imágenes de calidad                               ║
-║    Selección: aleatoria por categoría                          ║
-║    Resultado: SIEMPRE imagen relevante                         ║
+║ ⏰ AUTOMATIZACIÓN:                                              ║
+║    - CRON: cada 4 horas genera noticia                         ║
+║    - Manual: /api/generar-noticia                              ║
+║    - Respeta rate limits Gemini automáticamente                ║
 ║                                                                 ║
-║ ⚡ VENTAJAS:                                                   ║
-║    - Sin depender de APIs externas                             ║
-║    - Sin errores 429                                           ║
-║    - Sin rate limits                                           ║
-║    - Más rápido (sin esperas)                                  ║
-║    - 100% confiable                                            ║
-║    - Fácil de escalar (agregar más URLs)                       ║
+║ 📊 RATE LIMITS:                                                ║
+║    Gemini: 60 requests/minuto (gratis)                         ║
+║    Con V24.0: 1 request/3 segundos = 20/minuto (SEGURO)        ║
 ╚════════════════════════════════════════════════════════════════╝
             `);
         });
