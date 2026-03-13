@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Favicon corregido (apunta a logo.png) -->
-    <link rel="icon" type="image/png" href="/static/logo.png">
-    <link rel="shortcut icon" href="/static/logo.png" type="image/png">
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="shortcut icon" href="/static/img/favicon.png" type="image/png">
 
     <meta name="description" content="El Farol al Día - Periódico Digital Dominicano. Noticias de Nacionales, Deportes, Internacionales, Economía, Tecnología y Espectáculos.">
     <meta name="keywords" content="noticias, dominicana, periódico, digital, farol">
@@ -14,11 +13,10 @@
     <meta property="og:title" content="El Farol al Día">
     <meta property="og:description" content="Periódico digital con noticias de República Dominicana">
     
-    <meta property="og:image" content="/static/logo.png">
+    <meta property="og:image" content="/static/img/favicon.png">
     
     <title>El Farol al Día - Periódico Digital Dominicano</title>
     <style>
-        /* (el resto del CSS permanece igual) */
         * {
             margin: 0;
             padding: 0;
@@ -292,22 +290,6 @@
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
-        }
-        @media (max-width: 768px) {
-            .header-container {
-                flex-direction: row;
-                justify-content: space-between;
-            }
-            .hero h1 {
-                font-size: 32px;
-            }
-            .noticias-container {
-                grid-template-columns: 1fr;
-            }
-            .categorias {
-                justify-content: flex-start;
-                overflow-x: auto;
-            }
         }
     </style>
 </head>
