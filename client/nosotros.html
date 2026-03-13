@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sobre Nosotros | El Farol al Día</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border-bottom: 3px solid #ff9800;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-decoration: none;
+            color: #ff9800;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .logo span {
+            font-size: 32px;
+        }
+        nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+        nav a:hover {
+            color: #ff9800;
+        }
+        /* MAIN */
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border-radius: 10px;
+            border-left: 4px solid #ff9800;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #ff9800;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #ff9800;
+            margin: 20px 0 10px;
+            font-size: 1.5rem;
+        }
+        p {
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+        .btn-volver {
+            display: inline-block;
+            background: transparent;
+            border: 2px solid #ff9800;
+            color: #ff9800;
+            padding: 10px 30px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        .btn-volver:hover {
+            background: #ff9800;
+            color: black;
+            transform: translateY(-2px);
+        }
+        /* FOOTER */
+        footer {
+            background: #1a1a1a;
+            border-top: 2px solid #ff9800;
+            padding: 30px 20px;
+            text-align: center;
+            color: #888;
+            margin-top: 60px;
+        }
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .footer-content a {
+            color: #ff9800;
+            text-decoration: none;
+            margin: 0 10px;
+            transition: color 0.3s;
+        }
+        .footer-content a:hover {
+            color: #ffb333;
+        }
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+            }
+            nav {
+                flex-direction: column;
+                width: 100%;
+                text-align: center;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">
+                <span>🏮</span>
+                El Farol al Día
+            </a>
+            <nav>
+                <a href="/">Inicio</a>
+                <a href="/nosotros">Sobre Nosotros</a>
+                <a href="/contacto">Contacto</a>
+                <a href="/privacidad">Privacidad</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="card">
+            <h1>Sobre Nosotros</h1>
+            <p><strong>El Farol al Día</strong> nació con la misión de iluminar la verdad en cada rincón de Santo Domingo Este. Somos un periódico digital independiente, comprometido con el periodismo honesto, cercano a la comunidad y con un profundo respeto por los hechos.</p>
+            
+            <h2>Nuestra Filosofía</h2>
+            <p>Creemos que una sociedad bien informada es una sociedad más justa. Por eso trabajamos día a día para llevar noticias verificadas, equilibradas y con contexto local. Nuestro equipo está conformado por periodistas dominicanos que conocen la realidad de cada barrio y sector.</p>
+            
+            <h2>Liderazgo</h2>
+            <p>El proyecto es liderado por <strong>José Gregorio Mañan Santana</strong>, director y fundador, cuya visión es consolidar un medio digital que sirva como faro de información confiable para las familias de la zona oriental y todo el país.</p>
+            
+            <h2>Compromiso</h2>
+            <p>En El Farol al Día rechazamos la desinformación y el sensacionalismo. Cada noticia es revisada, contrastada y redactada con responsabilidad. Apostamos por un periodismo que aporte, que construya y que represente la voz de nuestra gente.</p>
+            
+            <div style="text-align: center;">
+                <a href="/" class="btn-volver">← Volver al Inicio</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>🏮 El Farol al Día - Periódico Digital Dominicano</p>
+            <p style="margin-top: 10px;">
+                <a href="/">Inicio</a> | 
+                <a href="/nosotros">Nosotros</a> | 
+                <a href="/contacto">Contacto</a> | 
+                <a href="/privacidad">Privacidad</a>
+            </p>
+            <p style="margin-top: 15px;">&copy; 2026 El Farol al Día. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+</body>
+</html>
