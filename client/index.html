@@ -34,7 +34,7 @@
         header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
             border-bottom: 3px solid #ff9800;
-            padding: 20px;
+            padding: 15px 20px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -63,10 +63,32 @@
             font-size: 32px;
         }
 
+        /* Botón hamburguesa (solo visible en móvil) */
+        .menu-toggle {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            cursor: pointer;
+            z-index: 200;
+        }
+
+        .menu-toggle span {
+            display: block;
+            height: 3px;
+            width: 100%;
+            background-color: #ff9800;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+
+        /* Menú de navegación */
         nav {
             display: flex;
             gap: 20px;
             align-items: center;
+            transition: all 0.3s ease;
         }
 
         nav a {
@@ -74,10 +96,61 @@
             text-decoration: none;
             transition: color 0.3s;
             font-weight: 500;
+            font-size: 1rem;
+            white-space: nowrap;
         }
 
         nav a:hover {
             color: #ff9800;
+        }
+
+        /* Responsive: en pantallas pequeñas, ocultamos el menú y mostramos el botón hamburguesa */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-wrap: wrap;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+
+            nav {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+                padding: 20px;
+                margin-top: 15px;
+                border-radius: 8px;
+                border: 2px solid #ff9800;
+                gap: 15px;
+            }
+
+            nav.active {
+                display: flex;
+            }
+
+            nav a {
+                width: 100%;
+                text-align: center;
+                padding: 10px;
+                border-bottom: 1px solid #333;
+            }
+
+            nav a:last-child {
+                border-bottom: none;
+            }
+
+            /* Animación del botón hamburguesa al abrir */
+            .menu-toggle.active span:nth-child(1) {
+                transform: translateY(9px) rotate(45deg);
+            }
+            .menu-toggle.active span:nth-child(2) {
+                opacity: 0;
+            }
+            .menu-toggle.active span:nth-child(3) {
+                transform: translateY(-9px) rotate(-45deg);
+            }
         }
 
         /* MAIN */
@@ -279,14 +352,8 @@
         /* RESPONSIVE */
         @media (max-width: 768px) {
             .header-container {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            nav {
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
+                flex-direction: row;
+                justify-content: space-between;
             }
 
             .hero h1 {
@@ -311,8 +378,18 @@
                 <span>🏮</span>
                 <div>El Farol al Día</div>
             </a>
-            <nav>
+            <!-- Botón hamburguesa para móvil -->
+            <div class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <!-- Menú de navegación -->
+            <nav id="navMenu">
                 <a href="/">Inicio</a>
+                <a href="/nosotros">Sobre Nosotros</a>
+                <a href="/contacto">Contacto</a>
+                <a href="/privacidad">Privacidad</a>
                 <a href="#noticias">Noticias</a>
                 <a href="/api/noticias">API</a>
             </nav>
@@ -357,6 +434,25 @@
     </footer>
 
     <script>
+        // Función para abrir/cerrar el menú hamburguesa en móvil
+        function toggleMenu() {
+            const nav = document.getElementById('navMenu');
+            const toggle = document.getElementById('menuToggle');
+            nav.classList.toggle('active');
+            toggle.classList.toggle('active');
+        }
+
+        // Cerrar el menú automáticamente al hacer clic en un enlace (opcional)
+        document.querySelectorAll('#navMenu a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    document.getElementById('navMenu').classList.remove('active');
+                    document.getElementById('menuToggle').classList.remove('active');
+                }
+            });
+        });
+
+        // Tu código existente para noticias
         const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
         let noticiasFiltradas = [];
         let categoriaBuscada = null;
