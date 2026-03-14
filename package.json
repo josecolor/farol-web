@@ -1,7 +1,7 @@
 {
   "name": "el-farol-al-dia",
   "version": "29.0.0",
-  "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA y Facebook",
+  "description": "Periódico Digital Dominicano - Sistema Automático con Facebook",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -20,9 +20,6 @@
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["noticias","periódico","dominicana","ia","gemini","facebook"],
-  "author": "El Farol al Día",
-  "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   }
