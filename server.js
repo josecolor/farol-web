@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - V28.0
- * Marca de agua automática + RSS portales gobierno RD
+ * 🏮 EL FAROL AL DÍA - V29.0
+ * Marca de agua automática + RSS portales gobierno RD + Facebook Auto-Post
  */
 
 const express   = require('express');
@@ -11,13 +11,19 @@ const cron      = require('node-cron');
 const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
+const axios     = require('axios'); // <-- NUEVO: Axios para Facebook
 
 const app      = express();
 const PORT     = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
+// Validaciones de entorno
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
+// NUEVO: Validar credenciales de Facebook (pero no son fatales, solo advierte)
+if (!process.env.FB_PAGE_ID || !process.env.FB_PAGE_TOKEN) {
+    console.warn('⚠️  FB_PAGE_ID o FB_PAGE_TOKEN no configurados. La publicación en Facebook estará deshabilitada.');
+}
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY || null;
 const rssParser      = new RSSParser({ timeout: 10000 });
@@ -186,6 +192,61 @@ const FALLBACK_CAT={'Nacionales':'politica-gobierno','Deportes':'deporte-general
 function imgLocal(sub,cat){ const b=BANCO_LOCAL[sub]||BANCO_LOCAL[FALLBACK_CAT[cat]]||BANCO_LOCAL['politica-gobierno']; return b[Math.floor(Math.random()*b.length)]; }
 async function obtenerImagen(titulo,cat,sub,query){ if(query){const u=await buscarEnPexels(query);if(u)return u;} const u2=await buscarEnPexels(`${cat} dominican republic`);if(u2)return u2; return imgLocal(sub,cat); }
 
+// ==================== FACEBOOK AUTO-POST ====================
+// NUEVA FUNCIÓN: Publica en la página de Facebook
+async function publicarEnFacebook(titulo, descripcion, urlNoticia, imagenUrl) {
+    // Si no hay credenciales, salir silenciosamente
+    if (!process.env.FB_PAGE_ID || !process.env.FB_PAGE_TOKEN) {
+        console.log('   📘 Facebook: Credenciales no configuradas, omitiendo publicación.');
+        return false;
+    }
+
+    try {
+        console.log(`   📘 Facebook: Publicando "${titulo.substring(0,50)}..."`);
+        
+        // Construir mensaje: Título + Descripción + Enlace
+        // Facebook suele mostrar mejor el enlace si lo ponemos al final
+        const mensaje = `${titulo}\n\n${descripcion.substring(0, 180)}...\n\n${urlNoticia}`;
+        
+        // Llamada a la API de Facebook (Graph API v22.0 - la última estable)
+        const response = await axios.post(
+            `https://graph.facebook.com/v22.0/${process.env.FB_PAGE_ID}/feed`,
+            {
+                message: mensaje,
+                link: urlNoticia,
+                access_token: process.env.FB_PAGE_TOKEN
+                // Opcional: Si quieres forzar una imagen específica, puedes usar 'picture' y 'name', etc.
+                // Pero con 'link' Facebook scrapea la página y saca la imagen automáticamente.
+            },
+            {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 10000 // 10 segundos de timeout
+            }
+        );
+
+        if (response.data && response.data.id) {
+            console.log(`   ✅ Facebook: Publicado con éxito (ID: ${response.data.id})`);
+            return true;
+        } else {
+            console.warn(`   ⚠️ Facebook: Respuesta inesperada:`, response.data);
+            return false;
+        }
+    } catch (error) {
+        // Manejo detallado de errores de Axios
+        if (error.response) {
+            // La API respondió con un error (ej. token inválido, permisos)
+            console.error(`   ❌ Facebook Error ${error.response.status}:`, JSON.stringify(error.response.data, null, 2));
+        } else if (error.request) {
+            // No hubo respuesta (problema de red)
+            console.error(`   ❌ Facebook Error de red: No hubo respuesta de la API`);
+        } else {
+            // Error en la configuración de la petición
+            console.error(`   ❌ Facebook Error:`, error.message);
+        }
+        return false;
+    }
+}
+
 // ==================== SEO ====================
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -305,12 +366,19 @@ CONTENIDO:
         const existe=await pool.query('SELECT id FROM noticias WHERE slug=$1',[sl]);
         const slFin=existe.rows.length?`${sl}-${Date.now()}`:sl;
 
+        // Insertar en base de datos
         await pool.query(
             `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
             [titulo.substring(0,255),slFin,categoria,contenido.substring(0,10000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),urlFinal,(ai||titulo).substring(0,255),`Fotografía: ${titulo}`,'efd.jpg','el-farol','publicada']
         );
         console.log(`\n✅ /noticia/${slFin}`);
-        return{success:true,slug:slFin,titulo,mensaje:'✅ Publicada'};
+
+        // ========== NUEVO: Publicar en Facebook ==========
+        const urlCompletaNoticia = `${BASE_URL}/noticia/${slFin}`;
+        await publicarEnFacebook(titulo, desc, urlCompletaNoticia, urlFinal);
+        // =================================================
+
+        return{success:true,slug:slFin,titulo,mensaje:'✅ Publicada y enviada a Facebook'};
     }catch(error){
         console.error('❌',error.message);
         return{success:false,error:error.message};
@@ -374,155 +442,4 @@ async function procesarRSS(){
 const CATS=['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 cron.schedule('0 */4 * * *', async()=>{
     if(!CONFIG_IA.enabled) return;
-    await generarNoticia(CATS[Math.floor(Math.random()*CATS.length)]);
-});
-cron.schedule('0 1,7,13,19 * * *', async()=>{ await procesarRSS(); });
-
-// ==================== RUTAS ====================
-app.get('/health',    (req,res)=>res.json({status:'OK',version:'28.0'}));
-app.get('/',          (req,res)=>res.sendFile(path.join(__dirname,'client','index.html')));
-app.get('/redaccion', (req,res)=>res.sendFile(path.join(__dirname,'client','redaccion.html')));
-app.get('/contacto',  (req,res)=>res.sendFile(path.join(__dirname,'client','contacto.html')));
-app.get('/nosotros',  (req,res)=>res.sendFile(path.join(__dirname,'client','nosotros.html')));
-app.get('/privacidad',(req,res)=>res.sendFile(path.join(__dirname,'client','privacidad.html')));
-
-app.get('/api/noticias',async(req,res)=>{
-    try{const r=await pool.query(`SELECT id,titulo,slug,seccion,imagen,imagen_alt,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`,['publicada']);res.json({success:true,noticias:r.rows});}
-    catch(e){res.status(500).json({success:false,error:e.message});}
-});
-
-app.post('/api/generar-noticia',async(req,res)=>{
-    const{categoria}=req.body;
-    if(!categoria) return res.status(400).json({error:'Falta categoría'});
-    const r=await generarNoticia(categoria);
-    res.status(r.success?200:500).json(r);
-});
-
-app.post('/api/procesar-rss',async(req,res)=>{
-    const{pin}=req.body;
-    if(pin!=='311') return res.status(403).json({error:'Acceso denegado'});
-    procesarRSS();
-    res.json({success:true,mensaje:'RSS iniciado en segundo plano'});
-});
-
-app.get('/noticia/:slug',async(req,res)=>{
-    try{
-        const r=await pool.query('SELECT * FROM noticias WHERE slug=$1 AND estado=$2',[req.params.slug,'publicada']);
-        if(!r.rows.length) return res.status(404).send('No encontrada');
-        const n=r.rows[0];
-        await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1',[n.id]);
-        try{
-            let html=fs.readFileSync(path.join(__dirname,'client','noticia.html'),'utf8');
-            const urlN=`${BASE_URL}/noticia/${n.slug}`;
-            const cHTML=n.contenido.split('\n').filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join('');
-            html=html.replace('<!-- META_TAGS -->',metaTagsCompletos(n,urlN))
-                .replace(/{{TITULO}}/g,esc(n.titulo)).replace(/{{CONTENIDO}}/g,cHTML)
-                .replace(/{{FECHA}}/g,new Date(n.fecha).toLocaleDateString('es-DO',{year:'numeric',month:'long',day:'numeric'}))
-                .replace(/{{IMAGEN}}/g,n.imagen).replace(/{{ALT}}/g,esc(n.imagen_alt||n.titulo))
-                .replace(/{{VISTAS}}/g,n.vistas).replace(/{{REDACTOR}}/g,esc(n.redactor))
-                .replace(/{{SECCION}}/g,esc(n.seccion)).replace(/{{URL}}/g,encodeURIComponent(urlN));
-            res.setHeader('Content-Type','text/html;charset=utf-8');
-            res.setHeader('Cache-Control','public,max-age=300');
-            res.send(html);
-        }catch(e){res.json({success:true,noticia:n});}
-    }catch(e){res.status(500).send('Error');}
-});
-
-app.get('/sitemap.xml',async(req,res)=>{
-    try{
-        const r=await pool.query('SELECT slug,fecha FROM noticias WHERE estado=$1 ORDER BY fecha DESC',['publicada']);
-        const now=Date.now();
-        let xml='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
-        xml+=`<url><loc>${BASE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>\n`;
-        r.rows.forEach(n=>{
-            const d=(now-new Date(n.fecha).getTime())/86400000;
-            xml+=`<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><changefreq>${d<1?'hourly':d<7?'daily':'weekly'}</changefreq><priority>${d<1?'1.0':d<7?'0.9':d<30?'0.7':'0.5'}</priority></url>\n`;
-        });
-        xml+='</urlset>';
-        res.header('Content-Type','application/xml');res.header('Cache-Control','public,max-age=3600');res.send(xml);
-    }catch(e){res.status(500).send('Error');}
-});
-
-app.get('/robots.txt',(req,res)=>{
-    res.header('Content-Type','text/plain');
-    res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
-});
-
-app.get('/api/estadisticas',async(req,res)=>{
-    try{const r=await pool.query('SELECT COUNT(*) as c,SUM(vistas) as v FROM noticias WHERE estado=$1',['publicada']);res.json({success:true,totalNoticias:parseInt(r.rows[0].c),totalVistas:parseInt(r.rows[0].v)||0});}
-    catch(e){res.status(500).json({success:false,error:e.message});}
-});
-
-app.get('/api/configuracion',(req,res)=>{
-    try{const c=fs.existsSync(path.join(__dirname,'config.json'))?JSON.parse(fs.readFileSync(path.join(__dirname,'config.json'),'utf8')):{googleAnalytics:''};res.json({success:true,config:c});}
-    catch(e){res.json({success:true,config:{googleAnalytics:''}});}
-});
-
-app.post('/api/configuracion',express.json(),(req,res)=>{
-    const{pin,googleAnalytics}=req.body;
-    if(pin!=='311') return res.status(403).json({success:false,error:'PIN incorrecto'});
-    try{fs.writeFileSync(path.join(__dirname,'config.json'),JSON.stringify({googleAnalytics},null,2));res.json({success:true});}
-    catch(e){res.status(500).json({success:false,error:e.message});}
-});
-
-app.post('/api/publicar',express.json(),async(req,res)=>{
-    const{pin,titulo,seccion,contenido,redactor:red}=req.body;
-    if(pin!=='311') return res.status(403).json({success:false,error:'PIN'});
-    if(!titulo||!seccion||!contenido) return res.status(400).json({success:false,error:'Faltan campos'});
-    try{
-        const sl=slug(titulo),e=await pool.query('SELECT id FROM noticias WHERE slug=$1',[sl]);
-        const slF=e.rows.length?`${sl}-${Date.now()}`:sl;
-        await pool.query(`INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-            [titulo,slF,seccion,contenido,red||'Manual',`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,titulo,`Fotografía: ${titulo}`,'efd.jpg','el-farol','publicada']);
-        res.json({success:true,slug:slF});
-    }catch(e){res.status(500).json({success:false,error:e.message});}
-});
-
-app.get('/api/admin/config',(req,res)=>{
-    if(req.query.pin!=='311') return res.status(403).json({error:'Acceso denegado'});
-    res.json(CONFIG_IA);
-});
-
-app.post('/api/admin/config',express.json(),(req,res)=>{
-    const{pin,enabled,instruccion_principal,tono,extension,evitar,enfasis}=req.body;
-    if(pin!=='311') return res.status(403).json({error:'Acceso denegado'});
-    if(enabled!==undefined)   CONFIG_IA.enabled=enabled;
-    if(instruccion_principal) CONFIG_IA.instruccion_principal=instruccion_principal;
-    if(tono)                  CONFIG_IA.tono=tono;
-    if(extension)             CONFIG_IA.extension=extension;
-    if(evitar)                CONFIG_IA.evitar=evitar;
-    if(enfasis)               CONFIG_IA.enfasis=enfasis;
-    res.json({success:guardarConfigIA(CONFIG_IA)});
-});
-
-app.get('/status',async(req,res)=>{
-    try{
-        const r=await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1',['publicada']);
-        const rss=await pool.query('SELECT COUNT(*) FROM rss_procesados');
-        res.json({status:'OK',version:'28.0',noticias:parseInt(r.rows[0].count),rss_procesados:parseInt(rss.rows[0].count),
-            pexels_api:PEXELS_API_KEY?'✅ Activa':'⚠️ Sin key',
-            marca_de_agua:fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Falta watermark.png',
-            ia_activa:CONFIG_IA.enabled,sistema:'RSS gobierno + Marca de agua + Gemini memoria + SEO'});
-    }catch(e){res.status(500).json({error:e.message});}
-});
-
-app.use((req,res)=>res.sendFile(path.join(__dirname,'client','index.html')));
-
-async function iniciar(){
-    await inicializarBase();
-    app.listen(PORT,'0.0.0.0',()=>{
-        console.log(`
-╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA - V28.0                                     ║
-╠══════════════════════════════════════════════════════════════════╣
-║  🏮 MARCA DE AGUA en cada imagen publicada                       ║
-║  📡 RSS: Presidencia·Policía·MOPC·Salud·Educación               ║
-║         BanCentral·MEPyD·Invivienda·Turismo·PGR                  ║
-║  🧠 Gemini con memoria — no repite temas                         ║
-║  🔍 SEO señal fuerte completo                                    ║
-║  Watermark: ${fs.existsSync(WATERMARK_PATH)?'✅ ACTIVA':'⚠️  Sube watermark.png a static/'}
-╚══════════════════════════════════════════════════════════════════╝`);
-    });
-}
-iniciar();
-module.exports=app;
+    await
