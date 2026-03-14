@@ -46,7 +46,86 @@
         .stat-label{color:#999;font-size:.9em;margin-top:5px}
         .sidebar{display:flex;flex-direction:column;gap:20px}
         .badge{display:inline-block;background:rgba(76,175,80,.2);border:1px solid #4CAF50;color:#4CAF50;padding:3px 10px;border-radius:20px;font-size:.8em;margin-left:8px}
-        @media(max-width:768px){.main-content{grid-template-columns:1fr}header h1{font-size:1.8em}.stats{grid-template-columns:1fr}}
+
+        /* ── COUNTDOWN ── */
+        .countdown-box{
+            background:rgba(30,30,30,.95);
+            border:2px solid #ff9800;
+            border-radius:10px;
+            padding:20px;
+            text-align:center;
+            margin-bottom:0;
+        }
+        .countdown-titulo{
+            color:#ff9800;
+            font-size:.85em;
+            font-weight:bold;
+            text-transform:uppercase;
+            letter-spacing:1px;
+            margin-bottom:12px;
+        }
+        .countdown-digitos{
+            display:flex;
+            justify-content:center;
+            gap:8px;
+            margin-bottom:10px;
+        }
+        .cd-bloque{
+            background:#111;
+            border:1px solid #ff9800;
+            border-radius:6px;
+            padding:8px 10px;
+            min-width:52px;
+        }
+        .cd-num{
+            font-size:1.8em;
+            font-weight:bold;
+            color:#ff9800;
+            line-height:1;
+        }
+        .cd-label{
+            font-size:.65em;
+            color:#888;
+            text-transform:uppercase;
+            margin-top:4px;
+        }
+        .countdown-proxima{
+            font-size:.8em;
+            color:#888;
+            margin-top:8px;
+        }
+        .countdown-proxima span{
+            color:#ff9800;
+            font-weight:bold;
+        }
+        /* barra de progreso */
+        .progress-bar{
+            background:#222;
+            border-radius:20px;
+            height:6px;
+            margin-top:12px;
+            overflow:hidden;
+        }
+        .progress-fill{
+            height:100%;
+            background:linear-gradient(90deg,#ff6600,#ff9800);
+            border-radius:20px;
+            transition:width .5s ease;
+        }
+        /* pulso cuando es inminente */
+        .inminente .cd-num{
+            color:#4CAF50;
+            animation:pulso .8s infinite alternate;
+        }
+        @keyframes pulso{from{opacity:1}to{opacity:.4}}
+
+        @media(max-width:768px){
+            .main-content{grid-template-columns:1fr}
+            header h1{font-size:1.8em}
+            .stats{grid-template-columns:1fr}
+            .cd-num{font-size:1.4em}
+            .cd-bloque{min-width:42px;padding:6px 8px}
+        }
     </style>
 </head>
 <body>
@@ -74,7 +153,7 @@
                 <div class="info-box">
                     <p>✅ Pexels API activa — imágenes coherentes por contexto</p>
                     <p>✅ Gemini genera query de imagen por noticia</p>
-                    <p>✅ Banco local como respaldo automático</p>
+                    <p>✅ Gemini con memoria — no repite temas</p>
                     <p>✅ CERO errores 429 — sistema blindado</p>
                 </div>
             </div>
@@ -82,17 +161,14 @@
             <!-- Instrucciones Gemini -->
             <div class="section">
                 <h2>📝 Instrucciones para Gemini</h2>
-
                 <div class="form-group">
                     <label>Instrucción Principal:</label>
-                    <textarea id="instruccionPrincipal" rows="5" placeholder="Instrucción principal para Gemini..."></textarea>
+                    <textarea id="instruccionPrincipal" rows="5"></textarea>
                 </div>
-
                 <div class="form-group">
                     <label>Énfasis Local y Alcance:</label>
-                    <textarea id="enfasis" rows="3" placeholder="Define el alcance geográfico y énfasis local..."></textarea>
+                    <textarea id="enfasis" rows="3"></textarea>
                 </div>
-
                 <div class="form-group">
                     <label>Tono de Noticias:</label>
                     <select id="tono">
@@ -102,7 +178,6 @@
                         <option value="narrativo">Narrativo</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Extensión:</label>
                     <select id="extension">
@@ -111,12 +186,10 @@
                         <option value="larga">Larga (600-800 palabras)</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Cosas que debe Evitar:</label>
-                    <textarea id="evitar" rows="3" placeholder="Qué debe evitar Gemini..."></textarea>
+                    <textarea id="evitar" rows="3"></textarea>
                 </div>
-
                 <button class="btn btn-primary" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
                 <div id="messageConfig" class="message"></div>
             </div>
@@ -149,6 +222,46 @@
 
         <!-- Sidebar -->
         <div class="sidebar">
+
+            <!-- COUNTDOWN -->
+            <div class="section">
+                <h2>⏰ Próxima Publicación</h2>
+                <div class="countdown-box" id="countdownBox">
+                    <div class="countdown-titulo">🤖 Gemini publica en</div>
+                    <div class="countdown-digitos">
+                        <div class="cd-bloque">
+                            <div class="cd-num" id="cdH">00</div>
+                            <div class="cd-label">Horas</div>
+                        </div>
+                        <div class="cd-bloque">
+                            <div class="cd-num" id="cdM">00</div>
+                            <div class="cd-label">Min</div>
+                        </div>
+                        <div class="cd-bloque">
+                            <div class="cd-num" id="cdS">00</div>
+                            <div class="cd-label">Seg</div>
+                        </div>
+                    </div>
+                    <div class="countdown-proxima">
+                        Próxima: <span id="cdProxima">--:--</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cdProgress" style="width:0%"></div>
+                    </div>
+                </div>
+                <!-- Horarios del día -->
+                <div class="info-box" style="margin-top:15px;margin-bottom:0">
+                    <p style="font-weight:bold;color:#ff9800;margin-bottom:6px">📅 Horario automático (6/día):</p>
+                    <p id="h0"  >🕛 12:00 AM</p>
+                    <p id="h4"  >🕓  4:00 AM</p>
+                    <p id="h8"  >🕗  8:00 AM</p>
+                    <p id="h12" >🕛 12:00 PM</p>
+                    <p id="h16" >🕓  4:00 PM</p>
+                    <p id="h20" >🕗  8:00 PM</p>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
             <div class="section">
                 <h2>📊 Estadísticas</h2>
                 <div class="stats">
@@ -164,10 +277,11 @@
                 <button class="btn btn-primary" style="margin-top:20px" onclick="cargarEstadisticas()">🔄 Actualizar</button>
             </div>
 
+            <!-- Info -->
             <div class="section">
                 <h2>ℹ️ Información</h2>
                 <div class="info-box">
-                    <p><strong>Versión:</strong> V26.0 <span class="badge">ACTIVA</span></p>
+                    <p><strong>Versión:</strong> V27.0 <span class="badge">ACTIVA</span></p>
                     <p><strong>IA:</strong> Gemini 2.5 Flash</p>
                     <p><strong>Imágenes:</strong> Pexels API + banco local</p>
                     <p><strong>Cobertura:</strong> 🌍 RD + Mundial</p>
@@ -183,27 +297,99 @@
     const API_BASE = window.location.origin;
     const PIN = '311';
 
-    // Defaults amplios para Gemini
     const DEFAULT_INSTRUCCION = `Eres un periodista profesional dominicano de alto nivel, con visión nacional e internacional. Escribes noticias verificadas, equilibradas y con impacto real. Cubres República Dominicana completa, el Caribe, Latinoamérica y el mundo. Cuando la noticia tiene conexión con Santo Domingo Este o RD, lo destacas con contexto local.`;
+    const DEFAULT_ENFASIS     = `Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con el impacto en República Dominicana y el Caribe.`;
+    const DEFAULT_EVITAR      = `Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Noticias sin verificar. Repetir noticias ya publicadas.`;
 
-    const DEFAULT_ENFASIS = `Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con el impacto en República Dominicana y el Caribe.`;
+    // ==================== COUNTDOWN ====================
+    // CRON corre a las 0,4,8,12,16,20 horas exactas
+    const HORAS_CRON = [0, 4, 8, 12, 16, 20];
 
-    const DEFAULT_EVITAR = `Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Noticias sin verificar. Repetir noticias ya publicadas.`;
+    function proximaEjecucion() {
+        const ahora  = new Date();
+        const horaH  = ahora.getHours();
+        const minH   = ahora.getMinutes();
+        const segH   = ahora.getSeconds();
+        const totalSegActual = horaH * 3600 + minH * 60 + segH;
 
+        // Buscar la próxima hora CRON
+        for (const h of HORAS_CRON) {
+            const totalSegCron = h * 3600;
+            if (totalSegCron > totalSegActual) {
+                return { proxima: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), h, 0, 0), intervalo: 4 * 3600 };
+            }
+        }
+        // Si ya pasaron todas, la próxima es mañana a las 12AM
+        const manana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1, 0, 0, 0);
+        return { proxima: manana, intervalo: 4 * 3600 };
+    }
+
+    function marcarHoraActiva() {
+        const h = new Date().getHours();
+        const ids = { 0:'h0', 4:'h4', 8:'h8', 12:'h12', 16:'h16', 20:'h20' };
+        // Resetear todos
+        Object.values(ids).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.style.color = ''; el.style.fontWeight = ''; }
+        });
+        // Marcar el que acaba de pasar (hora actual redondeada al bloque)
+        const bloqueActual = HORAS_CRON.filter(x => x <= h).pop();
+        if (bloqueActual !== undefined && ids[bloqueActual]) {
+            const el = document.getElementById(ids[bloqueActual]);
+            if (el) { el.style.color = '#4CAF50'; el.style.fontWeight = 'bold'; el.textContent = el.textContent.replace('🕛','✅').replace('🕓','✅').replace('🕗','✅'); }
+        }
+    }
+
+    function actualizarCountdown() {
+        const { proxima, intervalo } = proximaEjecucion();
+        const ahora   = new Date();
+        const diffMs  = proxima - ahora;
+        const diffSeg = Math.max(0, Math.floor(diffMs / 1000));
+
+        const h  = Math.floor(diffSeg / 3600);
+        const m  = Math.floor((diffSeg % 3600) / 60);
+        const s  = diffSeg % 60;
+
+        document.getElementById('cdH').textContent = String(h).padStart(2,'0');
+        document.getElementById('cdM').textContent = String(m).padStart(2,'0');
+        document.getElementById('cdS').textContent = String(s).padStart(2,'0');
+
+        // Hora próxima formateada
+        const hStr = proxima.getHours();
+        const ampm = hStr >= 12 ? 'PM' : 'AM';
+        const h12  = hStr % 12 || 12;
+        document.getElementById('cdProxima').textContent = `${h12}:00 ${ampm}`;
+
+        // Barra de progreso (inversa: llena cuando falta poco)
+        const porcentaje = Math.round(((intervalo - diffSeg) / intervalo) * 100);
+        document.getElementById('cdProgress').style.width = porcentaje + '%';
+
+        // Pulso si faltan menos de 5 minutos
+        const box = document.getElementById('countdownBox');
+        if (diffSeg < 300) box.classList.add('inminente');
+        else               box.classList.remove('inminente');
+    }
+
+    // Arrancar countdown
+    actualizarCountdown();
+    marcarHoraActiva();
+    setInterval(actualizarCountdown, 1000);
+    setInterval(marcarHoraActiva, 60000);
+
+    // ==================== CONFIG ====================
     async function cargarConfig() {
         try {
             const res = await fetch(`${API_BASE}/api/admin/config?pin=${PIN}`);
-            if (!res.ok) return;
+            if (!res.ok) throw new Error();
             const config = await res.json();
             document.getElementById('instruccionPrincipal').value = config.instruccion_principal || DEFAULT_INSTRUCCION;
-            document.getElementById('enfasis').value             = config.enfasis             || DEFAULT_ENFASIS;
-            document.getElementById('tono').value                = config.tono                || 'profesional';
-            document.getElementById('extension').value           = config.extension           || 'media';
-            document.getElementById('evitar').value              = config.evitar              || DEFAULT_EVITAR;
-            document.getElementById('iaToggle').checked          = config.enabled !== false;
+            document.getElementById('enfasis').value              = config.enfasis               || DEFAULT_ENFASIS;
+            document.getElementById('tono').value                 = config.tono                  || 'profesional';
+            document.getElementById('extension').value            = config.extension             || 'media';
+            document.getElementById('evitar').value               = config.evitar                || DEFAULT_EVITAR;
+            document.getElementById('iaToggle').checked           = config.enabled !== false;
             actualizarStatusIA();
-        } catch (e) {
-            // Si falla la carga, poner defaults en los campos
+        } catch {
             document.getElementById('instruccionPrincipal').value = DEFAULT_INSTRUCCION;
             document.getElementById('enfasis').value              = DEFAULT_ENFASIS;
             document.getElementById('evitar').value               = DEFAULT_EVITAR;
@@ -212,7 +398,7 @@
 
     async function guardarInstrucciones() {
         const config = {
-            pin,
+            pin: PIN,
             enabled:               document.getElementById('iaToggle').checked,
             instruccion_principal: document.getElementById('instruccionPrincipal').value,
             enfasis:               document.getElementById('enfasis').value,
@@ -220,41 +406,26 @@
             extension:             document.getElementById('extension').value,
             evitar:                document.getElementById('evitar').value
         };
-        // corregir referencia a PIN
-        config.pin = PIN;
         try {
-            const res  = await fetch(`${API_BASE}/api/admin/config`, {
-                method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(config)
-            });
+            const res  = await fetch(`${API_BASE}/api/admin/config`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config) });
             const data = await res.json();
             mostrarMensaje('messageConfig', data.success ? '✅ Instrucciones guardadas' : '❌ Error al guardar', data.success);
-        } catch (e) {
-            mostrarMensaje('messageConfig', '❌ Error: ' + e.message, false);
-        }
+        } catch (e) { mostrarMensaje('messageConfig', '❌ ' + e.message, false); }
     }
 
     async function generarNoticia() {
-        if (!document.getElementById('iaToggle').checked) {
-            mostrarMensaje('messageGenerar', '❌ Activa la IA primero', false); return;
-        }
+        if (!document.getElementById('iaToggle').checked) { mostrarMensaje('messageGenerar','❌ Activa la IA primero',false); return; }
         const categoria = document.getElementById('categoria').value;
-        document.getElementById('btnText').style.display       = 'none';
+        document.getElementById('btnText').style.display        = 'none';
         document.getElementById('loadingSpinner').style.display = 'block';
         document.getElementById('generarLoading').style.display = 'block';
         try {
-            const res  = await fetch(`${API_BASE}/api/generar-noticia`, {
-                method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ categoria })
-            });
+            const res  = await fetch(`${API_BASE}/api/generar-noticia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({categoria}) });
             const data = await res.json();
-            if (data.success) {
-                mostrarMensaje('messageGenerar', `✅ "${data.titulo}"`, true);
-                cargarEstadisticas();
-            } else {
-                mostrarMensaje('messageGenerar', `❌ ${data.error || 'Error desconocido'}`, false);
-            }
-        } catch (e) {
-            mostrarMensaje('messageGenerar', '❌ ' + e.message, false);
-        } finally {
+            if (data.success) { mostrarMensaje('messageGenerar', `✅ "${data.titulo}"`, true); cargarEstadisticas(); }
+            else               mostrarMensaje('messageGenerar', `❌ ${data.error||'Error'}`, false);
+        } catch (e) { mostrarMensaje('messageGenerar', '❌ ' + e.message, false); }
+        finally {
             document.getElementById('btnText').style.display        = 'block';
             document.getElementById('loadingSpinner').style.display = 'none';
             document.getElementById('generarLoading').style.display = 'none';
@@ -267,7 +438,7 @@
             const data = await res.json();
             document.getElementById('totalNoticias').textContent = data.totalNoticias || 0;
             document.getElementById('totalVistas').textContent   = data.totalVistas   || 0;
-        } catch (e) { console.error(e); }
+        } catch(e){}
     }
 
     async function verStatus() {
@@ -275,7 +446,7 @@
             const res  = await fetch(`${API_BASE}/status`);
             const data = await res.json();
             alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${data.version}\nEstado: ${data.status}\nNoticias: ${data.noticias}\nPexels API: ${data.pexels_api}\nSistema: ${data.sistema}`);
-        } catch (e) { alert('Error: ' + e.message); }
+        } catch(e){ alert('Error: ' + e.message); }
     }
 
     function mostrarMensaje(id, texto, ok) {
@@ -292,10 +463,7 @@
         el.className = 'status-text' + (enabled ? ' active' : '');
     }
 
-    document.getElementById('iaToggle').addEventListener('change', () => {
-        actualizarStatusIA();
-        guardarInstrucciones();
-    });
+    document.getElementById('iaToggle').addEventListener('change', () => { actualizarStatusIA(); guardarInstrucciones(); });
 
     document.addEventListener('DOMContentLoaded', () => {
         cargarConfig();
