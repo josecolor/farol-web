@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA - V29.0
- * Auto-publicación en Facebook + Marca de agua + RSS gobierno + SEO señal fuerte
+ * 🏮 EL FAROL AL DÍA - V30.0
+ * Web + Facebook + Twitter/X automático en cada noticia
  */
 
 const express   = require('express');
@@ -11,6 +11,7 @@ const cron      = require('node-cron');
 const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
+const crypto    = require('crypto');
 
 const app      = express();
 const PORT     = process.env.PORT || 8080;
@@ -19,11 +20,15 @@ const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY || null;
-const FB_PAGE_ID     = process.env.FB_PAGE_ID     || null;
-const FB_PAGE_TOKEN  = process.env.FB_PAGE_TOKEN  || null;
-const WATERMARK_PATH = path.join(__dirname, 'static', 'watermark.png');
-const rssParser      = new RSSParser({ timeout: 10000 });
+const PEXELS_API_KEY       = process.env.PEXELS_API_KEY       || null;
+const FB_PAGE_ID           = process.env.FB_PAGE_ID           || null;
+const FB_PAGE_TOKEN        = process.env.FB_PAGE_TOKEN        || null;
+const TWITTER_API_KEY      = process.env.TWITTER_API_KEY      || null;
+const TWITTER_API_SECRET   = process.env.TWITTER_API_SECRET   || null;
+const TWITTER_ACCESS_TOKEN = process.env.TWITTER_ACCESS_TOKEN || null;
+const TWITTER_ACCESS_SECRET= process.env.TWITTER_ACCESS_SECRET|| null;
+const WATERMARK_PATH       = path.join(__dirname, 'static', 'watermark.png');
+const rssParser            = new RSSParser({ timeout: 10000 });
 
 // ==================== BD ====================
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
@@ -42,63 +47,112 @@ app.use(express.static(path.join(__dirname, 'client'), {
 app.use(cors());
 
 // ==================== FACEBOOK ====================
-/**
- * Publica una noticia en la página de Facebook automáticamente.
- * Usa la Graph API v18.0 con photo upload para incluir la imagen.
- */
 async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
-    if (!FB_PAGE_ID || !FB_PAGE_TOKEN) {
-        console.log('   ⚠️ Facebook: sin credenciales configuradas');
+    if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
+    try {
+        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
+        const mensaje    = `🏮 ${titulo}\n\n${descripcion||''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
+
+        const form = new URLSearchParams();
+        form.append('url',          urlImagen);
+        form.append('caption',      mensaje);
+        form.append('access_token', FB_PAGE_TOKEN);
+
+        const res  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { method:'POST', body:form });
+        const data = await res.json();
+
+        if (data.error) {
+            // Fallback: publicar como enlace
+            const form2 = new URLSearchParams();
+            form2.append('message',      mensaje);
+            form2.append('link',         urlNoticia);
+            form2.append('access_token', FB_PAGE_TOKEN);
+            const res2  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { method:'POST', body:form2 });
+            const data2 = await res2.json();
+            if (data2.error) { console.warn(`   ⚠️ FB: ${data2.error.message}`); return false; }
+        }
+
+        console.log(`   📘 Facebook ✅`);
+        return true;
+    } catch(err) {
+        console.warn(`   ⚠️ Facebook: ${err.message}`);
+        return false;
+    }
+}
+
+// ==================== TWITTER/X ====================
+/**
+ * OAuth 1.0a para Twitter API v2
+ */
+function generarOAuthHeader(method, url, params, consumerKey, consumerSecret, accessToken, tokenSecret) {
+    const oauthParams = {
+        oauth_consumer_key:     consumerKey,
+        oauth_nonce:            crypto.randomBytes(16).toString('hex'),
+        oauth_signature_method: 'HMAC-SHA1',
+        oauth_timestamp:        Math.floor(Date.now() / 1000).toString(),
+        oauth_token:            accessToken,
+        oauth_version:          '1.0'
+    };
+
+    const allParams = { ...params, ...oauthParams };
+    const sortedParams = Object.keys(allParams).sort()
+        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(allParams[k])}`)
+        .join('&');
+
+    const baseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(sortedParams)}`;
+    const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+    const signature  = crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
+
+    oauthParams.oauth_signature = signature;
+
+    const header = 'OAuth ' + Object.keys(oauthParams).sort()
+        .map(k => `${encodeURIComponent(k)}="${encodeURIComponent(oauthParams[k])}"`)
+        .join(', ');
+
+    return header;
+}
+
+async function publicarEnTwitter(titulo, slug, descripcion) {
+    if (!TWITTER_API_KEY || !TWITTER_API_SECRET || !TWITTER_ACCESS_TOKEN || !TWITTER_ACCESS_SECRET) {
+        console.log('   ⚠️ Twitter: sin credenciales');
         return false;
     }
 
     try {
         const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const mensaje    = `🏮 ${titulo}\n\n${descripcion || ''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
+        // Twitter tiene límite de 280 caracteres
+        const textoBase  = `🏮 ${titulo}\n\n${urlNoticia}\n\n#ElFarolAlDía #RD`;
+        const tweet      = textoBase.length > 280 ? textoBase.substring(0, 277) + '...' : textoBase;
 
-        // Publicar con foto usando /photos endpoint
-        const formData = new URLSearchParams();
-        formData.append('url',          urlImagen);
-        formData.append('caption',      mensaje);
-        formData.append('access_token', FB_PAGE_TOKEN);
+        const tweetUrl   = 'https://api.twitter.com/2/tweets';
+        const body       = JSON.stringify({ text: tweet });
+        const authHeader = generarOAuthHeader(
+            'POST', tweetUrl, {},
+            TWITTER_API_KEY, TWITTER_API_SECRET,
+            TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
+        );
 
-        const res = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, {
-            method: 'POST',
-            body:   formData
+        const res  = await fetch(tweetUrl, {
+            method:  'POST',
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type':  'application/json'
+            },
+            body
         });
 
         const data = await res.json();
 
-        if (data.error) {
-            console.warn(`   ⚠️ Facebook error: ${data.error.message}`);
-            // Si falla con foto, intentar post de enlace simple
-            return await publicarEnlaceFacebook(titulo, urlNoticia, descripcion, mensaje);
+        if (data.errors || data.error) {
+            console.warn(`   ⚠️ Twitter: ${JSON.stringify(data.errors || data.error)}`);
+            return false;
         }
 
-        console.log(`   📘 Facebook publicado: ${data.post_id || data.id}`);
+        console.log(`   🐦 Twitter ✅ ID: ${data.data?.id}`);
         return true;
 
     } catch(err) {
-        console.warn(`   ⚠️ Facebook falló: ${err.message}`);
-        return false;
-    }
-}
-
-// Fallback: publicar como enlace si la foto falla
-async function publicarEnlaceFacebook(titulo, urlNoticia, descripcion, mensaje) {
-    try {
-        const body = new URLSearchParams();
-        body.append('message',      mensaje);
-        body.append('link',         urlNoticia);
-        body.append('access_token', FB_PAGE_TOKEN);
-
-        const res  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { method:'POST', body });
-        const data = await res.json();
-        if (data.error) { console.warn(`   ⚠️ FB enlace: ${data.error.message}`); return false; }
-        console.log(`   📘 Facebook (enlace): ${data.id}`);
-        return true;
-    } catch(err) {
-        console.warn(`   ⚠️ FB enlace falló: ${err.message}`);
+        console.warn(`   ⚠️ Twitter: ${err.message}`);
         return false;
     }
 }
@@ -120,26 +174,22 @@ async function aplicarMarcaDeAgua(urlImagen) {
         const h       = meta.height || 500;
         const wmAncho = Math.min(Math.round(w * 0.28), 300);
 
-        const wmResized = await sharp(WATERMARK_PATH)
-            .resize(wmAncho, null, { fit:'inside' })
-            .toBuffer();
-
-        const wmMeta = await sharp(wmResized).metadata();
-        const wmAlto = wmMeta.height || 60;
-        const margen = Math.round(w * 0.02);
+        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit:'inside' }).toBuffer();
+        const wmMeta    = await sharp(wmResized).metadata();
+        const wmAlto    = wmMeta.height || 60;
+        const margen    = Math.round(w * 0.02);
 
         const bufFinal = await sharp(bufOrig)
             .composite([{ input:wmResized, left:Math.max(0,w-wmAncho-margen), top:Math.max(0,h-wmAlto-margen), blend:'over' }])
             .jpeg({ quality: 88 })
             .toBuffer();
 
-        const nombre  = `efd-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
+        const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
         console.log(`   🏮 Watermark: ${nombre}`);
         return { url: urlImagen, nombre, procesada: true };
-
     } catch(err) {
-        console.warn(`   ⚠️ Watermark falló: ${err.message}`);
+        console.warn(`   ⚠️ Watermark: ${err.message}`);
         return { url: urlImagen, procesada: false };
     }
 }
@@ -150,9 +200,7 @@ app.get('/img/:nombre', (req, res) => {
         res.setHeader('Content-Type','image/jpeg');
         res.setHeader('Cache-Control','public,max-age=604800');
         res.sendFile(ruta);
-    } else {
-        res.status(404).send('No encontrada');
-    }
+    } else { res.status(404).send('No encontrada'); }
 });
 
 // ==================== CONFIG IA ====================
@@ -215,7 +263,6 @@ async function buscarEnPexels(query) {
         const data=await res.json();
         if (!data.photos?.length) return null;
         const foto=data.photos.slice(0,5)[Math.floor(Math.random()*Math.min(5,data.photos.length))];
-        console.log(`   ✅ Pexels: "${query}"`);
         return foto.src.large2x||foto.src.large||foto.src.original;
     } catch { return null; }
 }
@@ -302,7 +349,6 @@ async function generarNoticia(categoria, comunicadoExterno=null){
     try{
         if(!CONFIG_IA.enabled) return{success:false,error:'IA desactivada'};
 
-        // Memoria
         let memoria='';
         try{
             const r=await pool.query(`SELECT titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 10`);
@@ -372,12 +418,17 @@ CONTENIDO:
 
         console.log(`\n✅ /noticia/${slFin}`);
 
-        // Publicar en Facebook (no bloquea si falla)
-        publicarEnFacebook(titulo, slFin, urlFinal, desc).then(ok => {
-            if(ok) console.log(`   📘 Facebook: ✅`);
-        }).catch(()=>{});
+        // Publicar en redes sociales (en paralelo, no bloquean)
+        Promise.allSettled([
+            publicarEnFacebook(titulo, slFin, urlFinal, desc),
+            publicarEnTwitter(titulo, slFin, desc)
+        ]).then(results => {
+            const fb = results[0].value ? '📘✅' : '📘❌';
+            const tw = results[1].value ? '🐦✅' : '🐦❌';
+            console.log(`   Redes: ${fb} ${tw}`);
+        });
 
-        return{success:true,slug:slFin,titulo,mensaje:'✅ Publicada'};
+        return{success:true,slug:slFin,titulo,mensaje:'✅ Publicada en web + redes'};
 
     }catch(error){
         console.error('❌',error.message);
@@ -406,7 +457,7 @@ async function procesarRSS(){
     for(const fuente of FUENTES_RSS){
         try{
             const feed=await rssParser.parseURL(fuente.url).catch(()=>null);
-            if(!feed?.items?.length){console.log(`   ⚠️ Sin items: ${fuente.nombre}`);continue;}
+            if(!feed?.items?.length) continue;
             for(const item of feed.items.slice(0,3)){
                 const guid=item.guid||item.link||item.title;
                 if(!guid) continue;
@@ -416,7 +467,6 @@ async function procesarRSS(){
                     item.title?`TÍTULO: ${item.title}`:'',
                     item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',
                     item.content?`CONTENIDO: ${item.content?.substring(0,2000)}`:'',
-                    item.pubDate?`FECHA: ${item.pubDate}`:'',
                     `FUENTE OFICIAL: ${fuente.nombre}`
                 ].filter(Boolean).join('\n');
                 const resultado=await generarNoticia(fuente.categoria,comunicado);
@@ -434,11 +484,11 @@ async function procesarRSS(){
 
 // ==================== CRON ====================
 const CATS=['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
-cron.schedule('0 */4 * * *',  async()=>{ if(!CONFIG_IA.enabled)return; await generarNoticia(CATS[Math.floor(Math.random()*CATS.length)]); });
+cron.schedule('0 */4 * * *',       async()=>{ if(!CONFIG_IA.enabled)return; await generarNoticia(CATS[Math.floor(Math.random()*CATS.length)]); });
 cron.schedule('0 1,7,13,19 * * *', async()=>{ await procesarRSS(); });
 
 // ==================== RUTAS ====================
-app.get('/health',    (req,res)=>res.json({status:'OK',version:'29.0'}));
+app.get('/health',    (req,res)=>res.json({status:'OK',version:'30.0'}));
 app.get('/',          (req,res)=>res.sendFile(path.join(__dirname,'client','index.html')));
 app.get('/redaccion', (req,res)=>res.sendFile(path.join(__dirname,'client','redaccion.html')));
 app.get('/contacto',  (req,res)=>res.sendFile(path.join(__dirname,'client','contacto.html')));
@@ -558,14 +608,17 @@ app.get('/status',async(req,res)=>{
     try{
         const r=await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1',['publicada']);
         const rss=await pool.query('SELECT COUNT(*) FROM rss_procesados');
-        res.json({status:'OK',version:'29.0',
+        res.json({
+            status:'OK', version:'30.0',
             noticias:parseInt(r.rows[0].count),
             rss_procesados:parseInt(rss.rows[0].count),
+            facebook:  FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
+            twitter:   TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             pexels_api:PEXELS_API_KEY?'✅ Activa':'⚠️ Sin key',
-            facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             marca_de_agua:fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Falta watermark.png',
             ia_activa:CONFIG_IA.enabled,
-            sistema:'Facebook + RSS gobierno + Watermark + Gemini memoria + SEO'});
+            sistema:'Web + Facebook + Twitter + RSS gobierno + Watermark + SEO'
+        });
     }catch(e){res.status(500).json({error:e.message});}
 });
 
@@ -576,16 +629,21 @@ async function iniciar(){
     app.listen(PORT,'0.0.0.0',()=>{
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA - V29.0                                     ║
+║  🏮 EL FAROL AL DÍA - V30.0                                     ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  📘 FACEBOOK: Auto-publica cada noticia en tu página             ║
-║     Imagen + Titular + Link a la noticia completa                ║
-║  🏮 WATERMARK en cada imagen publicada                           ║
-║  📡 RSS: 10 portales del gobierno RD cada 6h                     ║
+║  Cada noticia se publica en:                                     ║
+║  🌐 Web (elfarolaldia.com)                                       ║
+║  📘 Facebook (página El Farol al Día)                            ║
+║  🐦 Twitter/X (@elfarolaldia)                                    ║
+║                                                                  ║
+║  🏮 Marca de agua en cada imagen                                 ║
+║  📡 RSS 10 portales gobierno RD cada 6h                          ║
 ║  🧠 Gemini con memoria — no repite temas                         ║
 ║  🔍 SEO señal fuerte completo                                    ║
-║  Facebook: ${FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ ACTIVO':'⚠️  Sin FB_PAGE_ID o FB_PAGE_TOKEN'}
-║  Watermark: ${fs.existsSync(WATERMARK_PATH)?'✅ ACTIVA':'⚠️  Sube watermark.png a static/'}
+║                                                                  ║
+║  Facebook:  ${FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ ACTIVO':'⚠️  Sin credenciales'}
+║  Twitter:   ${TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ ACTIVO':'⚠️  Sin credenciales'}
+║  Watermark: ${fs.existsSync(WATERMARK_PATH)?'✅ ACTIVA':'⚠️  Falta watermark.png'}
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
 }
