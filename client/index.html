@@ -1,431 +1,165 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="icon"           type="image/png" href="/static/favicon.png">
-    <link rel="shortcut icon"                   href="/static/favicon.png" type="image/png">
-    <link rel="apple-touch-icon"                href="/static/favicon.png">
-
-    <title>El Farol al Día - Periódico Digital Dominicano</title>
-    <meta name="description" content="El Farol al Día: noticias de República Dominicana, Santo Domingo Este, deportes, economía, internacionales y espectáculos. Periodismo digital dominicano.">
-    <meta name="keywords"    content="noticias dominicana, periódico digital RD, Santo Domingo Este, noticias hoy, El Farol al Día">
-    <meta name="robots"      content="index, follow, max-image-preview:large">
-    <link rel="canonical"    href="https://elfarolaldia.com/">
-
-    <meta property="og:type"        content="website">
-    <meta property="og:title"       content="El Farol al Día - Periódico Digital Dominicano">
-    <meta property="og:description" content="Noticias de República Dominicana, Santo Domingo Este, deportes, economía e internacionales.">
-    <meta property="og:image"       content="https://elfarolaldia.com/static/favicon.png">
-    <meta property="og:url"         content="https://elfarolaldia.com/">
-    <meta property="og:site_name"   content="El Farol al Día">
-    <meta property="og:locale"      content="es_DO">
-
-    <meta name="twitter:card"        content="summary_large_image">
-    <meta name="twitter:title"       content="El Farol al Día">
-    <meta name="twitter:description" content="Periódico digital dominicano con noticias en tiempo real.">
-    <meta name="twitter:image"       content="https://elfarolaldia.com/static/favicon.png">
-    <meta name="twitter:site"        content="@elfarolaldia">
-
-    <script type="application/ld+json">
-    {"@context":"https://schema.org","@type":"WebSite","name":"El Farol al Día","url":"https://elfarolaldia.com","description":"Periódico digital dominicano con noticias de República Dominicana","inLanguage":"es-DO","publisher":{"@type":"Organization","name":"El Farol al Día","url":"https://elfarolaldia.com","logo":{"@type":"ImageObject","url":"https://elfarolaldia.com/static/favicon.png"}},"potentialAction":{"@type":"SearchAction","target":"https://elfarolaldia.com/?q={search_term_string}","query-input":"required name=search_term_string"}}
-    </script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --fuego:   #FF6200;
-            --fuego2:  #E55500;
-            --oro:     #FFB300;
-            --negro:   #080808;
-            --tinta:   #101010;
-            --papel:   #161616;
-            --borde:   #242424;
-            --texto:   #E8E0D4;
-            --muted:   #666;
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Source Sans 3', sans-serif;
-            background: var(--negro);
-            color: var(--texto);
-            line-height: 1.6;
-        }
-
-        /* Textura de fondo */
-        body::before {
-            content: '';
-            position: fixed; inset: 0;
-            background:
-                radial-gradient(ellipse 70% 50% at 80% 0%, rgba(255,98,0,.07) 0%, transparent 55%),
-                radial-gradient(ellipse 40% 30% at 10% 100%, rgba(255,98,0,.04) 0%, transparent 50%);
-            pointer-events: none; z-index: 0;
-        }
-
-        /* ── HEADER ── */
-        header {
-            background: var(--tinta);
-            border-bottom: 2px solid var(--fuego);
-            position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 4px 30px rgba(0,0,0,.6);
-        }
-        .header-top {
-            max-width: 1200px; margin: 0 auto;
-            padding: 6px 24px;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--borde);
-        }
-        .header-top span {
-            font-family: 'Source Sans 3', sans-serif;
-            font-size: 11px; color: var(--muted); letter-spacing: 1px;
-        }
-        .header-top .live {
-            display: flex; align-items: center; gap: 6px;
-            color: var(--fuego); font-size: 11px; font-weight: 600; letter-spacing: 1px;
-        }
-        .live-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: var(--fuego);
-            box-shadow: 0 0 8px var(--fuego);
-            animation: blink 1.5s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
-
-        .header-main {
-            max-width: 1200px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; justify-content: space-between; align-items: center; gap: 20px;
-        }
-        .logo {
-            display: flex; align-items: center; gap: 14px;
-            text-decoration: none; color: var(--texto);
-        }
-        .logo-icon {
-            width: 46px; height: 46px;
-            background: var(--fuego);
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 16px rgba(255,98,0,.4);
-            flex-shrink: 0;
-        }
-        .logo-text h1 {
-            font-family: 'Oswald', sans-serif;
-            font-size: 22px; font-weight: 600;
-            letter-spacing: 3px; color: var(--fuego);
-            line-height: 1;
-        }
-        .logo-text span {
-            font-size: 11px; color: var(--muted);
-            letter-spacing: 2px; text-transform: uppercase;
-        }
-        nav { display: flex; gap: 6px; align-items: center; }
-        nav a {
-            color: var(--muted); text-decoration: none;
-            font-size: 13px; font-weight: 600; letter-spacing: 1px;
-            padding: 7px 14px; border-radius: 5px;
-            transition: all .2s; text-transform: uppercase;
-        }
-        nav a:hover { color: var(--fuego); background: rgba(255,98,0,.08); }
-
-        /* ── CATEGORÍAS ── */
-        .cats-wrap {
-            background: var(--papel);
-            border-bottom: 1px solid var(--borde);
-            position: relative; z-index: 1;
-        }
-        .categorias {
-            max-width: 1200px; margin: 0 auto;
-            padding: 12px 24px;
-            display: flex; gap: 8px; flex-wrap: wrap;
-        }
-        .categoria-btn {
-            padding: 7px 18px;
-            background: transparent;
-            border: 1px solid var(--borde);
-            color: var(--muted);
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: 'Oswald', sans-serif;
-            font-size: 12px; letter-spacing: 1px;
-            transition: all .2s;
-            text-transform: uppercase;
-        }
-        .categoria-btn:hover { border-color: var(--fuego); color: var(--fuego); }
-        .categoria-btn.active {
-            background: var(--fuego); border-color: var(--fuego);
-            color: #fff;
-        }
-
-        /* ── MAIN ── */
-        main {
-            max-width: 1200px; margin: 0 auto;
-            padding: 36px 24px;
-            position: relative; z-index: 1;
-        }
-
-        /* HERO */
-        .hero {
-            text-align: center;
-            margin-bottom: 44px;
-            padding-bottom: 32px;
-            border-bottom: 1px solid var(--borde);
-        }
-        .hero h2 {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: clamp(28px, 5vw, 52px);
-            font-weight: 900; color: var(--texto);
-            line-height: 1.1; margin-bottom: 10px;
-        }
-        .hero h2 span { color: var(--fuego); }
-        .hero p { font-size: 16px; color: var(--muted); font-weight: 300; }
-
-        /* GRID */
-        .noticias-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
-            margin-bottom: 60px;
-        }
-
-        /* CARD */
-        .noticia-card {
-            background: var(--papel);
-            border: 1px solid var(--borde);
-            border-radius: 10px; overflow: hidden;
-            cursor: pointer;
-            transition: transform .25s, box-shadow .25s, border-color .25s;
-            position: relative;
-        }
-        .noticia-card::before {
-            content: ''; position: absolute;
-            bottom: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, var(--fuego), transparent);
-            opacity: 0; transition: opacity .25s;
-        }
-        .noticia-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255,98,0,.3);
-            box-shadow: 0 12px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(255,98,0,.1);
-        }
-        .noticia-card:hover::before { opacity: 1; }
-
-        .noticia-imagen {
-            width: 100%; height: 195px;
-            background: var(--borde); overflow: hidden;
-        }
-        .noticia-imagen img {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            transition: transform .4s;
-        }
-        .noticia-card:hover .noticia-imagen img { transform: scale(1.06); }
-
-        .noticia-contenido { padding: 18px 20px 22px; }
-        .noticia-seccion {
-            display: inline-block;
-            background: rgba(255,98,0,.15);
-            color: var(--fuego);
-            padding: 3px 10px; border-radius: 3px;
-            font-family: 'Oswald', sans-serif;
-            font-size: 11px; letter-spacing: 2px;
-            font-weight: 600; margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        .noticia-titulo {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 17px; font-weight: 700;
-            color: var(--texto); margin-bottom: 10px;
-            line-height: 1.35;
-        }
-        .noticia-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
-        .ver-mas {
-            display: inline-flex; align-items: center; gap: 6px;
-            color: var(--fuego); text-decoration: none;
-            font-family: 'Oswald', sans-serif;
-            font-size: 12px; letter-spacing: 1px;
-            font-weight: 600; text-transform: uppercase;
-            transition: gap .2s;
-        }
-        .ver-mas:hover { gap: 10px; }
-
-        /* LOADING */
-        .loading { text-align: center; padding: 60px; color: var(--fuego); }
-        .spinner {
-            display: inline-block; width: 40px; height: 40px;
-            border: 3px solid rgba(255,98,0,.2);
-            border-top-color: var(--fuego);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 14px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ── FOOTER ── */
-        footer {
-            background: var(--tinta);
-            border-top: 2px solid var(--fuego);
-            padding: 36px 24px;
-            margin-top: 60px;
-        }
-        .footer-content { max-width: 1200px; margin: 0 auto; text-align: center; }
-        .footer-brand {
-            font-family: 'Oswald', sans-serif;
-            font-size: 20px; letter-spacing: 3px;
-            color: var(--fuego); margin-bottom: 8px;
-        }
-        .footer-content p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-        .footer-links { margin: 16px 0; }
-        .footer-links a {
-            color: var(--muted); text-decoration: none;
-            margin: 0 12px; font-size: 13px;
-            transition: color .2s;
-        }
-        .footer-links a:hover { color: var(--fuego); }
-        .footer-bottom {
-            margin-top: 20px; padding-top: 20px;
-            border-top: 1px solid var(--borde);
-            font-size: 12px; color: var(--muted);
-        }
-
-        @media (max-width: 768px) {
-            .header-main { flex-direction: column; gap: 12px; }
-            nav { flex-wrap: wrap; justify-content: center; }
-            .hero h2 { font-size: 28px; }
-            .noticias-container { grid-template-columns: 1fr; }
-            .categorias { overflow-x: auto; flex-wrap: nowrap; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<meta name="description" content="El Farol al Día - Periódico Digital Dominicano. Noticias de Nacionales, Deportes, Internacionales, Economía, Tecnología y Espectáculos.">
+<meta name="keywords" content="noticias, dominicana, periódico, digital, farol, santo domingo este">
+<meta property="og:title" content="El Farol al Día">
+<meta property="og:description" content="Periódico digital con noticias de República Dominicana">
+<meta property="og:image" content="/static/favicon.png">
+<title>El Farol al Día - Periódico Digital Dominicano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--fuego:#FF5500;--fuego2:#CC4300;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#555}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 80% 0%,rgba(255,85,0,.07) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 10% 100%,rgba(255,85,0,.04) 0%,transparent 50%);pointer-events:none;z-index:0}
+header{background:rgba(7,7,7,.97);border-bottom:1px solid var(--borde);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-inner{max-width:1240px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;flex-shrink:0}
+.logo-icon{width:34px;height:34px;background:var(--fuego);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 14px rgba(255,85,0,.4)}
+.logo-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;display:block;margin-top:1px}
+nav{display:flex;gap:6px;align-items:center}
+nav a{color:var(--crema2);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;padding:6px 12px;border-radius:5px;transition:all .2s;border:1px solid transparent}
+nav a:hover{color:var(--fuego);border-color:rgba(255,85,0,.2);background:rgba(255,85,0,.06)}
+.live-badge{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;background:rgba(255,85,0,.15);border:1px solid rgba(255,85,0,.3);color:var(--fuego);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--fuego);box-shadow:0 0 6px var(--fuego);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hero{text-align:center;padding:64px 24px 40px;position:relative;z-index:1}
+.hero-label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--fuego);margin-bottom:16px;display:block}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,8vw,80px);letter-spacing:2px;line-height:1;margin-bottom:12px;color:var(--crema)}
+.hero h1 span{color:var(--fuego)}
+.hero p{font-size:16px;color:var(--crema2);font-style:italic;margin-bottom:20px}
+.hero-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
+.cats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:0 24px 40px;position:relative;z-index:1}
+.cat-btn{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;padding:8px 18px;border-radius:20px;border:1px solid var(--borde);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.cat-btn:hover{border-color:rgba(255,85,0,.4);color:var(--fuego);background:rgba(255,85,0,.06)}
+.cat-btn.active{background:var(--fuego);border-color:var(--fuego);color:#fff}
+main{max-width:1240px;margin:0 auto;padding:0 24px 80px;position:relative;z-index:1}
+.noticias-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.noticias-grid .card:first-child{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}
+.noticias-grid .card:first-child .card-img{height:340px}
+.noticias-grid .card:first-child .card-body{padding:32px;display:flex;flex-direction:column;justify-content:center}
+.noticias-grid .card:first-child .card-titulo{font-size:28px}
+.card{background:var(--papel);border:1px solid var(--borde);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .25s;text-decoration:none;color:inherit;display:block}
+.card:hover{border-color:rgba(255,85,0,.35);transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,0,0,.5),0 0 0 1px rgba(255,85,0,.1)}
+.card-img{width:100%;height:200px;overflow:hidden;background:var(--borde)}
+.card-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+.card:hover .card-img img{transform:scale(1.05)}
+.card-body{padding:20px}
+.card-seccion{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:10px}
+.card-titulo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;line-height:1.2;margin-bottom:10px;color:var(--crema);transition:color .2s}
+.card:hover .card-titulo{color:var(--fuego)}
+.card-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);display:flex;gap:12px;margin-bottom:8px}
+.card-link{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--fuego);margin-top:12px;display:inline-block}
+.loading-wrap{grid-column:1/-1;text-align:center;padding:80px;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid rgba(255,85,0,.2);border-top-color:var(--fuego);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{background:var(--tinta);border-top:1px solid var(--borde);padding:40px 24px;text-align:center;position:relative;z-index:1}
+.footer-inner{max-width:1240px;margin:0 auto}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--fuego);margin-bottom:8px}
+.footer-links{margin:16px 0;display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.footer-links a{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--fuego)}
+.footer-copy{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:20px;padding-top:20px;border-top:1px solid var(--borde)}
+@media(max-width:900px){.noticias-grid{grid-template-columns:1fr 1fr}.noticias-grid .card:first-child{grid-column:1/-1;grid-template-columns:1fr}.noticias-grid .card:first-child .card-img{height:220px}}
+@media(max-width:600px){.noticias-grid{grid-template-columns:1fr}nav{display:none}.hero h1{font-size:36px}}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-top">
-            <span id="fecha-hoy"></span>
-            <div class="live"><div class="live-dot"></div> EN VIVO</div>
-        </div>
-        <div class="header-main">
-            <a href="/" class="logo">
-                <div class="logo-icon">🏮</div>
-                <div class="logo-text">
-                    <h1>EL FAROL AL DÍA</h1>
-                    <span>Periódico Digital Dominicano</span>
-                </div>
-            </a>
-            <nav>
-                <a href="/">Inicio</a>
-                <a href="/nosotros">Nosotros</a>
-                <a href="/contacto">Contacto</a>
-                <a href="/privacidad">Privacidad</a>
-            </nav>
-        </div>
-    </header>
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">🏮</div>
+      <div>EL FAROL AL DÍA<span class="logo-sub">PERIÓDICO DIGITAL DOMINICANO</span></div>
+    </a>
+    <nav>
+      <a href="/">Inicio</a><a href="/nosotros">Nosotros</a>
+      <a href="/contacto">Contacto</a><a href="/privacidad">Privacidad</a>
+    </nav>
+    <div class="live-badge"><div class="live-dot"></div> EN VIVO</div>
+  </div>
+</header>
 
-    <div class="cats-wrap">
-        <div class="categorias" id="categorias"></div>
+<section class="hero">
+  <span class="hero-label">REPÚBLICA DOMINICANA · NOTICIAS DE IMPACTO</span>
+  <h1>Noticias de <span>República</span><br>Dominicana</h1>
+  <p>Periodismo digital con cobertura nacional e internacional</p>
+  <span class="hero-fecha" id="hero-fecha"></span>
+</section>
+
+<div class="cats" id="cats"></div>
+
+<main>
+  <div class="noticias-grid" id="grid">
+    <div class="loading-wrap"><div class="spinner"></div><p>Cargando noticias...</p></div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
+    <p style="color:var(--muted);font-size:13px;font-style:italic">Periódico digital dominicano con noticias en tiempo real</p>
+    <div class="footer-links">
+      <a href="/">Inicio</a><a href="/nosotros">Nosotros</a><a href="/contacto">Contacto</a>
+      <a href="/privacidad">Privacidad</a><a href="/sitemap.xml">Sitemap</a><a href="/robots.txt">Robots</a>
     </div>
+    <div class="footer-copy">© 2026 El Farol al Día · Todos los derechos reservados · Generado con Gemini 2.5 Flash</div>
+  </div>
+</footer>
 
-    <main>
-        <div class="hero">
-            <h2>Noticias de <span>República Dominicana</span></h2>
-            <p>Periodismo digital con cobertura nacional e internacional</p>
-        </div>
+<script>
+const CATS=['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
+const EMOJIS={Nacionales:'🏛️',Deportes:'⚽',Internacionales:'🌍',Economía:'💼',Tecnología:'💻',Espectáculos:'🎬'};
+let todas=[];
 
-        <section id="noticias">
-            <div class="noticias-container" id="noticiasContainer">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Cargando noticias...</p>
-                </div>
-            </div>
-        </section>
-    </main>
+document.getElementById('hero-fecha').textContent=
+  new Date().toLocaleDateString('es-DO',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).toUpperCase();
 
-    <footer>
-        <div class="footer-content">
-            <div class="footer-brand">🏮 EL FAROL AL DÍA</div>
-            <p>Periódico digital dominicano con noticias en tiempo real</p>
-            <p>Impulsado con IA — Gemini 2.5 Flash</p>
-            <div class="footer-links">
-                <a href="/">Inicio</a>
-                <a href="/nosotros">Nosotros</a>
-                <a href="/contacto">Contacto</a>
-                <a href="/privacidad">Privacidad</a>
-                <a href="/sitemap.xml">Sitemap</a>
-                <a href="/robots.txt">Robots</a>
-            </div>
-            <div class="footer-bottom">
-                &copy; 2026 El Farol al Día. Todos los derechos reservados.
-            </div>
-        </div>
-    </footer>
+function crearCats(){
+  const c=document.getElementById('cats');
+  c.innerHTML='<button class="cat-btn active" onclick="filtrar(null,this)">📰 TODAS</button>';
+  CATS.forEach(cat=>{c.innerHTML+=`<button class="cat-btn" onclick="filtrar('${cat}',this)">${EMOJIS[cat]} ${cat.toUpperCase()}</button>`;});
+}
 
-    <script>
-        // Fecha en header
-        document.getElementById('fecha-hoy').textContent =
-            new Date().toLocaleDateString('es-DO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+function filtrar(cat,btn){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderizar(cat?todas.filter(n=>n.seccion===cat):todas);
+}
 
-        const CATEGORIAS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
-        const EMOJI = {'Nacionales':'🏛️','Deportes':'⚽','Internacionales':'🌍','Economía':'💼','Tecnología':'💻','Espectáculos':'🎬'};
-        let todasLasNoticias = [], categoriaActiva = null;
+function renderizar(noticias){
+  const g=document.getElementById('grid');
+  if(!noticias.length){g.innerHTML='<div class="loading-wrap"><p>No hay noticias en esta categoría</p></div>';return;}
+  g.innerHTML=noticias.map(n=>{
+    const f=new Date(n.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'short',year:'numeric'});
+    return `<a class="card" href="/noticia/${n.slug}">
+      <div class="card-img"><img src="${n.imagen}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600'" loading="lazy"></div>
+      <div class="card-body">
+        <span class="card-seccion">${n.seccion}</span>
+        <h3 class="card-titulo">${n.titulo}</h3>
+        <div class="card-meta"><span>📅 ${f}</span><span>👁 ${n.vistas||0}</span></div>
+        <span class="card-link">LEER MÁS →</span>
+      </div>
+    </a>`;
+  }).join('');
+}
 
-        async function cargarNoticias() {
-            try {
-                const res  = await fetch('/api/noticias');
-                const data = await res.json();
-                if (!data.noticias?.length) { mostrarVacio(); return; }
-                todasLasNoticias = data.noticias;
-                renderizar(categoriaActiva ? todasLasNoticias.filter(n => n.seccion === categoriaActiva) : todasLasNoticias);
-            } catch(e) { mostrarError(); }
-        }
+async function cargar(){
+  try{
+    const r=await fetch('/api/noticias');
+    const d=await r.json();
+    todas=d.noticias||[];
+    renderizar(todas);
+  }catch(e){document.getElementById('grid').innerHTML='<div class="loading-wrap"><p>❌ Error cargando noticias</p></div>';}
+}
 
-        function renderizar(noticias) {
-            const c = document.getElementById('noticiasContainer');
-            if (!noticias.length) { mostrarVacio(); return; }
-            c.innerHTML = noticias.map(n => {
-                const fecha = new Date(n.fecha).toLocaleDateString('es-DO');
-                const alt   = n.imagen_alt || n.titulo;
-                return `<article class="noticia-card" onclick="window.location='/noticia/${n.slug}'">
-                    <div class="noticia-imagen">
-                        <img src="${n.imagen}" alt="${alt}" loading="lazy" width="400" height="200"
-                             onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=400'">
-                    </div>
-                    <div class="noticia-contenido">
-                        <span class="noticia-seccion">${n.seccion}</span>
-                        <h3 class="noticia-titulo">${n.titulo}</h3>
-                        <p class="noticia-meta">📅 ${fecha} &nbsp;·&nbsp; 👁️ ${n.vistas || 0}</p>
-                        <a href="/noticia/${n.slug}" class="ver-mas">Leer más →</a>
-                    </div>
-                </article>`;
-            }).join('');
-        }
-
-        function crearCategorias() {
-            const c = document.getElementById('categorias');
-            c.innerHTML = `<button class="categoria-btn active" onclick="filtrar(null,this)">📰 Todas</button>` +
-                CATEGORIAS.map(cat => `<button class="categoria-btn" onclick="filtrar('${cat}',this)">${EMOJI[cat]} ${cat}</button>`).join('');
-        }
-
-        function filtrar(cat, btn) {
-            categoriaActiva = cat;
-            document.querySelectorAll('.categoria-btn').forEach(b => b.classList.remove('active'));
-            if (btn) btn.classList.add('active');
-            renderizar(cat ? todasLasNoticias.filter(n => n.seccion === cat) : todasLasNoticias);
-        }
-
-        function mostrarVacio() { document.getElementById('noticiasContainer').innerHTML = '<div class="loading"><p>No hay noticias publicadas aún</p></div>'; }
-        function mostrarError() { document.getElementById('noticiasContainer').innerHTML = '<div class="loading"><p>❌ Error cargando noticias</p></div>'; }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            crearCategorias();
-            cargarNoticias();
-            setInterval(cargarNoticias, 30000);
-        });
-    </script>
+document.addEventListener('DOMContentLoaded',()=>{crearCats();cargar();setInterval(cargar,30000);});
+</script>
 </body>
 </html>
-<!-- mxl -->
