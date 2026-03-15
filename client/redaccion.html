@@ -296,7 +296,88 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
 .badge-on   { background: rgba(34,197,94,.12); color: var(--verde); border: 1px solid rgba(34,197,94,.2); }
 .badge-warn { background: rgba(255,193,7,.12); color: #ffc107; border: 1px solid rgba(255,193,7,.2); }
 
-/* ── RESPONSIVE ── */
+/* ── TABLA DE NOTICIAS ── */
+.noticias-list { display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.noticias-list::-webkit-scrollbar { width: 3px; }
+.noticias-list::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 2px; }
+
+.noticia-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.05);
+  border-radius: 8px; padding: 10px 12px;
+  transition: border-color .2s;
+}
+.noticia-row:hover { border-color: rgba(255,85,0,.2); }
+.nr-thumb {
+  width: 50px; height: 38px; object-fit: cover;
+  border-radius: 5px; flex-shrink: 0; background: var(--borde);
+}
+.nr-info { flex: 1; min-width: 0; }
+.nr-titulo {
+  font-family: 'Bebas Neue', sans-serif; font-size: 14px;
+  letter-spacing: .5px; color: var(--crema); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.nr-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--muted); margin-top: 3px; letter-spacing: 1px;
+}
+.nr-seccion {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--fuego); background: rgba(255,85,0,.1);
+  border: 1px solid rgba(255,85,0,.2); padding: 2px 8px;
+  border-radius: 3px; flex-shrink: 0;
+}
+.btn-del {
+  background: rgba(239,68,68,.12); color: var(--rojo);
+  border: 1px solid rgba(239,68,68,.2); border-radius: 6px;
+  padding: 6px 10px; cursor: pointer; flex-shrink: 0;
+  font-size: 14px; transition: background .2s; line-height: 1;
+}
+.btn-del:hover { background: rgba(239,68,68,.25); }
+
+.search-noticias {
+  width: 100%; padding: 9px 12px;
+  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.07);
+  color: var(--crema); font-family: 'Lora', serif; font-size: 13px;
+  border-radius: 7px; margin-bottom: 12px; transition: border-color .2s;
+}
+.search-noticias:focus { outline: none; border-color: var(--fuego); }
+.search-noticias::placeholder { color: var(--muted); font-style: italic; }
+
+.noticias-count {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--muted); margin-bottom: 10px; letter-spacing: 1px;
+}
+
+/* MODAL CONFIRMAR */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.85); z-index: 9000;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--papel); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px; padding: 34px 30px; max-width: 400px; width: 90%;
+  text-align: center; box-shadow: 0 30px 60px rgba(0,0,0,.7);
+  animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:none} }
+.modal-icon { font-size: 40px; margin-bottom: 14px; }
+.modal h3 {
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 2px; color: var(--rojo); margin-bottom: 10px;
+}
+.modal p { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+.modal-btns { display: flex; gap: 12px; justify-content: center; }
+.btn-cancel { background: transparent; color: var(--crema2); border: 1px solid var(--borde); border-radius: 7px; padding: 10px 22px; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px; cursor: pointer; transition: all .2s; }
+.btn-cancel:hover { border-color: rgba(255,255,255,.2); color: var(--crema); }
+.btn-confirm-del { background: var(--rojo); color: #fff; border: none; border-radius: 7px; padding: 10px 22px; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px; cursor: pointer; transition: all .2s; }
+.btn-confirm-del:hover { background: #C0392B; transform: translateY(-1px); }
+
+/* ── FIN CSS NOTICIAS ── */
 @media(max-width:900px){ .layout { grid-template-columns: 1fr; } }
 @media(max-width:600px){ .container { padding: 16px; } .cat-grid { grid-template-columns: repeat(3,1fr); } }
 </style>
@@ -456,7 +537,23 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
         </div>
       </div>
 
-    </div>
+      <!-- MIS NOTICIAS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 MIS NOTICIAS</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarListaNoticias()">🔄</button>
+        </div>
+        <div class="card-body">
+          <input type="text" class="search-noticias" id="searchNoticias"
+            placeholder="🔍 Buscar noticia..." oninput="filtrarLista()">
+          <div class="noticias-count" id="noticiasCount">Cargando...</div>
+          <div class="noticias-list" id="noticiasLista">
+            <div style="text-align:center;padding:30px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">
+              Cargando noticias...
+            </div>
+          </div>
+        </div>
+      </div>
 
     <!-- COLUMNA DERECHA (sidebar) -->
     <div>
@@ -511,6 +608,19 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR -->
+<div class="modal-bg" id="modalDel">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>CONFIRMAR ELIMINACIÓN</h3>
+    <p id="modalDelTxt">¿Eliminar esta noticia? La acción es permanente e irreversible.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
+      <button class="btn-confirm-del" onclick="confirmarEliminar()">🗑️ ELIMINAR</button>
     </div>
   </div>
 </div>
@@ -661,7 +771,110 @@ function showMsg(id, txt, ok) {
 document.addEventListener('DOMContentLoaded', () => {
   cargarConfig();
   cargarEstadisticas();
+  cargarListaNoticias();
   setInterval(cargarEstadisticas, 30000);
+});
+
+/* ── LISTA DE NOTICIAS + ELIMINAR ── */
+let todasNoticias = [];
+let idAEliminar   = null;
+
+async function cargarListaNoticias() {
+  try {
+    const r = await fetch(`${API}/api/noticias`);
+    if (!r.ok) return;
+    const d = await r.json();
+    todasNoticias = d.noticias || [];
+    renderizarLista(todasNoticias);
+  } catch(e) {
+    document.getElementById('noticiasLista').innerHTML =
+      '<div style="text-align:center;padding:20px;color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error cargando noticias</div>';
+  }
+}
+
+function renderizarLista(noticias) {
+  const lista = document.getElementById('noticiasLista');
+  const count = document.getElementById('noticiasCount');
+  count.textContent = `${noticias.length} NOTICIAS PUBLICADAS`;
+
+  if (!noticias.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:11px">Sin noticias aún</div>';
+    return;
+  }
+
+  lista.innerHTML = noticias.map(n => {
+    const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+    const imgSrc = n.imagen && n.imagen.startsWith('http') ? n.imagen
+      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
+    const titulo = n.titulo.length > 48 ? n.titulo.substring(0, 48) + '...' : n.titulo;
+    return `
+    <div class="noticia-row" data-titulo="${n.titulo.toLowerCase()}" data-id="${n.id}">
+      <img class="nr-thumb" src="${imgSrc}" alt=""
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'"
+        loading="lazy">
+      <div class="nr-info">
+        <div class="nr-titulo">${titulo}</div>
+        <div class="nr-meta">📅 ${fecha} · 👁 ${n.vistas||0}</div>
+      </div>
+      <span class="nr-seccion">${n.seccion}</span>
+      <button class="btn-del" onclick="pedirEliminar(${n.id}, '${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+function filtrarLista() {
+  const q = document.getElementById('searchNoticias').value.toLowerCase().trim();
+  if (!q) { renderizarLista(todasNoticias); return; }
+  renderizarLista(todasNoticias.filter(n =>
+    n.titulo.toLowerCase().includes(q) ||
+    n.seccion.toLowerCase().includes(q)
+  ));
+}
+
+function pedirEliminar(id, titulo) {
+  idAEliminar = id;
+  document.getElementById('modalDelTxt').textContent =
+    `¿Eliminar "${titulo}"? Esta acción es permanente e irreversible.`;
+  document.getElementById('modalDel').classList.add('open');
+}
+
+function cerrarModal() {
+  idAEliminar = null;
+  document.getElementById('modalDel').classList.remove('open');
+}
+
+async function confirmarEliminar() {
+  if (!idAEliminar) return;
+  const btn = document.querySelector('.btn-confirm-del');
+  btn.textContent = 'Eliminando...'; btn.disabled = true;
+
+  try {
+    const r = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    cerrarModal();
+    if (d.success !== false) {
+      todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
+      renderizarLista(todasNoticias);
+      cargarEstadisticas();
+      showMsg('msgGenerar', '🗑️ Noticia eliminada correctamente', true);
+    } else {
+      showMsg('msgGenerar', '❌ Error al eliminar: ' + (d.error||''), false);
+    }
+  } catch(e) {
+    cerrarModal();
+    showMsg('msgGenerar', '❌ Error: ' + e.message, false);
+  } finally {
+    btn.textContent = '🗑️ ELIMINAR'; btn.disabled = false;
+  }
+}
+
+// Cerrar modal al hacer click fuera
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
 });
 </script>
 </body>
