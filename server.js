@@ -397,7 +397,20 @@ const PEXELS_QUERIES_RD = {
 async function buscarEnPexels(queries) {
     if (!PEXELS_API_KEY) return null;
 
-    const listaQueries = Array.isArray(queries) ? queries : [queries];
+    // Términos prohibidos — fotos que no tienen nada que ver con noticias
+    const BLOQUEADOS = ['wedding', 'bride', 'groom', 'bridal', 'couple', 'romance', 'romantic',
+        'fashion', 'model', 'party', 'celebration', 'flowers', 'love', 'kiss', 'marriage'];
+
+    const listaQueries = (Array.isArray(queries) ? queries : [queries])
+        .filter(q => {
+            const ql = q.toLowerCase();
+            return !BLOQUEADOS.some(b => ql.includes(b));
+        });
+
+    if (!listaQueries.length) {
+        console.log('   📸 Todas las queries bloqueadas → banco local');
+        return null;
+    }
 
     for (const query of listaQueries) {
         try {
@@ -716,7 +729,8 @@ EVITAR: ${CONFIG_IA.evitar}
 ÉNFASIS LOCAL: ${CONFIG_IA.enfasis}
 
 INSTRUCCIONES DE IMAGEN:
-- QUERY_IMAGEN: en inglés, 3-5 palabras que describan una foto periodística real (no ilustraciones, no dibujos), tipo fotorreportero dominicano
+- QUERY_IMAGEN: en inglés, 3-5 palabras que describan una foto periodística real de noticias (NO bodas, NO parejas, NO romance, NO moda, NO celebraciones sociales). Debe ser una foto de prensa: políticos, policías, edificios, deportistas, economía, tecnología, naturaleza caribeña.
+- IMPORTANTE: Si la noticia es sobre seguridad, política, economía o sociedad en RD — usa términos como "dominican republic government", "caribbean police", "santo domingo city", "latin america business". NUNCA "wedding", "bride", "couple", "fashion", "party".
 - ALT_IMAGEN: en español, 15-20 palabras SEO que mencionen el tema + República Dominicana o Santo Domingo
 - Si la noticia es sobre Los Mina, Invivienda, SDE, menciona esa zona en el ALT_IMAGEN
 - SUBTEMA_LOCAL: uno de: ${Object.keys(BANCO_LOCAL).join(', ')}
