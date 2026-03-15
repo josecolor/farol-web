@@ -931,6 +931,21 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
+app.post('/api/eliminar/:id', async (req, res) => {
+    const { pin } = req.body;
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, error: 'ID inválido' });
+    try {
+        await pool.query('DELETE FROM noticias WHERE id=$1', [id]);
+        invalidarCache();
+        console.log(`🗑️ Noticia eliminada: ID ${id}`);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 app.post('/api/generar-noticia', async (req, res) => {
     const { categoria } = req.body;
     if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
