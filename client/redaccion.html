@@ -336,6 +336,41 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
 }
 .btn-del:hover { background: rgba(239,68,68,.25); }
 
+.btn-edit-img {
+  background: rgba(255,85,0,.1); color: var(--fuego);
+  border: 1px solid rgba(255,85,0,.2); border-radius: 6px;
+  padding: 6px 10px; cursor: pointer; flex-shrink: 0;
+  font-size: 14px; transition: background .2s; line-height: 1;
+}
+.btn-edit-img:hover { background: rgba(255,85,0,.22); }
+
+/* MODAL EDITAR IMAGEN */
+.modal-edit {
+  max-width: 480px;
+}
+.modal-edit h3 { color: var(--fuego); }
+.modal-img-preview {
+  width: 100%; height: 160px; object-fit: cover;
+  border-radius: 8px; margin: 12px 0;
+  border: 1px solid var(--borde); background: var(--borde);
+  display: block;
+}
+.modal-input {
+  width: 100%; padding: 10px 13px;
+  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.07);
+  color: var(--crema); font-family: 'Lora', serif; font-size: 13px;
+  border-radius: 7px; transition: border-color .2s; margin-bottom: 14px;
+}
+.modal-input:focus { outline: none; border-color: var(--fuego); }
+.modal-input::placeholder { color: var(--muted); font-style: italic; }
+.btn-confirm-edit {
+  background: var(--fuego); color: #fff; border: none;
+  border-radius: 7px; padding: 10px 22px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 13px;
+  letter-spacing: 2px; cursor: pointer; transition: all .2s;
+}
+.btn-confirm-edit:hover { background: var(--fuego2); transform: translateY(-1px); }
+
 .search-noticias {
   width: 100%; padding: 9px 12px;
   background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.07);
@@ -625,6 +660,27 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
   </div>
 </div>
 
+<!-- MODAL EDITAR IMAGEN -->
+<div class="modal-bg" id="modalEditImg">
+  <div class="modal modal-edit">
+    <div class="modal-icon">🖼️</div>
+    <h3>CAMBIAR IMAGEN</h3>
+    <p id="modalEditTitulo" style="color:var(--crema2);font-size:12px;margin-bottom:0"></p>
+    <img id="modalImgPreview" class="modal-img-preview" src="" alt="Preview">
+    <input type="text" class="modal-input" id="modalImgUrl"
+      placeholder="https://... pega aquí la URL de la nueva imagen"
+      oninput="previewImagen(this.value)">
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link de la imagen y pégalo arriba. La imagen se actualizará en el portal automáticamente.
+    </p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
+      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR IMAGEN</button>
+    </div>
+    <div id="msgEditImg" class="msg" style="margin-top:12px"></div>
+  </div>
+</div>
+
 <script>
 const API = window.location.origin, PIN = '311';
 let catActual = 'Nacionales';
@@ -817,7 +873,8 @@ function renderizarLista(noticias) {
         <div class="nr-meta">📅 ${fecha} · 👁 ${n.vistas||0}</div>
       </div>
       <span class="nr-seccion">${n.seccion}</span>
-      <button class="btn-del" onclick="pedirEliminar(${n.id}, '${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
+      <button class="btn-edit-img" title="Cambiar imagen" onclick="pedirEditarImagen(${n.id}, '${n.titulo.replace(/'/g,"\\'")}', '${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button>
+      <button class="btn-del" title="Eliminar noticia" onclick="pedirEliminar(${n.id}, '${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`;
   }).join('');
 }
@@ -876,6 +933,73 @@ async function confirmarEliminar() {
 document.getElementById('modalDel').addEventListener('click', function(e) {
   if (e.target === this) cerrarModal();
 });
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
+});
+
+/* ── EDITAR IMAGEN ── */
+let idAEditar = null;
+
+function pedirEditarImagen(id, titulo, imgActual) {
+  idAEditar = id;
+  document.getElementById('modalEditTitulo').textContent = titulo;
+  document.getElementById('modalImgUrl').value = '';
+  document.getElementById('modalImgPreview').src = imgActual ||
+    'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600';
+  document.getElementById('msgEditImg').className = 'msg';
+  document.getElementById('modalEditImg').classList.add('open');
+}
+
+function previewImagen(url) {
+  if (url.startsWith('http')) {
+    document.getElementById('modalImgPreview').src = url;
+  }
+}
+
+function cerrarModalEdit() {
+  idAEditar = null;
+  document.getElementById('modalEditImg').classList.remove('open');
+}
+
+async function guardarImagen() {
+  if (!idAEditar) return;
+  const url = document.getElementById('modalImgUrl').value.trim();
+  if (!url || !url.startsWith('http')) {
+    document.getElementById('msgEditImg').textContent = '❌ Pega una URL válida que empiece con https://';
+    document.getElementById('msgEditImg').className = 'msg err';
+    return;
+  }
+
+  const btn = document.querySelector('.btn-confirm-edit');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+
+  try {
+    const r = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN, imagen: url })
+    });
+    const d = await r.json();
+    if (d.success) {
+      // Actualizar thumbnail en la lista sin recargar todo
+      const row = document.querySelector(`.noticia-row[data-id="${idAEditar}"]`);
+      if (row) row.querySelector('.nr-thumb').src = url;
+      // Actualizar en el array local
+      const n = todasNoticias.find(x => x.id === idAEditar);
+      if (n) n.imagen = url;
+      cerrarModalEdit();
+      showMsg('msgGenerar', '✅ Imagen actualizada correctamente', true);
+    } else {
+      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error al guardar');
+      document.getElementById('msgEditImg').className = 'msg err';
+    }
+  } catch(e) {
+    document.getElementById('msgEditImg').textContent = '❌ ' + e.message;
+    document.getElementById('msgEditImg').className = 'msg err';
+  } finally {
+    btn.textContent = '✅ GUARDAR IMAGEN'; btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
