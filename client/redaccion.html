@@ -1,769 +1,668 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción | El Farol al Día</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redacción | El Farol al Día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fuego:  #FF5500;
+  --fuego2: #FF7A00;
+  --negro:  #080808;
+  --tinta:  #0E0E12;
+  --papel:  #141418;
+  --borde:  #1E1E26;
+  --crema:  #EDE8DF;
+  --crema2: #A89F94;
+  --muted:  #4E4E58;
+  --verde:  #22C55E;
+  --rojo:   #EF4444;
+  --glow:   rgba(255,85,0,.35);
+}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Source+Sans+3:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <style>
-        :root {
-            --fuego:  #FF6200;
-            --fuego2: #E55500;
-            --verde:  #22C55E;
-            --rojo:   #EF4444;
-            --negro:  #070707;
-            --tinta:  #0F0F0F;
-            --papel:  #161616;
-            --card:   #1C1C1C;
-            --borde:  #252525;
-            --texto:  #E8E0D4;
-            --muted:  #555;
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Lora', Georgia, serif;
+  background: var(--negro);
+  color: var(--crema);
+  min-height: 100vh;
+}
 
-        body {
-            font-family: 'Source Sans 3', sans-serif;
-            background: var(--negro);
-            color: var(--texto);
-            min-height: 100vh;
-        }
+/* Fondo sutil */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(255,85,0,.06) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(255,85,0,.03) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
 
-        body::before {
-            content: ''; position: fixed; inset: 0;
-            background:
-                radial-gradient(ellipse 60% 50% at 100% 0%, rgba(255,98,0,.06) 0%, transparent 50%),
-                radial-gradient(ellipse 40% 30% at 0% 100%, rgba(255,98,0,.03) 0%, transparent 50%);
-            pointer-events: none; z-index: 0;
-        }
+/* ── HEADER ── */
+header {
+  background: rgba(8,8,8,.98);
+  border-bottom: 2px solid var(--fuego);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 30px rgba(255,85,0,.15);
+}
+.header-inner {
+  max-width: 1280px; margin: 0 auto;
+  padding: 0 28px; height: 62px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none;
+}
+.logo-flame {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--fuego), var(--fuego2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 20px var(--glow);
+}
+.logo-text h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 4px; color: var(--fuego); line-height: 1;
+}
+.logo-text span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 2px; color: var(--muted); display: block;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.live-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,85,0,.12);
+  border: 1px solid rgba(255,85,0,.3);
+  padding: 5px 14px; border-radius: 20px;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--fuego); box-shadow: 0 0 8px var(--fuego);
+  animation: blink 1.5s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+.live-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; color: var(--fuego); }
+.header-clock { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); letter-spacing: 2px; }
+.btn-portal {
+  font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 2px;
+  color: var(--crema2); text-decoration: none;
+  border: 1px solid var(--borde); padding: 7px 16px; border-radius: 6px;
+  transition: all .2s;
+}
+.btn-portal:hover { border-color: rgba(255,85,0,.4); color: var(--fuego); }
 
-        /* ── HEADER ── */
-        header {
-            background: var(--tinta);
-            border-bottom: 2px solid var(--fuego);
-            padding: 0 28px;
-            height: 58px;
-            display: flex; align-items: center; justify-content: space-between;
-            position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 4px 24px rgba(0,0,0,.7);
-        }
-        .header-brand {
-            display: flex; align-items: center; gap: 12px;
-            text-decoration: none; color: var(--texto);
-        }
-        .brand-icon {
-            width: 36px; height: 36px;
-            background: var(--fuego); border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px; flex-shrink: 0;
-            box-shadow: 0 0 16px rgba(255,98,0,.4);
-        }
-        .brand-name {
-            font-family: 'Oswald', sans-serif;
-            font-size: 16px; letter-spacing: 3px; color: var(--fuego);
-        }
-        .header-right {
-            display: flex; align-items: center; gap: 12px;
-        }
-        .live-badge {
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(34,197,94,.1);
-            border: 1px solid rgba(34,197,94,.2);
-            padding: 5px 12px; border-radius: 20px;
-        }
-        .live-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--verde); box-shadow: 0 0 8px var(--verde);
-            animation: blink 1.5s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
-        .live-badge span {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; color: var(--verde); letter-spacing: 1px;
-        }
-        .btn-portal {
-            font-family: 'Oswald', sans-serif;
-            font-size: 11px; letter-spacing: 1px;
-            color: var(--muted); text-decoration: none;
-            padding: 7px 14px; border-radius: 4px;
-            border: 1px solid var(--borde);
-            transition: all .2s; text-transform: uppercase;
-        }
-        .btn-portal:hover { border-color: var(--fuego); color: var(--fuego); }
+/* ── TICKER ── */
+.ticker {
+  background: var(--fuego);
+  height: 30px; display: flex; align-items: center; overflow: hidden;
+}
+.ticker-tag {
+  font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px;
+  background: rgba(0,0,0,.3); color: #fff;
+  padding: 0 16px; height: 100%; display: flex; align-items: center; flex-shrink: 0;
+}
+.ticker-scroll { flex: 1; overflow: hidden; }
+.ticker-inner {
+  display: inline-flex; gap: 48px; white-space: nowrap;
+  animation: scroll 25s linear infinite;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,.9);
+}
+@keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
-        /* ── LAYOUT ── */
-        .container {
-            max-width: 1220px; margin: 0 auto;
-            padding: 28px 24px;
-            position: relative; z-index: 1;
-        }
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 24px;
-        }
-        .col-left  { display: flex; flex-direction: column; gap: 20px; }
-        .col-right { display: flex; flex-direction: column; gap: 20px; }
+/* ── LAYOUT ── */
+.container {
+  max-width: 1280px; margin: 0 auto;
+  padding: 32px 28px 60px;
+  position: relative; z-index: 1;
+}
 
-        /* ── CARDS ── */
-        .card {
-            background: var(--card);
-            border: 1px solid var(--borde);
-            border-radius: 10px; overflow: hidden;
-        }
-        .card-header {
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--borde);
-            display: flex; align-items: center; gap: 10px;
-            background: rgba(255,255,255,.015);
-        }
-        .card-header h2 {
-            font-family: 'Oswald', sans-serif;
-            font-size: 13px; letter-spacing: 3px;
-            color: var(--fuego); font-weight: 600;
-            text-transform: uppercase;
-        }
-        .card-body { padding: 20px; }
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
 
-        /* ── FORM ── */
-        .form-group { margin-bottom: 18px; }
-        .form-group:last-child { margin-bottom: 0; }
+/* ── CARD BASE ── */
+.card {
+  background: rgba(255,255,255,.025);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);
+  transition: border-color .2s;
+}
+.card:hover { border-color: rgba(255,85,0,.12); }
 
-        label {
-            display: block; margin-bottom: 7px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 2px;
-            color: var(--muted); text-transform: uppercase;
-        }
+.card-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  background: rgba(255,255,255,.015);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-header h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px; letter-spacing: 3px; color: var(--fuego);
+  display: flex; align-items: center; gap: 10px;
+}
+.card-body { padding: 22px; }
 
-        input[type="text"],
-        select,
-        textarea {
-            width: 100%; padding: 11px 14px;
-            background: var(--negro);
-            border: 1px solid var(--borde);
-            border-radius: 6px; color: var(--texto);
-            font-family: 'Source Sans 3', sans-serif;
-            font-size: 14px; transition: all .2s;
-        }
-        input[type="text"]:focus,
-        select:focus,
-        textarea:focus {
-            border-color: var(--fuego); outline: none;
-            box-shadow: 0 0 0 3px rgba(255,98,0,.1);
-        }
-        textarea { resize: vertical; min-height: 100px; }
-        select option { background: var(--negro); }
+/* ── SWITCH IA ── */
+.ia-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 20px;
+  transition: border-color .3s;
+}
+.ia-row.on { border-color: rgba(34,197,94,.25); }
+.ia-left { display: flex; align-items: center; gap: 14px; }
+.ia-lamp { font-size: 28px; transition: filter .3s; }
+.ia-row.on .ia-lamp { filter: drop-shadow(0 0 8px rgba(34,197,94,.5)); }
+.ia-name { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; color: var(--crema); }
+.ia-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 3px; }
+.ia-status.on  { color: var(--verde); }
+.ia-status.off { color: var(--rojo); }
 
-        /* ── BOTONES ── */
-        .btn {
-            padding: 12px 24px; border: none;
-            border-radius: 6px; cursor: pointer;
-            font-family: 'Oswald', sans-serif;
-            font-size: 13px; letter-spacing: 2px;
-            font-weight: 600; text-transform: uppercase;
-            width: 100%; margin-bottom: 10px;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: all .2s;
-        }
-        .btn:last-child { margin-bottom: 0; }
-        .btn-primary {
-            background: var(--fuego); color: #fff;
-        }
-        .btn-primary:hover {
-            background: var(--fuego2);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(255,98,0,.3);
-        }
-        .btn-secondary {
-            background: rgba(34,197,94,.15);
-            color: var(--verde);
-            border: 1px solid rgba(34,197,94,.25);
-        }
-        .btn-secondary:hover {
-            background: rgba(34,197,94,.25);
-            transform: translateY(-1px);
-        }
-        .btn-outline {
-            background: transparent; color: var(--texto);
-            border: 1px solid var(--borde);
-        }
-        .btn-outline:hover { border-color: var(--fuego); color: var(--fuego); }
+.switch { position: relative; display: inline-block; width: 56px; height: 30px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background: #222; border-radius: 30px; transition: .3s; border: 1px solid rgba(255,255,255,.08); }
+.slider:before { content: ''; position: absolute; height: 22px; width: 22px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
+input:checked + .slider { background: rgba(34,197,94,.2); border-color: rgba(34,197,94,.4); }
+input:checked + .slider:before { transform: translateX(26px); background: var(--verde); box-shadow: 0 0 8px var(--verde); }
 
-        /* ── TOGGLE ── */
-        .toggle-row {
-            display: flex; align-items: center; justify-content: space-between;
-            background: var(--negro); padding: 14px 16px;
-            border-radius: 8px; border: 1px solid var(--borde);
-            margin-bottom: 16px;
-        }
-        .toggle-info label { margin-bottom: 4px; }
-        .status-text { font-size: 13px; font-weight: 600; color: var(--muted); }
-        .status-text.active { color: var(--verde); }
+/* CAPACIDADES */
+.cap-list { display: flex; flex-direction: column; gap: 7px; }
+.cap-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  background: rgba(0,0,0,.3);
+  border: 1px solid rgba(255,255,255,.05);
+  border-radius: 7px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--crema2);
+}
+.cap-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 5px var(--verde); flex-shrink: 0; }
 
-        .switch { position: relative; display: inline-block; width: 52px; height: 28px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; inset: 0;
-            background: var(--borde); transition: .3s; border-radius: 28px;
-        }
-        .slider:before {
-            position: absolute; content: "";
-            height: 20px; width: 20px;
-            left: 4px; bottom: 4px;
-            background: #fff; transition: .3s; border-radius: 50%;
-        }
-        input:checked + .slider { background: var(--verde); }
-        input:checked + .slider:before { transform: translateX(24px); }
+/* ── FORM ── */
+.fgroup { margin-bottom: 18px; }
+.fgroup label {
+  display: block; margin-bottom: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 2px; color: var(--muted);
+}
+input[type=text], select, textarea {
+  width: 100%; padding: 11px 14px;
+  background: rgba(0,0,0,.5);
+  border: 1px solid rgba(255,255,255,.07);
+  color: var(--crema); font-family: 'Lora', serif; font-size: 14px;
+  border-radius: 8px; transition: border-color .2s, box-shadow .2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--fuego);
+  box-shadow: 0 0 0 3px rgba(255,85,0,.1);
+}
+input::placeholder, textarea::placeholder { color: var(--muted); font-style: italic; }
+select option { background: #0e0e12; }
+textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
 
-        /* ── INFO BOX ── */
-        .info-box {
-            background: rgba(255,98,0,.06);
-            border-left: 3px solid var(--fuego);
-            padding: 14px 16px; border-radius: 0 8px 8px 0;
-            margin-bottom: 16px;
-        }
-        .info-box:last-child { margin-bottom: 0; }
-        .info-box p {
-            margin: 5px 0; font-size: 13px;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .info-box p:first-child { margin-top: 0; }
-        .info-box p:last-child  { margin-bottom: 0; }
+/* ── CATEGORÍAS ── */
+.cat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-bottom: 18px;
+}
+.cat-tile {
+  padding: 12px 8px; border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: rgba(0,0,0,.3);
+  text-align: center; cursor: pointer; transition: all .2s;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  color: var(--muted);
+}
+.cat-tile .ce { font-size: 20px; display: block; margin-bottom: 5px; }
+.cat-tile:hover { border-color: rgba(255,85,0,.35); color: var(--crema); background: rgba(255,85,0,.06); }
+.cat-tile.sel { border-color: var(--fuego); background: rgba(255,85,0,.14); color: var(--fuego); }
 
-        /* ── MENSAJES ── */
-        .message {
-            padding: 12px 16px; margin-top: 12px;
-            border-radius: 6px; display: none;
-            font-size: 13px;
-        }
-        .message.success {
-            background: rgba(34,197,94,.12);
-            border: 1px solid rgba(34,197,94,.25);
-            color: var(--verde); display: block;
-        }
-        .message.error {
-            background: rgba(239,68,68,.12);
-            border: 1px solid rgba(239,68,68,.25);
-            color: var(--rojo); display: block;
-        }
+/* ── BOTÓN PUBLICAR ── */
+.btn-publish {
+  width: 100%; padding: 18px;
+  background: linear-gradient(135deg, var(--fuego) 0%, var(--fuego2) 100%);
+  border: none; border-radius: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  transition: all .25s; box-shadow: 0 6px 24px var(--glow);
+  position: relative; overflow: hidden; margin-bottom: 0;
+}
+.btn-publish::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 60%);
+}
+.btn-publish:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(255,85,0,.5); }
+.btn-publish:active { transform: translateY(0); }
+.bp-icon { font-size: 22px; }
+.bp-main { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; color: #fff; }
+.bp-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,.7); display: block; margin-top: 2px; }
+.bp-spin { width: 22px; height: 22px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── SPINNER ── */
-        .spinner {
-            width: 20px; height: 20px;
-            border: 2px solid rgba(255,255,255,.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading { display: none; text-align: center; padding: 16px; }
-        .loading .spinner { width: 32px; height: 32px; margin: 0 auto 10px; display: block; border-color: rgba(255,98,0,.3); border-top-color: var(--fuego); }
+/* ── BOTONES GENERALES ── */
+.btn {
+  font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; font-size: 13px;
+  padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .2s; width: 100%; margin-bottom: 10px;
+}
+.btn-orange { background: linear-gradient(135deg, var(--fuego), var(--fuego2)); color: #fff; box-shadow: 0 4px 16px var(--glow); }
+.btn-orange:hover { transform: translateY(-1px); box-shadow: 0 8px 24px var(--glow); }
+.btn-green { background: rgba(34,197,94,.12); color: var(--verde); border: 1px solid rgba(34,197,94,.25); }
+.btn-green:hover { background: rgba(34,197,94,.22); }
+.btn-ghost { background: transparent; color: var(--crema2); border: 1px solid var(--borde); }
+.btn-ghost:hover { border-color: rgba(255,85,0,.3); color: var(--fuego); }
 
-        /* ── STATS ── */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .stat-card {
-            background: var(--negro); padding: 18px;
-            border-radius: 8px; border: 1px solid var(--borde);
-            position: relative; overflow: hidden;
-        }
-        .stat-card::before {
-            content: ''; position: absolute;
-            top: 0; left: 0; right: 0; height: 2px;
-            background: var(--fuego);
-        }
-        .stat-value {
-            font-family: 'Oswald', sans-serif;
-            font-size: 36px; color: var(--fuego); line-height: 1;
-        }
-        .stat-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 1px;
-            color: var(--muted); margin-top: 5px;
-        }
+/* ── MENSAJE ── */
+.msg { padding: 12px 15px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 14px; display: none; line-height: 1.5; }
+.msg.ok  { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); color: var(--verde); display: block; }
+.msg.err { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); color: var(--rojo); display: block; }
 
-        /* ── BADGE ── */
-        .badge {
-            display: inline-block;
-            background: rgba(34,197,94,.15);
-            border: 1px solid rgba(34,197,94,.25);
-            color: var(--verde);
-            padding: 2px 10px; border-radius: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 1px;
-            margin-left: 8px;
-        }
+/* ── STATS ── */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.stat-card {
+  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px; padding: 18px; position: relative; overflow: hidden;
+  text-align: center;
+}
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--fuego); }
+.stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--fuego); line-height: 1; }
+.stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-top: 4px; }
 
-        /* ── COUNTDOWN ── */
-        .countdown-box {
-            background: var(--negro);
-            border: 1px solid var(--borde);
-            border-radius: 8px; padding: 18px;
-            text-align: center;
-        }
-        .countdown-titulo {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px; letter-spacing: 2px;
-            color: var(--muted); margin-bottom: 14px;
-            text-transform: uppercase;
-        }
-        .countdown-digitos {
-            display: flex; justify-content: center; gap: 8px;
-            margin-bottom: 12px;
-        }
-        .cd-bloque {
-            background: var(--papel);
-            border: 1px solid var(--borde);
-            border-radius: 6px; padding: 10px 12px;
-            min-width: 54px;
-        }
-        .cd-num {
-            font-family: 'Oswald', sans-serif;
-            font-size: 26px; color: var(--fuego);
-            line-height: 1;
-        }
-        .cd-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px; color: var(--muted);
-            text-transform: uppercase; margin-top: 4px;
-            letter-spacing: 1px;
-        }
-        .countdown-proxima {
-            font-size: 12px; color: var(--muted); margin-top: 8px;
-        }
-        .countdown-proxima span { color: var(--fuego); font-weight: 600; }
-        .progress-bar {
-            background: var(--borde); border-radius: 20px;
-            height: 5px; margin-top: 14px; overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FF3300, var(--fuego));
-            border-radius: 20px; transition: width .5s ease;
-        }
-        .inminente .cd-num {
-            color: var(--verde);
-            animation: pulso .8s infinite alternate;
-        }
-        @keyframes pulso { from{opacity:1} to{opacity:.3} }
+/* INFO SISTEMA */
+.sys-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 13px;
+}
+.sys-row:last-child { border-bottom: none; }
+.sys-key { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); }
+.sys-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--crema2); }
+.badge { padding: 2px 9px; border-radius: 4px; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+.badge-on   { background: rgba(34,197,94,.12); color: var(--verde); border: 1px solid rgba(34,197,94,.2); }
+.badge-warn { background: rgba(255,193,7,.12); color: #ffc107; border: 1px solid rgba(255,193,7,.2); }
 
-        /* HORARIO */
-        .horario-list { margin-top: 14px; }
-        .horario-item {
-            display: flex; align-items: center; gap: 8px;
-            padding: 7px 0;
-            border-bottom: 1px solid rgba(37,37,37,.6);
-            font-size: 13px; color: var(--muted);
-            transition: color .2s;
-        }
-        .horario-item:last-child { border-bottom: none; }
-        .horario-item.activo { color: var(--verde); font-weight: 600; }
-        .horario-item .hora-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: var(--borde); flex-shrink: 0; transition: background .2s;
-        }
-        .horario-item.activo .hora-dot { background: var(--verde); box-shadow: 0 0 6px var(--verde); }
-
-        /* RESPONSIVE */
-        @media (max-width: 900px) {
-            .main-content { grid-template-columns: 1fr; }
-            header { padding: 0 16px; }
-            .container { padding: 16px; }
-        }
-        @media (max-width: 500px) {
-            .stats-grid { grid-template-columns: 1fr; }
-            .countdown-digitos { gap: 5px; }
-            .cd-bloque { min-width: 44px; padding: 8px; }
-            .cd-num { font-size: 22px; }
-        }
-    </style>
+/* ── RESPONSIVE ── */
+@media(max-width:900px){ .layout { grid-template-columns: 1fr; } }
+@media(max-width:600px){ .container { padding: 16px; } .cat-grid { grid-template-columns: repeat(3,1fr); } }
+</style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
-    <a href="/" class="header-brand">
-        <div class="brand-icon">🏮</div>
-        <span class="brand-name">EL FAROL AL DÍA</span>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-flame">🏮</div>
+      <div class="logo-text">
+        <h1>EL FAROL AL DÍA</h1>
+        <span>PANEL DE REDACCIÓN</span>
+      </div>
     </a>
     <div class="header-right">
-        <div class="live-badge">
-            <div class="live-dot"></div>
-            <span>V31.0 ACTIVA</span>
-        </div>
-        <a href="/" class="btn-portal">Ver Portal →</a>
+      <span class="header-clock" id="reloj">00:00:00</span>
+      <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
+      <a href="/" class="btn-portal">🌐 VER PORTAL</a>
     </div>
+  </div>
 </header>
 
-<div class="container">
-    <div class="main-content">
-
-        <!-- ════ COLUMNA IZQUIERDA ════ -->
-        <div class="col-left">
-
-            <!-- CONTROL IA -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>⚙️ Control de IA</h2>
-                </div>
-                <div class="card-body">
-                    <div class="toggle-row">
-                        <div class="toggle-info">
-                            <label>Estado del Sistema</label>
-                            <div class="status-text" id="iaStatus">🔴 DESACTIVADO</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="iaToggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="info-box">
-                        <p>✅ Pexels API — imágenes coherentes por contexto RD</p>
-                        <p>✅ Wikipedia — contexto factual para Gemini</p>
-                        <p>✅ Gemini con memoria — sin repetición de temas</p>
-                        <p>✅ Antibloqueo 429 — sistema blindado</p>
-                        <p>✅ Alt SEO geolocalizado — República Dominicana</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- INSTRUCCIONES GEMINI -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>📝 Instrucciones para Gemini</h2>
-                </div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label>Instrucción Principal</label>
-                        <textarea id="instruccionPrincipal" rows="5"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Énfasis Local y Alcance</label>
-                        <textarea id="enfasis" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Tono de Noticias</label>
-                        <select id="tono">
-                            <option value="profesional">Profesional</option>
-                            <option value="informal">Informal</option>
-                            <option value="académico">Académico</option>
-                            <option value="narrativo">Narrativo</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Extensión</label>
-                        <select id="extension">
-                            <option value="corta">Corta (200-300 palabras)</option>
-                            <option value="media">Media (400-500 palabras)</option>
-                            <option value="larga">Larga (600-800 palabras)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Cosas que debe Evitar</label>
-                        <textarea id="evitar" rows="3"></textarea>
-                    </div>
-                    <button class="btn btn-primary" onclick="guardarInstrucciones()">
-                        💾 GUARDAR INSTRUCCIONES
-                    </button>
-                    <div id="messageConfig" class="message"></div>
-                </div>
-            </div>
-
-            <!-- GENERADOR -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>🚀 Generar Noticia con IA</h2>
-                </div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label>Selecciona Categoría</label>
-                        <select id="categoria">
-                            <option value="Nacionales">🏛️ Nacionales</option>
-                            <option value="Deportes">⚽ Deportes</option>
-                            <option value="Internacionales">🌍 Internacionales</option>
-                            <option value="Economía">💰 Economía</option>
-                            <option value="Tecnología">💻 Tecnología</option>
-                            <option value="Espectáculos">🎬 Espectáculos</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-secondary" onclick="generarNoticia()">
-                        <span id="btnText">⚡ GENERAR NOTICIA AHORA</span>
-                        <div id="loadingSpinner" class="spinner"></div>
-                    </button>
-                    <div id="generarLoading" class="loading">
-                        <div class="spinner"></div>
-                        <p style="font-size:13px;color:var(--muted)">Generando noticia... por favor espera...</p>
-                    </div>
-                    <div id="messageGenerar" class="message"></div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ════ COLUMNA DERECHA ════ -->
-        <div class="col-right">
-
-            <!-- COUNTDOWN -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>⏰ Próxima Publicación</h2>
-                </div>
-                <div class="card-body">
-                    <div class="countdown-box" id="countdownBox">
-                        <div class="countdown-titulo">Gemini publica en</div>
-                        <div class="countdown-digitos">
-                            <div class="cd-bloque">
-                                <div class="cd-num" id="cdH">00</div>
-                                <div class="cd-label">Horas</div>
-                            </div>
-                            <div class="cd-bloque">
-                                <div class="cd-num" id="cdM">00</div>
-                                <div class="cd-label">Min</div>
-                            </div>
-                            <div class="cd-bloque">
-                                <div class="cd-num" id="cdS">00</div>
-                                <div class="cd-label">Seg</div>
-                            </div>
-                        </div>
-                        <div class="countdown-proxima">
-                            Próxima: <span id="cdProxima">--:--</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="cdProgress" style="width:0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="horario-list">
-                        <p style="font-family:'JetBrains Mono';font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">Horario automático (6/día)</p>
-                        <div class="horario-item" id="h0" ><div class="hora-dot"></div> 12:00 AM</div>
-                        <div class="horario-item" id="h4" ><div class="hora-dot"></div>  4:00 AM</div>
-                        <div class="horario-item" id="h8" ><div class="hora-dot"></div>  8:00 AM</div>
-                        <div class="horario-item" id="h12"><div class="hora-dot"></div> 12:00 PM</div>
-                        <div class="horario-item" id="h16"><div class="hora-dot"></div>  4:00 PM</div>
-                        <div class="horario-item" id="h20"><div class="hora-dot"></div>  8:00 PM</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ESTADÍSTICAS -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>📊 Estadísticas</h2>
-                </div>
-                <div class="card-body">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalNoticias">0</div>
-                            <div class="stat-label">Publicadas</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalVistas">0</div>
-                            <div class="stat-label">Vistas Totales</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-outline" style="margin-top:16px" onclick="cargarEstadisticas()">
-                        🔄 Actualizar
-                    </button>
-                </div>
-            </div>
-
-            <!-- INFO -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>ℹ️ Información del Sistema</h2>
-                </div>
-                <div class="card-body">
-                    <div class="info-box" style="margin-bottom:16px">
-                        <p><strong style="color:var(--texto)">Versión:</strong> V31.0 <span class="badge">ACTIVA</span></p>
-                        <p><strong style="color:var(--texto)">IA:</strong> Gemini 2.5 Flash</p>
-                        <p><strong style="color:var(--texto)">Contexto:</strong> Wikipedia API RD</p>
-                        <p><strong style="color:var(--texto)">Imágenes:</strong> Pexels API + banco local</p>
-                        <p><strong style="color:var(--texto)">Cobertura:</strong> 🌍 RD + Mundial</p>
-                        <p><strong style="color:var(--texto)">SEO:</strong> Schema.org + OG + Sitemap</p>
-                    </div>
-                    <button class="btn btn-outline" onclick="verStatus()">
-                        📡 Ver Status Completo
-                    </button>
-                </div>
-            </div>
-
-        </div>
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-tag">🏮 REDACCIÓN</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner">
+      <span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API</span>
+      <span>//</span><span>Cobertura: RD · Santo Domingo Este · Los Mina · Invivienda · Mundo</span>
+      <span>//</span><span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API</span>
+      <span>//</span><span>Cobertura: RD · Santo Domingo Este · Los Mina · Invivienda · Mundo</span>
     </div>
+  </div>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="container">
+  <div class="layout">
+
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+
+      <!-- CONTROL IA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>⚙️ CONTROL DE IA</h2>
+        </div>
+        <div class="card-body">
+          <div class="ia-row" id="iaRow">
+            <div class="ia-left">
+              <span class="ia-lamp">🏮</span>
+              <div>
+                <div class="ia-name">GEMINI 2.5 FLASH</div>
+                <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="iaToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="cap-list">
+            <div class="cap-item"><div class="cap-dot"></div> Wikipedia como contexto factual de redacción</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pexels API + banco local de imágenes RD</div>
+            <div class="cap-item"><div class="cap-dot"></div> Alt SEO geolocalizado República Dominicana</div>
+            <div class="cap-item"><div class="cap-dot"></div> Memoria — no repite noticias ya publicadas</div>
+            <div class="cap-item"><div class="cap-dot"></div> Publicación automática Facebook + Twitter/X</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSTRUCCIONES GEMINI -->
+      <div class="card">
+        <div class="card-header"><h2>📝 INSTRUCCIONES PARA GEMINI</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Instrucción Principal</label>
+            <textarea id="instruccionPrincipal" rows="5"
+              placeholder="Ej: Eres un periodista profesional dominicano especializado en medios digitales..."></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Énfasis Local y Alcance</label>
+            <textarea id="enfasis" rows="3"
+              placeholder="Ej: Prioriza noticias de Santo Domingo Este, Los Mina, Invivienda, Ensanche Ozama..."></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Tono de Noticias</label>
+            <select id="tono">
+              <option value="profesional">Profesional</option>
+              <option value="informal">Informal</option>
+              <option value="académico">Académico</option>
+              <option value="narrativo">Narrativo</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Extensión</label>
+            <select id="extension">
+              <option value="corta">Corta (200-300 palabras)</option>
+              <option value="media">Media (400-500 palabras)</option>
+              <option value="larga">Larga (600-800 palabras)</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Cosas que debe Evitar</label>
+            <textarea id="evitar" rows="3"
+              placeholder="Ej: Opiniones personales del redactor, rumores sin confirmar, sensacionalismo..."></textarea>
+          </div>
+          <button class="btn btn-orange" onclick="guardarInstrucciones()">
+            💾 GUARDAR INSTRUCCIONES
+          </button>
+          <div id="msgConfig" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- GENERAR NOTICIA -->
+      <div class="card">
+        <div class="card-header"><h2>🤖 GENERAR NOTICIA CON IA</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Selecciona Categoría</label>
+            <div class="cat-grid">
+              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)">
+                <span class="ce">🏛️</span>NACIONALES
+              </div>
+              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)">
+                <span class="ce">⚽</span>DEPORTES
+              </div>
+              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)">
+                <span class="ce">🌍</span>INTERNAC.
+              </div>
+              <div class="cat-tile" data-val="Economía" onclick="selCat(this)">
+                <span class="ce">💰</span>ECONOMÍA
+              </div>
+              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)">
+                <span class="ce">💻</span>TECNOLOGÍA
+              </div>
+              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)">
+                <span class="ce">🎬</span>ESPECT.
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-publish" onclick="generarNoticia()" id="btnPublish">
+            <div class="bp-spin" id="bpSpin"></div>
+            <span class="bp-icon" id="bpIcon">🚀</span>
+            <div>
+              <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
+              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Pexels · Facebook · Twitter</span>
+            </div>
+          </button>
+
+          <div id="msgGenerar" class="msg"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA (sidebar) -->
+    <div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="card">
+        <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="statNoticias">—</div>
+              <div class="stat-lbl">PUBLICADAS</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="statVistas">—</div>
+              <div class="stat-lbl">VISTAS</div>
+            </div>
+          </div>
+          <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DEL SISTEMA -->
+      <div class="card">
+        <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
+        <div class="card-body">
+          <div>
+            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">V31.0 ✅</span></div>
+            <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash</span></div>
+            <div class="sys-row"><span class="sys-key">IMÁGENES</span><span class="sys-val">Pexels + Banco local</span></div>
+            <div class="sys-row"><span class="sys-key">COBERTURA</span><span class="sys-val">🌍 RD + Mundial</span></div>
+            <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">Schema.org + OG</span></div>
+            <div class="sys-row"><span class="sys-key">WIKIPEDIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
+            <div class="sys-row"><span class="sys-key">FACEBOOK</span><span class="badge badge-on" id="sysFB">✅</span></div>
+            <div class="sys-row"><span class="sys-key">TWITTER/X</span><span class="badge badge-on" id="sysTW">✅</span></div>
+            <div class="sys-row"><span class="sys-key">WATERMARK</span><span class="badge badge-warn" id="sysWM">⚠️ VERIF.</span></div>
+          </div>
+          <br>
+          <button class="btn btn-green" onclick="verStatus()">📡 VER STATUS COMPLETO</button>
+        </div>
+      </div>
+
+      <!-- PROCESAR RSS -->
+      <div class="card">
+        <div class="card-header"><h2>📡 RSS GOBIERNO RD</h2></div>
+        <div class="card-body">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            Procesa los 10 portales del gobierno dominicano y genera noticias basadas en comunicados oficiales.
+          </p>
+          <button class="btn btn-ghost" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
+          <div id="msgRSS" class="msg"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <script>
-    const API_BASE = window.location.origin;
-    const PIN = '311';
+const API = window.location.origin, PIN = '311';
+let catActual = 'Nacionales';
 
-    const DEFAULT_INSTRUCCION = `Eres un periodista profesional dominicano de alto nivel, con visión nacional e internacional. Escribes noticias verificadas, equilibradas y con impacto real. Cubres República Dominicana completa, el Caribe, Latinoamérica y el mundo. Cuando la noticia tiene conexión con Santo Domingo Este o RD, lo destacas con contexto local.`;
-    const DEFAULT_ENFASIS     = `Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con el impacto en República Dominicana y el Caribe.`;
-    const DEFAULT_EVITAR      = `Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Noticias sin verificar. Repetir noticias ya publicadas.`;
+/* RELOJ */
+setInterval(() => {
+  document.getElementById('reloj').textContent =
+    new Date().toLocaleTimeString('es-DO', { hour12: false });
+}, 1000);
 
-    // ==================== COUNTDOWN ====================
-    const HORAS_CRON = [0, 4, 8, 12, 16, 20];
+/* CARGAR CONFIG */
+async function cargarConfig() {
+  try {
+    const r = await fetch(`${API}/api/admin/config?pin=${PIN}`);
+    if (!r.ok) return;
+    const c = await r.json();
+    document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
+    document.getElementById('enfasis').value              = c.enfasis               || '';
+    document.getElementById('tono').value                 = c.tono                  || 'profesional';
+    document.getElementById('extension').value            = c.extension             || 'media';
+    document.getElementById('evitar').value               = c.evitar                || '';
+    document.getElementById('iaToggle').checked           = c.enabled !== false;
+    actualizarIA();
+  } catch(e) { console.error('Config:', e); }
+}
 
-    function proximaEjecucion() {
-        const ahora = new Date();
-        const totalSegActual = ahora.getHours() * 3600 + ahora.getMinutes() * 60 + ahora.getSeconds();
-        for (const h of HORAS_CRON) {
-            if (h * 3600 > totalSegActual)
-                return { proxima: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), h, 0, 0), intervalo: 4 * 3600 };
-        }
-        return {
-            proxima: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1, 0, 0, 0),
-            intervalo: 4 * 3600
-        };
-    }
-
-    function marcarHoraActiva() {
-        const h = new Date().getHours();
-        const ids = { 0:'h0', 4:'h4', 8:'h8', 12:'h12', 16:'h16', 20:'h20' };
-        Object.values(ids).forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.remove('activo');
-        });
-        const bloqueActual = HORAS_CRON.filter(x => x <= h).pop();
-        if (bloqueActual !== undefined && ids[bloqueActual]) {
-            document.getElementById(ids[bloqueActual])?.classList.add('activo');
-        }
-    }
-
-    function actualizarCountdown() {
-        const { proxima, intervalo } = proximaEjecucion();
-        const diffSeg = Math.max(0, Math.floor((proxima - new Date()) / 1000));
-        const h = Math.floor(diffSeg / 3600);
-        const m = Math.floor((diffSeg % 3600) / 60);
-        const s = diffSeg % 60;
-
-        document.getElementById('cdH').textContent = String(h).padStart(2,'0');
-        document.getElementById('cdM').textContent = String(m).padStart(2,'0');
-        document.getElementById('cdS').textContent = String(s).padStart(2,'0');
-
-        const hStr = proxima.getHours();
-        const h12  = hStr % 12 || 12;
-        const ampm = hStr >= 12 ? 'PM' : 'AM';
-        document.getElementById('cdProxima').textContent = `${h12}:00 ${ampm}`;
-
-        const pct = Math.round(((intervalo - diffSeg) / intervalo) * 100);
-        document.getElementById('cdProgress').style.width = pct + '%';
-
-        const box = document.getElementById('countdownBox');
-        diffSeg < 300 ? box.classList.add('inminente') : box.classList.remove('inminente');
-    }
-
-    actualizarCountdown();
-    marcarHoraActiva();
-    setInterval(actualizarCountdown, 1000);
-    setInterval(marcarHoraActiva, 60000);
-
-    // ==================== CONFIG ====================
-    async function cargarConfig() {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/config?pin=${PIN}`);
-            if (!res.ok) throw new Error();
-            const config = await res.json();
-            document.getElementById('instruccionPrincipal').value = config.instruccion_principal || DEFAULT_INSTRUCCION;
-            document.getElementById('enfasis').value              = config.enfasis               || DEFAULT_ENFASIS;
-            document.getElementById('tono').value                 = config.tono                  || 'profesional';
-            document.getElementById('extension').value            = config.extension             || 'media';
-            document.getElementById('evitar').value               = config.evitar                || DEFAULT_EVITAR;
-            document.getElementById('iaToggle').checked           = config.enabled !== false;
-            actualizarStatusIA();
-        } catch {
-            document.getElementById('instruccionPrincipal').value = DEFAULT_INSTRUCCION;
-            document.getElementById('enfasis').value              = DEFAULT_ENFASIS;
-            document.getElementById('evitar').value               = DEFAULT_EVITAR;
-        }
-    }
-
-    async function guardarInstrucciones() {
-        const config = {
-            pin: PIN,
-            enabled:               document.getElementById('iaToggle').checked,
-            instruccion_principal: document.getElementById('instruccionPrincipal').value,
-            enfasis:               document.getElementById('enfasis').value,
-            tono:                  document.getElementById('tono').value,
-            extension:             document.getElementById('extension').value,
-            evitar:                document.getElementById('evitar').value
-        };
-        try {
-            const res  = await fetch(`${API_BASE}/api/admin/config`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config) });
-            const data = await res.json();
-            mostrarMensaje('messageConfig', data.success ? '✅ Instrucciones guardadas correctamente' : '❌ Error al guardar', data.success);
-        } catch(e) { mostrarMensaje('messageConfig', '❌ ' + e.message, false); }
-    }
-
-    async function generarNoticia() {
-        if (!document.getElementById('iaToggle').checked) {
-            mostrarMensaje('messageGenerar', '❌ Activa la IA primero', false);
-            return;
-        }
-        const categoria = document.getElementById('categoria').value;
-        document.getElementById('btnText').style.display        = 'none';
-        document.getElementById('loadingSpinner').style.display = 'block';
-        document.getElementById('generarLoading').style.display = 'block';
-        try {
-            const res  = await fetch(`${API_BASE}/api/generar-noticia`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ categoria }) });
-            const data = await res.json();
-            if (data.success) {
-                mostrarMensaje('messageGenerar', `✅ Publicada: "${data.titulo}"`, true);
-                cargarEstadisticas();
-            } else {
-                mostrarMensaje('messageGenerar', `❌ ${data.error || 'Error desconocido'}`, false);
-            }
-        } catch(e) { mostrarMensaje('messageGenerar', '❌ ' + e.message, false); }
-        finally {
-            document.getElementById('btnText').style.display        = 'block';
-            document.getElementById('loadingSpinner').style.display = 'none';
-            document.getElementById('generarLoading').style.display = 'none';
-        }
-    }
-
-    async function cargarEstadisticas() {
-        try {
-            const res  = await fetch(`${API_BASE}/api/estadisticas`);
-            const data = await res.json();
-            document.getElementById('totalNoticias').textContent = data.totalNoticias || 0;
-            document.getElementById('totalVistas').textContent   = data.totalVistas   || 0;
-        } catch(e) {}
-    }
-
-    async function verStatus() {
-        try {
-            const res  = await fetch(`${API_BASE}/status`);
-            const data = await res.json();
-            alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${data.version}\nEstado: ${data.status}\nNoticias: ${data.noticias}\nPexels API: ${data.pexels_api}\nWikipedia: ${data.wikipedia}\nSistema: ${data.sistema}`);
-        } catch(e) { alert('Error: ' + e.message); }
-    }
-
-    function mostrarMensaje(id, texto, ok) {
-        const el = document.getElementById(id);
-        el.textContent = texto;
-        el.className = 'message ' + (ok ? 'success' : 'error');
-        setTimeout(() => el.className = 'message', 6000);
-    }
-
-    function actualizarStatusIA() {
-        const enabled = document.getElementById('iaToggle').checked;
-        const el = document.getElementById('iaStatus');
-        el.textContent = enabled ? '🟢 ACTIVADO' : '🔴 DESACTIVADO';
-        el.className = 'status-text' + (enabled ? ' active' : '');
-    }
-
-    document.getElementById('iaToggle').addEventListener('change', () => {
-        actualizarStatusIA();
-        guardarInstrucciones();
+/* GUARDAR INSTRUCCIONES */
+async function guardarInstrucciones() {
+  try {
+    const r = await fetch(`${API}/api/admin/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: PIN,
+        enabled:               document.getElementById('iaToggle').checked,
+        instruccion_principal: document.getElementById('instruccionPrincipal').value,
+        enfasis:               document.getElementById('enfasis').value,
+        tono:                  document.getElementById('tono').value,
+        extension:             document.getElementById('extension').value,
+        evitar:                document.getElementById('evitar').value
+      })
     });
+    const d = await r.json();
+    showMsg('msgConfig', d.success ? '✅ Instrucciones guardadas' : '❌ Error al guardar', d.success);
+  } catch(e) { showMsg('msgConfig', '❌ ' + e.message, false); }
+}
 
-    document.addEventListener('DOMContentLoaded', () => {
-        cargarConfig();
-        cargarEstadisticas();
-        setInterval(cargarEstadisticas, 30000);
+/* CATEGORÍA */
+function selCat(el) {
+  document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  catActual = el.dataset.val;
+}
+
+/* GENERAR NOTICIA */
+async function generarNoticia() {
+  if (!document.getElementById('iaToggle').checked) {
+    showMsg('msgGenerar', '❌ Active la IA primero con el interruptor de arriba', false); return;
+  }
+  const spin = document.getElementById('bpSpin');
+  const icon = document.getElementById('bpIcon');
+  const txt  = document.getElementById('bpText');
+  const sub  = document.getElementById('bpSub');
+  spin.style.display = 'block'; icon.style.display = 'none';
+  txt.textContent    = 'GENERANDO...';
+  sub.textContent    = 'Wikipedia → Gemini → Pexels → Facebook → Twitter';
+
+  try {
+    const r = await fetch(`${API}/api/generar-noticia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: catActual })
     });
+    const d = await r.json();
+    if (d.success) { showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true); cargarEstadisticas(); }
+    else showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
+  } catch(e) { showMsg('msgGenerar', '❌ ' + e.message, false); }
+  finally {
+    spin.style.display = 'none'; icon.style.display = 'block';
+    txt.textContent    = 'GENERAR NOTICIA AHORA';
+    sub.textContent    = 'Gemini · Wikipedia · Pexels · Facebook · Twitter';
+  }
+}
+
+/* ESTADÍSTICAS */
+async function cargarEstadisticas() {
+  try {
+    const r = await fetch(`${API}/api/estadisticas`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
+    document.getElementById('statVistas').textContent   = d.totalVistas   || 0;
+  } catch(e) { console.error('Stats:', e); }
+}
+
+/* STATUS */
+async function verStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V31.0 ✅';
+    document.getElementById('sysFB').textContent  = d.facebook?.includes('✅') ? '✅' : '⚠️';
+    document.getElementById('sysTW').textContent  = d.twitter?.includes('✅')  ? '✅' : '⚠️';
+    document.getElementById('sysWM').textContent  = d.marca_de_agua?.includes('✅') ? '✅' : '⚠️';
+    document.getElementById('sysWM').className    = d.marca_de_agua?.includes('✅') ? 'badge badge-on' : 'badge badge-warn';
+    alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${d.version}\nNoticias: ${d.noticias}\nRSS procesados: ${d.rss_procesados}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ${d.wikipedia || '✅ Activa (API pública)'}\nSistema: ${d.sistema}`);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+/* PROCESAR RSS */
+async function procesarRSS() {
+  try {
+    const r = await fetch(`${API}/api/procesar-rss`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    showMsg('msgRSS', d.success ? '✅ RSS iniciado — revisando 10 portales gobierno' : '❌ ' + (d.error || 'Error'), d.success);
+  } catch(e) { showMsg('msgRSS', '❌ ' + e.message, false); }
+}
+
+/* IA STATUS */
+function actualizarIA() {
+  const on  = document.getElementById('iaToggle').checked;
+  const s   = document.getElementById('iaStatus');
+  const row = document.getElementById('iaRow');
+  s.textContent = on ? '● ACTIVADO' : '● DESACTIVADO';
+  s.className   = 'ia-status ' + (on ? 'on' : 'off');
+  row.className = 'ia-row ' + (on ? 'on' : '');
+}
+document.getElementById('iaToggle').addEventListener('change', () => { actualizarIA(); guardarInstrucciones(); });
+
+/* MSG */
+function showMsg(id, txt, ok) {
+  const el = document.getElementById(id);
+  el.textContent = txt;
+  el.className   = 'msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'msg'; }, 6000);
+}
+
+/* INIT */
+document.addEventListener('DOMContentLoaded', () => {
+  cargarConfig();
+  cargarEstadisticas();
+  setInterval(cargarEstadisticas, 30000);
+});
 </script>
 </body>
 </html>
-<!-- mxl -->
