@@ -931,6 +931,21 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
+app.post('/api/actualizar-imagen/:id', async (req, res) => {
+    const { pin, imagen } = req.body;
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    const id = parseInt(req.params.id);
+    if (!id || !imagen) return res.status(400).json({ success: false, error: 'Faltan datos' });
+    try {
+        await pool.query('UPDATE noticias SET imagen=$1 WHERE id=$2', [imagen, id]);
+        invalidarCache();
+        console.log(`🖼️ Imagen actualizada: ID ${id}`);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 app.post('/api/eliminar/:id', async (req, res) => {
     const { pin } = req.body;
     if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
