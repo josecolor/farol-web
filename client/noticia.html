@@ -75,6 +75,32 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 .footer-copy{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:16px;padding-top:16px;border-top:1px solid var(--borde)}
 
 @media(max-width:600px){.rel-grid{grid-template-columns:1fr}.compartir-btns{flex-direction:column}.meta{gap:12px}}
+
+/* ── COMENTARIOS ── */
+.comentarios{margin-top:48px}
+.comentarios h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--fuego);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--borde)}
+.comentario-form{background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:22px;margin-bottom:28px}
+.comentario-form h4{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--crema2);margin-bottom:16px}
+.com-input{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s;margin-bottom:12px}
+.com-input:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
+.com-input::placeholder{color:var(--muted);font-style:italic}
+.com-textarea{min-height:90px;resize:vertical;line-height:1.6}
+.btn-comentar{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 28px;background:linear-gradient(135deg,var(--fuego),#FF7A00);color:#fff;border:none;border-radius:8px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(255,85,0,.3)}
+.btn-comentar:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,85,0,.45)}
+.btn-comentar:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.com-msg{font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 14px;border-radius:7px;margin-top:10px;display:none}
+.com-msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#22C55E;display:block}
+.com-msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#EF4444;display:block}
+.comentario-lista{display:flex;flex-direction:column;gap:14px}
+.comentario-item{background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:18px;transition:border-color .2s}
+.comentario-item:hover{border-color:rgba(255,85,0,.2)}
+.com-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.com-avatar{width:36px;height:36px;background:var(--fuego);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0}
+.com-nombre{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--crema)}
+.com-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto}
+.com-texto{font-size:14px;color:var(--crema2);line-height:1.7}
+.com-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:1px}
+.com-empty{text-align:center;padding:32px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);background:var(--papel);border:1px solid var(--borde);border-radius:10px}
 </style>
 </head>
 <body>
@@ -137,7 +163,125 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
   <div class="footer-copy">© 2026 El Farol al Día · Todos los derechos reservados</div>
 </footer>
 
+  <section class="comentarios">
+    <h3>💬 COMENTARIOS</h3>
+
+    <!-- Formulario -->
+    <div class="comentario-form">
+      <h4>DEJA TU COMENTARIO</h4>
+      <input type="text" class="com-input" id="comNombre" placeholder="Tu nombre *" maxlength="80">
+      <textarea class="com-input com-textarea" id="comTexto" placeholder="Escribe tu comentario... (máx. 1000 caracteres)" maxlength="1000"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="comChars">0/1000</span>
+        <button class="btn-comentar" id="btnComentar" onclick="publicarComentario()">
+          💬 PUBLICAR COMENTARIO
+        </button>
+      </div>
+      <div class="com-msg" id="comMsg"></div>
+    </div>
+
+    <!-- Lista -->
+    <div class="com-count" id="comCount"></div>
+    <div class="comentario-lista" id="comLista">
+      <div class="com-empty">Cargando comentarios...</div>
+    </div>
+  </section>
+
 <script>
+// ── Obtener ID de la noticia desde la URL o data attribute ──
+const NOTICIA_SLUG = window.location.pathname.split('/noticia/')[1] || '';
+let NOTICIA_ID = null;
+
+// ── Cargar comentarios ──
+async function cargarComentarios() {
+  if (!NOTICIA_ID) return;
+  try {
+    const r   = await fetch(`/api/comentarios/${NOTICIA_ID}`);
+    const d   = await r.json();
+    const lista = document.getElementById('comLista');
+    const count = document.getElementById('comCount');
+
+    if (!d.comentarios?.length) {
+      lista.innerHTML  = '<div class="com-empty">Sé el primero en comentar esta noticia 🏮</div>';
+      count.textContent = '';
+      return;
+    }
+
+    count.textContent = `${d.comentarios.length} COMENTARIO${d.comentarios.length !== 1 ? 'S' : ''}`;
+    lista.innerHTML = d.comentarios.map(c => {
+      const inicial = c.nombre.charAt(0).toUpperCase();
+      const fecha   = new Date(c.fecha).toLocaleDateString('es-DO', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      return `
+      <div class="comentario-item">
+        <div class="com-header">
+          <div class="com-avatar">${inicial}</div>
+          <span class="com-nombre">${c.nombre}</span>
+          <span class="com-fecha">📅 ${fecha}</span>
+        </div>
+        <p class="com-texto">${c.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('comLista').innerHTML =
+      '<div class="com-empty">No se pudieron cargar los comentarios</div>';
+  }
+}
+
+// ── Publicar comentario ──
+async function publicarComentario() {
+  if (!NOTICIA_ID) return;
+  const nombre = document.getElementById('comNombre').value.trim();
+  const texto  = document.getElementById('comTexto').value.trim();
+  const msg    = document.getElementById('comMsg');
+  const btn    = document.getElementById('btnComentar');
+
+  if (!nombre) { showComMsg('❌ Escribe tu nombre', false); return; }
+  if (!texto)  { showComMsg('❌ Escribe un comentario', false); return; }
+  if (texto.length < 3) { showComMsg('❌ Comentario muy corto', false); return; }
+
+  btn.disabled     = true;
+  btn.textContent  = 'Publicando...';
+
+  try {
+    const r = await fetch(`/api/comentarios/${NOTICIA_ID}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ nombre, texto })
+    });
+    const d = await r.json();
+
+    if (d.success) {
+      document.getElementById('comNombre').value = '';
+      document.getElementById('comTexto').value  = '';
+      document.getElementById('comChars').textContent = '0/1000';
+      showComMsg('✅ Comentario publicado correctamente', true);
+      await cargarComentarios();
+    } else {
+      showComMsg('❌ ' + (d.error || 'Error al publicar'), false);
+    }
+  } catch(e) {
+    showComMsg('❌ Error de conexión', false);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '💬 PUBLICAR COMENTARIO';
+  }
+}
+
+function showComMsg(txt, ok) {
+  const el = document.getElementById('comMsg');
+  el.textContent = txt;
+  el.className   = 'com-msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'com-msg'; }, 5000);
+}
+
+// Contador de caracteres
+document.getElementById('comTexto').addEventListener('input', function() {
+  document.getElementById('comChars').textContent = `${this.value.length}/1000`;
+});
+
+// ── Cargar noticias relacionadas ──
 async function cargarRelacionadas(){
   try{
     const res=await fetch('/api/noticias');
@@ -159,7 +303,24 @@ async function cargarRelacionadas(){
     }).join('');
   }catch(e){console.error('Error relacionadas:',e);}
 }
-document.addEventListener('DOMContentLoaded',cargarRelacionadas);
+
+// ── Obtener ID de la noticia por slug ──
+async function obtenerIdNoticia() {
+  try {
+    const r = await fetch('/api/noticias');
+    const d = await r.json();
+    const noticia = (d.noticias || []).find(n => n.slug === NOTICIA_SLUG);
+    if (noticia) {
+      NOTICIA_ID = noticia.id;
+      cargarComentarios();
+    }
+  } catch(e) { console.error('Error obteniendo ID:', e); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarRelacionadas();
+  obtenerIdNoticia();
+});
 </script>
 </body>
 </html>
