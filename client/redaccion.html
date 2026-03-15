@@ -441,6 +441,22 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
         </div>
       </div>
 
+      <!-- COMENTARIOS RECIENTES -->
+      <div class="card">
+        <div class="card-header">
+          <h2>💬 COMENTARIOS</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarComentariosAdmin()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div id="adminComLista" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
+            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+              Cargando...
+            </div>
+          </div>
+          <div id="msgCom" class="msg"></div>
+        </div>
+      </div>
+
       <!-- PROCESAR RSS -->
       <div class="card">
         <div class="card-header"><h2>📡 RSS GOBIERNO RD</h2></div>
@@ -886,6 +902,51 @@ async function cargarCalidadSEO() {
   }
 }
 
+/* ── COMENTARIOS ADMIN ── */
+async function cargarComentariosAdmin() {
+  const lista = document.getElementById('adminComLista');
+  try {
+    const r = await fetch(`${API}/api/admin/comentarios?pin=${PIN}`);
+    const d = await r.json();
+    if (!d.comentarios?.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:20px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">Sin comentarios aún</div>';
+      return;
+    }
+    lista.innerHTML = d.comentarios.map(c => {
+      const fecha = new Date(c.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+      const texto = c.texto.length > 60 ? c.texto.substring(0, 60) + '…' : c.texto;
+      return `
+      <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--fuego)">${c.nombre}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">${fecha}</span>
+            <button onclick="eliminarComentario(${c.id})" style="background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4">🗑️</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--crema2);line-height:1.4">${texto}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px">📰 ${(c.noticia_titulo||'').substring(0,35)}…</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Error</div>';
+  }
+}
+
+async function eliminarComentario(id) {
+  if (!confirm('¿Eliminar este comentario?')) return;
+  try {
+    const r = await fetch(`${API}/api/comentarios/eliminar/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    if (d.success) { cargarComentariosAdmin(); showMsg('msgCom', '🗑️ Comentario eliminado', true); }
+    else showMsg('msgCom', '❌ Error al eliminar', false);
+  } catch(e) { showMsg('msgCom', '❌ ' + e.message, false); }
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
   cargarConfig();
@@ -893,9 +954,11 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarListaNoticias();
   cargarMemoria();
   cargarCalidadSEO();
+  cargarComentariosAdmin();
   setInterval(cargarEstadisticas, 30000);
   setInterval(cargarMemoria, 60000);
   setInterval(cargarCalidadSEO, 60000);
+  setInterval(cargarComentariosAdmin, 60000);
 });
 </script>
 </body>
