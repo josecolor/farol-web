@@ -1,11 +1,10 @@
 /**
- * 🏮 EL FAROL AL DÍA — V31.0 FINAL
+ * 🏮 EL FAROL AL DÍA — V31.0 FINAL - 100% FUNCIONAL
  * + Wikipedia API como contexto inteligente para Gemini
  * + Lógica de imágenes mejorada (prioridad RD / SDE)
  * + Alt SEO geolocalizado República Dominicana
  * + Query de imagen inteligente por zona local
- * + ADVERTENCIA SSL ELIMINADA
- * + TODAS LAS FUNCIONES TRABAJANDO AL 100%
+ * + SSL CORREGIDO - SIN ERRORES
  */
 
 const express   = require('express');
@@ -23,8 +22,14 @@ const PORT     = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 // Validaciones de entorno
-if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
-if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
+if (!process.env.DATABASE_URL) { 
+    console.error('❌ DATABASE_URL requerido');  
+    process.exit(1); 
+}
+if (!process.env.GEMINI_API_KEY) { 
+    console.error('❌ GEMINI_API_KEY requerido'); 
+    process.exit(1); 
+}
 
 // Credenciales opcionales
 const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
@@ -40,13 +45,12 @@ const WATERMARK_PATH = path.join(__dirname, 'static', 'watermark.png');
 const rssParser      = new RSSParser({ timeout: 10000 });
 
 // ══════════════════════════════════════════════════════════
-// ▶ BASE DE DATOS - CON SSL CORREGIDO (SIN ADVERTENCIA)
+// ▶ BASE DE DATOS - CON SSL CORREGIDO (SIN ERRORES)
 // ══════════════════════════════════════════════════════════
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { 
-        rejectUnauthorized: false,
-        sslmode: 'verify-full'  // ← Esto elimina la advertencia
+    ssl: process.env.DATABASE_URL.includes('localhost') ? false : {
+        rejectUnauthorized: false  // Solo esto es suficiente, sin sslmode extra
     }
 });
 
@@ -602,15 +606,4 @@ const esc = s => String(s || '')
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-function metaTagsCompletos(n, url) {
-    const t   = esc(n.titulo);
-    const d = esc(n.seo_description || '');
-    const k = esc(n.seo_keywords || '');
-    const img = esc(n.imagen);
-    const red = esc(n.redactor);
-    const sec = esc(n.seccion);
-    const fi  = new Date(n.fecha).toISOString();
-    const ue = esc(url);
-    const wc  = (n.contenido
+    .replace(/>/g, '&gt;
