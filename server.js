@@ -30,7 +30,13 @@ const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
 const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
 const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
-const WATERMARK_PATH        = path.join(__dirname, 'static', 'watermark.png');
+const WATERMARK_PATH = (() => {
+    const png = path.join(__dirname, 'static', 'watermark.png');
+    const svg = path.join(__dirname, 'static', 'watermark_farol.svg');
+    if (fs.existsSync(png)) return png;
+    if (fs.existsSync(svg)) return svg;
+    return png;
+})();
 const rssParser             = new RSSParser({ timeout: 10000 });
 
 // ══════════════════════════════════════════════════════════
@@ -251,12 +257,16 @@ async function aplicarMarcaDeAgua(urlImagen) {
         const response = await fetch(urlImagen);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const bufOrig   = Buffer.from(await response.arrayBuffer());
-        if (!fs.existsSync(WATERMARK_PATH)) { console.warn('   ⚠️ watermark.png no encontrado'); return { url: urlImagen, procesada: false }; }
-        const meta      = await sharp(bufOrig).metadata();
-        const w         = meta.width  || 800;
-        const h         = meta.height || 500;
-        const wmAncho   = Math.min(Math.round(w * 0.28), 300);
-        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
+        if (!fs.existsSync(WATERMARK_PATH)) { console.warn('   ⚠️ Watermark no encontrado'); return { url: urlImagen, procesada: false }; }
+        const meta    = await sharp(bufOrig).metadata();
+        const w       = meta.width  || 800;
+        const h       = meta.height || 500;
+        const wmAncho = Math.min(Math.round(w * 0.28), 300);
+        // SVG → PNG en memoria antes de redimensionar
+        const wmSrc   = WATERMARK_PATH.endsWith('.svg')
+            ? await sharp(Buffer.from(fs.readFileSync(WATERMARK_PATH)), { density: 150 }).png().toBuffer()
+            : WATERMARK_PATH;
+        const wmResized = await sharp(wmSrc).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
         const wmMeta    = await sharp(wmResized).metadata();
         const wmAlto    = wmMeta.height || 60;
         const margen    = Math.round(w * 0.02);
