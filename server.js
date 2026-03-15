@@ -122,7 +122,9 @@ async function buscarContextoWikipedia(titulo, categoria) {
 
         // Paso 1: Buscar el artículo más relevante
         const urlBusqueda = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(terminoBusqueda)}&format=json&srlimit=3&origin=*`;
-        const resBusqueda = await fetch(urlBusqueda, { signal: AbortSignal.timeout(6000) });
+        const ctrlBusq    = new AbortController();
+        const tmBusq      = setTimeout(() => ctrlBusq.abort(), 6000);
+        const resBusqueda = await fetch(urlBusqueda, { signal: ctrlBusq.signal }).finally(() => clearTimeout(tmBusq));
         if (!resBusqueda.ok) return '';
 
         const dataBusqueda = await resBusqueda.json();
@@ -133,7 +135,9 @@ async function buscarContextoWikipedia(titulo, categoria) {
 
         // Paso 2: Extraer extracto del artículo
         const urlExtracto = `https://es.wikipedia.org/w/api.php?action=query&pageids=${paginaId}&prop=extracts&exintro=true&exchars=1500&format=json&origin=*`;
-        const resExtracto = await fetch(urlExtracto, { signal: AbortSignal.timeout(6000) });
+        const ctrlExtr    = new AbortController();
+        const tmExtr      = setTimeout(() => ctrlExtr.abort(), 6000);
+        const resExtracto = await fetch(urlExtracto, { signal: ctrlExtr.signal }).finally(() => clearTimeout(tmExtr));
         if (!resExtracto.ok) return '';
 
         const dataExtracto = await resExtracto.json();
@@ -398,10 +402,12 @@ async function buscarEnPexels(queries) {
     for (const query of listaQueries) {
         try {
             const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`;
-            const res = await fetch(url, {
+            const ctrl = new AbortController();
+            const tm   = setTimeout(() => ctrl.abort(), 5000);
+            const res  = await fetch(url, {
                 headers: { Authorization: PEXELS_API_KEY },
-                signal: AbortSignal.timeout(5000)
-            });
+                signal:  ctrl.signal
+            }).finally(() => clearTimeout(tm));
             if (!res.ok) continue;
             const data = await res.json();
             if (!data.photos?.length) continue;
