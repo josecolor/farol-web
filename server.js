@@ -30,7 +30,24 @@ const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
 const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
 const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
-const WATERMARK_PATH = path.join(__dirname, 'static', 'watermark.png');
+// Busca watermark con cualquier nombre en la carpeta static
+const WATERMARK_PATH = (() => {
+    const variantes = [
+        'watermark.png',
+        'WATERMARK(1).png',
+        'watermark(1).png',
+        'watermark (1).png',
+        'WATERMARK.png',
+    ];
+    for (const nombre of variantes) {
+        const ruta = path.join(__dirname, 'static', nombre);
+        if (fs.existsSync(ruta)) {
+            console.log(`🏮 Watermark encontrado: ${nombre}`);
+            return ruta;
+        }
+    }
+    return path.join(__dirname, 'static', 'watermark.png'); // fallback
+})();
 const rssParser             = new RSSParser({ timeout: 10000 });
 
 // ══════════════════════════════════════════════════════════
@@ -889,6 +906,22 @@ async function inicializarBase() {
             ON memoria_ia(tipo, categoria)
         `).catch(() => {});
 
+        // ── TABLA DE COMENTARIOS ────────────────────────
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS comentarios(
+                id SERIAL PRIMARY KEY,
+                noticia_id INTEGER NOT NULL REFERENCES noticias(id) ON DELETE CASCADE,
+                nombre VARCHAR(80) NOT NULL,
+                texto TEXT NOT NULL,
+                aprobado BOOLEAN DEFAULT true,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_comentarios_noticia
+            ON comentarios(noticia_id, aprobado, fecha DESC)
+        `).catch(() => {});
+
         const fix = await client.query(`
             UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='pexels'
             WHERE imagen LIKE '%/images/cache/%' OR imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''
@@ -1411,6 +1444,71 @@ app.post('/api/procesar-rss', async (req, res) => {
 
 // ▶ Endpoint para probar Wikipedia en aislado
 // Ver memoria del sistema
+// ── COMENTARIOS ─────────────────────────────────────────
+// ORDEN CRÍTICO: rutas específicas ANTES que rutas con parámetros dinámicos
+
+// POST: eliminar comentario — VA PRIMERO (evita que Express confunda "eliminar" con :noticia_id)
+app.post('/api/comentarios/eliminar/:id', async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
+    try {
+        await pool.query('DELETE FROM comentarios WHERE id=$1', [parseInt(req.params.id)]);
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// GET: todos los comentarios para admin
+app.get('/api/admin/comentarios', async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    try {
+        const r = await pool.query(`
+            SELECT c.id, c.nombre, c.texto, c.fecha,
+                   n.titulo as noticia_titulo, n.slug as noticia_slug
+            FROM comentarios c
+            JOIN noticias n ON n.id = c.noticia_id
+            ORDER BY c.fecha DESC LIMIT 50
+        `);
+        res.json({ success: true, comentarios: r.rows });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// GET: comentarios de una noticia (ruta paramétrica — va DESPUÉS de las específicas)
+app.get('/api/comentarios/:noticia_id', async (req, res) => {
+    try {
+        const r = await pool.query(`
+            SELECT id, nombre, texto, fecha
+            FROM comentarios
+            WHERE noticia_id=$1 AND aprobado=true
+            ORDER BY fecha ASC
+        `, [req.params.noticia_id]);
+        res.json({ success: true, comentarios: r.rows });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// POST: publicar comentario
+app.post('/api/comentarios/:noticia_id', async (req, res) => {
+    const { nombre, texto } = req.body;
+    const noticia_id = parseInt(req.params.noticia_id);
+    if (isNaN(noticia_id) || noticia_id <= 0)
+        return res.status(400).json({ success: false, error: 'ID de noticia inválido' });
+    if (!nombre?.trim() || !texto?.trim())
+        return res.status(400).json({ success: false, error: 'Nombre y comentario son requeridos' });
+    if (nombre.trim().length > 80)
+        return res.status(400).json({ success: false, error: 'Nombre demasiado largo' });
+    if (texto.trim().length > 1000)
+        return res.status(400).json({ success: false, error: 'Comentario muy largo (máx 1000 chars)' });
+    if (texto.trim().length < 3)
+        return res.status(400).json({ success: false, error: 'Comentario muy corto' });
+    try {
+        const r = await pool.query(`
+            INSERT INTO comentarios(noticia_id, nombre, texto)
+            VALUES($1, $2, $3)
+            RETURNING id, nombre, texto, fecha
+        `, [noticia_id, nombre.trim().substring(0,80), texto.trim().substring(0,1000)]);
+        console.log(`💬 Comentario: noticia ${noticia_id} — ${nombre.trim()}`);
+        res.json({ success: true, comentario: r.rows[0] });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.get('/api/memoria', async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
     try {
