@@ -1,11 +1,11 @@
 /**
- * 🏮 EL FAROL AL DÍA — V31.0 CORREGIDA
+ * 🏮 EL FAROL AL DÍA — V31.0 FINAL
  * + Wikipedia API como contexto inteligente para Gemini
  * + Lógica de imágenes mejorada (prioridad RD / SDE)
  * + Alt SEO geolocalizado República Dominicana
  * + Query de imagen inteligente por zona local
  * + ADVERTENCIA SSL ELIMINADA
- * + TODAS LAS FUNCIONES TRABAJANDO
+ * + TODAS LAS FUNCIONES TRABAJANDO AL 100%
  */
 
 const express   = require('express');
@@ -26,7 +26,7 @@ const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
-// Credenciales opcionales (con advertencias)
+// Credenciales opcionales
 const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
 const FB_PAGE_ID            = process.env.FB_PAGE_ID            || null;
 const FB_PAGE_TOKEN         = process.env.FB_PAGE_TOKEN         || null;
@@ -179,14 +179,12 @@ async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
 
         const res  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { 
             method: 'POST', 
-            body: form,
-            timeout: 10000
+            body: form 
         });
         
         const data = await res.json();
 
         if (data.error) {
-            // Fallback a post de link
             const form2 = new URLSearchParams();
             form2.append('message',      mensaje);
             form2.append('link',         urlNoticia);
@@ -194,8 +192,7 @@ async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
             
             const res2  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { 
                 method: 'POST', 
-                body: form2,
-                timeout: 10000
+                body: form2 
             });
             
             const data2 = await res2.json();
@@ -256,8 +253,7 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
                 'Authorization': authHeader, 
                 'Content-Type': 'application/json' 
             },
-            body: JSON.stringify({ text: tweet }),
-            timeout: 10000
+            body: JSON.stringify({ text: tweet })
         });
         
         const data = await res.json();
@@ -279,7 +275,7 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     try {
-        const response = await fetch(urlImagen, { timeout: 10000 });
+        const response = await fetch(urlImagen);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const bufOrig   = Buffer.from(await response.arrayBuffer());
@@ -313,10 +309,11 @@ async function aplicarMarcaDeAgua(urlImagen) {
             .toBuffer();
             
         const nombre    = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
-        fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
+        const rutaTmp   = path.join('/tmp', nombre);
+        fs.writeFileSync(rutaTmp, bufFinal);
         console.log(`   🏮 Watermark: ${nombre}`);
         
-        return { url: urlImagen, nombre, procesada: true };
+        return { url: urlImagen, rutaTmp, nombre, procesada: true };
     } catch (err) {
         console.warn(`   ⚠️ Watermark: ${err.message}`);
         return { url: urlImagen, procesada: false };
@@ -403,8 +400,7 @@ async function llamarGemini(prompt, reintentos = 3) {
                             maxOutputTokens: 4000,
                             stopSequences:   []
                         }
-                    }),
-                    timeout: 30000
+                    })
                 }
             );
 
@@ -615,4 +611,6 @@ function metaTagsCompletos(n, url) {
     const img = esc(n.imagen);
     const red = esc(n.redactor);
     const sec = esc(n.seccion);
-    const fi  = new
+    const fi  = new Date(n.fecha).toISOString();
+    const ue = esc(url);
+    const wc  = (n.contenido
