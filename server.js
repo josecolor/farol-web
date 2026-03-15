@@ -321,7 +321,11 @@ async function llamarGemini(prompt, reintentos = 3) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.8, maxOutputTokens: 2500 }
+                        generationConfig: {
+                            temperature:     0.8,
+                            maxOutputTokens: 4000,   // 2500 cortaba el contenido a la mitad
+                            stopSequences:   []
+                        }
                     })
                 }
             );
@@ -686,8 +690,9 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana. Que sea un hecho real y relevante del contexto actual.`;
 
         // Consultar Wikipedia ANTES de armar el prompt
+        // Si viene de RSS, limpiar el prefijo "TÍTULO:" de la primera línea
         const temaParaWiki = comunicadoExterno
-            ? (comunicadoExterno.split('\n')[0] || categoria)
+            ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria
             : categoria;
 
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
@@ -724,11 +729,14 @@ CONTENIDO:
         const texto = await llamarGemini(prompt);
 
         // Parsear respuesta de Gemini
+        // Gemini a veces añade ** o ## antes de las etiquetas — los limpiamos
+        const textoLimpio = texto.replace(/^\s*[*#]+\s*/gm, '');
+
         let titulo = '', desc = '', pals = '', qi = '', ai = '', sub = '', contenido = '';
         let enContenido = false;
         const bloques = [];
 
-        for (const linea of texto.split('\n')) {
+        for (const linea of textoLimpio.split('\n')) {
             const t = linea.trim();
             if      (t.startsWith('TITULO:'))        titulo = t.replace('TITULO:', '').trim();
             else if (t.startsWith('DESCRIPCION:'))   desc   = t.replace('DESCRIPCION:', '').trim();
@@ -744,8 +752,11 @@ CONTENIDO:
         titulo    = titulo.replace(/[*_#`"]/g, '').trim();
         desc      = desc.replace(/[*_#`]/g, '').trim();
 
-        if (!titulo || !contenido || contenido.length < 200)
-            throw new Error('Respuesta incompleta de Gemini');
+        // Validación más estricta — detecta respuestas truncadas o mal formateadas
+        if (!titulo)
+            throw new Error('Gemini no devolvió TITULO');
+        if (!contenido || contenido.length < 300)
+            throw new Error(`Contenido insuficiente (${contenido.length} chars) — posible respuesta truncada`);
 
         console.log(`   📝 ${titulo}`);
 
