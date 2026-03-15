@@ -1042,57 +1042,91 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
         // Prompt periodístico mejorado — coherencia imagen + SEO real
         const prompt = `${CONFIG_IA.instruccion_principal}
 
-ROL: Eres el editor jefe de El Farol al Día. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes, impacto real. Periodismo serio, sin exageración.
+ROL: Eres el editor jefe de El Farol al Día con 20 años de experiencia en periodismo dominicano. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes verificables, impacto real para el ciudadano dominicano. Periodismo serio, sin exageración ni sensacionalismo.
+
+PENSAMIENTO CRÍTICO ANTES DE ESCRIBIR:
+Antes de redactar, respóndete internamente estas preguntas:
+1. ¿Quién se ve afectado por esta noticia en República Dominicana?
+2. ¿Qué dato concreto (cifra, fecha, nombre de institución) hace esta noticia creíble?
+3. ¿Cuál es el ángulo local para Santo Domingo Este / Los Mina / Invivienda si aplica?
+4. ¿Qué fuente oficial o institución respalda la información?
+5. ¿Qué cambia para el lector dominicano después de leer esto?
+Solo procede a escribir cuando tengas respuesta a estas 5 preguntas.
+
 ${memoria}
 ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-TONO: ${CONFIG_IA.tono} — periodismo profesional, NO sensacionalismo
+TONO: ${CONFIG_IA.tono} — periodismo profesional E-E-A-T (Experiencia, Experticia, Autoridad, Confianza)
 EXTENSIÓN: 400-500 palabras en 5 párrafos estructurados
 EVITAR: ${CONFIG_IA.evitar}
 ÉNFASIS LOCAL: ${CONFIG_IA.enfasis}
 
-ESTRUCTURA OBLIGATORIA DEL CONTENIDO:
-- Párrafo 1 (lead): QUÉ pasó + QUIÉN + CUÁNDO + DÓNDE. Máximo 3 líneas.
-- Párrafo 2: Contexto y antecedentes con datos concretos (cifras, porcentajes, fechas reales de RD)
-- Párrafo 3: Declaraciones o reacciones de instituciones o personas dominicanas
-- Párrafo 4: Impacto directo para los ciudadanos dominicanos
-- Párrafo 5: Perspectiva futura o próximos pasos esperados
+ESTRUCTURA OBLIGATORIA (pirámide invertida periodística):
+- Párrafo 1 — LEAD (las 5W): QUÉ + QUIÉN + CUÁNDO + DÓNDE + POR QUÉ en máximo 3 líneas. El dato más importante va primero.
+- Párrafo 2 — CONTEXTO: Antecedentes con datos concretos (cifras reales, porcentajes, fechas verificables de RD). Sin este párrafo la noticia no tiene credibilidad.
+- Párrafo 3 — FUENTES: Citar institución o declaración oficial (Presidencia, ministerio, policía, banco, experto). Usar verbos de atribución: "informó", "confirmó", "según", "declaró".
+- Párrafo 4 — IMPACTO CIUDADANO: ¿Qué cambia concretamente para la gente en RD? ¿Precios, servicios, seguridad, empleos?
+- Párrafo 5 — CIERRE INFORMATIVO: Próximos pasos, fecha importante próxima, o contexto regional Caribe/LatAm.
 
-REGLAS SEO:
-- TITULO: hecho concreto + contexto RD. Incluir "RD", "Dominicana" o "Santo Domingo". Máx 60 chars.
-  EJEMPLOS BUENOS: "Banco Central RD reduce tasas al 7% para impulsar economía"
-  EJEMPLOS MALOS: "Remesas mantienen pulso firme" (vago, sin datos)
-- DESCRIPCION: responde QUÉ+QUIÉN+DÓNDE en 150-160 chars exactos para Google
+REGLAS SEO GOOGLE NEWS 2025 — CRÍTICO PARA INDEXACIÓN:
+TÍTULO:
+- Entre 10 y 110 caracteres (ideal 60-70 para Google News)
+- Debe incluir: hecho concreto + actor + contexto RD
+- Formato: [Verbo de acción] + [Quién] + [Qué] + [RD/Dominicana/Santo Domingo]
+- BUENOS: "Banco Central RD reduce tasa a 7% para impulsar crédito hipotecario"
+- MALOS: "Importantes avances en materia económica" (vago, sin datos, sin actor)
+- PROHIBIDO: fechas en el título ("En marzo..."), números al inicio, clickbait
 
-COHERENCIA IMAGEN — CRÍTICO:
-La QUERY_IMAGEN debe describir exactamente el tema de la noticia.
-MAPEO POR TEMA:
-  economía/remesas/banco → "latin america business finance meeting"
-  seguridad/policía/crimen → "caribbean police officers law enforcement"
-  política/gobierno → "dominican republic government officials"
-  béisbol/deporte → "dominican republic baseball player stadium"
-  natación/deporte acuático → "swimmer athlete competition pool"
-  salud/medicina → "latin america hospital doctor medical"
-  tecnología/digital → "latin america technology innovation digital"
-  educación → "caribbean students classroom university"
-  turismo/playa → "dominican republic beach resort punta cana"
-  construcción/vivienda → "latin america construction building workers"
-  medio ambiente → "caribbean nature environment dominican"
-  haití/frontera → "dominican republic haiti border"
-PROHIBIDO: cat, kitten, dog, pet, wedding, bride, couple, romance, fashion, flowers, party
-SI HAY DUDA: usa "dominican republic santo domingo city street"
+DESCRIPCIÓN SEO (meta description):
+- Exactamente 150-160 caracteres — ni más, ni menos
+- Responde: QUÉ pasó + QUIÉN lo hizo + DÓNDE en RD + impacto directo
+- Incluir keyword principal + "República Dominicana" o ciudad específica
+- NO repetir el título palabra por palabra
 
-RESPONDE EXACTAMENTE:
-TITULO: [máx 60 chars, hecho concreto, incluye RD/Dominicana]
-DESCRIPCION: [150-160 chars, qué+quién+dónde]
-PALABRAS: [5 keywords, incluir "república dominicana"]
-QUERY_IMAGEN: [3-5 palabras inglés, coherente con el tema, SIN animales ni bodas]
-ALT_IMAGEN: [15-20 palabras español SEO con RD y tema específico]
+KEYWORDS (5 palabras clave):
+- Siempre incluir "república dominicana" como primera keyword
+- Agregar ciudad específica si aplica (santo domingo, santiago, etc.)
+- Incluir el tema principal (economía, seguridad, béisbol, etc.)
+- Pensar en cómo buscaría esto un dominicano en Google
+
+SEÑALES E-E-A-T EN EL CONTENIDO:
+- Mencionar al menos 1 institución oficial dominicana con su nombre completo
+- Incluir al menos 1 dato numérico verificable (%, RD$, fecha, cantidad)
+- Usar lenguaje de atribución: "según el Ministerio de...", "informó la Policía Nacional"
+- Mantener neutralidad — presentar hechos, no opiniones
+
+COHERENCIA IMAGEN — CRÍTICO PARA PEXELS:
+La QUERY_IMAGEN describe la escena visual exacta de la noticia.
+MAPEO OBLIGATORIO POR TEMA:
+  economía/remesas/banco/finanzas  → "latin america business finance professionals"
+  seguridad/policía/crimen/narcotráfico → "caribbean police officers law enforcement"
+  política/gobierno/ministerio → "dominican republic government building officials"
+  béisbol → "dominican republic baseball player stadium bat"
+  fútbol/deporte → "caribbean football soccer athlete stadium"
+  natación/atletismo → "athlete competition sports arena"
+  salud/hospital/medicina → "latin america hospital doctor medical staff"
+  tecnología/digital/innovación → "latin america technology digital innovation"
+  educación/escuela/universidad → "caribbean students classroom learning"
+  turismo/playa/hotel → "dominican republic beach resort tourism"
+  construcción/vivienda/MOPC → "latin america construction workers building"
+  medio ambiente/clima → "caribbean nature environment conservation"
+  haití/frontera/migración → "dominican republic haiti border diplomacy"
+  elecciones/votación → "latin america election voting democracy"
+  cultura/música/merengue → "dominican republic culture music festival"
+PROHIBIDO ABSOLUTAMENTE: wedding, bride, groom, couple, romance, flowers, fashion, cat, dog, pet, party, birthday
+SI HAY DUDA: "dominican republic santo domingo urban city"
+
+RESPONDE EXACTAMENTE CON ESTE FORMATO:
+TITULO: [60-70 chars, hecho+actor+RD, sin fecha, sin clickbait]
+DESCRIPCION: [150-160 chars exactos, qué+quién+dónde+impacto]
+PALABRAS: [5 keywords: primera siempre "república dominicana"]
+QUERY_IMAGEN: [3-5 palabras inglés, escena periodística, sin bodas ni mascotas]
+ALT_IMAGEN: [15-20 palabras español SEO: describe la imagen + tema + RD]
 SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
-[400-500 palabras, párrafos separados por línea en blanco]`;
+[400-500 palabras, 5 párrafos, pirámide invertida, párrafos separados por línea en blanco]`;
 
         console.log(`\n📰 Generando: ${categoria}${comunicadoExterno ? ' (RSS)' : ''}`);
         const texto = await llamarGemini(prompt);
