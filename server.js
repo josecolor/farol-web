@@ -1,4 +1,4 @@
-/**
+  /**
  * 🏮 EL FAROL AL DÍA — V31.0
  * + Wikipedia API como contexto inteligente para Gemini
  * + Lógica de imágenes mejorada (prioridad RD / SDE)
