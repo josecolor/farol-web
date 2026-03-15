@@ -1,4 +1,4 @@
-  /**
+/**
  * 🏮 EL FAROL AL DÍA — V31.0
  * + Wikipedia API como contexto inteligente para Gemini
  * + Lógica de imágenes mejorada (prioridad RD / SDE)
@@ -428,6 +428,8 @@ async function buscarEnPexels(queries) {
             // Tomar foto aleatoria de las primeras 5 para variedad
             const foto = data.photos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, data.photos.length))];
             console.log(`   📸 Pexels: "${query}" → ${foto.id}`);
+            // Aprender: esta query funcionó
+            registrarQueryPexels(query, 'general', true);
             return foto.src.large2x || foto.src.large || foto.src.original;
         } catch { continue; }
     }
@@ -471,27 +473,216 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
 }
 
 // ══════════════════════════════════════════════════════════
-// BANCO LOCAL DE IMÁGENES
+// BANCO LOCAL DE IMÁGENES — 10 fotos por categoría
 // ══════════════════════════════════════════════════════════
 const PB  = 'https://images.pexels.com/photos';
 const OPT = '?auto=compress&cs=tinysrgb&w=800';
 
 const BANCO_LOCAL = {
-    'politica-gobierno':          [`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`, `${PB}/290595/pexels-photo-290595.jpeg${OPT}`, `${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`, `${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`],
-    'seguridad-policia':          [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`, `${PB}/5699456/pexels-photo-5699456.jpeg${OPT}`, `${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`, `${PB}/6980997/pexels-photo-6980997.jpeg${OPT}`],
-    'relaciones-internacionales': [`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`, `${PB}/358319/pexels-photo-358319.jpeg${OPT}`, `${PB}/3407617/pexels-photo-3407617.jpeg${OPT}`, `${PB}/3997992/pexels-photo-3997992.jpeg${OPT}`],
-    'economia-mercado':           [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`, `${PB}/6772070/pexels-photo-6772070.jpeg${OPT}`, `${PB}/3532557/pexels-photo-3532557.jpeg${OPT}`, `${PB}/6801648/pexels-photo-6801648.jpeg${OPT}`],
-    'infraestructura':            [`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`, `${PB}/323780/pexels-photo-323780.jpeg${OPT}`, `${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`, `${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`],
-    'salud-medicina':             [`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`, `${PB}/40568/pexels-photo-40568.jpeg${OPT}`, `${PB}/4386467/pexels-photo-4386467.jpeg${OPT}`, `${PB}/1170979/pexels-photo-1170979.jpeg${OPT}`],
-    'deporte-beisbol':            [`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`, `${PB}/209977/pexels-photo-209977.jpeg${OPT}`, `${PB}/248318/pexels-photo-248318.jpeg${OPT}`, `${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`],
-    'deporte-futbol':             [`${PB}/46798/pexels-photo-46798.jpeg${OPT}`, `${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`, `${PB}/3873098/pexels-photo-3873098.jpeg${OPT}`, `${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`],
-    'deporte-general':            [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`, `${PB}/936094/pexels-photo-936094.jpeg${OPT}`, `${PB}/2526878/pexels-photo-2526878.jpeg${OPT}`, `${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`],
-    'tecnologia':                 [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`, `${PB}/2582937/pexels-photo-2582937.jpeg${OPT}`, `${PB}/5632399/pexels-photo-5632399.jpeg${OPT}`, `${PB}/3932499/pexels-photo-3932499.jpeg${OPT}`],
-    'educacion':                  [`${PB}/256490/pexels-photo-256490.jpeg${OPT}`, `${PB}/289737/pexels-photo-289737.jpeg${OPT}`, `${PB}/1205651/pexels-photo-1205651.jpeg${OPT}`, `${PB}/4143791/pexels-photo-4143791.jpeg${OPT}`],
-    'cultura-musica':             [`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`, `${PB}/1540406/pexels-photo-1540406.jpeg${OPT}`, `${PB}/3651308/pexels-photo-3651308.jpeg${OPT}`, `${PB}/2521317/pexels-photo-2521317.jpeg${OPT}`],
-    'medio-ambiente':             [`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`, `${PB}/1366919/pexels-photo-1366919.jpeg${OPT}`, `${PB}/2559941/pexels-photo-2559941.jpeg${OPT}`, `${PB}/414612/pexels-photo-414612.jpeg${OPT}`],
-    'turismo':                    [`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`, `${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`, `${PB}/3601425/pexels-photo-3601425.jpeg${OPT}`, `${PB}/2104152/pexels-photo-2104152.jpeg${OPT}`],
-    'emergencia':                 [`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`, `${PB}/263402/pexels-photo-263402.jpeg${OPT}`, `${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`, `${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`]
+    'politica-gobierno': [
+        `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,
+        `${PB}/290595/pexels-photo-290595.jpeg${OPT}`,
+        `${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,
+        `${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,
+        `${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,
+        `${PB}/2990644/pexels-photo-2990644.jpeg${OPT}`,
+        `${PB}/3184418/pexels-photo-3184418.jpeg${OPT}`,
+        `${PB}/5668481/pexels-photo-5668481.jpeg${OPT}`,
+        `${PB}/3182812/pexels-photo-3182812.jpeg${OPT}`,
+        `${PB}/4427611/pexels-photo-4427611.jpeg${OPT}`,
+    ],
+    'seguridad-policia': [
+        `${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`,
+        `${PB}/5699456/pexels-photo-5699456.jpeg${OPT}`,
+        `${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,
+        `${PB}/6980997/pexels-photo-6980997.jpeg${OPT}`,
+        `${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,
+        `${PB}/7491987/pexels-photo-7491987.jpeg${OPT}`,
+        `${PB}/8761572/pexels-photo-8761572.jpeg${OPT}`,
+        `${PB}/5699859/pexels-photo-5699859.jpeg${OPT}`,
+        `${PB}/6289059/pexels-photo-6289059.jpeg${OPT}`,
+        `${PB}/6044266/pexels-photo-6044266.jpeg${OPT}`,
+    ],
+    'relaciones-internacionales': [
+        `${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`,
+        `${PB}/358319/pexels-photo-358319.jpeg${OPT}`,
+        `${PB}/3407617/pexels-photo-3407617.jpeg${OPT}`,
+        `${PB}/3997992/pexels-photo-3997992.jpeg${OPT}`,
+        `${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,
+        `${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,
+        `${PB}/3184339/pexels-photo-3184339.jpeg${OPT}`,
+        `${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,
+        `${PB}/7948035/pexels-photo-7948035.jpeg${OPT}`,
+        `${PB}/3184292/pexels-photo-3184292.jpeg${OPT}`,
+    ],
+    'economia-mercado': [
+        `${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`,
+        `${PB}/6772070/pexels-photo-6772070.jpeg${OPT}`,
+        `${PB}/3532557/pexels-photo-3532557.jpeg${OPT}`,
+        `${PB}/6801648/pexels-photo-6801648.jpeg${OPT}`,
+        `${PB}/210607/pexels-photo-210607.jpeg${OPT}`,
+        `${PB}/1602726/pexels-photo-1602726.jpeg${OPT}`,
+        `${PB}/3943723/pexels-photo-3943723.jpeg${OPT}`,
+        `${PB}/7567443/pexels-photo-7567443.jpeg${OPT}`,
+        `${PB}/6120214/pexels-photo-6120214.jpeg${OPT}`,
+        `${PB}/5849559/pexels-photo-5849559.jpeg${OPT}`,
+    ],
+    'infraestructura': [
+        `${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`,
+        `${PB}/323780/pexels-photo-323780.jpeg${OPT}`,
+        `${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`,
+        `${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,
+        `${PB}/159306/pexels-photo-159306.jpeg${OPT}`,
+        `${PB}/1463917/pexels-photo-1463917.jpeg${OPT}`,
+        `${PB}/2760241/pexels-photo-2760241.jpeg${OPT}`,
+        `${PB}/247763/pexels-photo-247763.jpeg${OPT}`,
+        `${PB}/1134166/pexels-photo-1134166.jpeg${OPT}`,
+        `${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`,
+    ],
+    'salud-medicina': [
+        `${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`,
+        `${PB}/40568/pexels-photo-40568.jpeg${OPT}`,
+        `${PB}/4386467/pexels-photo-4386467.jpeg${OPT}`,
+        `${PB}/1170979/pexels-photo-1170979.jpeg${OPT}`,
+        `${PB}/5327580/pexels-photo-5327580.jpeg${OPT}`,
+        `${PB}/3993212/pexels-photo-3993212.jpeg${OPT}`,
+        `${PB}/4021775/pexels-photo-4021775.jpeg${OPT}`,
+        `${PB}/3985163/pexels-photo-3985163.jpeg${OPT}`,
+        `${PB}/5214958/pexels-photo-5214958.jpeg${OPT}`,
+        `${PB}/4226219/pexels-photo-4226219.jpeg${OPT}`,
+    ],
+    'deporte-beisbol': [
+        `${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`,
+        `${PB}/209977/pexels-photo-209977.jpeg${OPT}`,
+        `${PB}/248318/pexels-photo-248318.jpeg${OPT}`,
+        `${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,
+        `${PB}/163452/pexels-photo-163452.jpeg${OPT}`,
+        `${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,
+        `${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,
+        `${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,
+        `${PB}/186077/pexels-photo-186077.jpeg${OPT}`,
+        `${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`,
+    ],
+    'deporte-futbol': [
+        `${PB}/46798/pexels-photo-46798.jpeg${OPT}`,
+        `${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,
+        `${PB}/3873098/pexels-photo-3873098.jpeg${OPT}`,
+        `${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,
+        `${PB}/274422/pexels-photo-274422.jpeg${OPT}`,
+        `${PB}/1171084/pexels-photo-1171084.jpeg${OPT}`,
+        `${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,
+        `${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,
+        `${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,
+        `${PB}/114296/pexels-photo-114296.jpeg${OPT}`,
+    ],
+    'deporte-general': [
+        `${PB}/863988/pexels-photo-863988.jpeg${OPT}`,
+        `${PB}/936094/pexels-photo-936094.jpeg${OPT}`,
+        `${PB}/2526878/pexels-photo-2526878.jpeg${OPT}`,
+        `${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,
+        `${PB}/1552252/pexels-photo-1552252.jpeg${OPT}`,
+        `${PB}/3764014/pexels-photo-3764014.jpeg${OPT}`,
+        `${PB}/2294353/pexels-photo-2294353.jpeg${OPT}`,
+        `${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`,
+        `${PB}/4761671/pexels-photo-4761671.jpeg${OPT}`,
+        `${PB}/3621517/pexels-photo-3621517.jpeg${OPT}`,
+    ],
+    'tecnologia': [
+        `${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`,
+        `${PB}/2582937/pexels-photo-2582937.jpeg${OPT}`,
+        `${PB}/5632399/pexels-photo-5632399.jpeg${OPT}`,
+        `${PB}/3932499/pexels-photo-3932499.jpeg${OPT}`,
+        `${PB}/1181244/pexels-photo-1181244.jpeg${OPT}`,
+        `${PB}/574071/pexels-photo-574071.jpeg${OPT}`,
+        `${PB}/3861969/pexels-photo-3861969.jpeg${OPT}`,
+        `${PB}/4050315/pexels-photo-4050315.jpeg${OPT}`,
+        `${PB}/5926382/pexels-photo-5926382.jpeg${OPT}`,
+        `${PB}/7988086/pexels-photo-7988086.jpeg${OPT}`,
+    ],
+    'educacion': [
+        `${PB}/256490/pexels-photo-256490.jpeg${OPT}`,
+        `${PB}/289737/pexels-photo-289737.jpeg${OPT}`,
+        `${PB}/1205651/pexels-photo-1205651.jpeg${OPT}`,
+        `${PB}/4143791/pexels-photo-4143791.jpeg${OPT}`,
+        `${PB}/301926/pexels-photo-301926.jpeg${OPT}`,
+        `${PB}/5905559/pexels-photo-5905559.jpeg${OPT}`,
+        `${PB}/3769021/pexels-photo-3769021.jpeg${OPT}`,
+        `${PB}/4491461/pexels-photo-4491461.jpeg${OPT}`,
+        `${PB}/4145197/pexels-photo-4145197.jpeg${OPT}`,
+        `${PB}/8617816/pexels-photo-8617816.jpeg${OPT}`,
+    ],
+    'cultura-musica': [
+        `${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`,
+        `${PB}/1540406/pexels-photo-1540406.jpeg${OPT}`,
+        `${PB}/3651308/pexels-photo-3651308.jpeg${OPT}`,
+        `${PB}/2521317/pexels-photo-2521317.jpeg${OPT}`,
+        `${PB}/1047442/pexels-photo-1047442.jpeg${OPT}`,
+        `${PB}/167636/pexels-photo-167636.jpeg${OPT}`,
+        `${PB}/995301/pexels-photo-995301.jpeg${OPT}`,
+        `${PB}/2191013/pexels-photo-2191013.jpeg${OPT}`,
+        `${PB}/1105666/pexels-photo-1105666.jpeg${OPT}`,
+        `${PB}/1769280/pexels-photo-1769280.jpeg${OPT}`,
+    ],
+    'medio-ambiente': [
+        `${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`,
+        `${PB}/1366919/pexels-photo-1366919.jpeg${OPT}`,
+        `${PB}/2559941/pexels-photo-2559941.jpeg${OPT}`,
+        `${PB}/414612/pexels-photo-414612.jpeg${OPT}`,
+        `${PB}/247599/pexels-photo-247599.jpeg${OPT}`,
+        `${PB}/1666012/pexels-photo-1666012.jpeg${OPT}`,
+        `${PB}/572897/pexels-photo-572897.jpeg${OPT}`,
+        `${PB}/1021142/pexels-photo-1021142.jpeg${OPT}`,
+        `${PB}/3225517/pexels-photo-3225517.jpeg${OPT}`,
+        `${PB}/1423600/pexels-photo-1423600.jpeg${OPT}`,
+    ],
+    'turismo': [
+        `${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`,
+        `${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`,
+        `${PB}/3601425/pexels-photo-3601425.jpeg${OPT}`,
+        `${PB}/2104152/pexels-photo-2104152.jpeg${OPT}`,
+        `${PB}/237272/pexels-photo-237272.jpeg${OPT}`,
+        `${PB}/1450360/pexels-photo-1450360.jpeg${OPT}`,
+        `${PB}/3601453/pexels-photo-3601453.jpeg${OPT}`,
+        `${PB}/994605/pexels-photo-994605.jpeg${OPT}`,
+        `${PB}/1268855/pexels-photo-1268855.jpeg${OPT}`,
+        `${PB}/3155666/pexels-photo-3155666.jpeg${OPT}`,
+    ],
+    'emergencia': [
+        `${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`,
+        `${PB}/263402/pexels-photo-263402.jpeg${OPT}`,
+        `${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,
+        `${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,
+        `${PB}/3259629/pexels-photo-3259629.jpeg${OPT}`,
+        `${PB}/4386396/pexels-photo-4386396.jpeg${OPT}`,
+        `${PB}/6129049/pexels-photo-6129049.jpeg${OPT}`,
+        `${PB}/5726825/pexels-photo-5726825.jpeg${OPT}`,
+        `${PB}/7541956/pexels-photo-7541956.jpeg${OPT}`,
+        `${PB}/6129113/pexels-photo-6129113.jpeg${OPT}`,
+    ],
+    'vivienda-social': [
+        `${PB}/323780/pexels-photo-323780.jpeg${OPT}`,
+        `${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`,
+        `${PB}/2102587/pexels-photo-2102587.jpeg${OPT}`,
+        `${PB}/1370704/pexels-photo-1370704.jpeg${OPT}`,
+        `${PB}/259588/pexels-photo-259588.jpeg${OPT}`,
+        `${PB}/1029599/pexels-photo-1029599.jpeg${OPT}`,
+        `${PB}/280229/pexels-photo-280229.jpeg${OPT}`,
+        `${PB}/534151/pexels-photo-534151.jpeg${OPT}`,
+        `${PB}/1080721/pexels-photo-1080721.jpeg${OPT}`,
+        `${PB}/2724749/pexels-photo-2724749.jpeg${OPT}`,
+    ],
+    'transporte-vial': [
+        `${PB}/93398/pexels-photo-93398.jpeg${OPT}`,
+        `${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,
+        `${PB}/1494277/pexels-photo-1494277.jpeg${OPT}`,
+        `${PB}/210182/pexels-photo-210182.jpeg${OPT}`,
+        `${PB}/2199293/pexels-photo-2199293.jpeg${OPT}`,
+        `${PB}/3806978/pexels-photo-3806978.jpeg${OPT}`,
+        `${PB}/1838640/pexels-photo-1838640.jpeg${OPT}`,
+        `${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,
+        `${PB}/3802510/pexels-photo-3802510.jpeg${OPT}`,
+        `${PB}/163786/pexels-photo-163786.jpeg${OPT}`,
+    ],
 };
 
 const FALLBACK_CAT = {
@@ -500,7 +691,11 @@ const FALLBACK_CAT = {
     'Internacionales': 'relaciones-internacionales',
     'Economía':        'economia-mercado',
     'Tecnología':      'tecnologia',
-    'Espectáculos':    'cultura-musica'
+    'Espectáculos':    'cultura-musica',
+    'Salud':           'salud-medicina',
+    'Educación':       'educacion',
+    'Turismo':         'turismo',
+    'Ambiente':        'medio-ambiente',
 };
 
 function imgLocal(sub, cat) {
@@ -675,6 +870,25 @@ async function inicializarBase() {
             )
         `);
 
+        // ── TABLA DE MEMORIA IA ──────────────────────────────
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS memoria_ia(
+                id SERIAL PRIMARY KEY,
+                tipo VARCHAR(50) NOT NULL,
+                valor TEXT NOT NULL,
+                categoria VARCHAR(100),
+                exitos INTEGER DEFAULT 0,
+                fallos INTEGER DEFAULT 0,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        // Índice para búsquedas rápidas
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_memoria_tipo
+            ON memoria_ia(tipo, categoria)
+        `).catch(() => {});
+
         const fix = await client.query(`
             UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='pexels'
             WHERE imagen LIKE '%/images/cache/%' OR imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''
@@ -689,19 +903,128 @@ async function inicializarBase() {
 }
 
 // ══════════════════════════════════════════════════════════
+// ▶ SISTEMA DE MEMORIA IA
+// Aprende qué queries de Pexels funcionan bien por categoría,
+// qué temas generan errores, y construye contexto entre publicaciones
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Registra un query de Pexels como exitoso o fallido
+ * para que el sistema aprenda qué funciona por categoría
+ */
+async function registrarQueryPexels(query, categoria, exito) {
+    try {
+        await pool.query(`
+            INSERT INTO memoria_ia(tipo, valor, categoria, exitos, fallos)
+            VALUES('pexels_query', $1, $2, $3, $4)
+            ON CONFLICT DO NOTHING
+        `, [query, categoria, exito ? 1 : 0, exito ? 0 : 1]);
+
+        // Si ya existe, actualizar contadores
+        await pool.query(`
+            UPDATE memoria_ia
+            SET exitos = exitos + $1,
+                fallos = fallos + $2,
+                ultima_vez = NOW()
+            WHERE tipo = 'pexels_query' AND valor = $3 AND categoria = $4
+        `, [exito ? 1 : 0, exito ? 0 : 1, query, categoria]);
+    } catch(e) { /* silencioso */ }
+}
+
+/**
+ * Obtiene los mejores queries de Pexels aprendidos para una categoría
+ * Prioriza los que tienen más éxitos y menos fallos
+ */
+async function obtenerMejoresQueries(categoria) {
+    try {
+        const r = await pool.query(`
+            SELECT valor, exitos, fallos,
+                   (exitos::float / GREATEST(exitos + fallos, 1)) as tasa_exito
+            FROM memoria_ia
+            WHERE tipo = 'pexels_query'
+              AND (categoria = $1 OR categoria = 'general')
+              AND exitos > 0
+            ORDER BY tasa_exito DESC, exitos DESC
+            LIMIT 5
+        `, [categoria]);
+        return r.rows.map(r => r.valor);
+    } catch(e) { return []; }
+}
+
+/**
+ * Registra un error de generación para no repetirlo
+ */
+async function registrarError(tipo, descripcion, categoria) {
+    try {
+        await pool.query(`
+            INSERT INTO memoria_ia(tipo, valor, categoria, fallos)
+            VALUES('error', $1, $2, 1)
+            ON CONFLICT DO NOTHING
+        `, [descripcion.substring(0, 200), categoria]);
+
+        await pool.query(`
+            UPDATE memoria_ia
+            SET fallos = fallos + 1, ultima_vez = NOW()
+            WHERE tipo = 'error' AND valor = $1
+        `, [descripcion.substring(0, 200)]);
+    } catch(e) { /* silencioso */ }
+}
+
+/**
+ * Construye contexto de memoria para el prompt de Gemini:
+ * - Últimas 15 noticias publicadas (no repetir)
+ * - Temas que fallaron recientemente (evitar)
+ * - Queries exitosas de imagen (sugerir)
+ */
+async function construirMemoria(categoria) {
+    let memoria = '';
+    try {
+        // Noticias recientes — no repetir
+        const recientes = await pool.query(`
+            SELECT titulo, fecha FROM noticias
+            WHERE estado = 'publicada'
+            ORDER BY fecha DESC LIMIT 15
+        `);
+        if (recientes.rows.length) {
+            memoria += `\n⛔ YA PUBLICADAS — NO repetir ni parafrasear:\n`;
+            memoria += recientes.rows.map((x, i) => `${i+1}. ${x.titulo}`).join('\n');
+            memoria += '\n';
+        }
+
+        // Errores recientes — evitar esos temas
+        const errores = await pool.query(`
+            SELECT valor FROM memoria_ia
+            WHERE tipo = 'error' AND categoria = $1
+              AND ultima_vez > NOW() - INTERVAL '24 hours'
+            ORDER BY fallos DESC LIMIT 3
+        `, [categoria]);
+        if (errores.rows.length) {
+            memoria += `\n⚠️ TEMAS CON PROBLEMAS RECIENTES (evitar):\n`;
+            memoria += errores.rows.map(e => `- ${e.valor}`).join('\n');
+            memoria += '\n';
+        }
+
+        // Queries de imagen exitosas — sugerir
+        const mejores = await obtenerMejoresQueries(categoria);
+        if (mejores.length) {
+            memoria += `\n💡 QUERIES DE IMAGEN QUE FUNCIONAN BIEN PARA ${categoria.toUpperCase()}:\n`;
+            memoria += mejores.map(q => `- "${q}"`).join('\n');
+            memoria += '\n';
+        }
+
+    } catch(e) { /* silencioso — memoria es opcional */ }
+    return memoria;
+}
+
+// ══════════════════════════════════════════════════════════
 // ▶ GENERACIÓN DE NOTICIAS — CON WIKIPEDIA + GEMINI
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
 
-        // Memoria: noticias ya publicadas (evitar repetir)
-        let memoria = '';
-        try {
-            const r = await pool.query(`SELECT titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 10`);
-            if (r.rows.length)
-                memoria = `\n⛔ NOTICIAS YA PUBLICADAS — NO repetir ni parafrasear:\n${r.rows.map((x, i) => `${i + 1}. ${x.titulo}`).join('\n')}\n`;
-        } catch (e) {}
+        // Memoria enriquecida: noticias previas + errores + queries exitosas
+        const memoria = await construirMemoria(categoria);
 
         // Fuente del contenido
         const fuenteContenido = comunicadoExterno
@@ -716,32 +1039,58 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
 
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
 
-        // Prompt enriquecido con Wikipedia
+        // Prompt periodístico mejorado — coherencia imagen + SEO real
         const prompt = `${CONFIG_IA.instruccion_principal}
+
+ROL: Eres el editor jefe de El Farol al Día. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes, impacto real. Periodismo serio, sin exageración.
 ${memoria}
 ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-TONO: ${CONFIG_IA.tono}
-EXTENSIÓN: 400-500 palabras, estilo Diario Libre / Listín Diario
+TONO: ${CONFIG_IA.tono} — periodismo profesional, NO sensacionalismo
+EXTENSIÓN: 400-500 palabras en 5 párrafos estructurados
 EVITAR: ${CONFIG_IA.evitar}
 ÉNFASIS LOCAL: ${CONFIG_IA.enfasis}
 
-INSTRUCCIONES DE IMAGEN:
-- QUERY_IMAGEN: en inglés, 3-5 palabras que describan una foto periodística real de noticias (NO bodas, NO parejas, NO romance, NO moda, NO celebraciones sociales). Debe ser una foto de prensa: políticos, policías, edificios, deportistas, economía, tecnología, naturaleza caribeña.
-- IMPORTANTE: Si la noticia es sobre seguridad, política, economía o sociedad en RD — usa términos como "dominican republic government", "caribbean police", "santo domingo city", "latin america business". NUNCA "wedding", "bride", "couple", "fashion", "party".
-- ALT_IMAGEN: en español, 15-20 palabras SEO que mencionen el tema + República Dominicana o Santo Domingo
-- Si la noticia es sobre Los Mina, Invivienda, SDE, menciona esa zona en el ALT_IMAGEN
-- SUBTEMA_LOCAL: uno de: ${Object.keys(BANCO_LOCAL).join(', ')}
+ESTRUCTURA OBLIGATORIA DEL CONTENIDO:
+- Párrafo 1 (lead): QUÉ pasó + QUIÉN + CUÁNDO + DÓNDE. Máximo 3 líneas.
+- Párrafo 2: Contexto y antecedentes con datos concretos (cifras, porcentajes, fechas reales de RD)
+- Párrafo 3: Declaraciones o reacciones de instituciones o personas dominicanas
+- Párrafo 4: Impacto directo para los ciudadanos dominicanos
+- Párrafo 5: Perspectiva futura o próximos pasos esperados
 
-RESPONDE EXACTAMENTE CON ESTE FORMATO (sin texto extra antes o después):
-TITULO: [50-60 caracteres, sin asteriscos ni comillas]
-DESCRIPCION: [150-160 caracteres SEO para Google]
-PALABRAS: [5 palabras clave separadas por comas]
-QUERY_IMAGEN: [inglés 3-5 palabras, foto periodística real]
-ALT_IMAGEN: [español SEO 15-20 palabras, menciona RD]
-SUBTEMA_LOCAL: [un subtema de la lista]
+REGLAS SEO:
+- TITULO: hecho concreto + contexto RD. Incluir "RD", "Dominicana" o "Santo Domingo". Máx 60 chars.
+  EJEMPLOS BUENOS: "Banco Central RD reduce tasas al 7% para impulsar economía"
+  EJEMPLOS MALOS: "Remesas mantienen pulso firme" (vago, sin datos)
+- DESCRIPCION: responde QUÉ+QUIÉN+DÓNDE en 150-160 chars exactos para Google
+
+COHERENCIA IMAGEN — CRÍTICO:
+La QUERY_IMAGEN debe describir exactamente el tema de la noticia.
+MAPEO POR TEMA:
+  economía/remesas/banco → "latin america business finance meeting"
+  seguridad/policía/crimen → "caribbean police officers law enforcement"
+  política/gobierno → "dominican republic government officials"
+  béisbol/deporte → "dominican republic baseball player stadium"
+  natación/deporte acuático → "swimmer athlete competition pool"
+  salud/medicina → "latin america hospital doctor medical"
+  tecnología/digital → "latin america technology innovation digital"
+  educación → "caribbean students classroom university"
+  turismo/playa → "dominican republic beach resort punta cana"
+  construcción/vivienda → "latin america construction building workers"
+  medio ambiente → "caribbean nature environment dominican"
+  haití/frontera → "dominican republic haiti border"
+PROHIBIDO: cat, kitten, dog, pet, wedding, bride, couple, romance, fashion, flowers, party
+SI HAY DUDA: usa "dominican republic santo domingo city street"
+
+RESPONDE EXACTAMENTE:
+TITULO: [máx 60 chars, hecho concreto, incluye RD/Dominicana]
+DESCRIPCION: [150-160 chars, qué+quién+dónde]
+PALABRAS: [5 keywords, incluir "república dominicana"]
+QUERY_IMAGEN: [3-5 palabras inglés, coherente con el tema, SIN animales ni bodas]
+ALT_IMAGEN: [15-20 palabras español SEO con RD y tema específico]
+SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
 [400-500 palabras, párrafos separados por línea en blanco]`;
 
@@ -810,7 +1159,10 @@ CONTENIDO:
         );
 
         console.log(`\n✅ /noticia/${slFin}`);
-        invalidarCache(); // La portada mostrará la nueva noticia de inmediato
+        invalidarCache();
+
+        // Aprender: registrar query de imagen exitosa
+        if (qi) registrarQueryPexels(qi, categoria, true);
 
         // Publicar en redes (no bloquea)
         Promise.allSettled([
@@ -826,6 +1178,8 @@ CONTENIDO:
 
     } catch (error) {
         console.error('❌', error.message);
+        // Aprender del error para no repetirlo
+        await registrarError('generacion', error.message, categoria);
         return { success: false, error: error.message };
     }
 }
@@ -833,17 +1187,49 @@ CONTENIDO:
 // ══════════════════════════════════════════════════════════
 // RSS PORTALES GOBIERNO RD
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// FUENTES RSS — 30 FUENTES (gobierno RD + medios dominicanos + Caribe)
+// ══════════════════════════════════════════════════════════
 const FUENTES_RSS = [
-    { url: 'https://presidencia.gob.do/feed',      categoria: 'Nacionales', nombre: 'Presidencia RD' },
-    { url: 'https://policia.gob.do/feed',           categoria: 'Nacionales', nombre: 'Policía Nacional' },
-    { url: 'https://www.mopc.gob.do/feed',          categoria: 'Nacionales', nombre: 'MOPC' },
-    { url: 'https://www.salud.gob.do/feed',         categoria: 'Nacionales', nombre: 'Salud Pública' },
-    { url: 'https://www.educacion.gob.do/feed',     categoria: 'Nacionales', nombre: 'Educación' },
-    { url: 'https://www.bancentral.gov.do/feed',    categoria: 'Economía',   nombre: 'Banco Central' },
-    { url: 'https://mepyd.gob.do/feed',             categoria: 'Economía',   nombre: 'MEPyD' },
-    { url: 'https://www.invivienda.gob.do/feed',    categoria: 'Nacionales', nombre: 'Invivienda' },
-    { url: 'https://mitur.gob.do/feed',             categoria: 'Nacionales', nombre: 'Turismo' },
-    { url: 'https://pgr.gob.do/feed',               categoria: 'Nacionales', nombre: 'Procuraduría' }
+    // ── GOBIERNO RD (10 originales) ──
+    { url: 'https://presidencia.gob.do/feed',           categoria: 'Nacionales',      nombre: 'Presidencia RD' },
+    { url: 'https://policia.gob.do/feed',               categoria: 'Nacionales',      nombre: 'Policía Nacional' },
+    { url: 'https://www.mopc.gob.do/feed',              categoria: 'Nacionales',      nombre: 'MOPC' },
+    { url: 'https://www.salud.gob.do/feed',             categoria: 'Nacionales',      nombre: 'Salud Pública' },
+    { url: 'https://www.educacion.gob.do/feed',         categoria: 'Nacionales',      nombre: 'Educación' },
+    { url: 'https://www.bancentral.gov.do/feed',        categoria: 'Economía',        nombre: 'Banco Central' },
+    { url: 'https://mepyd.gob.do/feed',                 categoria: 'Economía',        nombre: 'MEPyD' },
+    { url: 'https://www.invivienda.gob.do/feed',        categoria: 'Nacionales',      nombre: 'Invivienda' },
+    { url: 'https://mitur.gob.do/feed',                 categoria: 'Nacionales',      nombre: 'Turismo' },
+    { url: 'https://pgr.gob.do/feed',                   categoria: 'Nacionales',      nombre: 'Procuraduría' },
+
+    // ── MEDIOS DOMINICANOS ──
+    { url: 'https://www.diariolibre.com/feed',          categoria: 'Nacionales',      nombre: 'Diario Libre' },
+    { url: 'https://listindiario.com/feed',             categoria: 'Nacionales',      nombre: 'Listín Diario' },
+    { url: 'https://elnacional.com.do/feed/',           categoria: 'Nacionales',      nombre: 'El Nacional' },
+    { url: 'https://www.eldinero.com.do/feed/',         categoria: 'Economía',        nombre: 'El Dinero' },
+    { url: 'https://www.elcaribe.com.do/feed/',         categoria: 'Nacionales',      nombre: 'El Caribe' },
+    { url: 'https://acento.com.do/feed/',               categoria: 'Nacionales',      nombre: 'Acento' },
+    { url: 'https://www.hoy.com.do/feed/',              categoria: 'Nacionales',      nombre: 'Hoy' },
+    { url: 'https://www.noticiassin.com/feed/',         categoria: 'Nacionales',      nombre: 'Noticias SIN' },
+    { url: 'https://www.cdt.com.do/feed/',              categoria: 'Deportes',        nombre: 'CDT Deportes' },
+    { url: 'https://www.beisbolrd.com/feed/',           categoria: 'Deportes',        nombre: 'Béisbol RD' },
+
+    // ── INTERNACIONALES / CARIBE ──
+    { url: 'https://www.reuters.com/arc/outboundfeeds/rss/category/latam/?outputType=xml', categoria: 'Internacionales', nombre: 'Reuters LatAm' },
+    { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',   categoria: 'Internacionales', nombre: 'BBC Mundo' },
+    { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', categoria: 'Internacionales', nombre: 'NYT World' },
+    { url: 'https://www.elnuevoherald.com/ultimas-noticias/?widgetName=rssfeed&widgetContentId=725095&getXmlFeed=true', categoria: 'Internacionales', nombre: 'El Nuevo Herald' },
+
+    // ── TECNOLOGÍA / ECONOMÍA GLOBAL ──
+    { url: 'https://feeds.feedburner.com/TechCrunch',  categoria: 'Tecnología',      nombre: 'TechCrunch' },
+    { url: 'https://www.wired.com/feed/rss',           categoria: 'Tecnología',      nombre: 'Wired' },
+    { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economía',   nombre: 'Bloomberg Markets' },
+
+    // ── ESPECTÁCULOS / CULTURA ──
+    { url: 'https://www.primerahora.com/entretenimiento/feed/',  categoria: 'Espectáculos', nombre: 'Primera Hora Ent.' },
+    { url: 'https://www.telemundo.com/shows/rss',      categoria: 'Espectáculos',    nombre: 'Telemundo' },
+    { url: 'https://www.univision.com/rss',            categoria: 'Espectáculos',    nombre: 'Univision' },
 ];
 
 async function procesarRSS() {
@@ -990,6 +1376,21 @@ app.post('/api/procesar-rss', async (req, res) => {
 });
 
 // ▶ Endpoint para probar Wikipedia en aislado
+// Ver memoria del sistema
+app.get('/api/memoria', async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    try {
+        const queries = await pool.query(`
+            SELECT tipo, valor, categoria, exitos, fallos,
+                   ROUND((exitos::float / GREATEST(exitos+fallos,1))*100) as pct_exito,
+                   ultima_vez
+            FROM memoria_ia
+            ORDER BY ultima_vez DESC LIMIT 50
+        `);
+        res.json({ success: true, registros: queries.rows });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/wikipedia', async (req, res) => {
     const { tema, categoria } = req.query;
     if (!tema) return res.status(400).json({ error: 'Falta ?tema=' });
