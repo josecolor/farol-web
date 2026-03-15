@@ -198,6 +198,16 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
 .btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
 .btn-confirm-edit:hover{background:var(--fuego2);transform:translateY(-1px)}
 
+/* SEO QUALITY */
+.seo-item{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px;margin-bottom:6px}
+.seo-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.seo-bars{display:flex;flex-direction:column;gap:4px}
+.seo-bar-row{display:flex;align-items:center;gap:8px}
+.seo-bar-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
+.seo-bar-track{flex:1;height:4px;background:var(--borde);border-radius:2px;overflow:hidden}
+.seo-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+.seo-bar-val{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);width:28px;text-align:right;flex-shrink:0}
+
 @media(max-width:900px){.layout{grid-template-columns:1fr}}
 @media(max-width:600px){.container{padding:16px}.cat-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
@@ -223,11 +233,11 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
   <div class="ticker-scroll">
     <div class="ticker-inner">
       <span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API + Memoria IA</span>
-      <span>//</span><span>Cobertura: RD · Santo Domingo Este · Los Mina · Invivienda · Mundo</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
       <span>//</span><span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API + Memoria IA</span>
-      <span>//</span><span>Cobertura: RD · Santo Domingo Este · Los Mina · Invivienda · Mundo</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
     </div>
   </div>
 </div>
@@ -256,11 +266,13 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             </label>
           </div>
           <div class="cap-list">
-            <div class="cap-item"><div class="cap-dot"></div> Wikipedia como contexto factual de redacción</div>
-            <div class="cap-item"><div class="cap-dot"></div> Pexels API + banco local de imágenes RD</div>
-            <div class="cap-item"><div class="cap-dot"></div> Memoria IA — aprende entre publicaciones</div>
-            <div class="cap-item"><div class="cap-dot"></div> Filtro anti-fotos irrelevantes (bodas, moda)</div>
-            <div class="cap-item"><div class="cap-dot"></div> Publicación automática Facebook + Twitter/X</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pensamiento crítico periodístico — 5W antes de escribir</div>
+            <div class="cap-item"><div class="cap-dot"></div> E-E-A-T: cita instituciones oficiales + datos verificables</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida — dato más importante primero</div>
+            <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
+            <div class="cap-item"><div class="cap-dot"></div> Wikipedia + Memoria IA entre publicaciones</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pexels filtrado — sin bodas, mascotas ni moda</div>
+            <div class="cap-item"><div class="cap-dot"></div> Facebook + Twitter automático tras publicar</div>
           </div>
         </div>
       </div>
@@ -371,6 +383,24 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             </div>
           </div>
           <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+        </div>
+      </div>
+
+      <!-- CALIDAD SEO -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🔍 CALIDAD SEO</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarCalidadSEO()">🔄</button>
+        </div>
+        <div class="card-body">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            Análisis de las últimas noticias publicadas según Google News 2025.
+          </p>
+          <div id="seoLista" style="display:flex;flex-direction:column;gap:6px">
+            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+              Cargando análisis...
+            </div>
+          </div>
         </div>
       </div>
 
@@ -802,14 +832,70 @@ document.getElementById('modalEditImg').addEventListener('click', function(e) {
   if (e.target === this) cerrarModalEdit();
 });
 
+/* ── CALIDAD SEO ── */
+async function cargarCalidadSEO() {
+  const lista = document.getElementById('seoLista');
+  try {
+    const r = await fetch(`${API}/api/noticias`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const noticias = (d.noticias || []).slice(0, 5);
+
+    if (!noticias.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:16px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">Sin noticias aún</div>';
+      return;
+    }
+
+    lista.innerHTML = noticias.map(n => {
+      const tLen   = n.titulo.length;
+      const tScore = tLen >= 50 && tLen <= 75 ? 100 : tLen >= 40 && tLen <= 90 ? 70 : 40;
+      const tColor = tScore >= 80 ? '#22C55E' : tScore >= 60 ? '#ffc107' : '#EF4444';
+
+      const hasRD  = /dominicana|dominicano|rd\b|santo domingo|santiago/i.test(n.titulo) ? 100 : 40;
+      const rdColor= hasRD >= 80 ? '#22C55E' : '#EF4444';
+
+      const hasImg = n.imagen?.startsWith('http') ? 100 : 0;
+      const imgColor = hasImg ? '#22C55E' : '#EF4444';
+
+      const titulo = n.titulo.length > 32 ? n.titulo.substring(0, 32) + '…' : n.titulo;
+
+      return `
+      <div class="seo-item">
+        <div class="seo-titulo" title="${n.titulo}">${titulo}</div>
+        <div class="seo-bars">
+          <div class="seo-bar-row">
+            <span class="seo-bar-label">TÍTULO</span>
+            <div class="seo-bar-track"><div class="seo-bar-fill" style="width:${tScore}%;background:${tColor}"></div></div>
+            <span class="seo-bar-val" style="color:${tColor}">${tLen}c</span>
+          </div>
+          <div class="seo-bar-row">
+            <span class="seo-bar-label">GEO RD</span>
+            <div class="seo-bar-track"><div class="seo-bar-fill" style="width:${hasRD}%;background:${rdColor}"></div></div>
+            <span class="seo-bar-val" style="color:${rdColor}">${hasRD === 100 ? '✅' : '❌'}</span>
+          </div>
+          <div class="seo-bar-row">
+            <span class="seo-bar-label">IMAGEN</span>
+            <div class="seo-bar-track"><div class="seo-bar-fill" style="width:${hasImg}%;background:${imgColor}"></div></div>
+            <span class="seo-bar-val" style="color:${imgColor}">${hasImg ? '✅' : '❌'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Error</div>';
+  }
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
   cargarConfig();
   cargarEstadisticas();
   cargarListaNoticias();
   cargarMemoria();
+  cargarCalidadSEO();
   setInterval(cargarEstadisticas, 30000);
-  setInterval(cargarMemoria, 60000); // actualiza memoria cada minuto
+  setInterval(cargarMemoria, 60000);
+  setInterval(cargarCalidadSEO, 60000);
 });
 </script>
 </body>
