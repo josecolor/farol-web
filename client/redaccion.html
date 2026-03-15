@@ -20,414 +20,195 @@
   --muted:  #4E4E58;
   --verde:  #22C55E;
   --rojo:   #EF4444;
+  --azul:   #3B82F6;
   --glow:   rgba(255,85,0,.35);
 }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 100% 0%,rgba(255,85,0,.06) 0%,transparent 55%),radial-gradient(ellipse 40% 30% at 0% 100%,rgba(255,85,0,.03) 0%,transparent 50%);pointer-events:none;z-index:0}
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);box-shadow:0 4px 30px rgba(255,85,0,.15)}
+.header-inner{max-width:1280px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px var(--glow)}
+.logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--fuego);line-height:1}
+.logo-text span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);display:block}
+.header-right{display:flex;align-items:center;gap:12px}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(255,85,0,.12);border:1px solid rgba(255,85,0,.3);padding:5px 14px;border-radius:20px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--fuego);box-shadow:0 0 8px var(--fuego);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.live-text{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--fuego)}
+.header-clock{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);letter-spacing:2px}
+.btn-portal{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 16px;border-radius:6px;transition:all .2s}
+.btn-portal:hover{border-color:rgba(255,85,0,.4);color:var(--fuego)}
 
-body {
-  font-family: 'Lora', Georgia, serif;
-  background: var(--negro);
-  color: var(--crema);
-  min-height: 100vh;
-}
+/* TICKER */
+.ticker{background:var(--fuego);height:30px;display:flex;align-items:center;overflow:hidden}
+.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-scroll{flex:1;overflow:hidden}
+.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 25s linear infinite;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.9)}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
-/* Fondo sutil */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background:
-    radial-gradient(ellipse 70% 50% at 100% 0%, rgba(255,85,0,.06) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 30% at 0% 100%, rgba(255,85,0,.03) 0%, transparent 50%);
-  pointer-events: none; z-index: 0;
-}
+/* LAYOUT */
+.container{max-width:1280px;margin:0 auto;padding:32px 28px 60px;position:relative;z-index:1}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
 
-/* ── HEADER ── */
-header {
-  background: rgba(8,8,8,.98);
-  border-bottom: 2px solid var(--fuego);
-  position: sticky; top: 0; z-index: 100;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 30px rgba(255,85,0,.15);
-}
-.header-inner {
-  max-width: 1280px; margin: 0 auto;
-  padding: 0 28px; height: 62px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.logo {
-  display: flex; align-items: center; gap: 12px;
-  text-decoration: none;
-}
-.logo-flame {
-  width: 40px; height: 40px;
-  background: linear-gradient(135deg, var(--fuego), var(--fuego2));
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 0 20px var(--glow);
-}
-.logo-text h1 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px; letter-spacing: 4px; color: var(--fuego); line-height: 1;
-}
-.logo-text span {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px; letter-spacing: 2px; color: var(--muted); display: block;
-}
-.header-right { display: flex; align-items: center; gap: 12px; }
-.live-pill {
-  display: flex; align-items: center; gap: 7px;
-  background: rgba(255,85,0,.12);
-  border: 1px solid rgba(255,85,0,.3);
-  padding: 5px 14px; border-radius: 20px;
-}
-.live-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--fuego); box-shadow: 0 0 8px var(--fuego);
-  animation: blink 1.5s infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
-.live-text { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px; color: var(--fuego); }
-.header-clock { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); letter-spacing: 2px; }
-.btn-portal {
-  font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 2px;
-  color: var(--crema2); text-decoration: none;
-  border: 1px solid var(--borde); padding: 7px 16px; border-radius: 6px;
-  transition: all .2s;
-}
-.btn-portal:hover { border-color: rgba(255,85,0,.4); color: var(--fuego); }
+/* CARD */
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .2s}
+.card:hover{border-color:rgba(255,85,0,.12)}
+.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);display:flex;align-items:center;justify-content:space-between}
+.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);display:flex;align-items:center;gap:10px}
+.card-body{padding:22px}
 
-/* ── TICKER ── */
-.ticker {
-  background: var(--fuego);
-  height: 30px; display: flex; align-items: center; overflow: hidden;
-}
-.ticker-tag {
-  font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px;
-  background: rgba(0,0,0,.3); color: #fff;
-  padding: 0 16px; height: 100%; display: flex; align-items: center; flex-shrink: 0;
-}
-.ticker-scroll { flex: 1; overflow: hidden; }
-.ticker-inner {
-  display: inline-flex; gap: 48px; white-space: nowrap;
-  animation: scroll 25s linear infinite;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,.9);
-}
-@keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+/* IA SWITCH */
+.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px;transition:border-color .3s}
+.ia-row.on{border-color:rgba(34,197,94,.25)}
+.ia-left{display:flex;align-items:center;gap:14px}
+.ia-lamp{font-size:28px;transition:filter .3s}
+.ia-row.on .ia-lamp{filter:drop-shadow(0 0 8px rgba(34,197,94,.5))}
+.ia-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--crema)}
+.ia-status{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:3px}
+.ia-status.on{color:var(--verde)}
+.ia-status.off{color:var(--rojo)}
+.switch{position:relative;display:inline-block;width:56px;height:30px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#222;border-radius:30px;transition:.3s;border:1px solid rgba(255,255,255,.08)}
+.slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.3s}
+input:checked+.slider{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4)}
+input:checked+.slider:before{transform:translateX(26px);background:var(--verde);box-shadow:0 0 8px var(--verde)}
 
-/* ── LAYOUT ── */
-.container {
-  max-width: 1280px; margin: 0 auto;
-  padding: 32px 28px 60px;
-  position: relative; z-index: 1;
-}
+/* CAPS */
+.cap-list{display:flex;flex-direction:column;gap:7px}
+.cap-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.cap-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);box-shadow:0 0 5px var(--verde);flex-shrink:0}
 
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
-  align-items: start;
-}
+/* FORM */
+.fgroup{margin-bottom:18px}
+.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
+input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
+input::placeholder,textarea::placeholder{color:var(--muted);font-style:italic}
+select option{background:#0e0e12}
+textarea{resize:vertical;min-height:90px;line-height:1.65}
 
-/* ── CARD BASE ── */
-.card {
-  background: rgba(255,255,255,.025);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 20px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 4px 24px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);
-  transition: border-color .2s;
-}
-.card:hover { border-color: rgba(255,85,0,.12); }
+/* CATEGORÍAS */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid var(--borde);background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.cat-tile .ce{font-size:20px;display:block;margin-bottom:5px}
+.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema);background:rgba(255,85,0,.06)}
+.cat-tile.sel{border-color:var(--fuego);background:rgba(255,85,0,.14);color:var(--fuego)}
 
-.card-header {
-  padding: 16px 22px;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-  background: rgba(255,255,255,.015);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.card-header h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px; letter-spacing: 3px; color: var(--fuego);
-  display: flex; align-items: center; gap: 10px;
-}
-.card-body { padding: 22px; }
+/* BOTÓN PUBLICAR */
+.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego) 0%,var(--fuego2) 100%);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;box-shadow:0 6px 24px var(--glow);position:relative;overflow:hidden}
+.btn-publish::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+.btn-publish:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,85,0,.5)}
+.bp-icon{font-size:22px}
+.bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
+.bp-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.7);display:block;margin-top:2px}
+.bp-spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── SWITCH IA ── */
-.ia-row {
-  display: flex; align-items: center; justify-content: space-between;
-  background: rgba(0,0,0,.4);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 10px; padding: 16px 18px; margin-bottom: 20px;
-  transition: border-color .3s;
-}
-.ia-row.on { border-color: rgba(34,197,94,.25); }
-.ia-left { display: flex; align-items: center; gap: 14px; }
-.ia-lamp { font-size: 28px; transition: filter .3s; }
-.ia-row.on .ia-lamp { filter: drop-shadow(0 0 8px rgba(34,197,94,.5)); }
-.ia-name { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; color: var(--crema); }
-.ia-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 3px; }
-.ia-status.on  { color: var(--verde); }
-.ia-status.off { color: var(--rojo); }
+/* BOTONES */
+.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;width:100%;margin-bottom:10px}
+.btn-orange{background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;box-shadow:0 4px 16px var(--glow)}
+.btn-orange:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--glow)}
+.btn-green{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.25)}
+.btn-green:hover{background:rgba(34,197,94,.22)}
+.btn-ghost{background:transparent;color:var(--crema2);border:1px solid var(--borde)}
+.btn-ghost:hover{border-color:rgba(255,85,0,.3);color:var(--fuego)}
+.btn-blue{background:rgba(59,130,246,.12);color:var(--azul);border:1px solid rgba(59,130,246,.25)}
+.btn-blue:hover{background:rgba(59,130,246,.22)}
 
-.switch { position: relative; display: inline-block; width: 56px; height: 30px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; inset: 0; background: #222; border-radius: 30px; transition: .3s; border: 1px solid rgba(255,255,255,.08); }
-.slider:before { content: ''; position: absolute; height: 22px; width: 22px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
-input:checked + .slider { background: rgba(34,197,94,.2); border-color: rgba(34,197,94,.4); }
-input:checked + .slider:before { transform: translateX(26px); background: var(--verde); box-shadow: 0 0 8px var(--verde); }
+/* MSG */
+.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none;line-height:1.5}
+.msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
+.msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--rojo);display:block}
 
-/* CAPACIDADES */
-.cap-list { display: flex; flex-direction: column; gap: 7px; }
-.cap-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px;
-  background: rgba(0,0,0,.3);
-  border: 1px solid rgba(255,255,255,.05);
-  border-radius: 7px;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--crema2);
-}
-.cap-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 5px var(--verde); flex-shrink: 0; }
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;position:relative;overflow:hidden;text-align:center}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fuego)}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego);line-height:1}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:4px}
 
-/* ── FORM ── */
-.fgroup { margin-bottom: 18px; }
-.fgroup label {
-  display: block; margin-bottom: 7px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; letter-spacing: 2px; color: var(--muted);
-}
-input[type=text], select, textarea {
-  width: 100%; padding: 11px 14px;
-  background: rgba(0,0,0,.5);
-  border: 1px solid rgba(255,255,255,.07);
-  color: var(--crema); font-family: 'Lora', serif; font-size: 14px;
-  border-radius: 8px; transition: border-color .2s, box-shadow .2s;
-}
-input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--fuego);
-  box-shadow: 0 0 0 3px rgba(255,85,0,.1);
-}
-input::placeholder, textarea::placeholder { color: var(--muted); font-style: italic; }
-select option { background: #0e0e12; }
-textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
+/* SYS INFO */
+.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.sys-row:last-child{border-bottom:none}
+.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.badge{padding:2px 9px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace}
+.badge-on{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.2)}
+.badge-warn{background:rgba(255,193,7,.12);color:#ffc107;border:1px solid rgba(255,193,7,.2)}
 
-/* ── CATEGORÍAS ── */
-.cat-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-  margin-bottom: 18px;
-}
-.cat-tile {
-  padding: 12px 8px; border-radius: 8px;
-  border: 1px solid var(--borde);
-  background: rgba(0,0,0,.3);
-  text-align: center; cursor: pointer; transition: all .2s;
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;
-  color: var(--muted);
-}
-.cat-tile .ce { font-size: 20px; display: block; margin-bottom: 5px; }
-.cat-tile:hover { border-color: rgba(255,85,0,.35); color: var(--crema); background: rgba(255,85,0,.06); }
-.cat-tile.sel { border-color: var(--fuego); background: rgba(255,85,0,.14); color: var(--fuego); }
+/* LISTA NOTICIAS */
+.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:4px}
+.noticias-list::-webkit-scrollbar{width:3px}
+.noticias-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px;transition:border-color .2s}
+.noticia-row:hover{border-color:rgba(255,85,0,.2)}
+.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
+.nr-info{flex:1;min-width:0}
+.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+.nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.btn-del{background:rgba(239,68,68,.12);color:var(--rojo);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-del:hover{background:rgba(239,68,68,.25)}
+.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego);border:1px solid rgba(255,85,0,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-edit-img:hover{background:rgba(255,85,0,.22)}
+.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px;transition:border-color .2s}
+.search-noticias:focus{outline:none;border-color:var(--fuego)}
+.search-noticias::placeholder{color:var(--muted);font-style:italic}
+.noticias-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px}
 
-/* ── BOTÓN PUBLICAR ── */
-.btn-publish {
-  width: 100%; padding: 18px;
-  background: linear-gradient(135deg, var(--fuego) 0%, var(--fuego2) 100%);
-  border: none; border-radius: 10px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 12px;
-  transition: all .25s; box-shadow: 0 6px 24px var(--glow);
-  position: relative; overflow: hidden; margin-bottom: 0;
-}
-.btn-publish::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.12) 0%, transparent 60%);
-}
-.btn-publish:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(255,85,0,.5); }
-.btn-publish:active { transform: translateY(0); }
-.bp-icon { font-size: 22px; }
-.bp-main { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; color: #fff; }
-.bp-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,.7); display: block; margin-top: 2px; }
-.bp-spin { width: 22px; height: 22px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* MEMORIA IA */
+.memoria-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.memoria-list::-webkit-scrollbar{width:3px}
+.memoria-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+.mem-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.04);border-radius:7px;padding:8px 10px}
+.mem-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.mem-tipo.query{background:rgba(59,130,246,.15);color:var(--azul);border:1px solid rgba(59,130,246,.2)}
+.mem-tipo.error{background:rgba(239,68,68,.15);color:var(--rojo);border:1px solid rgba(239,68,68,.2)}
+.mem-valor{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mem-tasa{font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0}
+.mem-tasa.alta{color:var(--verde)}
+.mem-tasa.media{color:#ffc107}
+.mem-tasa.baja{color:var(--rojo)}
+.mem-empty{text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
 
-/* ── BOTONES GENERALES ── */
-.btn {
-  font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; font-size: 13px;
-  padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: all .2s; width: 100%; margin-bottom: 10px;
-}
-.btn-orange { background: linear-gradient(135deg, var(--fuego), var(--fuego2)); color: #fff; box-shadow: 0 4px 16px var(--glow); }
-.btn-orange:hover { transform: translateY(-1px); box-shadow: 0 8px 24px var(--glow); }
-.btn-green { background: rgba(34,197,94,.12); color: var(--verde); border: 1px solid rgba(34,197,94,.25); }
-.btn-green:hover { background: rgba(34,197,94,.22); }
-.btn-ghost { background: transparent; color: var(--crema2); border: 1px solid var(--borde); }
-.btn-ghost:hover { border-color: rgba(255,85,0,.3); color: var(--fuego); }
+/* MODALES */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.7);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.modal-icon{font-size:40px;margin-bottom:14px}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--rojo);margin-bottom:10px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.modal-btns{display:flex;gap:12px;justify-content:center}
+.btn-cancel{background:transparent;color:var(--crema2);border:1px solid var(--borde);border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--crema)}
+.btn-confirm-del{background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-confirm-del:hover{background:#C0392B;transform:translateY(-1px)}
+.modal-edit{max-width:480px}
+.modal-edit h3{color:var(--fuego)}
+.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid var(--borde);background:var(--borde);display:block}
+.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;transition:border-color .2s;margin-bottom:14px}
+.modal-input:focus{outline:none;border-color:var(--fuego)}
+.modal-input::placeholder{color:var(--muted);font-style:italic}
+.btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-confirm-edit:hover{background:var(--fuego2);transform:translateY(-1px)}
 
-/* ── MENSAJE ── */
-.msg { padding: 12px 15px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 14px; display: none; line-height: 1.5; }
-.msg.ok  { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25); color: var(--verde); display: block; }
-.msg.err { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); color: var(--rojo); display: block; }
-
-/* ── STATS ── */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
-.stat-card {
-  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.06);
-  border-radius: 10px; padding: 18px; position: relative; overflow: hidden;
-  text-align: center;
-}
-.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--fuego); }
-.stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--fuego); line-height: 1; }
-.stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-top: 4px; }
-
-/* INFO SISTEMA */
-.sys-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.04);
-  font-size: 13px;
-}
-.sys-row:last-child { border-bottom: none; }
-.sys-key { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); }
-.sys-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--crema2); }
-.badge { padding: 2px 9px; border-radius: 4px; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
-.badge-on   { background: rgba(34,197,94,.12); color: var(--verde); border: 1px solid rgba(34,197,94,.2); }
-.badge-warn { background: rgba(255,193,7,.12); color: #ffc107; border: 1px solid rgba(255,193,7,.2); }
-
-/* ── TABLA DE NOTICIAS ── */
-.noticias-list { display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
-.noticias-list::-webkit-scrollbar { width: 3px; }
-.noticias-list::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 2px; }
-
-.noticia-row {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.05);
-  border-radius: 8px; padding: 10px 12px;
-  transition: border-color .2s;
-}
-.noticia-row:hover { border-color: rgba(255,85,0,.2); }
-.nr-thumb {
-  width: 50px; height: 38px; object-fit: cover;
-  border-radius: 5px; flex-shrink: 0; background: var(--borde);
-}
-.nr-info { flex: 1; min-width: 0; }
-.nr-titulo {
-  font-family: 'Bebas Neue', sans-serif; font-size: 14px;
-  letter-spacing: .5px; color: var(--crema); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; max-width: 100%;
-}
-.nr-meta {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px;
-  color: var(--muted); margin-top: 3px; letter-spacing: 1px;
-}
-.nr-seccion {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px;
-  color: var(--fuego); background: rgba(255,85,0,.1);
-  border: 1px solid rgba(255,85,0,.2); padding: 2px 8px;
-  border-radius: 3px; flex-shrink: 0;
-}
-.btn-del {
-  background: rgba(239,68,68,.12); color: var(--rojo);
-  border: 1px solid rgba(239,68,68,.2); border-radius: 6px;
-  padding: 6px 10px; cursor: pointer; flex-shrink: 0;
-  font-size: 14px; transition: background .2s; line-height: 1;
-}
-.btn-del:hover { background: rgba(239,68,68,.25); }
-
-.btn-edit-img {
-  background: rgba(255,85,0,.1); color: var(--fuego);
-  border: 1px solid rgba(255,85,0,.2); border-radius: 6px;
-  padding: 6px 10px; cursor: pointer; flex-shrink: 0;
-  font-size: 14px; transition: background .2s; line-height: 1;
-}
-.btn-edit-img:hover { background: rgba(255,85,0,.22); }
-
-/* MODAL EDITAR IMAGEN */
-.modal-edit {
-  max-width: 480px;
-}
-.modal-edit h3 { color: var(--fuego); }
-.modal-img-preview {
-  width: 100%; height: 160px; object-fit: cover;
-  border-radius: 8px; margin: 12px 0;
-  border: 1px solid var(--borde); background: var(--borde);
-  display: block;
-}
-.modal-input {
-  width: 100%; padding: 10px 13px;
-  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.07);
-  color: var(--crema); font-family: 'Lora', serif; font-size: 13px;
-  border-radius: 7px; transition: border-color .2s; margin-bottom: 14px;
-}
-.modal-input:focus { outline: none; border-color: var(--fuego); }
-.modal-input::placeholder { color: var(--muted); font-style: italic; }
-.btn-confirm-edit {
-  background: var(--fuego); color: #fff; border: none;
-  border-radius: 7px; padding: 10px 22px;
-  font-family: 'Bebas Neue', sans-serif; font-size: 13px;
-  letter-spacing: 2px; cursor: pointer; transition: all .2s;
-}
-.btn-confirm-edit:hover { background: var(--fuego2); transform: translateY(-1px); }
-
-.search-noticias {
-  width: 100%; padding: 9px 12px;
-  background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.07);
-  color: var(--crema); font-family: 'Lora', serif; font-size: 13px;
-  border-radius: 7px; margin-bottom: 12px; transition: border-color .2s;
-}
-.search-noticias:focus { outline: none; border-color: var(--fuego); }
-.search-noticias::placeholder { color: var(--muted); font-style: italic; }
-
-.noticias-count {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
-  color: var(--muted); margin-bottom: 10px; letter-spacing: 1px;
-}
-
-/* MODAL CONFIRMAR */
-.modal-bg {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.85); z-index: 9000;
-  align-items: center; justify-content: center;
-  backdrop-filter: blur(6px);
-}
-.modal-bg.open { display: flex; }
-.modal {
-  background: var(--papel); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px; padding: 34px 30px; max-width: 400px; width: 90%;
-  text-align: center; box-shadow: 0 30px 60px rgba(0,0,0,.7);
-  animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes popIn { from{opacity:0;transform:scale(.92)} to{opacity:1;transform:none} }
-.modal-icon { font-size: 40px; margin-bottom: 14px; }
-.modal h3 {
-  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
-  letter-spacing: 2px; color: var(--rojo); margin-bottom: 10px;
-}
-.modal p { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
-.modal-btns { display: flex; gap: 12px; justify-content: center; }
-.btn-cancel { background: transparent; color: var(--crema2); border: 1px solid var(--borde); border-radius: 7px; padding: 10px 22px; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px; cursor: pointer; transition: all .2s; }
-.btn-cancel:hover { border-color: rgba(255,255,255,.2); color: var(--crema); }
-.btn-confirm-del { background: var(--rojo); color: #fff; border: none; border-radius: 7px; padding: 10px 22px; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px; cursor: pointer; transition: all .2s; }
-.btn-confirm-del:hover { background: #C0392B; transform: translateY(-1px); }
-
-/* ── FIN CSS NOTICIAS ── */
-@media(max-width:900px){ .layout { grid-template-columns: 1fr; } }
-@media(max-width:600px){ .container { padding: 16px; } .cat-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+@media(max-width:600px){.container{padding:16px}.cat-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="header-inner">
     <a href="/" class="logo">
       <div class="logo-flame">🏮</div>
-      <div class="logo-text">
-        <h1>EL FAROL AL DÍA</h1>
-        <span>PANEL DE REDACCIÓN</span>
-      </div>
+      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
     </a>
     <div class="header-right">
       <span class="header-clock" id="reloj">00:00:00</span>
@@ -437,33 +218,29 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
   </div>
 </header>
 
-<!-- TICKER -->
 <div class="ticker">
   <div class="ticker-tag">🏮 REDACCIÓN</div>
   <div class="ticker-scroll">
     <div class="ticker-inner">
       <span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API</span>
+      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API + Memoria IA</span>
       <span>//</span><span>Cobertura: RD · Santo Domingo Este · Los Mina · Invivienda · Mundo</span>
       <span>//</span><span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API</span>
+      <span>//</span><span>Gemini 2.5 Flash + Wikipedia + Pexels API + Memoria IA</span>
       <span>//</span><span>Cobertura: RD · Santo Domingo Este · Los Mina · Invivienda · Mundo</span>
     </div>
   </div>
 </div>
 
-<!-- CONTENIDO PRINCIPAL -->
 <div class="container">
   <div class="layout">
 
-    <!-- COLUMNA IZQUIERDA -->
+    <!-- ═══ COLUMNA IZQUIERDA ═══ -->
     <div>
 
       <!-- CONTROL IA -->
       <div class="card">
-        <div class="card-header">
-          <h2>⚙️ CONTROL DE IA</h2>
-        </div>
+        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
         <div class="card-body">
           <div class="ia-row" id="iaRow">
             <div class="ia-left">
@@ -481,8 +258,8 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
           <div class="cap-list">
             <div class="cap-item"><div class="cap-dot"></div> Wikipedia como contexto factual de redacción</div>
             <div class="cap-item"><div class="cap-dot"></div> Pexels API + banco local de imágenes RD</div>
-            <div class="cap-item"><div class="cap-dot"></div> Alt SEO geolocalizado República Dominicana</div>
-            <div class="cap-item"><div class="cap-dot"></div> Memoria — no repite noticias ya publicadas</div>
+            <div class="cap-item"><div class="cap-dot"></div> Memoria IA — aprende entre publicaciones</div>
+            <div class="cap-item"><div class="cap-dot"></div> Filtro anti-fotos irrelevantes (bodas, moda)</div>
             <div class="cap-item"><div class="cap-dot"></div> Publicación automática Facebook + Twitter/X</div>
           </div>
         </div>
@@ -500,7 +277,7 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
           <div class="fgroup">
             <label>Énfasis Local y Alcance</label>
             <textarea id="enfasis" rows="3"
-              placeholder="Ej: Prioriza noticias de Santo Domingo Este, Los Mina, Invivienda, Ensanche Ozama..."></textarea>
+              placeholder="Ej: Prioriza noticias de Santo Domingo Este, Los Mina, Invivienda..."></textarea>
           </div>
           <div class="fgroup">
             <label>Tono de Noticias</label>
@@ -522,11 +299,9 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
           <div class="fgroup">
             <label>Cosas que debe Evitar</label>
             <textarea id="evitar" rows="3"
-              placeholder="Ej: Opiniones personales del redactor, rumores sin confirmar, sensacionalismo..."></textarea>
+              placeholder="Ej: Opiniones personales, rumores sin confirmar, sensacionalismo..."></textarea>
           </div>
-          <button class="btn btn-orange" onclick="guardarInstrucciones()">
-            💾 GUARDAR INSTRUCCIONES
-          </button>
+          <button class="btn btn-orange" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
           <div id="msgConfig" class="msg"></div>
         </div>
       </div>
@@ -538,36 +313,22 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
           <div class="fgroup">
             <label>Selecciona Categoría</label>
             <div class="cat-grid">
-              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)">
-                <span class="ce">🏛️</span>NACIONALES
-              </div>
-              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)">
-                <span class="ce">⚽</span>DEPORTES
-              </div>
-              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)">
-                <span class="ce">🌍</span>INTERNAC.
-              </div>
-              <div class="cat-tile" data-val="Economía" onclick="selCat(this)">
-                <span class="ce">💰</span>ECONOMÍA
-              </div>
-              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)">
-                <span class="ce">💻</span>TECNOLOGÍA
-              </div>
-              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)">
-                <span class="ce">🎬</span>ESPECT.
-              </div>
+              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
+              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
+              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
+              <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
+              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
+              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
             </div>
           </div>
-
-          <button class="btn-publish" onclick="generarNoticia()" id="btnPublish">
+          <button class="btn-publish" onclick="generarNoticia()">
             <div class="bp-spin" id="bpSpin"></div>
             <span class="bp-icon" id="bpIcon">🚀</span>
             <div>
               <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
-              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Pexels · Facebook · Twitter</span>
+              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Memoria · Pexels · Redes</span>
             </div>
           </button>
-
           <div id="msgGenerar" class="msg"></div>
         </div>
       </div>
@@ -580,7 +341,7 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
         </div>
         <div class="card-body">
           <input type="text" class="search-noticias" id="searchNoticias"
-            placeholder="🔍 Buscar noticia..." oninput="filtrarLista()">
+            placeholder="🔍 Buscar por título o categoría..." oninput="filtrarLista()">
           <div class="noticias-count" id="noticiasCount">Cargando...</div>
           <div class="noticias-list" id="noticiasLista">
             <div style="text-align:center;padding:30px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">
@@ -590,7 +351,9 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
         </div>
       </div>
 
-    <!-- COLUMNA DERECHA (sidebar) -->
+    </div>
+
+    <!-- ═══ COLUMNA DERECHA ═══ -->
     <div>
 
       <!-- ESTADÍSTICAS -->
@@ -611,6 +374,22 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
         </div>
       </div>
 
+      <!-- MEMORIA IA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🧠 MEMORIA IA</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarMemoria()">🔄</button>
+        </div>
+        <div class="card-body">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            El sistema aprende qué imágenes y temas funcionan mejor en cada categoría.
+          </p>
+          <div class="memoria-list" id="memoriaLista">
+            <div class="mem-empty">Sin datos aún — se llena con cada publicación</div>
+          </div>
+        </div>
+      </div>
+
       <!-- INFORMACIÓN DEL SISTEMA -->
       <div class="card">
         <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
@@ -621,6 +400,7 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
             <div class="sys-row"><span class="sys-key">IMÁGENES</span><span class="sys-val">Pexels + Banco local</span></div>
             <div class="sys-row"><span class="sys-key">COBERTURA</span><span class="sys-val">🌍 RD + Mundial</span></div>
             <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">Schema.org + OG</span></div>
+            <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
             <div class="sys-row"><span class="sys-key">WIKIPEDIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
             <div class="sys-row"><span class="sys-key">FACEBOOK</span><span class="badge badge-on" id="sysFB">✅</span></div>
             <div class="sys-row"><span class="sys-key">TWITTER/X</span><span class="badge badge-on" id="sysTW">✅</span></div>
@@ -671,7 +451,7 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
       placeholder="https://... pega aquí la URL de la nueva imagen"
       oninput="previewImagen(this.value)">
     <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
-      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link de la imagen y pégalo arriba. La imagen se actualizará en el portal automáticamente.
+      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link directo de la imagen y pégalo arriba.
     </p>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
@@ -685,13 +465,13 @@ textarea { resize: vertical; min-height: 90px; line-height: 1.65; }
 const API = window.location.origin, PIN = '311';
 let catActual = 'Nacionales';
 
-/* RELOJ */
+/* ── RELOJ ── */
 setInterval(() => {
   document.getElementById('reloj').textContent =
     new Date().toLocaleTimeString('es-DO', { hour12: false });
 }, 1000);
 
-/* CARGAR CONFIG */
+/* ── CARGAR CONFIG ── */
 async function cargarConfig() {
   try {
     const r = await fetch(`${API}/api/admin/config?pin=${PIN}`);
@@ -707,7 +487,7 @@ async function cargarConfig() {
   } catch(e) { console.error('Config:', e); }
 }
 
-/* GUARDAR INSTRUCCIONES */
+/* ── GUARDAR INSTRUCCIONES ── */
 async function guardarInstrucciones() {
   try {
     const r = await fetch(`${API}/api/admin/config`, {
@@ -728,14 +508,14 @@ async function guardarInstrucciones() {
   } catch(e) { showMsg('msgConfig', '❌ ' + e.message, false); }
 }
 
-/* CATEGORÍA */
+/* ── CATEGORÍA ── */
 function selCat(el) {
   document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
   catActual = el.dataset.val;
 }
 
-/* GENERAR NOTICIA */
+/* ── GENERAR NOTICIA ── */
 async function generarNoticia() {
   if (!document.getElementById('iaToggle').checked) {
     showMsg('msgGenerar', '❌ Active la IA primero con el interruptor de arriba', false); return;
@@ -745,8 +525,8 @@ async function generarNoticia() {
   const txt  = document.getElementById('bpText');
   const sub  = document.getElementById('bpSub');
   spin.style.display = 'block'; icon.style.display = 'none';
-  txt.textContent    = 'GENERANDO...';
-  sub.textContent    = 'Wikipedia → Gemini → Pexels → Facebook → Twitter';
+  txt.textContent = 'GENERANDO...';
+  sub.textContent = 'Memoria → Wikipedia → Gemini → Pexels → Redes';
 
   try {
     const r = await fetch(`${API}/api/generar-noticia`, {
@@ -755,17 +535,23 @@ async function generarNoticia() {
       body: JSON.stringify({ categoria: catActual })
     });
     const d = await r.json();
-    if (d.success) { showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true); cargarEstadisticas(); }
-    else showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
+    if (d.success) {
+      showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true);
+      cargarEstadisticas();
+      cargarListaNoticias();
+      setTimeout(cargarMemoria, 3000); // actualizar memoria tras publicar
+    } else {
+      showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
+    }
   } catch(e) { showMsg('msgGenerar', '❌ ' + e.message, false); }
   finally {
     spin.style.display = 'none'; icon.style.display = 'block';
-    txt.textContent    = 'GENERAR NOTICIA AHORA';
-    sub.textContent    = 'Gemini · Wikipedia · Pexels · Facebook · Twitter';
+    txt.textContent = 'GENERAR NOTICIA AHORA';
+    sub.textContent = 'Gemini · Wikipedia · Memoria · Pexels · Redes';
   }
 }
 
-/* ESTADÍSTICAS */
+/* ── ESTADÍSTICAS ── */
 async function cargarEstadisticas() {
   try {
     const r = await fetch(`${API}/api/estadisticas`);
@@ -776,22 +562,53 @@ async function cargarEstadisticas() {
   } catch(e) { console.error('Stats:', e); }
 }
 
-/* STATUS */
+/* ── MEMORIA IA ── */
+async function cargarMemoria() {
+  try {
+    const r = await fetch(`${API}/api/memoria?pin=${PIN}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const lista = document.getElementById('memoriaLista');
+
+    if (!d.registros?.length) {
+      lista.innerHTML = '<div class="mem-empty">Sin datos aún — se llena con cada publicación</div>';
+      return;
+    }
+
+    lista.innerHTML = d.registros.slice(0, 20).map(m => {
+      const pct     = parseInt(m.pct_exito) || 0;
+      const clase   = pct >= 70 ? 'alta' : pct >= 40 ? 'media' : 'baja';
+      const emoji   = pct >= 70 ? '✅' : pct >= 40 ? '⚠️' : '❌';
+      const tipo    = m.tipo === 'pexels_query' ? 'query' : 'error';
+      const label   = m.tipo === 'pexels_query' ? 'IMG' : 'ERR';
+      const valor   = m.valor.length > 35 ? m.valor.substring(0, 35) + '...' : m.valor;
+      const cat     = m.categoria ? ` · ${m.categoria}` : '';
+      return `
+      <div class="mem-row">
+        <span class="mem-tipo ${tipo}">${label}</span>
+        <div class="mem-valor" title="${m.valor}">${valor}<span style="color:var(--muted);font-size:9px">${cat}</span></div>
+        <span class="mem-tasa ${clase}">${emoji}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Memoria:', e); }
+}
+
+/* ── STATUS ── */
 async function verStatus() {
   try {
     const r = await fetch(`${API}/status`);
     if (!r.ok) return;
     const d = await r.json();
-    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V31.0 ✅';
+    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V31 ✅';
     document.getElementById('sysFB').textContent  = d.facebook?.includes('✅') ? '✅' : '⚠️';
     document.getElementById('sysTW').textContent  = d.twitter?.includes('✅')  ? '✅' : '⚠️';
     document.getElementById('sysWM').textContent  = d.marca_de_agua?.includes('✅') ? '✅' : '⚠️';
     document.getElementById('sysWM').className    = d.marca_de_agua?.includes('✅') ? 'badge badge-on' : 'badge badge-warn';
-    alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${d.version}\nNoticias: ${d.noticias}\nRSS procesados: ${d.rss_procesados}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ${d.wikipedia || '✅ Activa (API pública)'}\nSistema: ${d.sistema}`);
+    alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${d.version}\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ${d.wikipedia || '✅ Activa'}\nSistema: ${d.sistema}`);
   } catch(e) { alert('Error: ' + e.message); }
 }
 
-/* PROCESAR RSS */
+/* ── RSS ── */
 async function procesarRSS() {
   try {
     const r = await fetch(`${API}/api/procesar-rss`, {
@@ -804,7 +621,7 @@ async function procesarRSS() {
   } catch(e) { showMsg('msgRSS', '❌ ' + e.message, false); }
 }
 
-/* IA STATUS */
+/* ── IA STATUS ── */
 function actualizarIA() {
   const on  = document.getElementById('iaToggle').checked;
   const s   = document.getElementById('iaStatus');
@@ -815,7 +632,7 @@ function actualizarIA() {
 }
 document.getElementById('iaToggle').addEventListener('change', () => { actualizarIA(); guardarInstrucciones(); });
 
-/* MSG */
+/* ── MSG ── */
 function showMsg(id, txt, ok) {
   const el = document.getElementById(id);
   el.textContent = txt;
@@ -823,17 +640,8 @@ function showMsg(id, txt, ok) {
   setTimeout(() => { el.className = 'msg'; }, 6000);
 }
 
-/* INIT */
-document.addEventListener('DOMContentLoaded', () => {
-  cargarConfig();
-  cargarEstadisticas();
-  cargarListaNoticias();
-  setInterval(cargarEstadisticas, 30000);
-});
-
-/* ── LISTA DE NOTICIAS + ELIMINAR ── */
-let todasNoticias = [];
-let idAEliminar   = null;
+/* ── LISTA DE NOTICIAS ── */
+let todasNoticias = [], idAEliminar = null;
 
 async function cargarListaNoticias() {
   try {
@@ -852,17 +660,15 @@ function renderizarLista(noticias) {
   const lista = document.getElementById('noticiasLista');
   const count = document.getElementById('noticiasCount');
   count.textContent = `${noticias.length} NOTICIAS PUBLICADAS`;
-
   if (!noticias.length) {
     lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:11px">Sin noticias aún</div>';
     return;
   }
-
   lista.innerHTML = noticias.map(n => {
-    const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
-    const imgSrc = n.imagen && n.imagen.startsWith('http') ? n.imagen
+    const fecha  = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+    const imgSrc = n.imagen?.startsWith('http') ? n.imagen
       : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
-    const titulo = n.titulo.length > 48 ? n.titulo.substring(0, 48) + '...' : n.titulo;
+    const titulo = n.titulo.length > 46 ? n.titulo.substring(0, 46) + '…' : n.titulo;
     return `
     <div class="noticia-row" data-titulo="${n.titulo.toLowerCase()}" data-id="${n.id}">
       <img class="nr-thumb" src="${imgSrc}" alt=""
@@ -873,8 +679,10 @@ function renderizarLista(noticias) {
         <div class="nr-meta">📅 ${fecha} · 👁 ${n.vistas||0}</div>
       </div>
       <span class="nr-seccion">${n.seccion}</span>
-      <button class="btn-edit-img" title="Cambiar imagen" onclick="pedirEditarImagen(${n.id}, '${n.titulo.replace(/'/g,"\\'")}', '${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button>
-      <button class="btn-del" title="Eliminar noticia" onclick="pedirEliminar(${n.id}, '${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
+      <button class="btn-edit-img" title="Cambiar imagen"
+        onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g,"\\'")}','${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button>
+      <button class="btn-del" title="Eliminar noticia"
+        onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
     </div>`;
   }).join('');
 }
@@ -883,11 +691,11 @@ function filtrarLista() {
   const q = document.getElementById('searchNoticias').value.toLowerCase().trim();
   if (!q) { renderizarLista(todasNoticias); return; }
   renderizarLista(todasNoticias.filter(n =>
-    n.titulo.toLowerCase().includes(q) ||
-    n.seccion.toLowerCase().includes(q)
+    n.titulo.toLowerCase().includes(q) || n.seccion.toLowerCase().includes(q)
   ));
 }
 
+/* ── ELIMINAR ── */
 function pedirEliminar(id, titulo) {
   idAEliminar = id;
   document.getElementById('modalDelTxt').textContent =
@@ -904,7 +712,6 @@ async function confirmarEliminar() {
   if (!idAEliminar) return;
   const btn = document.querySelector('.btn-confirm-del');
   btn.textContent = 'Eliminando...'; btn.disabled = true;
-
   try {
     const r = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
       method: 'POST',
@@ -919,23 +726,15 @@ async function confirmarEliminar() {
       cargarEstadisticas();
       showMsg('msgGenerar', '🗑️ Noticia eliminada correctamente', true);
     } else {
-      showMsg('msgGenerar', '❌ Error al eliminar: ' + (d.error||''), false);
+      showMsg('msgGenerar', '❌ Error: ' + (d.error||''), false);
     }
   } catch(e) {
     cerrarModal();
-    showMsg('msgGenerar', '❌ Error: ' + e.message, false);
+    showMsg('msgGenerar', '❌ ' + e.message, false);
   } finally {
     btn.textContent = '🗑️ ELIMINAR'; btn.disabled = false;
   }
 }
-
-// Cerrar modal al hacer click fuera
-document.getElementById('modalDel').addEventListener('click', function(e) {
-  if (e.target === this) cerrarModal();
-});
-document.getElementById('modalEditImg').addEventListener('click', function(e) {
-  if (e.target === this) cerrarModalEdit();
-});
 
 /* ── EDITAR IMAGEN ── */
 let idAEditar = null;
@@ -951,9 +750,8 @@ function pedirEditarImagen(id, titulo, imgActual) {
 }
 
 function previewImagen(url) {
-  if (url.startsWith('http')) {
+  if (url.startsWith('http'))
     document.getElementById('modalImgPreview').src = url;
-  }
 }
 
 function cerrarModalEdit() {
@@ -966,13 +764,10 @@ async function guardarImagen() {
   const url = document.getElementById('modalImgUrl').value.trim();
   if (!url || !url.startsWith('http')) {
     document.getElementById('msgEditImg').textContent = '❌ Pega una URL válida que empiece con https://';
-    document.getElementById('msgEditImg').className = 'msg err';
-    return;
+    document.getElementById('msgEditImg').className = 'msg err'; return;
   }
-
   const btn = document.querySelector('.btn-confirm-edit');
   btn.textContent = 'Guardando...'; btn.disabled = true;
-
   try {
     const r = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
       method: 'POST',
@@ -981,16 +776,14 @@ async function guardarImagen() {
     });
     const d = await r.json();
     if (d.success) {
-      // Actualizar thumbnail en la lista sin recargar todo
       const row = document.querySelector(`.noticia-row[data-id="${idAEditar}"]`);
       if (row) row.querySelector('.nr-thumb').src = url;
-      // Actualizar en el array local
       const n = todasNoticias.find(x => x.id === idAEditar);
       if (n) n.imagen = url;
       cerrarModalEdit();
       showMsg('msgGenerar', '✅ Imagen actualizada correctamente', true);
     } else {
-      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error al guardar');
+      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error');
       document.getElementById('msgEditImg').className = 'msg err';
     }
   } catch(e) {
@@ -1000,6 +793,24 @@ async function guardarImagen() {
     btn.textContent = '✅ GUARDAR IMAGEN'; btn.disabled = false;
   }
 }
+
+/* Cerrar modales al click fuera */
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
+});
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', () => {
+  cargarConfig();
+  cargarEstadisticas();
+  cargarListaNoticias();
+  cargarMemoria();
+  setInterval(cargarEstadisticas, 30000);
+  setInterval(cargarMemoria, 60000); // actualiza memoria cada minuto
+});
 </script>
 </body>
 </html>
