@@ -1,360 +1,165 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- META_TAGS -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- META_TAGS -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--fuego:#FF5500;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#555}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 50% 40% at 70% 0%,rgba(255,85,0,.06) 0%,transparent 55%);pointer-events:none;z-index:0}
+header{background:rgba(7,7,7,.97);border-bottom:1px solid var(--borde);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-inner{max-width:1240px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px}
+.logo-icon{width:32px;height:32px;background:var(--fuego);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 12px rgba(255,85,0,.4)}
+nav a{color:var(--crema2);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;padding:6px 12px;border-radius:5px;transition:all .2s;border:1px solid transparent}
+nav a:hover{color:var(--fuego);border-color:rgba(255,85,0,.2);background:rgba(255,85,0,.06)}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Source+Sans+3:wght@300;400;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+main{max-width:780px;margin:0 auto;padding:48px 24px 80px;position:relative;z-index:1}
 
-    <style>
-        :root {
-            --fuego: #FF6200;
-            --fuego2: #E55500;
-            --negro: #080808;
-            --tinta: #101010;
-            --papel: #161616;
-            --borde: #242424;
-            --texto: #E8E0D4;
-            --muted: #666;
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* BREADCRUMB */
+.breadcrumb{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:8px}
+.breadcrumb a{color:var(--muted);text-decoration:none;transition:color .2s}
+.breadcrumb a:hover{color:var(--fuego)}
 
-        body {
-            font-family: 'Source Sans 3', sans-serif;
-            background: var(--negro);
-            color: var(--texto);
-            line-height: 1.7;
-        }
+/* SECCION TAG */
+.seccion-tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.25);padding:4px 14px;border-radius:3px;display:inline-block;margin-bottom:18px}
 
-        body::before {
-            content: ''; position: fixed; inset: 0;
-            background: radial-gradient(ellipse 60% 40% at 80% 0%, rgba(255,98,0,.05) 0%, transparent 50%);
-            pointer-events: none; z-index: 0;
-        }
+/* TITULO */
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(32px,6vw,54px);letter-spacing:1px;line-height:1.1;margin-bottom:18px;color:var(--crema)}
 
-        /* ── HEADER ── */
-        header {
-            background: var(--tinta);
-            border-bottom: 2px solid var(--fuego);
-            position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 4px 30px rgba(0,0,0,.6);
-        }
-        .header-inner {
-            max-width: 900px; margin: 0 auto;
-            padding: 14px 24px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .logo {
-            display: flex; align-items: center; gap: 12px;
-            text-decoration: none; color: var(--texto);
-        }
-        .logo-icon {
-            width: 38px; height: 38px;
-            background: var(--fuego); border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px; flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(255,98,0,.35);
-        }
-        .logo-name {
-            font-family: 'Oswald', sans-serif;
-            font-size: 18px; letter-spacing: 3px;
-            color: var(--fuego); line-height: 1;
-        }
-        .btn-inicio {
-            font-family: 'Oswald', sans-serif;
-            font-size: 12px; letter-spacing: 1px;
-            color: var(--muted); text-decoration: none;
-            padding: 8px 16px; border-radius: 4px;
-            border: 1px solid var(--borde);
-            transition: all .2s; text-transform: uppercase;
-        }
-        .btn-inicio:hover { border-color: var(--fuego); color: var(--fuego); }
+/* META */
+.meta{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--borde)}
+.meta-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.meta-item strong{color:var(--crema2)}
 
-        /* ── MAIN ── */
-        main {
-            max-width: 760px; margin: 0 auto;
-            padding: 44px 24px 60px;
-            position: relative; z-index: 1;
-        }
+/* IMAGEN */
+.imagen-wrap{margin:0 0 36px;border-radius:10px;overflow:hidden;border:1px solid var(--borde);position:relative}
+.imagen-wrap img{width:100%;max-height:480px;object-fit:cover;display:block}
+.imagen-caption{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);padding:8px 14px;background:rgba(0,0,0,.5);position:absolute;bottom:0;left:0;right:0}
 
-        /* BREADCRUMB */
-        .breadcrumb {
-            font-family: 'Oswald', sans-serif;
-            font-size: 11px; letter-spacing: 2px;
-            color: var(--muted); text-transform: uppercase;
-            margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
-        }
-        .breadcrumb a { color: var(--fuego); text-decoration: none; }
+/* CONTENIDO */
+.contenido{font-size:17px;line-height:1.85;color:var(--crema2)}
+.contenido p{margin-bottom:22px}
+.contenido p:first-child{font-size:19px;color:var(--crema);font-weight:600;line-height:1.6}
+.contenido a{color:var(--fuego);text-decoration:underline}
 
-        /* ARTICLE */
-        article {
-            margin-bottom: 48px;
-        }
+/* COMPARTIR */
+.compartir{margin-top:48px;padding:24px;background:var(--papel);border:1px solid var(--borde);border-radius:10px}
+.compartir h3{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);margin-bottom:16px}
+.compartir-btns{display:flex;gap:10px;flex-wrap:wrap}
+.share-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--crema2);padding:10px 20px;border-radius:6px;text-decoration:none;border:1px solid var(--borde);transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px}
+.share-btn:hover{background:var(--fuego);color:#fff;border-color:var(--fuego);transform:translateY(-2px)}
 
-        .seccion {
-            display: inline-block;
-            background: var(--fuego);
-            color: #fff;
-            padding: 4px 14px; border-radius: 3px;
-            font-family: 'Oswald', sans-serif;
-            font-size: 11px; letter-spacing: 2px;
-            font-weight: 600; margin-bottom: 18px;
-            text-transform: uppercase;
-        }
+/* RELACIONADAS */
+.relacionadas{margin-top:48px}
+.relacionadas h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--fuego);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--borde)}
+.rel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.rel-card{background:var(--papel);border:1px solid var(--borde);border-radius:8px;overflow:hidden;text-decoration:none;color:inherit;transition:all .2s;display:block}
+.rel-card:hover{border-color:rgba(255,85,0,.35);transform:translateY(-3px)}
+.rel-card img{width:100%;height:110px;object-fit:cover;display:block}
+.rel-body{padding:12px}
+.rel-titulo{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--crema);line-height:1.2;margin-bottom:6px}
+.rel-card:hover .rel-titulo{color:var(--fuego)}
+.rel-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
 
-        h1 {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: clamp(24px, 4vw, 40px);
-            font-weight: 900; color: var(--texto);
-            line-height: 1.2; margin-bottom: 18px;
-        }
+footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24px;text-align:center;position:relative;z-index:1}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--fuego);margin-bottom:10px}
+.footer-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.footer-links a{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--fuego)}
+.footer-copy{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:16px;padding-top:16px;border-top:1px solid var(--borde)}
 
-        .meta {
-            display: flex; flex-wrap: wrap; gap: 16px;
-            align-items: center;
-            padding: 14px 0;
-            border-top: 1px solid var(--borde);
-            border-bottom: 1px solid var(--borde);
-            margin-bottom: 28px;
-            font-size: 13px; color: var(--muted);
-        }
-        .meta span { display: flex; align-items: center; gap: 5px; }
-
-        /* IMAGEN */
-        .imagen {
-            margin: 0 0 32px;
-            border-radius: 10px; overflow: hidden;
-            border: 1px solid var(--borde);
-            position: relative;
-        }
-        .imagen img {
-            width: 100%;
-            max-height: 480px;
-            object-fit: cover; display: block;
-        }
-        .imagen-caption {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,.75));
-            padding: 20px 16px 12px;
-            font-size: 11px; color: rgba(255,255,255,.6);
-            font-style: italic;
-        }
-
-        /* CONTENIDO */
-        .contenido {
-            font-family: 'Source Sans 3', sans-serif;
-            font-size: 17px; line-height: 1.85;
-            color: #ccc; font-weight: 300;
-        }
-        .contenido p { margin-bottom: 22px; }
-        .contenido p:first-child::first-letter {
-            font-family: 'Playfair Display', serif;
-            font-size: 3.5em; font-weight: 900;
-            color: var(--fuego); float: left;
-            line-height: .8; margin: 6px 10px 0 0;
-        }
-        .contenido strong { color: var(--texto); font-weight: 600; }
-        .contenido a { color: var(--fuego); text-decoration: none; }
-        .contenido a:hover { text-decoration: underline; }
-        .contenido blockquote {
-            border-left: 3px solid var(--fuego);
-            padding: 12px 20px; margin: 20px 0;
-            background: rgba(255,98,0,.05);
-            border-radius: 0 6px 6px 0;
-            font-style: italic; color: var(--texto);
-        }
-
-        /* COMPARTIR */
-        .compartir {
-            margin-top: 40px; padding: 24px;
-            background: var(--papel);
-            border: 1px solid var(--borde);
-            border-radius: 10px;
-        }
-        .compartir h3 {
-            font-family: 'Oswald', sans-serif;
-            font-size: 13px; letter-spacing: 2px;
-            color: var(--fuego); margin-bottom: 16px;
-            text-transform: uppercase;
-        }
-        .compartir-botones { display: flex; gap: 10px; flex-wrap: wrap; }
-        .compartir a {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: var(--negro);
-            color: var(--texto); padding: 10px 20px;
-            border-radius: 6px; text-decoration: none;
-            border: 1px solid var(--borde);
-            font-family: 'Oswald', sans-serif;
-            font-size: 12px; letter-spacing: 1px;
-            transition: all .2s;
-        }
-        .compartir a:hover { border-color: var(--fuego); color: var(--fuego); transform: translateY(-2px); }
-
-        /* RELACIONADAS */
-        .relacionadas {
-            margin-top: 48px;
-            padding-top: 28px;
-            border-top: 2px solid var(--borde);
-        }
-        .relacionadas h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 22px; font-weight: 700;
-            color: var(--texto); margin-bottom: 20px;
-        }
-        .relacionadas h3 span { color: var(--fuego); }
-        .relacionadas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-        }
-        .relacionada-item {
-            background: var(--papel);
-            border: 1px solid var(--borde);
-            border-radius: 8px; overflow: hidden;
-            transition: all .25s; cursor: pointer;
-        }
-        .relacionada-item:hover {
-            border-color: rgba(255,98,0,.3);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0,0,0,.4);
-        }
-        .relacionada-item a { text-decoration: none; color: inherit; display: block; }
-        .relacionada-item img {
-            width: 100%; height: 110px;
-            object-fit: cover; display: block;
-        }
-        .relacionada-info { padding: 12px; }
-        .relacionada-item h4 {
-            font-family: 'Playfair Display', serif;
-            font-size: 14px; color: var(--texto);
-            line-height: 1.3; margin-bottom: 6px;
-        }
-        .relacionada-item span { font-size: 11px; color: var(--muted); }
-
-        /* FOOTER */
-        footer {
-            background: var(--tinta);
-            border-top: 2px solid var(--fuego);
-            padding: 28px 24px; text-align: center;
-            margin-top: 60px; color: var(--muted);
-        }
-        .footer-content { max-width: 900px; margin: 0 auto; }
-        .footer-content a { color: var(--fuego); text-decoration: none; margin: 0 10px; font-size: 13px; }
-        .footer-content a:hover { color: #FFB300; }
-        .footer-bottom { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); font-size: 12px; }
-
-        @media (max-width: 768px) {
-            h1 { font-size: 24px; }
-            .compartir-botones { flex-direction: column; }
-            .compartir a { justify-content: center; }
-            .relacionadas-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+@media(max-width:600px){.rel-grid{grid-template-columns:1fr}.compartir-btns{flex-direction:column}.meta{gap:12px}}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-inner">
-            <a href="/" class="logo">
-                <div class="logo-icon">🏮</div>
-                <span class="logo-name">EL FAROL AL DÍA</span>
-            </a>
-            <a href="/" class="btn-inicio">← Inicio</a>
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">🏮</div>
+      EL FAROL AL DÍA
+    </a>
+    <nav><a href="/">← Inicio</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="breadcrumb">
+    <a href="/">Inicio</a> › <span>{{SECCION}}</span> › <span style="color:var(--crema2)">Noticia</span>
+  </div>
+
+  <article>
+    <span class="seccion-tag">{{SECCION}}</span>
+    <h1>{{TITULO}}</h1>
+
+    <div class="meta">
+      <div class="meta-item">📅 <strong>{{FECHA}}</strong></div>
+      <div class="meta-item">✍️ <strong>{{REDACTOR}}</strong></div>
+      <div class="meta-item">👁 <strong>{{VISTAS}} vistas</strong></div>
+    </div>
+
+    <div class="imagen-wrap">
+      <img src="{{IMAGEN}}" alt="{{ALT}}"
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
+      <div class="imagen-caption">{{ALT}} — El Farol al Día</div>
+    </div>
+
+    <div class="contenido">{{CONTENIDO}}</div>
+
+    <div class="compartir">
+      <h3>📢 COMPARTIR ESTA NOTICIA</h3>
+      <div class="compartir-btns">
+        <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank">👍 Facebook</a>
+        <a class="share-btn" href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank">🐦 Twitter</a>
+        <a class="share-btn" href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank">💬 WhatsApp</a>
+      </div>
+    </div>
+  </article>
+
+  <aside class="relacionadas">
+    <h3>📰 NOTICIAS RELACIONADAS</h3>
+    <div class="rel-grid" id="relacionadas">
+      <p style="color:var(--muted);font-size:13px">Cargando...</p>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
+  <div class="footer-links">
+    <a href="/">Inicio</a><a href="/sitemap.xml">Sitemap</a><a href="/robots.txt">Robots</a>
+  </div>
+  <div class="footer-copy">© 2026 El Farol al Día · Todos los derechos reservados</div>
+</footer>
+
+<script>
+async function cargarRelacionadas(){
+  try{
+    const res=await fetch('/api/noticias');
+    const data=await res.json();
+    if(!data.noticias?.length) return;
+    const seccion=document.querySelector('.seccion-tag')?.textContent||'';
+    const rel=data.noticias.filter(n=>n.seccion===seccion).slice(0,3);
+    const c=document.getElementById('relacionadas');
+    if(!rel.length){c.innerHTML='<p style="color:var(--muted);font-size:13px">No hay noticias relacionadas</p>';return;}
+    c.innerHTML=rel.map(n=>{
+      const f=new Date(n.fecha).toLocaleDateString('es-DO');
+      return `<a class="rel-card" href="/noticia/${n.slug}">
+        <img src="${n.imagen}" alt="${n.titulo}" onerror="this.src='https://via.placeholder.com/300x110?text=Noticia'">
+        <div class="rel-body">
+          <div class="rel-titulo">${n.titulo}</div>
+          <div class="rel-fecha">📅 ${f}</div>
         </div>
-    </header>
-
-    <main>
-        <div class="breadcrumb">
-            <a href="/">Inicio</a> › <span>{{SECCION}}</span>
-        </div>
-
-        <article>
-            <span class="seccion">{{SECCION}}</span>
-            <h1>{{TITULO}}</h1>
-            <div class="meta">
-                <span>📅 {{FECHA}}</span>
-                <span>✍️ {{REDACTOR}}</span>
-                <span>👁️ {{VISTAS}} vistas</span>
-            </div>
-
-            <div class="imagen">
-                <img src="{{IMAGEN}}" alt="{{ALT}}"
-                     onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg'">
-            </div>
-
-            <div class="contenido">
-                {{CONTENIDO}}
-            </div>
-
-            <div class="compartir">
-                <h3>📢 Compartir esta noticia</h3>
-                <div class="compartir-botones">
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank">
-                        👍 Facebook
-                    </a>
-                    <a href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank">
-                        🐦 Twitter
-                    </a>
-                    <a href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank">
-                        💬 WhatsApp
-                    </a>
-                </div>
-            </div>
-        </article>
-
-        <aside class="relacionadas">
-            <h3>Noticias <span>Relacionadas</span></h3>
-            <div class="relacionadas-grid" id="relacionadas">
-                <p style="color:var(--muted)">Cargando...</p>
-            </div>
-        </aside>
-    </main>
-
-    <footer>
-        <div class="footer-content">
-            <p>🏮 El Farol al Día — Periódico Digital Dominicano</p>
-            <div style="margin:12px 0">
-                <a href="/">Inicio</a>
-                <a href="/sitemap.xml">Sitemap</a>
-                <a href="/robots.txt">Robots</a>
-            </div>
-            <div class="footer-bottom">© 2026 El Farol al Día — Todos los derechos reservados</div>
-        </div>
-    </footer>
-
-    <script>
-        async function cargarRelacionadas() {
-            try {
-                const res  = await fetch('/api/noticias');
-                const data = await res.json();
-                if (!data.noticias?.length) return;
-                const seccion     = document.querySelector('.seccion')?.textContent || '';
-                const relacionadas = data.noticias.filter(n => n.seccion === seccion).slice(0, 3);
-                const container   = document.getElementById('relacionadas');
-                if (!relacionadas.length) {
-                    container.innerHTML = '<p style="color:var(--muted)">No hay noticias relacionadas</p>';
-                    return;
-                }
-                container.innerHTML = relacionadas.map(noticia => {
-                    const fecha = new Date(noticia.fecha).toLocaleDateString('es-DO');
-                    return `<div class="relacionada-item">
-                        <a href="/noticia/${noticia.slug}">
-                            <img src="${noticia.imagen}" alt="${noticia.titulo}"
-                                 onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=300'">
-                            <div class="relacionada-info">
-                                <h4>${noticia.titulo}</h4>
-                                <span>📅 ${fecha}</span>
-                            </div>
-                        </a>
-                    </div>`;
-                }).join('');
-            } catch (error) {
-                console.error('Error cargando relacionadas:', error);
-            }
-        }
-        document.addEventListener('DOMContentLoaded', cargarRelacionadas);
-    </script>
+      </a>`;
+    }).join('');
+  }catch(e){console.error('Error relacionadas:',e);}
+}
+document.addEventListener('DOMContentLoaded',cargarRelacionadas);
+</script>
 </body>
 </html>
