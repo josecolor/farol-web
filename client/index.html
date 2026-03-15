@@ -1,767 +1,980 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-DO">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="/static/favicon.png">
-<meta name="description" content="El Farol al Día - Periódico Digital Dominicano. Noticias de Nacionales, Deportes, Internacionales, Economía, Tecnología y Espectáculos.">
-<meta name="keywords" content="noticias, dominicana, periódico, digital, farol, santo domingo este">
-<meta property="og:title" content="El Farol al Día">
-<meta property="og:description" content="Periódico digital con noticias de República Dominicana">
-<meta property="og:image" content="/static/favicon.png">
-<title>El Farol al Día - Periódico Digital Dominicano</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --fuego: #FF5500;
-  --fuego2: #CC4300;
-  --negro: #070707;
-  --tinta: #111;
-  --papel: #181818;
-  --borde: #242424;
-  --crema: #EDE8DF;
-  --crema2: #B8B0A4;
-  --muted: #777;
-  --error: #ff4444;
-}
-*,*::before,*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-html {
-  scroll-behavior: smooth;
-}
-body {
-  font-family: 'Lora', Georgia, serif;
-  background: var(--negro);
-  color: var(--crema);
-  line-height: 1.6;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse 60% 50% at 80% 0%, rgba(255,85,0,.07) 0%, transparent 60%),
-              radial-gradient(ellipse 40% 30% at 10% 100%, rgba(255,85,0,.04) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
-}
-header {
-  background: rgba(7,7,7,.97);
-  border-bottom: 1px solid var(--borde);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(12px);
-}
-.header-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: var(--fuego);
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px;
-  letter-spacing: 3px;
-  flex-shrink: 0;
-}
-.logo-icon {
-  width: 42px;
-  height: 42px;
-  background: var(--fuego);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  box-shadow: 0 0 20px rgba(255,85,0,.5);
-}
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.logo-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 2px;
-  margin-top: 2px;
-}
-nav {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-nav a {
-  color: var(--crema2);
-  text-decoration: none;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 1px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  transition: all .2s;
-  border: 1px solid transparent;
-}
-nav a:hover {
-  color: var(--fuego);
-  border-color: rgba(255,85,0,.3);
-  background: rgba(255,85,0,.1);
-}
-.live-badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 1px;
-  background: rgba(255,85,0,.15);
-  border: 1px solid rgba(255,85,0,.4);
-  color: var(--fuego);
-  padding: 6px 14px;
-  border-radius: 30px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--fuego);
-  box-shadow: 0 0 10px var(--fuego);
-  animation: blink 1.5s infinite;
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .3; }
-}
-.hero {
-  text-align: center;
-  padding: 70px 20px 50px;
-  position: relative;
-  z-index: 1;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-.hero-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 4px;
-  color: var(--fuego);
-  margin-bottom: 20px;
-  display: block;
-  text-transform: uppercase;
-}
-.hero h1 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(45px, 10vw, 90px);
-  letter-spacing: 3px;
-  line-height: 1.1;
-  margin-bottom: 15px;
-  color: var(--crema);
-  text-transform: uppercase;
-}
-.hero h1 span {
-  color: var(--fuego);
-  display: inline-block;
-}
-.hero p {
-  font-size: 18px;
-  color: var(--crema2);
-  font-style: italic;
-  margin-bottom: 25px;
-}
-.hero-fecha {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--muted);
-  display: block;
-}
-.cats {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-  padding: 0 20px 40px;
-  position: relative;
-  z-index: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.cat-btn {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  padding: 10px 22px;
-  border-radius: 30px;
-  border: 1px solid var(--borde);
-  background: transparent;
-  color: var(--crema2);
-  cursor: pointer;
-  transition: all .2s;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-.cat-btn:hover {
-  border-color: rgba(255,85,0,.5);
-  color: var(--fuego);
-  background: rgba(255,85,0,.08);
-  transform: translateY(-2px);
-}
-.cat-btn.active {
-  background: var(--fuego);
-  border-color: var(--fuego);
-  color: #fff;
-  box-shadow: 0 5px 15px rgba(255,85,0,.3);
-}
-main {
-  flex: 1;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px 60px;
-  position: relative;
-  z-index: 1;
-  width: 100%;
-}
-.noticias-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 25px;
-}
-/* Featured post (primera noticia) */
-.noticias-grid .card:first-child {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 0;
-}
-.noticias-grid .card:first-child .card-img {
-  height: 380px;
-}
-.noticias-grid .card:first-child .card-body {
-  padding: 40px;
-}
-.noticias-grid .card:first-child .card-titulo {
-  font-size: 32px;
-  margin-bottom: 20px;
-}
-.noticias-grid .card:first-child .card-descripcion {
-  display: block;
-  font-size: 15px;
-  color: var(--crema2);
-  margin: 15px 0;
-  line-height: 1.5;
-}
-.card {
-  background: var(--papel);
-  border: 1px solid var(--borde);
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-}
-.card:hover {
-  border-color: var(--fuego);
-  transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,85,0,.2);
-}
-.card-img {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  background: var(--borde);
-  position: relative;
-}
-.card-img::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.5));
-  opacity: 0;
-  transition: opacity .3s;
-}
-.card:hover .card-img::after {
-  opacity: 1;
-}
-.card-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s;
-}
-.card:hover .card-img img {
-  transform: scale(1.08);
-}
-.card-body {
-  padding: 22px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.card-seccion {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: var(--fuego);
-  background: rgba(255,85,0,.12);
-  border: 1px solid rgba(255,85,0,.25);
-  padding: 4px 12px;
-  border-radius: 20px;
-  display: inline-block;
-  margin-bottom: 14px;
-  text-transform: uppercase;
-  align-self: flex-start;
-}
-.card-titulo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  letter-spacing: .5px;
-  line-height: 1.3;
-  margin-bottom: 12px;
-  color: var(--crema);
-  transition: color .2s;
-}
-.card:hover .card-titulo {
-  color: var(--fuego);
-}
-.card-descripcion {
-  display: none;
-  font-size: 14px;
-  color: var(--crema2);
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-.card-meta {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-  margin-top: auto;
-}
-.card-link {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--fuego);
-  margin-top: 10px;
-  display: inline-block;
-  border-bottom: 1px solid transparent;
-  transition: border-color .2s;
-  align-self: flex-start;
-}
-.card:hover .card-link {
-  border-bottom-color: var(--fuego);
-}
-.loading-wrap {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 100px 20px;
-  color: var(--muted);
-  background: var(--papel);
-  border-radius: 20px;
-  border: 1px solid var(--borde);
-}
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid rgba(255,85,0,.15);
-  border-top-color: var(--fuego);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.error-state {
-  color: var(--error);
-  font-size: 16px;
-}
-.error-state .spinner {
-  border-top-color: var(--error);
-}
-footer {
-  background: var(--tinta);
-  border-top: 1px solid var(--borde);
-  padding: 50px 20px 30px;
-  position: relative;
-  z-index: 1;
-  margin-top: auto;
-}
-.footer-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  text-align: center;
-}
-.footer-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 4px;
-  color: var(--fuego);
-  margin-bottom: 10px;
-}
-.footer-desc {
-  color: var(--muted);
-  font-size: 14px;
-  font-style: italic;
-  margin-bottom: 25px;
-}
-.footer-links {
-  margin: 25px 0;
-  display: flex;
-  gap: 25px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.footer-links a {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: var(--crema2);
-  text-decoration: none;
-  transition: color .2s;
-  padding: 5px 0;
-  border-bottom: 1px solid transparent;
-}
-.footer-links a:hover {
-  color: var(--fuego);
-  border-bottom-color: var(--fuego);
-}
-.footer-copy {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 30px;
-  padding-top: 25px;
-  border-top: 1px solid var(--borde);
-}
-/* Responsive */
-@media (max-width: 1100px) {
-  .noticias-grid {
-    grid-template-columns: repeat(2, 1fr);
+  <!-- META TAGS BÁSICOS OPTIMIZADOS -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <!-- FAVICON COMPLETO -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  
+  <!-- TÍTULO SEO PRINCIPAL (60 caracteres máx) -->
+  <title>El Farol al Día - Noticias de República Dominicana en Tiempo Real</title>
+  
+  <!-- META DESCRIPTION SEO (155-160 caracteres) -->
+  <meta name="description" content="El Farol al Día: Periódico digital dominicano con noticias verificadas de Nacionales, Deportes, Economía, Tecnología y más. Información actualizada 24/7 desde Santo Domingo.">
+  
+  <!-- KEYWORDS ESTRATÉGICAS -->
+  <meta name="keywords" content="noticias republica dominicana, periodico digital dominicano, santo domingo noticias, farol al dia, noticias sde, los mina, invivienda, deportes rd, economia dominicana, tecnologia rd, espectaculos dominicanos">
+  
+  <!-- AUTOR Y ROBOTS -->
+  <meta name="author" content="El Farol al Día - Periódico Digital Dominicano">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow, max-image-preview:large">
+  
+  <!-- CANONICAL URL -->
+  <link rel="canonical" href="https://elfarolaldia.com/">
+  
+  <!-- HREFLANG PARA IDIOMAS Y REGIONES -->
+  <link rel="alternate" hreflang="es-DO" href="https://elfarolaldia.com/">
+  <link rel="alternate" hreflang="es" href="https://elfarolaldia.com/">
+  <link rel="alternate" hreflang="x-default" href="https://elfarolaldia.com/">
+  
+  <!-- OPEN GRAPH / FACEBOOK (MÁXIMA OPTIMIZACIÓN) -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://elfarolaldia.com/">
+  <meta property="og:site_name" content="El Farol al Día">
+  <meta property="og:title" content="El Farol al Día - Noticias de República Dominicana">
+  <meta property="og:description" content="Periódico digital dominicano con noticias verificadas de Nacionales, Deportes, Economía y más. Información actualizada 24/7 desde Santo Domingo.">
+  <meta property="og:image" content="https://elfarolaldia.com/static/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="El Farol al Día - Periódico Digital Dominicano">
+  <meta property="og:locale" content="es_DO">
+  <meta property="og:country-name" content="República Dominicana">
+  
+  <!-- TWITTER CARDS (OPTIMIZADO) -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@elfarolaldia">
+  <meta name="twitter:creator" content="@elfarolaldia">
+  <meta name="twitter:title" content="El Farol al Día - Noticias de República Dominicana">
+  <meta name="twitter:description" content="Periódico digital dominicano con noticias verificadas. Información actualizada 24/7 desde Santo Domingo.">
+  <meta name="twitter:image" content="https://elfarolaldia.com/static/twitter-card.jpg">
+  <meta name="twitter:image:alt" content="El Farol al Día - Noticias RD">
+  
+  <!-- META TAGS PARA WHATSAPP / TELEGRAM -->
+  <meta property="og:image:secure_url" content="https://elfarolaldia.com/static/og-image.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  
+  <!-- VERIFICACIÓN DE PROPIEDAD (para Google Search Console) -->
+  <meta name="google-site-verification" content="TU_CODIGO_VERIFICACION">
+  
+  <!-- DATOS ESTRUCTURADOS: SITIO WEB (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "El Farol al Día",
+    "url": "https://elfarolaldia.com/",
+    "description": "Periódico digital dominicano con noticias verificadas de República Dominicana",
+    "inLanguage": "es-DO",
+    "publisher": {
+      "@type": "Organization",
+      "name": "El Farol al Día",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://elfarolaldia.com/static/logo.png",
+        "width": 600,
+        "height": 60
+      }
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://elfarolaldia.com/buscar?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
   }
-}
-@media (max-width: 900px) {
-  .header-inner {
-    padding: 0 15px;
+  </script>
+  
+  <!-- DATOS ESTRUCTURADOS: ORGANIZACIÓN -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    "name": "El Farol al Día",
+    "url": "https://elfarolaldia.com/",
+    "logo": "https://elfarolaldia.com/static/logo.png",
+    "sameAs": [
+      "https://www.facebook.com/elfarolaldia",
+      "https://twitter.com/elfarolaldia",
+      "https://www.instagram.com/elfarolaldia"
+    ],
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Santo Domingo Este",
+      "addressRegion": "Santo Domingo",
+      "addressCountry": "República Dominicana"
+    }
   }
-  nav {
-    display: none;
+  </script>
+  
+  <!-- DATOS ESTRUCTURADOS: BREADCRUMBLIST -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Inicio",
+      "item": "https://elfarolaldia.com/"
+    }]
   }
-  .noticias-grid .card:first-child {
-    grid-template-columns: 1fr;
-  }
-  .noticias-grid .card:first-child .card-img {
-    height: 250px;
-  }
-  .noticias-grid .card:first-child .card-body {
-    padding: 25px;
-  }
-  .noticias-grid .card:first-child .card-titulo {
-    font-size: 26px;
-  }
-}
-@media (max-width: 700px) {
-  .noticias-grid {
-    grid-template-columns: 1fr;
-  }
-  .hero {
-    padding: 50px 15px 30px;
-  }
-  .hero h1 {
-    font-size: 40px;
-  }
-  .hero p {
-    font-size: 16px;
-  }
-  .cat-btn {
-    padding: 8px 16px;
-    font-size: 10px;
-  }
-  .live-badge {
-    display: none;
-  }
-  .logo-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
-  }
-  .logo {
-    font-size: 20px;
-    gap: 8px;
-  }
-  .logo-sub {
-    font-size: 8px;
-  }
-}
-@media (max-width: 480px) {
-  .card-titulo {
-    font-size: 20px;
-  }
-  .footer-links {
-    gap: 15px;
-  }
-  .footer-links a {
-    font-size: 11px;
-  }
-}
-</style>
+  </script>
+  
+  <!-- PREFETCH Y PRELOAD PARA VELOCIDAD -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.pexels.com">
+  <link rel="dns-prefetch" href="https://api.pexels.com">
+  
+  <!-- FUENTES OPTIMIZADAS -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- CSS CRÍTICO INLINE (mejora Largest Contentful Paint) -->
+  <style>
+    /* RESET Y VARIABLES */
+    :root {
+      --fuego: #FF5500;
+      --fuego2: #CC4300;
+      --negro: #070707;
+      --tinta: #111;
+      --papel: #181818;
+      --borde: #242424;
+      --crema: #EDE8DF;
+      --crema2: #B8B0A4;
+      --muted: #777;
+      --error: #ff4444;
+      --success: #00C851;
+      --transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    }
+    
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+    
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--negro);
+      color: var(--crema);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* FONDO CON EFECTO */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 80% 0%, rgba(255,85,0,.07) 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 30% at 10% 100%, rgba(255,85,0,.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    /* HEADER STICKY */
+    header {
+      background: rgba(7,7,7,.97);
+      border-bottom: 1px solid var(--borde);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--fuego);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      letter-spacing: 3px;
+      flex-shrink: 0;
+    }
+    
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: var(--fuego);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(255,85,0,.5);
+    }
+    
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    
+    .logo-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+    
+    /* NAVEGACIÓN */
+    nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    nav a {
+      color: var(--crema2);
+      text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 1px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: var(--transition);
+      border: 1px solid transparent;
+      font-weight: 500;
+    }
+    
+    nav a:hover {
+      color: var(--fuego);
+      border-color: rgba(255,85,0,.3);
+      background: rgba(255,85,0,.1);
+    }
+    
+    /* LIVE BADGE */
+    .live-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      background: rgba(255,85,0,.15);
+      border: 1px solid rgba(255,85,0,.4);
+      color: var(--fuego);
+      padding: 6px 14px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--fuego);
+      box-shadow: 0 0 10px var(--fuego);
+      animation: blink 1.5s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+    
+    /* HERO SECTION */
+    .hero {
+      text-align: center;
+      padding: 70px 20px 50px;
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .hero-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 4px;
+      color: var(--fuego);
+      margin-bottom: 20px;
+      display: block;
+      text-transform: uppercase;
+    }
+    
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(45px, 10vw, 90px);
+      letter-spacing: 3px;
+      line-height: 1.1;
+      margin-bottom: 15px;
+      color: var(--crema);
+      text-transform: uppercase;
+    }
+    
+    .hero h1 span {
+      color: var(--fuego);
+      display: inline-block;
+    }
+    
+    .hero p {
+      font-size: 18px;
+      color: var(--crema2);
+      font-style: italic;
+      margin-bottom: 25px;
+    }
+    
+    .hero-fecha {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      display: block;
+    }
+    
+    /* CATEGORÍAS */
+    .cats {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 0 20px 40px;
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .cat-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      padding: 10px 22px;
+      border-radius: 30px;
+      border: 1px solid var(--borde);
+      background: transparent;
+      color: var(--crema2);
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    
+    .cat-btn:hover {
+      border-color: rgba(255,85,0,.5);
+      color: var(--fuego);
+      background: rgba(255,85,0,.08);
+      transform: translateY(-2px);
+    }
+    
+    .cat-btn.active {
+      background: var(--fuego);
+      border-color: var(--fuego);
+      color: #fff;
+      box-shadow: 0 5px 15px rgba(255,85,0,.3);
+    }
+    
+    /* MAIN CONTENT */
+    main {
+      flex: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+    }
+    
+    /* GRID DE NOTICIAS */
+    .noticias-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+    }
+    
+    /* PRIMERA NOTICIA DESTACADA */
+    .noticias-grid .card:first-child {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 0;
+    }
+    
+    .noticias-grid .card:first-child .card-img {
+      height: 380px;
+    }
+    
+    .noticias-grid .card:first-child .card-body {
+      padding: 40px;
+    }
+    
+    .noticias-grid .card:first-child .card-titulo {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+    
+    .noticias-grid .card:first-child .card-descripcion {
+      display: block;
+      font-size: 15px;
+      color: var(--crema2);
+      margin: 15px 0;
+      line-height: 1.5;
+    }
+    
+    /* TARJETAS DE NOTICIAS */
+    .card {
+      background: var(--papel);
+      border: 1px solid var(--borde);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .card:hover {
+      border-color: var(--fuego);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,85,0,.2);
+    }
+    
+    .card-img {
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      background: var(--borde);
+      position: relative;
+    }
+    
+    .card-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.5));
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    
+    .card:hover .card-img::after {
+      opacity: 1;
+    }
+    
+    .card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s;
+    }
+    
+    .card:hover .card-img img {
+      transform: scale(1.08);
+    }
+    
+    .card-body {
+      padding: 22px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .card-seccion {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--fuego);
+      background: rgba(255,85,0,.12);
+      border: 1px solid rgba(255,85,0,.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      align-self: flex-start;
+    }
+    
+    .card-titulo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: .5px;
+      line-height: 1.3;
+      margin-bottom: 12px;
+      color: var(--crema);
+      transition: color .2s;
+    }
+    
+    .card:hover .card-titulo {
+      color: var(--fuego);
+    }
+    
+    .card-descripcion {
+      display: none;
+      font-size: 14px;
+      color: var(--crema2);
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+    
+    .card-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      margin-top: auto;
+    }
+    
+    .card-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--fuego);
+      margin-top: 10px;
+      display: inline-block;
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s;
+      align-self: flex-start;
+    }
+    
+    .card:hover .card-link {
+      border-bottom-color: var(--fuego);
+    }
+    
+    /* ESTADOS DE CARGA */
+    .loading-wrap {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 100px 20px;
+      color: var(--muted);
+      background: var(--papel);
+      border-radius: 20px;
+      border: 1px solid var(--borde);
+    }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,85,0,.15);
+      border-top-color: var(--fuego);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .error-state {
+      color: var(--error);
+    }
+    
+    .error-state .spinner {
+      border-top-color: var(--error);
+    }
+    
+    /* FOOTER */
+    footer {
+      background: var(--tinta);
+      border-top: 1px solid var(--borde);
+      padding: 50px 20px 30px;
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+    }
+    
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    
+    .footer-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: var(--fuego);
+      margin-bottom: 10px;
+    }
+    
+    .footer-desc {
+      color: var(--muted);
+      font-size: 14px;
+      font-style: italic;
+      margin-bottom: 25px;
+    }
+    
+    .footer-links {
+      margin: 25px 0;
+      display: flex;
+      gap: 25px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .footer-links a {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 1px;
+      color: var(--crema2);
+      text-decoration: none;
+      transition: color .2s;
+      padding: 5px 0;
+      border-bottom: 1px solid transparent;
+    }
+    
+    .footer-links a:hover {
+      color: var(--fuego);
+      border-bottom-color: var(--fuego);
+    }
+    
+    .footer-copy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 30px;
+      padding-top: 25px;
+      border-top: 1px solid var(--borde);
+    }
+    
+    /* RESPONSIVE */
+    @media (max-width: 1100px) {
+      .noticias-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 900px) {
+      .header-inner {
+        padding: 0 15px;
+      }
+      nav {
+        display: none;
+      }
+      .noticias-grid .card:first-child {
+        grid-template-columns: 1fr;
+      }
+      .noticias-grid .card:first-child .card-img {
+        height: 250px;
+      }
+      .noticias-grid .card:first-child .card-body {
+        padding: 25px;
+      }
+      .noticias-grid .card:first-child .card-titulo {
+        font-size: 26px;
+      }
+    }
+    
+    @media (max-width: 700px) {
+      .noticias-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero {
+        padding: 50px 15px 30px;
+      }
+      .hero h1 {
+        font-size: 40px;
+      }
+      .hero p {
+        font-size: 16px;
+      }
+      .cat-btn {
+        padding: 8px 16px;
+        font-size: 10px;
+      }
+      .live-badge {
+        display: none;
+      }
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+      }
+      .logo {
+        font-size: 20px;
+        gap: 8px;
+      }
+      .logo-sub {
+        font-size: 8px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .card-titulo {
+        font-size: 20px;
+      }
+      .footer-links {
+        gap: 15px;
+      }
+      .footer-links a {
+        font-size: 11px;
+      }
+    }
+    
+    /* ACCESIBILIDAD */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      border: 0;
+    }
+    
+    :focus-visible {
+      outline: 2px solid var(--fuego);
+      outline-offset: 2px;
+    }
+  </style>
 </head>
 <body>
-<header>
-  <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-icon">🏮</div>
-      <div class="logo-text">
-        EL FAROL AL DÍA
-        <span class="logo-sub">PERIÓDICO DIGITAL DOMINICANO</span>
-      </div>
-    </a>
-    <nav>
-      <a href="/">INICIO</a>
-      <a href="/nosotros">NOSOTROS</a>
-      <a href="/contacto">CONTACTO</a>
-      <a href="/privacidad">PRIVACIDAD</a>
-    </nav>
-    <div class="live-badge">
-      <div class="live-dot"></div> 
-      EN VIVO · RD
-    </div>
-  </div>
-</header>
-
-<section class="hero">
-  <span class="hero-label">REPÚBLICA DOMINICANA · NOTICIAS DE IMPACTO</span>
-  <h1>Noticias de <span>República</span> Dominicana</h1>
-  <p>Periodismo digital con cobertura nacional e internacional</p>
-  <span class="hero-fecha" id="hero-fecha"></span>
-</section>
-
-<div class="cats" id="cats"></div>
-
-<main>
-  <div class="noticias-grid" id="grid">
-    <div class="loading-wrap">
-      <div class="spinner"></div>
-      <p>Cargando noticias desde El Farol...</p>
-    </div>
-  </div>
-</main>
-
-<footer>
-  <div class="footer-inner">
-    <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
-    <div class="footer-desc">Periódico digital dominicano con noticias en tiempo real</div>
-    <div class="footer-links">
-      <a href="/">INICIO</a>
-      <a href="/nosotros">NOSOTROS</a>
-      <a href="/contacto">CONTACTO</a>
-      <a href="/privacidad">PRIVACIDAD</a>
-      <a href="/sitemap.xml">SITEMAP</a>
-      <a href="/robots.txt">ROBOTS</a>
-    </div>
-    <div class="footer-copy">
-      © 2026 El Farol al Día · Todos los derechos reservados<br>
-      Generado con Gemini 2.5 Flash + Wikipedia + Contexto RD
-    </div>
-  </div>
-</footer>
-
-<script>
-// Configuración
-const CATS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
-const EMOJIS = {
-  'Nacionales': '🏛️',
-  'Deportes': '⚽', 
-  'Internacionales': '🌍',
-  'Economía': '💼',
-  'Tecnología': '💻',
-  'Espectáculos': '🎬'
-};
-
-let todas = [];
-let categoriaActiva = null;
-let cargando = false;
-
-// Mostrar fecha actual
-document.getElementById('hero-fecha').textContent = 
-  new Date().toLocaleDateString('es-DO', {
-    weekday: 'long',
-    year: 'numeric', 
-    month: 'long',
-    day: 'numeric'
-  }).toUpperCase();
-
-// Crear botones de categorías
-function crearCats() {
-  const container = document.getElementById('cats');
-  if (!container) return;
-  
-  let html = '<button class="cat-btn active" data-cat="null">📰 TODAS</button>';
-  
-  CATS.forEach(cat => {
-    html += `<button class="cat-btn" data-cat="${cat}">${EMOJIS[cat]} ${cat}</button>`;
-  });
-  
-  container.innerHTML = html;
-  
-  // Agregar event listeners
-  document.querySelectorAll('.cat-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const cat = this.dataset.cat === 'null' ? null : this.dataset.cat;
-      filtrar(cat, this);
-    });
-  });
-}
-
-// Filtrar noticias por categoría
-function filtrar(cat, btn) {
-  // Actualizar botón activo
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  
-  categoriaActiva = cat;
-  
-  if (cat) {
-    renderizar(todas.filter(n => n.seccion === cat));
-  } else {
-    renderizar(todas);
-  }
-}
-
-// Renderizar noticias en el grid
-function renderizar(noticias) {
-  const grid = document.getElementById('grid');
-  
-  if (!noticias || noticias.length === 0) {
-    grid.innerHTML = `
-      <div class="loading-wrap">
-        <p>📰 No hay noticias en esta categoría</p>
-        <p style="font-size: 13px; margin-top: 10px;">Vuelve pronto o selecciona otra categoría</p>
-      </div>
-    `;
-    return;
-  }
-  
-  grid.innerHTML = noticias.map((n, index) => {
-    const fecha = new Date(n.fecha).toLocaleDateString('es-DO', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-    
-    // Para la primera noticia (featured) mostramos más info
-    const isFirst = index === 0 && noticias === todas;
-    
-    return `
-      <a class="card" href="/noticia/${n.slug}">
-        <div class="card-img">
-          <img 
-            src="${n.imagen}" 
-            alt="${n.titulo}" 
-            onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'"
-            loading="lazy"
-          >
-        </div>
-        <div class="card-body">
-          <span class="card-seccion">${EMOJIS[n.seccion] || '📰'} ${n.seccion}</span>
-          <h3 class="card-titulo">${n.titulo}</h3>
-          ${isFirst ? `<p class="card-descripcion">${n.titulo} - Noticias de República Dominicana y el mundo. Información verificada y actualizada.</p>` : ''}
-          <div class="card-meta">
-            <span>📅 ${fecha}</span>
-            <span>👁 ${n.vistas || 0} lecturas</span>
-          </div>
-          <span class="card-link">LEER NOTICIA COMPLETA →</span>
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo" aria-label="El Farol al Día - Página de inicio">
+        <div class="logo-icon" aria-hidden="true">🏮</div>
+        <div class="logo-text">
+          EL FAROL AL DÍA
+          <span class="logo-sub">PERIÓDICO DIGITAL DOMINICANO</span>
         </div>
       </a>
-    `;
-  }).join('');
-}
-
-// Cargar noticias desde la API
-async function cargar() {
-  if (cargando) return;
-  
-  cargando = true;
-  
-  try {
-    const response = await fetch('/api/noticias');
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Error desconocido');
-    }
-    
-    todas = data.noticias || [];
-    
-    if (categoriaActiva) {
-      renderizar(todas.filter(n => n.seccion === categoriaActiva));
-    } else {
-      renderizar(todas);
-    }
-    
-  } catch (error) {
-    console.error('Error cargando noticias:', error);
-    
-    document.getElementById('grid').innerHTML = `
-      <div class="loading-wrap error-state">
-        <div class="spinner"></div>
-        <p>❌ Error al cargar las noticias</p>
-        <p style="font-size: 13px; margin-top: 10px; color: var(--muted);">${error.message}</p>
-        <button onclick="cargar()" style="
-          background: var(--fuego);
-          color: white;
-          border: none;
-          padding: 10px 25px;
-          border-radius: 30px;
-          margin-top: 20px;
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12px;
-          cursor: pointer;
-        ">REINTENTAR</button>
+      
+      <nav aria-label="Menú principal">
+        <a href="/" aria-current="page">INICIO</a>
+        <a href="/nosotros">NOSOTROS</a>
+        <a href="/contacto">CONTACTO</a>
+        <a href="/privacidad">PRIVACIDAD</a>
+      </nav>
+      
+      <div class="live-badge" aria-label="Transmisión en vivo">
+        <div class="live-dot" aria-hidden="true"></div> 
+        <span>EN VIVO · RD</span>
       </div>
-    `;
-  } finally {
-    cargando = false;
-  }
-}
+    </div>
+  </header>
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  crearCats();
-  cargar();
-  
-  // Recargar cada 30 segundos
-  setInterval(cargar, 30000);
-});
-</script>
-</body>
-</html>
+  <main>
+    <section class="hero" aria-labelledby="hero-heading">
+      <span class="hero-label">REPÚBLICA DOMINICANA · NOTICIAS DE IMPACTO</span>
+      <h1 id="hero-heading">Noticias de <span>República</span> Dominicana</h1>
+      <p>Periodismo digital con cobertura nacional e internacional</p>
+      <time class="hero-fecha" id="hero-fecha" datetime=""></time>
+    </section>
+
+    <nav class="cats" id="cats" aria-label="Categorías de noticias"></nav>
+
+    <div class="noticias-grid" id="grid" aria-live="polite">
+      <div class="loading-wrap">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Cargando noticias desde El Farol...</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-logo" aria-label="El Farol al Día">🏮 EL FAROL AL DÍA</div>
+      <div class="footer-desc">Periódico digital dominicano con noticias en tiempo real</div>
+      
+      <div class="footer-links">
+        <a href="/">INICIO</a>
+        <a href="/nosotros">NOSOTROS</a>
+        <a href="/contacto">CONTACTO</a>
+        <a href="/privacidad">PRIVACIDAD</a>
+        <a href="/sitemap.xml">SITEMAP</a>
+        <a href="/robots.txt">ROBOTS</a>
+        <a href="/feed.xml">RSS</a>
+      </div>
+      
+      <div class="footer-copy">
+        <p>© 2026 El Farol al Día · Todos los derechos reservados</p>
+        <p style="font-size: 10px; margin-top: 5px;">Generado con Gemini 2.5 Flash + Wikipedia + Contexto RD</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Configuración SEO y categorías
+    const CONFIG = {
+      CATS: ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'],
+      EMOJIS: {
+        'Nacionales': '🏛️',
+        'Deportes': '⚽', 
+        'Internacionales': '🌍',
+        'Economía': '💼',
+        'Tecnología': '💻',
+        'Espectáculos': '🎬'
+      },
+      MESES: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    };
+
+    let todas = [];
+    let categoriaActiva = null;
+    let cargando = false;
+
+    // Actualizar fecha con formato SEO
+    function actualizarFecha() {
+      const fecha = new Date();
+      const fechaEl = document.getElementById('hero-fecha');
+      const dia = fecha.getDate().toString().padStart(2, '0');
+      const mes = CONFIG.MESES[fecha.getMonth()];
+      const año = fecha.getFullYear();
+      
+      fechaEl.textContent = `${dia} DE ${mes} DE ${año} · SANTO DOMINGO, RD`;
+      fechaEl.setAttribute('datetime', fecha.toISOString().split('T')[0]);
+    }
+
+    // Crear botones de categorías con SEO semántico
+    function crearCats() {
+      const container = document.getElementById('cats');
+      if (!container) return;
+      
+      let html = '<button class="cat-btn active" data-cat="null" aria-label="Todas las categorías">📰 TODAS</button>';
+      
+      CONFIG.CATS.forEach(cat => {
+        html += `<button class="cat-btn" data-cat="${cat}" aria-label="Categoría ${cat}">${CONFIG.EMOJIS[cat]} ${cat}</button>`;
+      });
+      
+      container.innerHTML = html;
+      
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const cat = this.dataset.cat === 'null' ? null : this.dataset.cat;
+          filtrar(cat, this);
+        });
+      });
+    }
+
+    // Filtrar noticias
+    function filtrar(cat, btn) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      categoriaActiva = cat;
+      
+      if (cat) {
+        renderizar(todas.filter(n => n.seccion === cat));
+        // Actualizar URL con parámetro para SEO
+        history.replaceState(null, '', `/?categoria=${encodeURIComponent(cat)}`);
+      } else {
+        renderizar(todas);
+        history.replaceState(null, '', '/');
+      }
+    }
+
+    // Renderizar noticias con datos estructurados
+    function renderizar(noticias) {
+      const grid = document.getElementById('grid');
+      
+      if (!noticias || noticias.length === 0) {
+        grid.innerHTML = `
+          <div class="loading-wrap" role="alert">
+            <p>📰 No hay noticias en esta categoría</p>
+            <p style="font-size: 13px; margin-top: 10px;">Vuelve pronto o selecciona otra categoría</p>
+          </div>
+        `;
+        return;
+      }
+      
+      grid.innerHTML = noticias.map((n, index) => {
+        const fecha = new Date(n.fecha);
+        const fechaFormateada = fecha.toLocaleDateString('es-DO', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        
+        const isFirst = index === 0 && noticias === todas;
+        
+        return `
+          <a class="card" href="/noticia/${n.slug}" 
+             aria-label="Leer noticia: ${n.titulo}"
+             data-id="${n.id}">
+            <div class="card-img">
+              <img 
+                src="${n.imagen}" 
+                alt="${n.imagen_alt || n.titulo}"
+                onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'"
+                loading="${index < 3 ? 'eager' : 'lazy'}"
+                width="800"
+                height="450"
+              >
+            </div>
+            <div class="card-body">
+              <span class="card-seccion">${CONFIG.EMOJIS[n.seccion] || '📰'} ${n.seccion}</span>
+              <h3 class="card-titulo">${n.titulo}</h3>
+              ${isFirst ? `<p class="card-descripcion">${n.seo_description || n.titulo}</p>` : ''}
+              <div class="card-meta">
+                <time datetime="${fecha.toISOString().split('T')[0]}">📅 ${fechaFormateada}</time>
+                <span>👁 ${n.vistas || 0} lecturas</span>
+              </div>
+              <span class="card-link">LEER NOTICIA COMPLETA →</span>
+            </div>
+          </a>
+        `;
+      }).join('');
+    }
+
+    // Cargar noticias con manejo de errores
+    async function cargar() {
+      if (cargando) return;
+      cargando = true;
+      
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch('/api/noticias', {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        clearTimeout(timeout);
+        
+        if (!response.ok) throw new Error(`Error ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (!data.success) throw new Error(data.error || 'Error desconocido');
+        
+        todas = data.noticias || [];
+        
+        if (categoriaActiva) {
+          renderizar(todas.filter(n => n.seccion === categoriaActiva));
+        } else {
+          renderizar(todas);
+        }
+        
+      } catch (error) {
+        console.error('Error:', error);
+        
+        const grid = document.getElementById('grid');
+       
