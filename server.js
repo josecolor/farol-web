@@ -290,35 +290,84 @@ async function aplicarMarcaDeAgua(urlImagen) {
     }
 }
 
-app.get('/img/:nombre', (req, res) => {
+app.get('/img/:nombre', async (req, res) => {
     const ruta = path.join('/tmp', req.params.nombre);
     if (fs.existsSync(ruta)) {
         res.setHeader('Content-Type',  'image/jpeg');
         res.setHeader('Cache-Control', 'public,max-age=604800');
-        res.sendFile(ruta);
-    } else { res.status(404).send('No encontrada'); }
+        return res.sendFile(ruta);
+    }
+    // /tmp fue limpiado — buscar URL original en BD y redirigir
+    try {
+        const nombre = req.params.nombre;
+        const r = await pool.query(
+            `SELECT imagen_original FROM noticias WHERE imagen_nombre=$1 LIMIT 1`,
+            [nombre]
+        );
+        if (r.rows.length && r.rows[0].imagen_original) {
+            return res.redirect(302, r.rows[0].imagen_original);
+        }
+    } catch(e) { /* silencioso */ }
+    res.status(404).send('Imagen no disponible');
 });
 
 // ══════════════════════════════════════════════════════════
 // CONFIG IA
 // ══════════════════════════════════════════════════════════
-const CONFIG_IA_PATH = path.join(__dirname, 'config-ia.json');
+// ══════════════════════════════════════════════════════════
+// ▶ CONFIG IA — GUARDADA EN POSTGRESQL (persiste entre reinicios)
+// ══════════════════════════════════════════════════════════
 
-function cargarConfigIA() {
-    const def = {
-        enabled: true,
-        instruccion_principal: 'Eres un periodista profesional dominicano de alto nivel, con visión nacional e internacional. Escribes noticias verificadas, equilibradas y con impacto real. Cubres República Dominicana completa, el Caribe, Latinoamérica y el mundo. Cuando la noticia tiene conexión con Santo Domingo Este o RD, lo destacas con contexto local.',
-        tono: 'profesional', extension: 'media',
-        enfasis: 'Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con el impacto en República Dominicana y el Caribe.',
-        evitar: 'Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Repetir noticias ya publicadas. Copiar texto de Wikipedia.'
-    };
-    try { if (fs.existsSync(CONFIG_IA_PATH)) return { ...def, ...JSON.parse(fs.readFileSync(CONFIG_IA_PATH, 'utf8')) }; }
-    catch (e) {}
-    fs.writeFileSync(CONFIG_IA_PATH, JSON.stringify(def, null, 2));
-    return def;
+const CONFIG_IA_DEFAULT = {
+    enabled: true,
+    instruccion_principal: 'Eres un periodista profesional dominicano de alto nivel, con visión nacional e internacional. Escribes noticias verificadas, equilibradas y con impacto real. Cubres República Dominicana completa, el Caribe, Latinoamérica y el mundo. Cuando la noticia tiene conexión con Santo Domingo Este o RD, lo destacas con contexto local.',
+    tono: 'profesional',
+    extension: 'media',
+    enfasis: 'Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con el impacto en República Dominicana y el Caribe.',
+    evitar: 'Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Repetir noticias ya publicadas. Copiar texto de Wikipedia.'
+};
+
+// Copia en memoria — se carga desde BD al arrancar
+let CONFIG_IA = { ...CONFIG_IA_DEFAULT };
+
+// Cargar config desde PostgreSQL
+async function cargarConfigIA() {
+    try {
+        const r = await pool.query(`SELECT valor FROM memoria_ia WHERE tipo='config_ia' AND valor IS NOT NULL ORDER BY ultima_vez DESC LIMIT 1`);
+        if (r.rows.length) {
+            const guardada = JSON.parse(r.rows[0].valor);
+            CONFIG_IA = { ...CONFIG_IA_DEFAULT, ...guardada };
+            console.log('✅ Config IA cargada desde BD');
+        } else {
+            CONFIG_IA = { ...CONFIG_IA_DEFAULT };
+            console.log('✅ Config IA usando valores por defecto');
+        }
+    } catch(e) {
+        CONFIG_IA = { ...CONFIG_IA_DEFAULT };
+        console.log('⚠️ Config IA: usando defecto (' + e.message + ')');
+    }
+    return CONFIG_IA;
 }
-function guardarConfigIA(c) { try { fs.writeFileSync(CONFIG_IA_PATH, JSON.stringify(c, null, 2)); return true; } catch (e) { return false; } }
-let CONFIG_IA = cargarConfigIA();
+
+// Guardar config en PostgreSQL — sobrevive reinicios y limpiezas de Railway
+async function guardarConfigIA(cfg) {
+    try {
+        const valor = JSON.stringify(cfg);
+        await pool.query(`
+            INSERT INTO memoria_ia(tipo, valor, categoria, exitos, fallos)
+            VALUES('config_ia', $1, 'sistema', 1, 0)
+            ON CONFLICT DO NOTHING
+        `, [valor]);
+        await pool.query(`
+            UPDATE memoria_ia SET valor=$1, ultima_vez=NOW()
+            WHERE tipo='config_ia' AND categoria='sistema'
+        `, [valor]);
+        return true;
+    } catch(e) {
+        console.error('❌ guardarConfigIA:', e.message);
+        return false;
+    }
+}
 
 // ══════════════════════════════════════════════════════════
 // GEMINI — con Wikipedia integrado
@@ -868,7 +917,7 @@ async function inicializarBase() {
             )
         `);
 
-        for (const col of ['imagen_alt', 'imagen_caption', 'imagen_nombre', 'imagen_fuente']) {
+        for (const col of ['imagen_alt', 'imagen_caption', 'imagen_nombre', 'imagen_fuente', 'imagen_original']) {
             await client.query(`
                 DO $$ BEGIN
                     IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}')
@@ -933,6 +982,8 @@ async function inicializarBase() {
     } finally {
         client.release();
     }
+    // Cargar config IA desde PostgreSQL (persiste entre reinicios)
+    await cargarConfigIA();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1049,8 +1100,49 @@ async function construirMemoria(categoria) {
     return memoria;
 }
 
-// ══════════════════════════════════════════════════════════
-// ▶ GENERACIÓN DE NOTICIAS — CON WIKIPEDIA + GEMINI
+// ── REGENERAR WATERMARKS AL ARRANCAR ─────────────────────────
+// Si Railway limpió /tmp (cada ~8 días), restaura las imágenes
+// usando la URL original guardada en BD
+async function regenerarWatermarksLostidos() {
+    try {
+        // Buscar noticias cuya imagen apunta a /img/ pero el archivo ya no existe en /tmp
+        const r = await pool.query(`
+            SELECT id, imagen, imagen_nombre, imagen_original
+            FROM noticias
+            WHERE imagen LIKE '%/img/%'
+              AND imagen_original IS NOT NULL
+              AND imagen_original != ''
+            ORDER BY fecha DESC LIMIT 50
+        `);
+        if (!r.rows.length) return;
+
+        let regeneradas = 0;
+        for (const n of r.rows) {
+            const nombre = n.imagen_nombre || n.imagen.split('/img/')[1];
+            if (!nombre) continue;
+            const ruta = path.join('/tmp', nombre);
+            if (fs.existsSync(ruta)) continue; // ya existe, no regenerar
+
+            // El archivo no existe — reprocesar con watermark
+            const resultado = await aplicarMarcaDeAgua(n.imagen_original);
+            if (resultado.procesada && resultado.nombre) {
+                await pool.query(
+                    `UPDATE noticias SET imagen=$1, imagen_nombre=$2 WHERE id=$3`,
+                    [`${BASE_URL}/img/${resultado.nombre}`, resultado.nombre, n.id]
+                );
+                regeneradas++;
+            }
+            // Pequeña pausa para no saturar al arrancar
+            await new Promise(r => setTimeout(r, 200));
+        }
+        if (regeneradas > 0) {
+            console.log(`🏮 Watermarks regenerados: ${regeneradas}`);
+            invalidarCache();
+        }
+    } catch(e) {
+        console.log(`⚠️ Regeneración watermarks: ${e.message}`);
+    }
+}
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
@@ -1210,8 +1302,8 @@ CONTENIDO:
         const slFin  = existe.rows.length ? `${sl}-${Date.now()}` : sl;
 
         await pool.query(
-            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
             [
                 titulo.substring(0, 255), slFin, categoria,
                 contenido.substring(0, 10000),
@@ -1221,7 +1313,10 @@ CONTENIDO:
                 urlFinal,
                 altFinal.substring(0, 255),
                 `Fotografía periodística: ${titulo}`,
-                'efd.jpg', 'el-farol', 'publicada'
+                imgResult.nombre || 'efd.jpg',
+                'el-farol',
+                urlOrig,        // URL original Pexels — fallback si /tmp se limpia
+                'publicada'
             ]
         );
 
@@ -1645,16 +1740,19 @@ app.get('/api/admin/config', (req, res) => {
     res.json(CONFIG_IA);
 });
 
-app.post('/api/admin/config', express.json(), (req, res) => {
+app.post('/api/admin/config', express.json(), async (req, res) => {
     const { pin, enabled, instruccion_principal, tono, extension, evitar, enfasis } = req.body;
     if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
+    // Actualizar en memoria
     if (enabled !== undefined)  CONFIG_IA.enabled = enabled;
     if (instruccion_principal)  CONFIG_IA.instruccion_principal = instruccion_principal;
     if (tono)                   CONFIG_IA.tono = tono;
     if (extension)              CONFIG_IA.extension = extension;
     if (evitar)                 CONFIG_IA.evitar = evitar;
     if (enfasis)                CONFIG_IA.enfasis = enfasis;
-    res.json({ success: guardarConfigIA(CONFIG_IA) });
+    // Guardar en PostgreSQL — persiste entre reinicios
+    const ok = await guardarConfigIA(CONFIG_IA);
+    res.json({ success: ok });
 });
 
 app.get('/status', async (req, res) => {
@@ -1688,24 +1786,19 @@ async function iniciar() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V31.0                                     ║
+║  🏮 EL FAROL AL DÍA — V32.0                                     ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  Cada noticia se publica en:                                     ║
-║  🌐 Web  (elfarolaldia.com)                                      ║
-║  📘 Facebook (página El Farol al Día)                            ║
-║  🐦 Twitter/X (@elfarolaldia)                                    ║
-║                                                                  ║
-║  NUEVO EN V31:                                                   ║
-║  📚 Wikipedia como contexto para Gemini                          ║
-║  📸 Imágenes Pexels priorizando contexto RD / SDE               ║
-║  🔍 Alt SEO geolocalizado República Dominicana                   ║
+║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📚 Wikipedia               ║
+║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T               ║
+║  🏮 Watermark auto-regenera si Railway limpia /tmp              ║
 ║                                                                  ║
 ║  Facebook:  ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
 ║  Twitter:   ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
 ║  Watermark: ${fs.existsSync(WATERMARK_PATH)          ? '✅ ACTIVA          ' : '⚠️  Falta watermark '}║
-║  Wikipedia: ✅ ACTIVA (API pública)                              ║
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
+    // 5 segundos después de arrancar: regenerar watermarks si /tmp fue limpiado
+    setTimeout(regenerarWatermarksLostidos, 5000);
 }
 
 iniciar();
