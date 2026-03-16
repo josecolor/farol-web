@@ -1369,4 +1369,437 @@ const FUENTES_RSS = [
     { url: 'https://www.diariolibre.com/feed',          categoria: 'Nacionales',      nombre: 'Diario Libre' },
     { url: 'https://listindiario.com/feed',             categoria: 'Nacionales',      nombre: 'Listín Diario' },
     { url: 'https://elnacional.com.do/feed/',           categoria: 'Nacionales',      nombre: 'El Nacional' },
-    { url: 'https://www.eldinero.com.do/feed/',         categoria: 'Economía',        nombre: 'El Di
+    { url: 'https://www.eldinero.com.do/feed/',         categoria: 'Economía',        nombre: 'El Dinero' },
+    { url: 'https://www.elcaribe.com.do/feed/',         categoria: 'Nacionales',      nombre: 'El Caribe' },
+    { url: 'https://acento.com.do/feed/',               categoria: 'Nacionales',      nombre: 'Acento' },
+    { url: 'https://www.hoy.com.do/feed/',              categoria: 'Nacionales',      nombre: 'Hoy' },
+    { url: 'https://www.noticiassin.com/feed/',         categoria: 'Nacionales',      nombre: 'Noticias SIN' },
+    { url: 'https://www.cdt.com.do/feed/',              categoria: 'Deportes',        nombre: 'CDT Deportes' },
+    { url: 'https://www.beisbolrd.com/feed/',           categoria: 'Deportes',        nombre: 'Béisbol RD' },
+
+    // ── INTERNACIONALES / CARIBE ──
+    { url: 'https://www.reuters.com/arc/outboundfeeds/rss/category/latam/?outputType=xml', categoria: 'Internacionales', nombre: 'Reuters LatAm' },
+    { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',   categoria: 'Internacionales', nombre: 'BBC Mundo' },
+    { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', categoria: 'Internacionales', nombre: 'NYT World' },
+    { url: 'https://www.elnuevoherald.com/ultimas-noticias/?widgetName=rssfeed&widgetContentId=725095&getXmlFeed=true', categoria: 'Internacionales', nombre: 'El Nuevo Herald' },
+
+    // ── TECNOLOGÍA / ECONOMÍA GLOBAL ──
+    { url: 'https://feeds.feedburner.com/TechCrunch',  categoria: 'Tecnología',      nombre: 'TechCrunch' },
+    { url: 'https://www.wired.com/feed/rss',           categoria: 'Tecnología',      nombre: 'Wired' },
+    { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economía',   nombre: 'Bloomberg Markets' },
+
+    // ── ESPECTÁCULOS / CULTURA ──
+    { url: 'https://www.primerahora.com/entretenimiento/feed/',  categoria: 'Espectáculos', nombre: 'Primera Hora Ent.' },
+    { url: 'https://www.telemundo.com/shows/rss',      categoria: 'Espectáculos',    nombre: 'Telemundo' },
+    { url: 'https://www.univision.com/rss',            categoria: 'Espectáculos',    nombre: 'Univision' },
+];
+
+async function procesarRSS() {
+    if (!CONFIG_IA.enabled) return;
+    console.log('\n📡 Procesando RSS portales gobierno...');
+    let procesadas = 0;
+
+    for (const fuente of FUENTES_RSS) {
+        try {
+            const feed = await rssParser.parseURL(fuente.url).catch(() => null);
+            if (!feed?.items?.length) continue;
+
+            for (const item of feed.items.slice(0, 3)) {
+                const guid = item.guid || item.link || item.title;
+                if (!guid) continue;
+
+                const yaExiste = await pool.query('SELECT id FROM rss_procesados WHERE item_guid=$1', [guid.substring(0, 500)]);
+                if (yaExiste.rows.length) continue;
+
+                const comunicado = [
+                    item.title         ? `TÍTULO: ${item.title}`                              : '',
+                    item.contentSnippet? `RESUMEN: ${item.contentSnippet}`                    : '',
+                    item.content       ? `CONTENIDO: ${item.content?.substring(0, 2000)}`     : '',
+                    `FUENTE OFICIAL: ${fuente.nombre}`
+                ].filter(Boolean).join('\n');
+
+                const resultado = await generarNoticia(fuente.categoria, comunicado);
+                if (resultado.success) {
+                    await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING', [guid.substring(0, 500), fuente.nombre]);
+                    procesadas++;
+                    await new Promise(r => setTimeout(r, 5000));
+                }
+                break;
+            }
+        } catch (err) {
+            console.warn(`   ⚠️ ${fuente.nombre}: ${err.message}`);
+        }
+    }
+    console.log(`\n📡 RSS: ${procesadas} noticias nuevas`);
+}
+
+// ══════════════════════════════════════════════════════════
+// CRON
+// ══════════════════════════════════════════════════════════
+const CATS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
+
+// ── KEEP-ALIVE — evita cold start de Railway ──────────
+// Hace ping al propio servidor cada 14 minutos para mantenerlo despierto
+cron.schedule('*/14 * * * *', async () => {
+    try {
+        await fetch(`http://localhost:${PORT}/health`);
+    } catch(e) { /* silencioso */ }
+});
+
+// Cada 4 horas: generar una noticia nueva
+cron.schedule('0 */4 * * *', async () => {
+    if (!CONFIG_IA.enabled) return;
+    await generarNoticia(CATS[Math.floor(Math.random() * CATS.length)]);
+});
+
+// 4 veces al día: procesar RSS gobierno
+cron.schedule('0 1,7,13,19 * * *', async () => {
+    await procesarRSS();
+});
+
+// ══════════════════════════════════════════════════════════
+// RUTAS
+// ══════════════════════════════════════════════════════════
+app.get('/health',     (req, res) => res.json({ status: 'OK', version: '31.0' }));
+app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/redaccion',  (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
+app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
+app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
+
+// ── CACHÉ EN MEMORIA — evita ir a BD en cada visita ──
+let _cacheNoticias = null;
+let _cacheFecha    = 0;
+const CACHE_TTL    = 60 * 1000; // 60 segundos
+
+function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
+
+app.get('/api/noticias', async (req, res) => {
+    try {
+        // Servir desde caché si es reciente
+        if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL) {
+            return res.json({ success: true, noticias: _cacheNoticias, cached: true });
+        }
+        const r = await pool.query(
+            `SELECT id,titulo,slug,seccion,imagen,imagen_alt,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`,
+            ['publicada']
+        );
+        _cacheNoticias = r.rows;
+        _cacheFecha    = Date.now();
+        res.setHeader('Cache-Control', 'public,max-age=60');
+        res.json({ success: true, noticias: r.rows });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/actualizar-imagen/:id', async (req, res) => {
+    const { pin, imagen } = req.body;
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    const id = parseInt(req.params.id);
+    if (!id || !imagen) return res.status(400).json({ success: false, error: 'Faltan datos' });
+    try {
+        await pool.query('UPDATE noticias SET imagen=$1 WHERE id=$2', [imagen, id]);
+        invalidarCache();
+        console.log(`🖼️ Imagen actualizada: ID ${id}`);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/eliminar/:id', async (req, res) => {
+    const { pin } = req.body;
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    const id = parseInt(req.params.id);
+    if (!id) return res.status(400).json({ success: false, error: 'ID inválido' });
+    try {
+        await pool.query('DELETE FROM noticias WHERE id=$1', [id]);
+        invalidarCache();
+        console.log(`🗑️ Noticia eliminada: ID ${id}`);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/generar-noticia', async (req, res) => {
+    const { categoria } = req.body;
+    if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
+    const r = await generarNoticia(categoria);
+    res.status(r.success ? 200 : 500).json(r);
+});
+
+app.post('/api/procesar-rss', async (req, res) => {
+    const { pin } = req.body;
+    if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
+    procesarRSS();
+    res.json({ success: true, mensaje: 'RSS iniciado' });
+});
+
+// ▶ Endpoint para probar Wikipedia en aislado
+// Ver memoria del sistema
+// ── COMENTARIOS ─────────────────────────────────────────
+// ORDEN CRÍTICO: rutas específicas ANTES que rutas con parámetros dinámicos
+
+// POST: eliminar comentario — VA PRIMERO (evita que Express confunda "eliminar" con :noticia_id)
+app.post('/api/comentarios/eliminar/:id', async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
+    try {
+        await pool.query('DELETE FROM comentarios WHERE id=$1', [parseInt(req.params.id)]);
+        res.json({ success: true });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// GET: todos los comentarios para admin
+app.get('/api/admin/comentarios', async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    try {
+        const r = await pool.query(`
+            SELECT c.id, c.nombre, c.texto, c.fecha,
+                   n.titulo as noticia_titulo, n.slug as noticia_slug
+            FROM comentarios c
+            JOIN noticias n ON n.id = c.noticia_id
+            ORDER BY c.fecha DESC LIMIT 50
+        `);
+        res.json({ success: true, comentarios: r.rows });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// GET: comentarios de una noticia (ruta paramétrica — va DESPUÉS de las específicas)
+app.get('/api/comentarios/:noticia_id', async (req, res) => {
+    try {
+        const r = await pool.query(`
+            SELECT id, nombre, texto, fecha
+            FROM comentarios
+            WHERE noticia_id=$1 AND aprobado=true
+            ORDER BY fecha ASC
+        `, [req.params.noticia_id]);
+        res.json({ success: true, comentarios: r.rows });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// POST: publicar comentario
+app.post('/api/comentarios/:noticia_id', async (req, res) => {
+    const { nombre, texto } = req.body;
+    const noticia_id = parseInt(req.params.noticia_id);
+    if (isNaN(noticia_id) || noticia_id <= 0)
+        return res.status(400).json({ success: false, error: 'ID de noticia inválido' });
+    if (!nombre?.trim() || !texto?.trim())
+        return res.status(400).json({ success: false, error: 'Nombre y comentario son requeridos' });
+    if (nombre.trim().length > 80)
+        return res.status(400).json({ success: false, error: 'Nombre demasiado largo' });
+    if (texto.trim().length > 1000)
+        return res.status(400).json({ success: false, error: 'Comentario muy largo (máx 1000 chars)' });
+    if (texto.trim().length < 3)
+        return res.status(400).json({ success: false, error: 'Comentario muy corto' });
+    try {
+        const r = await pool.query(`
+            INSERT INTO comentarios(noticia_id, nombre, texto)
+            VALUES($1, $2, $3)
+            RETURNING id, nombre, texto, fecha
+        `, [noticia_id, nombre.trim().substring(0,80), texto.trim().substring(0,1000)]);
+        console.log(`💬 Comentario: noticia ${noticia_id} — ${nombre.trim()}`);
+        res.json({ success: true, comentario: r.rows[0] });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/memoria', async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    try {
+        const queries = await pool.query(`
+            SELECT tipo, valor, categoria, exitos, fallos,
+                   ROUND((exitos::float / GREATEST(exitos+fallos,1))*100) as pct_exito,
+                   ultima_vez
+            FROM memoria_ia
+            ORDER BY ultima_vez DESC LIMIT 50
+        `);
+        res.json({ success: true, registros: queries.rows });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/wikipedia', async (req, res) => {
+    const { tema, categoria } = req.query;
+    if (!tema) return res.status(400).json({ error: 'Falta ?tema=' });
+    const contexto = await buscarContextoWikipedia(tema, categoria || 'Nacionales');
+    res.json({ success: true, longitud: contexto.length, contexto });
+});
+
+app.get('/noticia/:slug', async (req, res) => {
+    try {
+        const r = await pool.query('SELECT * FROM noticias WHERE slug=$1 AND estado=$2', [req.params.slug, 'publicada']);
+        if (!r.rows.length) return res.status(404).send('No encontrada');
+
+        const n = r.rows[0];
+        await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1', [n.id]);
+
+        try {
+            let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
+            const urlN  = `${BASE_URL}/noticia/${n.slug}`;
+            const cHTML = n.contenido.split('\n').filter(p => p.trim()).map(p => `<p>${p.trim()}</p>`).join('');
+            html = html
+                .replace('<!-- META_TAGS -->', metaTagsCompletos(n, urlN))
+                .replace(/{{TITULO}}/g,    esc(n.titulo))
+                .replace(/{{CONTENIDO}}/g, cHTML)
+                .replace(/{{FECHA}}/g,     new Date(n.fecha).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' }))
+                .replace(/{{IMAGEN}}/g,    n.imagen)
+                .replace(/{{ALT}}/g,       esc(n.imagen_alt || n.titulo))
+                .replace(/{{VISTAS}}/g,    n.vistas)
+                .replace(/{{REDACTOR}}/g,  esc(n.redactor))
+                .replace(/{{SECCION}}/g,   esc(n.seccion))
+                .replace(/{{URL}}/g,       encodeURIComponent(urlN));
+            res.setHeader('Content-Type',  'text/html;charset=utf-8');
+            res.setHeader('Cache-Control', 'public,max-age=300');
+            res.send(html);
+        } catch (e) {
+            res.json({ success: true, noticia: n });
+        }
+    } catch (e) {
+        res.status(500).send('Error');
+    }
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const r = await pool.query('SELECT slug,fecha FROM noticias WHERE estado=$1 ORDER BY fecha DESC', ['publicada']);
+        const now = Date.now();
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        xml += `<url><loc>${BASE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>\n`;
+        r.rows.forEach(n => {
+            const d = (now - new Date(n.fecha).getTime()) / 86400000;
+            xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><changefreq>${d < 1 ? 'hourly' : d < 7 ? 'daily' : 'weekly'}</changefreq><priority>${d < 1 ? '1.0' : d < 7 ? '0.9' : d < 30 ? '0.7' : '0.5'}</priority></url>\n`;
+        });
+        xml += '</urlset>';
+        res.header('Content-Type',  'application/xml');
+        res.header('Cache-Control', 'public,max-age=3600');
+        res.send(xml);
+    } catch (e) {
+        res.status(500).send('Error');
+    }
+});
+
+app.get('/robots.txt', (req, res) => {
+    res.header('Content-Type', 'text/plain');
+    res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
+});
+
+app.get('/api/estadisticas', async (req, res) => {
+    try {
+        const r = await pool.query('SELECT COUNT(*) as c, SUM(vistas) as v FROM noticias WHERE estado=$1', ['publicada']);
+        res.json({ success: true, totalNoticias: parseInt(r.rows[0].c), totalVistas: parseInt(r.rows[0].v) || 0 });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/configuracion', (req, res) => {
+    try {
+        const c = fs.existsSync(path.join(__dirname, 'config.json'))
+            ? JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'))
+            : { googleAnalytics: '' };
+        res.json({ success: true, config: c });
+    } catch (e) {
+        res.json({ success: true, config: { googleAnalytics: '' } });
+    }
+});
+
+app.post('/api/configuracion', express.json(), (req, res) => {
+    const { pin, googleAnalytics } = req.body;
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    try {
+        fs.writeFileSync(path.join(__dirname, 'config.json'), JSON.stringify({ googleAnalytics }, null, 2));
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/publicar', express.json(), async (req, res) => {
+    const { pin, titulo, seccion, contenido, redactor: red } = req.body;
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN' });
+    if (!titulo || !seccion || !contenido) return res.status(400).json({ success: false, error: 'Faltan campos' });
+    try {
+        const sl = slugify(titulo);
+        const e  = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
+        const slF = e.rows.length ? `${sl}-${Date.now()}` : sl;
+        await pool.query(
+            `INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+            [titulo, slF, seccion, contenido, red || 'Manual',
+             `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,
+             `${titulo} - noticias República Dominicana El Farol al Día`,
+             `Fotografía: ${titulo}`, 'efd.jpg', 'el-farol', 'publicada']
+        );
+        res.json({ success: true, slug: slF });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/admin/config', (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
+    res.json(CONFIG_IA);
+});
+
+app.post('/api/admin/config', express.json(), async (req, res) => {
+    const { pin, enabled, instruccion_principal, tono, extension, evitar, enfasis } = req.body;
+    if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
+    // Actualizar en memoria
+    if (enabled !== undefined)  CONFIG_IA.enabled = enabled;
+    if (instruccion_principal)  CONFIG_IA.instruccion_principal = instruccion_principal;
+    if (tono)                   CONFIG_IA.tono = tono;
+    if (extension)              CONFIG_IA.extension = extension;
+    if (evitar)                 CONFIG_IA.evitar = evitar;
+    if (enfasis)                CONFIG_IA.enfasis = enfasis;
+    // Guardar en PostgreSQL — persiste entre reinicios
+    const ok = await guardarConfigIA(CONFIG_IA);
+    res.json({ success: ok });
+});
+
+app.get('/status', async (req, res) => {
+    try {
+        const r   = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
+        const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
+        res.json({
+            status: 'OK', version: '31.0',
+            noticias:       parseInt(r.rows[0].count),
+            rss_procesados: parseInt(rss.rows[0].count),
+            facebook:       FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
+            twitter:        TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            pexels_api:     PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
+            wikipedia:      '✅ Activa (API pública, sin key)',
+            marca_de_agua:  fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
+            ia_activa:      CONFIG_IA.enabled,
+            sistema:        'Web + Facebook + Twitter + RSS gobierno + Wikipedia + Watermark + SEO'
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+
+// ══════════════════════════════════════════════════════════
+// ARRANQUE
+// ══════════════════════════════════════════════════════════
+async function iniciar() {
+    await inicializarBase();
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`
+╔══════════════════════════════════════════════════════════════════╗
+║  🏮 EL FAROL AL DÍA — V32.0                                     ║
+╠══════════════════════════════════════════════════════════════════╣
+║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📚 Wikipedia               ║
+║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T               ║
+║  🏮 Watermark auto-regenera si Railway limpia /tmp              ║
+║                                                                  ║
+║  Facebook:  ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
+║  Twitter:   ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
+║  Watermark: ${fs.existsSync(WATERMARK_PATH)          ? '✅ ACTIVA          ' : '⚠️  Falta watermark '}║
+╚══════════════════════════════════════════════════════════════════╝`);
+    });
+    // 5 segundos después de arrancar: regenerar watermarks si /tmp fue limpiado
+    setTimeout(regenerarWatermarksLostidos, 5000);
+}
+
+iniciar();
+module.exports = app;
