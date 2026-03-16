@@ -1,6 +1,6 @@
 {
   "name": "el-farol-al-dia",
-  "version": "32.0.0",
+  "version": "28.0.0",
   "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA",
   "main": "server.js",
   "scripts": {
@@ -14,8 +14,7 @@
     "node-cron": "^3.0.3",
     "express-rate-limit": "^7.1.5",
     "sharp": "^0.33.3",
-    "rss-parser": "^3.13.0",
-    "firebase": "^10.8.0"
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
