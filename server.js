@@ -1,23 +1,26 @@
-/**
- * 🏮 EL FAROL AL DÍA — V31.0
+  /**
+ * 🏮 EL FAROL AL DÍA — V31.0 + SEGURIDAD BASIC AUTH
  * + Wikipedia API como contexto inteligente para Gemini
  * + Lógica de imágenes mejorada (prioridad RD / SDE)
  * + Alt SEO geolocalizado República Dominicana
  * + Query de imagen inteligente por zona local
+ * + Basic Auth protegiendo /redaccion y /api/admin
  */
 
-const express   = require('express');
-const cors      = require('cors');
-const path      = require('path');
-const fs        = require('fs');
-const cron      = require('node-cron');
-const { Pool }  = require('pg');
-const sharp     = require('sharp');
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const cron = require('node-cron');
+const { Pool } = require('pg');
+const sharp = require('sharp');
 const RSSParser = require('rss-parser');
-const crypto    = require('crypto');
+const crypto = require('crypto');
+// ===== NUEVO: Importar basic-auth =====
+const basicAuth = require('express-basic-auth');
 
-const app      = express();
-const PORT     = process.env.PORT || 8080;
+const app = express();
+const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
@@ -30,6 +33,7 @@ const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
 const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
 const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
+
 // Busca watermark con cualquier nombre en la carpeta static
 const WATERMARK_PATH = (() => {
     const variantes = [
@@ -49,6 +53,26 @@ const WATERMARK_PATH = (() => {
     return path.join(__dirname, 'static', 'watermark.png'); // fallback
 })();
 const rssParser             = new RSSParser({ timeout: 10000 });
+
+// ══════════════════════════════════════════════════════════
+// ===== NUEVO: MIDDLEWARE DE AUTENTICACIÓN BÁSICA =====
+// Protege las rutas de administración y redacción
+// Usuario: director | Contraseña: 311
+// ══════════════════════════════════════════════════════════
+const authMiddleware = basicAuth({
+    users: { 'director': '311' },
+    challenge: true,
+    realm: 'El Farol al Día - Panel de Redacción',
+    unauthorizedResponse: (req) => ({
+        error: 'Acceso no autorizado',
+        message: 'Se requieren credenciales válidas para acceder al panel de redacción',
+        status: 401
+    })
+});
+
+// Aplicar autenticación a las rutas sensibles
+app.use(['/redaccion', '/api/admin', '/api/generar-noticia', '/api/eliminar', '/api/actualizar-imagen'], authMiddleware);
+// ══════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════
 // BASE DE DATOS
@@ -1893,7 +1917,8 @@ app.get('/api/pais-actual', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
 app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/redaccion',  (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+// ===== RUTA DE REDACCIÓN (protegida) =====
+app.get('/redaccion',  authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
 app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
 app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
@@ -1924,7 +1949,7 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
-app.post('/api/actualizar-imagen/:id', async (req, res) => {
+app.post('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
     const { pin, imagen } = req.body;
     if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     const id = parseInt(req.params.id);
@@ -1939,7 +1964,7 @@ app.post('/api/actualizar-imagen/:id', async (req, res) => {
     }
 });
 
-app.post('/api/eliminar/:id', async (req, res) => {
+app.post('/api/eliminar/:id', authMiddleware, async (req, res) => {
     const { pin } = req.body;
     if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     const id = parseInt(req.params.id);
@@ -1954,14 +1979,14 @@ app.post('/api/eliminar/:id', async (req, res) => {
     }
 });
 
-app.post('/api/generar-noticia', async (req, res) => {
+app.post('/api/generar-noticia', authMiddleware, async (req, res) => {
     const { categoria } = req.body;
     if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
     const r = await generarNoticia(categoria);
     res.status(r.success ? 200 : 500).json(r);
 });
 
-app.post('/api/procesar-rss', async (req, res) => {
+app.post('/api/procesar-rss', authMiddleware, async (req, res) => {
     const { pin } = req.body;
     if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
     procesarRSS();
@@ -1974,7 +1999,7 @@ app.post('/api/procesar-rss', async (req, res) => {
 // ORDEN CRÍTICO: rutas específicas ANTES que rutas con parámetros dinámicos
 
 // POST: eliminar comentario — VA PRIMERO (evita que Express confunda "eliminar" con :noticia_id)
-app.post('/api/comentarios/eliminar/:id', async (req, res) => {
+app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
     if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     try {
         await pool.query('DELETE FROM comentarios WHERE id=$1', [parseInt(req.params.id)]);
@@ -1983,7 +2008,7 @@ app.post('/api/comentarios/eliminar/:id', async (req, res) => {
 });
 
 // GET: todos los comentarios para admin
-app.get('/api/admin/comentarios', async (req, res) => {
+app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
     try {
         const r = await pool.query(`
@@ -2035,7 +2060,7 @@ app.post('/api/comentarios/:noticia_id', async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-app.get('/api/memoria', async (req, res) => {
+app.get('/api/memoria', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
     try {
         const queries = await pool.query(`
@@ -2166,12 +2191,12 @@ app.post('/api/publicar', express.json(), async (req, res) => {
     }
 });
 
-app.get('/api/admin/config', (req, res) => {
+app.get('/api/admin/config', authMiddleware, (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
     res.json(CONFIG_IA);
 });
 
-app.post('/api/admin/config', express.json(), async (req, res) => {
+app.post('/api/admin/config', authMiddleware, express.json(), async (req, res) => {
     const { pin, enabled, instruccion_principal, tono, extension, evitar, enfasis } = req.body;
     if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
     // Actualizar en memoria
@@ -2217,11 +2242,13 @@ async function iniciar() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V32.0                                     ║
+║  🏮 EL FAROL AL DÍA — V32.0 + SEGURIDAD BASIC AUTH              ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📚 Wikipedia               ║
-║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T               ║
-║  🏮 Watermark auto-regenera si Railway limpia /tmp              ║
+║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T                ║
+║  🏮 Watermark auto-regenera si Railway limpia /tmp               ║
+║  🔒 SEGURIDAD ACTIVA — Panel de redacción protegido             ║
+║  👤 Usuario: director · 🔑 Contraseña: 311                      ║
 ║                                                                  ║
 ║  Facebook:  ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
 ║  Twitter:   ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
