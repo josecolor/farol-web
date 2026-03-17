@@ -97,12 +97,13 @@
   --muted:      #777;
   --transition: all 0.3s cubic-bezier(0.2,0,0,1);
   
-  /* NUEVOS COLORES CORPORATIVOS - ALINEADOS CON LA IDENTIDAD DE EL FAROL */
-  --azul-marino:   #0A1929;      /* Azul oscuro de la portada */
-  --azul-marino2:  #102A44;      /* Variante más clara */
-  --dorado-elfarol: #FFD700;      /* Dorado brillante para títulos */
-  --dorado-elfarol2: #FFC800;     /* Dorado más brillante para efectos */
-  --amarillo-elfarol: #FFE55C;    /* Amarillo para detalles */
+  /* COLORES CORPORATIVOS */
+  --azul-marino:   #0A1929;
+  --azul-marino2:  #102A44;
+  --dorado-elfarol: #FFD700;
+  --dorado-elfarol2: #FFC800;
+  --amarillo-elfarol: #FFE55C;
+  --negro-suave: #1A1E24;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -168,25 +169,26 @@ nav a {
 }
 nav a:hover { color: var(--fuego); border-color: rgba(255,85,0,.3); background: rgba(255,85,0,.1); }
 
-/* BOTÓN NEGOCIOS MÁS GRANDE Y LLAMATIVO */
+/* BOTÓN NEGOCIOS - MÁS GRANDE Y LLAMATIVO */
 nav a.nav-negocios {
   background: var(--dorado-elfarol);
   color: #000 !important;
-  font-weight: 700;
-  font-size: 14px;
-  padding: 10px 22px;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 12px 25px;
   border: 2px solid var(--dorado-elfarol2);
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  transform: scale(1.05);
+  letter-spacing: 2px;
+  transform: scale(1.08);
+  border-radius: 40px;
 }
 
 nav a.nav-negocios:hover {
   background: var(--dorado-elfarol2);
   border-color: #fff;
-  transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(255, 225, 0, 0.8);
+  transform: scale(1.15);
+  box-shadow: 0 0 30px rgba(255, 225, 0, 1);
 }
 
 .live-badge {
@@ -321,7 +323,7 @@ main {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== SECCIÓN BUSINESS & LOGISTICS - CON COLORES DE LA IDENTIDAD ===== */
+/* ===== SECCIÓN BUSINESS & LOGISTICS ===== */
 .business-section {
   background: var(--azul-marino);
   border-radius: 24px;
@@ -403,20 +405,39 @@ main {
 }
 
 .business-card {
-  background: rgba(10, 25, 41, 0.8); /* azul-marino con opacidad */
+  background: rgba(10, 25, 41, 0.8);
   backdrop-filter: blur(10px);
   border: 1px solid var(--dorado-elfarol);
   border-radius: 20px;
   padding: 30px 25px;
-  transition: var(--transition);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   text-align: center;
   box-shadow: 0 5px 20px rgba(255,215,0,0.1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.business-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
+  transition: left 0.7s;
+  pointer-events: none;
 }
 
 .business-card:hover {
-  transform: translateY(-10px);
+  transform: translateY(-15px) scale(1.02);
   border-color: var(--amarillo-elfarol);
-  box-shadow: 0 15px 30px rgba(255,215,0,0.3);
+  box-shadow: 0 25px 45px rgba(255,215,0,0.4);
+}
+
+.business-card:hover::before {
+  left: 100%;
 }
 
 .business-icon {
@@ -429,6 +450,12 @@ main {
   line-height: 1;
   color: var(--dorado-elfarol);
   border: 2px solid var(--dorado-elfarol);
+  transition: all 0.3s;
+}
+
+.business-card:hover .business-icon {
+  transform: rotate(360deg);
+  background: rgba(255,215,0,0.3);
 }
 
 .business-card h3 {
@@ -441,24 +468,29 @@ main {
 }
 
 .business-card p {
-  color: rgba(255,255,255,0.8);
+  color: rgba(255,255,255,0.9);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
   margin-bottom: 20px;
+  text-align: left;
 }
 
 .business-card .btn-outline {
   display: inline-block;
-  padding: 8px 20px;
+  padding: 10px 20px;
   border: 2px solid var(--dorado-elfarol);
   color: var(--dorado-elfarol);
   text-decoration: none;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 1px;
   border-radius: 30px;
   transition: var(--transition);
   font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  width: 100%;
+  text-align: center;
 }
 
 .business-card .btn-outline:hover {
@@ -632,8 +664,8 @@ footer {
       <a href="/nosotros">NOSOTROS</a>
       <a href="/contacto">CONTACTO</a>
       <a href="/privacidad">PRIVACIDAD</a>
-      <!-- BOTÓN NEGOCIOS MÁS GRANDE Y LLAMATIVO -->
-      <a href="#business-section" class="nav-negocios">⭐ NEGOCIOS ⭐</a>
+      <!-- BOTÓN NEGOCIOS - MÁS GRANDE Y LLAMATIVO -->
+      <a href="#business-section" class="nav-negocios">💼 NEGOCIOS ⭐</a>
     </nav>
     <div class="live-badge" aria-label="Transmisión en vivo">
       <div class="live-dot" aria-hidden="true"></div>
@@ -659,33 +691,38 @@ footer {
     </div>
   </div>
 
-  <!-- ===== SECCIÓN BUSINESS & LOGISTICS - CON COLORES DE IDENTIDAD ===== -->
+  <!-- ===== SECCIÓN BUSINESS & LOGISTICS - CON CONTENIDO ACTUALIZADO ===== -->
   <section id="business-section" class="business-section">
     <div class="business-container">
       <div class="business-header">
         <span class="business-badge">EL FAROL BUSINESS</span>
         <h2>LOGÍSTICA & <span>CONTRATOS</span></h2>
-        <p>Soluciones corporativas para inversores y socios comerciales</p>
+        <p>Soluciones corporativas para inversores, aliados y proveedores estratégicos</p>
       </div>
 
       <div class="business-grid">
-        <div class="business-card">
-          <div class="business-icon">📦</div>
-          <h3>LOGÍSTICA INTEGRAL</h3>
-          <p>Gestión de cadena de suministro, almacenamiento y distribución para medios digitales y publicaciones.</p>
-          <a href="#" class="btn-outline">CONOCER MÁS</a>
-        </div>
+        <!-- CUADRO DE CONTRATOS - Infraestructura tecnológica -->
         <div class="business-card">
           <div class="business-icon">📄</div>
           <h3>CONTRATOS</h3>
-          <p>Asesoría y redacción de contratos publicitarios, alianzas estratégicas y acuerdos comerciales.</p>
-          <a href="#" class="btn-outline">VER MODELOS</a>
+          <p>Contamos con <strong>infraestructura tecnológica de vanguardia</strong>: equipos ASUS, smartphones Samsung de alta gama y servidores en la nube para garantizar una difusión masiva y profesional de las marcas aliadas en República Dominicana y la diáspora.</p>
+          <a href="mailto:contracts@elfarolaldia.com?subject=Propuesta%20de%20Alianza%20Comercial" class="btn-outline">📧 CONTRATAR AHORA</a>
         </div>
+
+        <!-- CUADRO DE LOGÍSTICA - Dropshipping -->
+        <div class="business-card">
+          <div class="business-icon">📦</div>
+          <h3>LOGÍSTICA</h3>
+          <p>Buscamos <strong>proveedores estratégicos para modelo Dropshipping</strong>. Ofrecemos nuestra plataforma digital y oficina virtual en <strong>Washington D.C.</strong> como puente logístico entre USA y República Dominicana. Conectamos su negocio con el mercado dominicano.</p>
+          <a href="mailto:logistics@elfarolaldia.com?subject=Interés%20en%20Proveedor%20%2F%20Dropshipping" class="btn-outline">📧 SER PROVEEDOR</a>
+        </div>
+
+        <!-- CUADRO DE ALIANZAS - Red Global -->
         <div class="business-card">
           <div class="business-icon">🤝</div>
           <h3>ALIANZAS</h3>
-          <p>Oportunidades de inversión y partnership para expandir la presencia de El Farol al Día.</p>
-          <a href="#" class="btn-outline">INVERSIONISTAS</a>
+          <p><strong>Red de Aliados Globales:</strong> Nuestra oficina virtual en Washington D.C. sirve como puente comercial para empresas dominicanas que buscan proyección internacional y empresas extranjeras que desean invertir en Santo Domingo Este.</p>
+          <a href="mailto:contracts@elfarolaldia.com?cc=logistics@elfarolaldia.com&subject=Red%20de%20Aliados%20Globales" class="btn-outline">🌎 CONTACTAR DIRECCIÓN</a>
         </div>
       </div>
 
@@ -694,12 +731,12 @@ footer {
         <div class="contact-cards">
           <div class="contact-card">
             <h4>CONTRATOS</h4>
-            <p>Para acuerdos comerciales, publicidad y contratos</p>
+            <p>Para acuerdos comerciales, publicidad y alianzas</p>
             <a href="mailto:contracts@elfarolaldia.com" class="contact-email">contracts@elfarolaldia.com</a>
           </div>
           <div class="contact-card">
             <h4>LOGÍSTICA</h4>
-            <p>Para distribución, almacenamiento y operaciones</p>
+            <p>Para proveedores, dropshipping y operaciones</p>
             <a href="mailto:logistics@elfarolaldia.com" class="contact-email">logistics@elfarolaldia.com</a>
           </div>
         </div>
