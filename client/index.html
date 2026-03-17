@@ -174,21 +174,22 @@ nav a.nav-negocios {
   background: var(--dorado-elfarol);
   color: #000 !important;
   font-weight: 800;
-  font-size: 15px;
-  padding: 12px 25px;
+  font-size: 16px;
+  padding: 14px 28px;
   border: 2px solid var(--dorado-elfarol2);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
   text-transform: uppercase;
   letter-spacing: 2px;
-  transform: scale(1.08);
+  transform: scale(1.1);
   border-radius: 40px;
+  margin-left: 10px;
 }
 
 nav a.nav-negocios:hover {
   background: var(--dorado-elfarol2);
   border-color: #fff;
-  transform: scale(1.15);
-  box-shadow: 0 0 30px rgba(255, 225, 0, 1);
+  transform: scale(1.18);
+  box-shadow: 0 0 35px rgba(255, 225, 0, 1);
 }
 
 .live-badge {
@@ -323,7 +324,7 @@ main {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== SECCIÓN BUSINESS & LOGISTICS - ACTUALIZADA ===== */
+/* ===== SECCIÓN BUSINESS & LOGISTICS 2026 ===== */
 .business-section {
   background: var(--azul-marino);
   border-radius: 24px;
@@ -416,6 +417,9 @@ main {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .business-card::before {
@@ -431,9 +435,9 @@ main {
 }
 
 .business-card:hover {
-  transform: translateY(-15px) scale(1.02);
+  transform: translateY(-18px) scale(1.03);
   border-color: var(--amarillo-elfarol);
-  box-shadow: 0 25px 45px rgba(255,215,0,0.4);
+  box-shadow: 0 30px 50px rgba(255,215,0,0.5);
 }
 
 .business-card:hover::before {
@@ -441,16 +445,17 @@ main {
 }
 
 .business-icon {
-  font-size: 48px;
+  font-size: 54px;
   margin-bottom: 20px;
   display: inline-block;
   background: rgba(255,215,0,0.15);
-  padding: 15px;
+  padding: 18px;
   border-radius: 50%;
   line-height: 1;
   color: var(--dorado-elfarol);
   border: 2px solid var(--dorado-elfarol);
   transition: all 0.3s;
+  align-self: center;
 }
 
 .business-card:hover .business-icon {
@@ -460,7 +465,7 @@ main {
 
 .business-card h3 {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px;
+  font-size: 26px;
   color: var(--dorado-elfarol);
   margin-bottom: 15px;
   letter-spacing: 1px;
@@ -473,16 +478,42 @@ main {
   line-height: 1.7;
   margin-bottom: 20px;
   text-align: left;
+  flex: 1;
+}
+
+.business-card ul {
+  text-align: left;
+  color: rgba(255,255,255,0.9);
+  font-size: 13px;
+  line-height: 1.8;
+  margin-bottom: 20px;
+  padding-left: 20px;
+  list-style-type: none;
+}
+
+.business-card ul li {
+  margin-bottom: 8px;
+  position: relative;
+  padding-left: 20px;
+}
+
+.business-card ul li::before {
+  content: '⭐';
+  position: absolute;
+  left: -5px;
+  top: 0;
+  color: var(--dorado-elfarol);
+  font-size: 12px;
 }
 
 .business-card .btn-outline {
   display: inline-block;
-  padding: 10px 20px;
+  padding: 12px 20px;
   border: 2px solid var(--dorado-elfarol);
   color: var(--dorado-elfarol);
   text-decoration: none;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 1px;
   border-radius: 30px;
   transition: var(--transition);
@@ -491,6 +522,7 @@ main {
   background: transparent;
   width: 100%;
   text-align: center;
+  margin-top: auto;
 }
 
 .business-card .btn-outline:hover {
@@ -613,7 +645,7 @@ footer {
   margin-top: 30px; padding-top: 25px; border-top: 1px solid var(--borde);
 }
 
-/* CLAÚSULAS LEGALES - NUEVO */
+/* CLAÚSULAS LEGALES */
 .legal-footer {
   margin-top: 20px;
   padding: 20px;
@@ -687,7 +719,7 @@ footer {
       <a href="/contacto">CONTACTO</a>
       <a href="/privacidad">PRIVACIDAD</a>
       <!-- BOTÓN NEGOCIOS - MÁS GRANDE Y LLAMATIVO -->
-      <a href="#business-section" class="nav-negocios">💼 NEGOCIOS ⭐</a>
+      <a href="#business-section" class="nav-negocios">💼 NEGOCIOS 2026 ⭐</a>
     </nav>
     <div class="live-badge" aria-label="Transmisión en vivo">
       <div class="live-dot" aria-hidden="true"></div>
@@ -713,38 +745,43 @@ footer {
     </div>
   </div>
 
-  <!-- ===== SECCIÓN BUSINESS & LOGISTICS - ACTUALIZADA CON MARCO LEGAL ===== -->
+  <!-- ===== SECCIÓN BUSINESS & LOGISTICS 2026 ===== -->
   <section id="business-section" class="business-section">
     <div class="business-container">
       <div class="business-header">
-        <span class="business-badge">EL FAROL BUSINESS</span>
-        <h2>EQUIPAMIENTO & <span>SUMINISTROS</span></h2>
-        <p>Soluciones corporativas en tecnología y papelería con respaldo legal</p>
+        <span class="business-badge">EL FAROL BUSINESS 2026</span>
+        <h2>EQUIPAMIENTO PC & <span>LOGÍSTICA AVANZADA</span></h2>
+        <p>Hardware profesional y suministros de oficina con respaldo legal y tracking en tiempo real</p>
       </div>
 
       <div class="business-grid">
-        <!-- CUADRO 1: CONTRATOS DE EQUIPAMIENTO (Hardware) -->
+        <!-- CUADRO 1: CONTRATOS DE EQUIPAMIENTO (Hardware PC/Laptops) -->
         <div class="business-card">
           <div class="business-icon">💻</div>
           <h3>CONTRATOS DE EQUIPAMIENTO</h3>
-          <p><strong>Hardware profesional:</strong> Equipamiento integral para empresas con computadoras (PC/Laptops) de alto rendimiento. Todas las transacciones se formalizan mediante <strong>contratos legales de suministro</strong> con garantía limitada del fabricante y soporte técnico incluido.</p>
-          <a href="mailto:contracts@elfarolaldia.com?subject=Solicitud%20de%20Cotización%20-%20Equipamiento%20Tecnológico" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
+          <p><strong>Hardware PC/Laptops profesional:</strong> Equipamiento integral para empresas con computadoras de alto rendimiento. Todas las transacciones se formalizan mediante <strong>contratos legales de suministro</strong> con garantía limitada del fabricante y soporte técnico incluido.</p>
+          <a href="mailto:contracts@elfarolaldia.com?subject=Solicitud%20de%20Cotización%20-%20Equipamiento%20PC%202026" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
         </div>
 
-        <!-- CUADRO 2: LOGÍSTICA Y DROPSHIPPING (Proveedores USA) -->
+        <!-- CUADRO 2: LOGÍSTICA CORPORATIVA & DROPSHIPPING 2026 (ACTUALIZADO) -->
         <div class="business-card">
           <div class="business-icon">📦</div>
-          <h3>LOGÍSTICA Y DROPSHIPPING</h3>
-          <p><strong>Proveedores en USA:</strong> Buscamos aliados que cumplan con las <strong>normativas de exportación</strong> estadounidenses. Ofrecemos un puente logístico legal y transparente desde nuestra oficina virtual en <strong>Washington D.C.</strong> hasta Santo Domingo Este.</p>
-          <a href="mailto:logistics@elfarolaldia.com?subject=Interés%20en%20ser%20Proveedor%20-%20Dropshipping" class="btn-outline">📧 SER PROVEEDOR</a>
+          <h3>LOGÍSTICA CORPORATIVA & DROPSHIPPING 2026</h3>
+          <p><strong>Puente logístico avanzado USA-RD:</strong> Ofrecemos:</p>
+          <ul>
+            <li><strong>Gestión DGA Express:</strong> Tramitación aduanal legal y transparente</li>
+            <li><strong>Rastreo en Tiempo Real:</strong> Control total desde almacenes en USA hasta SDE</li>
+            <li><strong>Distribución Corporativa:</strong> Entrega de equipos pesados y suministros masivos directamente en oficina</li>
+          </ul>
+          <a href="mailto:logistics@elfarolaldia.com?subject=Proveedor%202026%20-%20Logística%20Corporativa" class="btn-outline">📧 AFILIARSE COMO PROVEEDOR</a>
         </div>
 
-        <!-- CUADRO 3: SUMINISTROS DE OFICINA -->
+        <!-- CUADRO 3: SUMINISTROS DE OFICINA (Papelería) -->
         <div class="business-card">
           <div class="business-icon">📄</div>
           <h3>SUMINISTROS DE OFICINA</h3>
-          <p><strong>Papelería corporativa:</strong> Gestión de suministros de oficina y consumibles bajo <strong>estándares de calidad internacional</strong>. Cumplimos con los tiempos de entrega pactados y ofrecemos garantía en todos nuestros productos de papelería.</p>
-          <a href="mailto:contracts@elfarolaldia.com?subject=Cotización%20-%20Suministros%20de%20Oficina" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
+          <p><strong>Papelería corporativa:</strong> Gestión de suministros de oficina y consumibles bajo <strong>estándares de calidad internacional</strong>. Cumplimos con los tiempos de entrega pactados y ofrecemos garantía en todos nuestros productos de papelería y suministros.</p>
+          <a href="mailto:contracts@elfarolaldia.com?subject=Cotización%20-%20Suministros%20de%20Oficina%202026" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
         </div>
       </div>
 
@@ -753,12 +790,12 @@ footer {
         <div class="contact-cards">
           <div class="contact-card">
             <h4>CONTRATOS</h4>
-            <p>Para equipamiento tecnológico y suministros de oficina</p>
+            <p>Para equipamiento PC/Laptops y suministros de oficina</p>
             <a href="mailto:contracts@elfarolaldia.com" class="contact-email">contracts@elfarolaldia.com</a>
           </div>
           <div class="contact-card">
-            <h4>LOGÍSTICA</h4>
-            <p>Para proveedores y operaciones de dropshipping</p>
+            <h4>LOGÍSTICA 2026</h4>
+            <p>Para proveedores, dropshipping y operaciones DGA</p>
             <a href="mailto:logistics@elfarolaldia.com" class="contact-email">logistics@elfarolaldia.com</a>
           </div>
         </div>
@@ -768,9 +805,9 @@ footer {
           <span class="name">JOSE GREGORIO MAÑAN SANTANA</span>
         </div>
 
-        <!-- CLAÚSULAS LEGALES INTEGRADAS -->
+        <!-- MARCO LEGAL INTEGRADO -->
         <div class="legal-footer">
-          <p><strong>MARCO LEGAL:</strong> El Farol al Día opera bajo los marcos legales de comercio electrónico de la República Dominicana y las normativas de exportación de EE.UU. No nos hacemos responsables por aranceles aduanales externos (DGA). Todas nuestras operaciones de suministros tecnológicos incluyen garantía limitada del fabricante.</p>
+          <p><strong>MARCO LEGAL:</strong> El Farol al Día opera bajo los marcos legales de comercio electrónico de la República Dominicana y las normativas de exportación de EE.UU. No nos hacemos responsables por aranceles aduanales externos (DGA). Equipos cuentan con garantía limitada del fabricante.</p>
         </div>
       </div>
     </div>
@@ -789,6 +826,12 @@ footer {
       <a href="/sitemap.xml">SITEMAP</a>
       <a href="/robots.txt">ROBOTS</a>
     </div>
+    
+    <!-- MARCO LEGAL EN FOOTER PRINCIPAL -->
+    <div class="legal-footer" style="margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+      <p><strong>AVISO LEGAL:</strong> El Farol al Día opera bajo los marcos legales de comercio electrónico de la República Dominicana y las normativas de exportación de EE.UU. No nos hacemos responsables por aranceles aduanales externos. Equipos cuentan con garantía limitada del fabricante.</p>
+    </div>
+    
     <div class="footer-copy">
       <p>© 2026 El Farol al Día · Todos los derechos reservados</p>
       <p style="font-size:10px;margin-top:5px">Generado con Gemini 2.5 Flash + Wikipedia + Contexto RD</p>
