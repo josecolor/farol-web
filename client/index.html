@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-  <!-- Bootstrap 5 CSS (CDN) -->
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
@@ -17,10 +17,11 @@
   <meta name="keywords" content="noticias republica dominicana, periodico digital dominicano, santo domingo noticias, farol al dia, noticias sde, los mina, invivienda, deportes rd, economia dominicana">
   <meta name="author" content="El Farol al Día - Periódico Digital Dominicano">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  <meta name="googlebot" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://elfarolaldia.com/">
   <link rel="alternate" hreflang="es-DO" href="https://elfarolaldia.com/">
-  <link rel="alternate" hreflang="es" href="https://elfarolaldia.com/">
+  <link rel="alternate" hreflang="en" href="https://elfarolaldia.com/">
+  <link rel="alternate" hreflang="pt" href="https://elfarolaldia.com/">
+  <link rel="alternate" hreflang="fr" href="https://elfarolaldia.com/">
   <link rel="alternate" hreflang="x-default" href="https://elfarolaldia.com/">
 
   <meta property="og:type" content="website">
@@ -40,10 +41,24 @@
   <meta name="twitter:description" content="Periódico digital dominicano con noticias verificadas. Información actualizada 24/7 desde Santo Domingo.">
   <meta name="twitter:image" content="https://elfarolaldia.com/static/og-image.jpg">
 
-  <!-- Fonts de tu marca -->
+  <!-- Google Translate Widget Script -->
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'es',
+        includedLanguages: 'en,fr,pt,de,it,zh-CN,ja,ko,ru,ar,ht',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        autoDisplay: false,
+        multilanguagePage: true
+      }, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -59,26 +74,24 @@
   --transition: all 0.3s cubic-bezier(0.2,0,0,1);
   
   /* COLORES CORPORATIVOS */
-  --azul-marino:   #0A1929;
-  --azul-marino2:  #102A44;
+  --azul-marino:   #0A2647;
+  --azul-marino2:  #1B3A5E;
   --dorado-elfarol: #FFD700;
   --dorado-elfarol2: #FFC800;
   --amarillo-elfarol: #FFE55C;
-  --negro-suave: #1A1E24;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; font-size: 16px; }
 
 body {
-  font-family: 'Lora', Georgia, serif;
+  font-family: 'Inter', sans-serif;
   background: var(--negro);
   color: var(--crema);
   line-height: 1.6;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -95,127 +108,142 @@ body::before {
 header {
   background: rgba(7,7,7,.97);
   border-bottom: 1px solid var(--borde);
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: 0; z-index: 1000;
   backdrop-filter: blur(12px);
 }
 .header-inner {
   max-width: 1400px; margin: 0 auto;
-  padding: 0 20px; height: 70px;
+  padding: 0 20px; height: 80px;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
 }
 .logo {
   display: flex; align-items: center; gap: 12px;
   text-decoration: none; color: var(--fuego);
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px; letter-spacing: 3px; flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 24px; letter-spacing: -0.5px; flex-shrink: 0;
 }
 .logo-icon {
   width: 42px; height: 42px; background: var(--fuego);
-  border-radius: 12px; display: flex; align-items: center;
+  border-radius: 10px; display: flex; align-items: center;
   justify-content: center; font-size: 22px;
   box-shadow: 0 0 20px rgba(255,85,0,.5);
 }
 .logo-text { display: flex; flex-direction: column; line-height: 1.2; }
 .logo-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-top: 2px;
+  font-family: 'Inter', monospace;
+  font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 2px;
+  font-weight: 400;
 }
+
+/* Google Translate Widget Custom */
+.translate-container {
+  display: flex;
+  align-items: center;
+}
+
+#google_translate_element {
+  margin-right: 15px;
+}
+
+#google_translate_element select,
+#google_translate_element .goog-te-combo {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--borde);
+  color: var(--crema);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 150px;
+}
+
+#google_translate_element select:hover,
+#google_translate_element .goog-te-combo:hover {
+  border-color: var(--fuego);
+  background: rgba(255,85,0,0.1);
+}
+
+#google_translate_element option {
+  background: var(--tinta);
+  color: var(--crema);
+}
+
+/* Ocultar barra superior de Google */
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+body { top: 0 !important; }
+
 nav { display: flex; gap: 8px; align-items: center; }
 nav a {
   color: var(--crema2); text-decoration: none;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 500;
   padding: 8px 16px; border-radius: 6px;
   transition: var(--transition); border: 1px solid transparent;
 }
 nav a:hover { color: var(--fuego); border-color: rgba(255,85,0,.3); background: rgba(255,85,0,.1); }
 
-/* BOTÓN NEGOCIOS - MÁS GRANDE Y LLAMATIVO */
+/* BOTÓN NEGOCIOS */
 nav a.nav-negocios {
   background: var(--dorado-elfarol);
   color: #000 !important;
-  font-weight: 800;
-  font-size: 16px;
-  padding: 14px 28px;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 22px;
   border: 2px solid var(--dorado-elfarol2);
-  box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
   border-radius: 40px;
-  margin-left: 10px;
+  margin-left: 5px;
 }
 
 nav a.nav-negocios:hover {
   background: var(--dorado-elfarol2);
-  border-color: #fff;
-  transform: scale(1.18);
-  box-shadow: 0 0 35px rgba(255, 225, 0, 1);
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 225, 0, 0.8);
 }
-
-.live-badge {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px;
-  background: rgba(255,85,0,.15); border: 1px solid rgba(255,85,0,.4);
-  color: var(--fuego); padding: 6px 14px; border-radius: 30px;
-  display: flex; align-items: center; gap: 8px; white-space: nowrap;
-}
-.live-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--fuego); box-shadow: 0 0 10px var(--fuego);
-  animation: blink 1.5s infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
 /* HERO */
 .hero {
-  text-align: center; padding: 70px 20px 50px;
+  text-align: center; padding: 60px 20px 40px;
   position: relative; z-index: 1;
-  max-width: 1000px; margin: 0 auto;
+  max-width: 900px; margin: 0 auto;
 }
 .hero-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; letter-spacing: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; letter-spacing: 3px;
   color: var(--fuego); margin-bottom: 20px; display: block;
+  text-transform: uppercase;
 }
 .hero h1 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(45px, 10vw, 90px);
-  letter-spacing: 3px; line-height: 1.1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(40px, 8vw, 70px);
+  font-weight: 700;
+  letter-spacing: -1px; line-height: 1.1;
   margin-bottom: 15px; color: var(--crema);
 }
 .hero h1 span { color: var(--fuego); }
-.hero p { font-size: 18px; color: var(--crema2); font-style: italic; margin-bottom: 25px; }
+.hero p { font-size: 16px; color: var(--crema2); margin-bottom: 25px; }
 .hero-fecha {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; letter-spacing: 2px; color: var(--muted); display: block;
+  font-family: 'Inter', monospace;
+  font-size: 12px; color: var(--muted); display: block;
 }
-
-/* CATEGORÍAS (Boostrap Overrides) */
-.cats {
-  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
-  padding: 0 20px 40px; position: relative; z-index: 1;
-  max-width: 1200px; margin: 0 auto;
-}
-.cat-btn {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px;
-  padding: 10px 22px; border-radius: 30px; border: 1px solid var(--borde);
-  background: transparent; color: var(--crema2); cursor: pointer;
-  transition: var(--transition);
-}
-.cat-btn:hover { border-color: rgba(255,85,0,.5); color: var(--fuego); background: rgba(255,85,0,.08); transform: translateY(-2px); }
-.cat-btn.active { background: var(--fuego); border-color: var(--fuego); color: #fff; box-shadow: 0 5px 15px rgba(255,85,0,.3); }
 
 /* MAIN */
 main {
-  flex: 1; max-width: 1400px; margin: 0 auto;
+  flex: 1; max-width: 1300px; margin: 0 auto;
   padding: 0 20px 60px; position: relative; z-index: 1; width: 100%;
 }
 
-/* Tarjetas de Noticias con Bootstrap */
+/* Tarjetas de Noticias Modernas */
 .news-card {
   background: var(--papel);
   border: 1px solid var(--borde);
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   transition: var(--transition);
   height: 100%;
@@ -226,44 +254,49 @@ main {
 .news-card:hover {
   transform: translateY(-8px);
   border-color: var(--fuego);
-  box-shadow: 0 15px 30px rgba(255,85,0,0.2);
+  box-shadow: 0 20px 40px rgba(255,85,0,0.15);
 }
 
 .news-card .card-img-top {
-  height: 180px;
+  height: 200px;
   object-fit: cover;
   background: var(--borde);
 }
 
 .news-card .card-body {
-  padding: 1.25rem;
+  padding: 1.5rem;
   flex: 1;
 }
 
 .news-card .card-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.2rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--crema);
   margin-bottom: 0.75rem;
+  line-height: 1.4;
 }
 
 .news-card .card-text {
   color: var(--crema2);
   font-size: 0.9rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
 }
 
 .news-card .btn-news {
   background: transparent;
   border: 1px solid var(--fuego);
   color: var(--fuego);
-  padding: 0.4rem 1rem;
-  border-radius: 20px;
-  font-family: 'JetBrains Mono', monospace;
+  padding: 0.5rem 1.2rem;
+  border-radius: 30px;
+  font-family: 'Inter', sans-serif;
   font-size: 0.8rem;
+  font-weight: 500;
   text-decoration: none;
   transition: var(--transition);
   align-self: flex-start;
+  display: inline-block;
 }
 
 .news-card .btn-news:hover {
@@ -271,28 +304,14 @@ main {
   color: #fff;
 }
 
-/* ===== SECCIÓN BUSINESS & LOGISTICS 2026 ===== */
+/* ===== SECCIÓN BUSINESS & LOGISTICS ===== */
 .business-section {
   background: var(--azul-marino);
   border-radius: 24px;
   padding: 60px 40px;
   margin: 60px 0;
-  position: relative;
-  overflow: hidden;
   border: 1px solid var(--dorado-elfarol);
   box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-}
-
-.business-section::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -10%;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(255,215,0,0.15) 0%, transparent 70%);
-  border-radius: 50%;
-  z-index: 0;
 }
 
 .business-container {
@@ -311,40 +330,37 @@ main {
   display: inline-block;
   background: var(--dorado-elfarol);
   color: var(--azul-marino);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 3px;
+  font-weight: 600;
+  letter-spacing: 2px;
   padding: 6px 16px;
   border-radius: 30px;
   margin-bottom: 20px;
   text-transform: uppercase;
-  border: 2px solid var(--amarillo-elfarol);
 }
 
 .business-header h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 48px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 42px;
+  font-weight: 700;
   color: #fff;
-  letter-spacing: 2px;
+  letter-spacing: -1px;
   margin-bottom: 15px;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .business-header h2 span {
   color: var(--dorado-elfarol);
-  text-shadow: 0 0 10px rgba(255,215,0,0.5);
 }
 
 .business-header p {
-  font-size: 18px;
+  font-size: 16px;
   color: rgba(255,255,255,0.9);
   max-width: 700px;
   margin: 0 auto;
-  font-style: italic;
 }
 
-/* Grid de servicios corporativos */
+/* Grid de servicios */
 .business-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -353,104 +369,44 @@ main {
 }
 
 .business-card {
-  background: rgba(10, 25, 41, 0.8);
+  background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
-  border: 1px solid var(--dorado-elfarol);
+  border: 1px solid rgba(255,215,0,0.2);
   border-radius: 20px;
   padding: 30px 25px;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: var(--transition);
   text-align: center;
-  box-shadow: 0 5px 20px rgba(255,215,0,0.1);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.business-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
-  transition: left 0.7s;
-  pointer-events: none;
-}
-
 .business-card:hover {
-  transform: translateY(-18px) scale(1.03);
-  border-color: var(--amarillo-elfarol);
-  box-shadow: 0 30px 50px rgba(255,215,0,0.5);
-}
-
-.business-card:hover::before {
-  left: 100%;
+  transform: translateY(-10px);
+  border-color: var(--dorado-elfarol);
+  box-shadow: 0 20px 40px rgba(255,215,0,0.15);
 }
 
 .business-icon {
-  font-size: 54px;
+  font-size: 48px;
   margin-bottom: 20px;
-  display: inline-block;
-  background: rgba(255,215,0,0.15);
-  padding: 18px;
-  border-radius: 50%;
-  line-height: 1;
   color: var(--dorado-elfarol);
-  border: 2px solid var(--dorado-elfarol);
-  transition: all 0.3s;
-  align-self: center;
-}
-
-.business-card:hover .business-icon {
-  transform: rotate(360deg);
-  background: rgba(255,215,0,0.3);
 }
 
 .business-card h3 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 26px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
   color: var(--dorado-elfarol);
   margin-bottom: 15px;
-  letter-spacing: 1px;
-  text-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 .business-card p {
-  color: rgba(255,255,255,0.9);
+  color: rgba(255,255,255,0.8);
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.6;
   margin-bottom: 20px;
-  text-align: left;
   flex: 1;
-}
-
-.business-card ul {
-  text-align: left;
-  color: rgba(255,255,255,0.9);
-  font-size: 13px;
-  line-height: 1.8;
-  margin-bottom: 20px;
-  padding-left: 20px;
-  list-style-type: none;
-}
-
-.business-card ul li {
-  margin-bottom: 8px;
-  position: relative;
-  padding-left: 20px;
-}
-
-.business-card ul li::before {
-  content: '⭐';
-  position: absolute;
-  left: -5px;
-  top: 0;
-  color: var(--dorado-elfarol);
-  font-size: 12px;
 }
 
 .business-card .btn-outline {
@@ -459,17 +415,12 @@ main {
   border: 2px solid var(--dorado-elfarol);
   color: var(--dorado-elfarol);
   text-decoration: none;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
-  letter-spacing: 1px;
+  font-weight: 600;
   border-radius: 30px;
   transition: var(--transition);
-  font-weight: 600;
-  cursor: pointer;
   background: transparent;
-  width: 100%;
-  text-align: center;
-  margin-top: auto;
 }
 
 .business-card .btn-outline:hover {
@@ -484,11 +435,10 @@ main {
   padding: 40px;
   margin-top: 30px;
   border: 2px solid var(--dorado-elfarol);
-  box-shadow: inset 0 0 20px rgba(255,215,0,0.1);
 }
 
 .business-contact h3 {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   color: #fff;
   margin-bottom: 20px;
@@ -497,7 +447,6 @@ main {
 
 .business-contact h3 span {
   color: var(--dorado-elfarol);
-  text-shadow: 0 0 10px rgba(255,215,0,0.5);
 }
 
 .contact-cards {
@@ -507,7 +456,7 @@ main {
 }
 
 .contact-card {
-  background: rgba(10, 25, 41, 0.6);
+  background: rgba(255,255,255,0.03);
   border-radius: 16px;
   padding: 25px;
   text-align: center;
@@ -515,11 +464,10 @@ main {
 }
 
 .contact-card h4 {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 20px;
   color: var(--dorado-elfarol);
   margin-bottom: 10px;
-  letter-spacing: 1px;
 }
 
 .contact-card p {
@@ -530,16 +478,15 @@ main {
 
 .contact-email {
   display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 18px;
-  font-weight: 600;
+  font-family: 'Inter', monospace;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--dorado-elfarol);
   text-decoration: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   background: rgba(255,215,0,0.1);
   border-radius: 50px;
   transition: var(--transition);
-  word-break: break-all;
   border: 1px solid var(--dorado-elfarol);
 }
 
@@ -556,7 +503,7 @@ main {
 }
 
 .director-info .title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: var(--dorado-elfarol);
   letter-spacing: 2px;
@@ -565,11 +512,11 @@ main {
 }
 
 .director-info .name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 600;
   color: #fff;
-  letter-spacing: 2px;
-  text-shadow: 0 2px 5px rgba(255,215,0,0.3);
+  letter-spacing: -0.5px;
 }
 
 /* FOOTER */
@@ -578,21 +525,21 @@ footer {
   padding: 50px 20px 30px; position: relative; z-index: 1; margin-top: auto;
 }
 .footer-inner { max-width: 1200px; margin: 0 auto; text-align: center; }
-.footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 4px; color: var(--fuego); margin-bottom: 10px; }
-.footer-desc { color: var(--muted); font-size: 14px; font-style: italic; margin-bottom: 25px; }
+.footer-logo { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: var(--fuego); margin-bottom: 10px; }
+.footer-desc { color: var(--muted); font-size: 14px; margin-bottom: 25px; }
 .footer-links { margin: 25px 0; display: flex; gap: 25px; justify-content: center; flex-wrap: wrap; }
 .footer-links a {
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px;
+  font-family: 'Inter', sans-serif; font-size: 13px;
   color: var(--crema2); text-decoration: none; transition: color .2s;
   padding: 5px 0; border-bottom: 1px solid transparent;
 }
 .footer-links a:hover { color: var(--fuego); border-bottom-color: var(--fuego); }
 .footer-copy {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+  font-family: 'Inter', monospace; font-size: 11px; color: var(--muted);
   margin-top: 30px; padding-top: 25px; border-top: 1px solid var(--borde);
 }
 
-/* CLAÚSULAS LEGALES */
+/* LEGAL */
 .legal-footer {
   margin-top: 20px;
   padding: 20px;
@@ -602,7 +549,7 @@ footer {
 }
 
 .legal-footer p {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
   color: var(--crema2);
   line-height: 1.6;
@@ -613,32 +560,43 @@ footer {
   color: var(--dorado-elfarol);
 }
 
-/* ACCESIBILIDAD */
-:focus-visible { outline: 2px solid var(--fuego); outline-offset: 2px; }
-
 /* RESPONSIVE */
 @media (max-width: 1100px) { 
   .business-grid { grid-template-columns: repeat(2,1fr); }
 }
 @media (max-width: 900px) {
-  nav { display: none; }
-  .hero { padding: 50px 15px 30px; }
-  .hero h1 { font-size: 40px; }
-  .live-badge { display: none; }
+  .header-inner {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 15px 20px;
+  }
+  nav { 
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+  }
+  .translate-container {
+    margin-left: auto;
+  }
 }
 @media (max-width: 700px) {
   .business-grid { grid-template-columns: 1fr; }
   .contact-cards { grid-template-columns: 1fr; }
   .business-section { padding: 40px 20px; }
-  .business-header h2 { font-size: 36px; }
-  .contact-email { font-size: 16px; }
-  .director-info .name { font-size: 24px; }
+  .business-header h2 { font-size: 32px; }
+  .contact-email { font-size: 14px; }
+  .director-info .name { font-size: 22px; }
+  #google_translate_element select {
+    min-width: 120px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
 }
 @media (max-width: 480px) { 
-  .card-titulo { font-size: 20px; }
+  .hero h1 { font-size: 32px; }
   .business-header h2 { font-size: 28px; }
-  .director-info .name { font-size: 22px; }
-  .legal-footer p { font-size: 9px; }
+  .director-info .name { font-size: 20px; }
 }
 </style>
 </head>
@@ -646,93 +604,96 @@ footer {
 
 <header>
   <div class="header-inner">
-    <a href="/" class="logo" aria-label="El Farol al Día - Página de inicio">
+    <a href="/" class="logo" aria-label="El Farol al Día">
       <div class="logo-icon" aria-hidden="true">🏮</div>
       <div class="logo-text">
         EL FAROL AL DÍA
         <span class="logo-sub">PERIÓDICO DIGITAL DOMINICANO</span>
       </div>
     </a>
-    <nav aria-label="Menú principal">
-      <a href="/" aria-current="page">INICIO</a>
-      <a href="/nosotros">NOSOTROS</a>
-      <a href="/contacto">CONTACTO</a>
-      <a href="/privacidad">PRIVACIDAD</a>
-      <!-- BOTÓN NEGOCIOS - MÁS GRANDE Y LLAMATIVO -->
-      <a href="#business-section" class="nav-negocios">💼 NEGOCIOS 2026 ⭐</a>
-    </nav>
-    <div class="live-badge" aria-label="Transmisión en vivo">
-      <div class="live-dot" aria-hidden="true"></div>
-      <span>EN VIVO · RD</span>
+    
+    <!-- Google Translate Widget -->
+    <div class="translate-container">
+      <div id="google_translate_element"></div>
     </div>
+    
+    <nav aria-label="Menú principal">
+      <a href="/">INICIO</a>
+      <a href="#business-section" class="nav-negocios">💼 NEGOCIOS</a>
+    </nav>
   </div>
 </header>
 
 <main>
-  <section class="hero" aria-labelledby="hero-heading">
-    <span class="hero-label">REPÚBLICA DOMINICANA · NOTICIAS DE IMPACTO</span>
-    <h1 id="hero-heading">Noticias de <span>República</span> Dominicana</h1>
+  <section class="hero">
+    <span class="hero-label">SANTO DOMINGO ESTE · REPÚBLICA DOMINICANA</span>
+    <h1>Noticias de <span>Impacto</span> en Tiempo Real</h1>
     <p>Periodismo digital con cobertura nacional e internacional</p>
     <time class="hero-fecha" id="hero-fecha" datetime=""></time>
   </section>
 
-  <!-- NUEVA SECCIÓN DE NOTICIAS CON BOOTSTRAP -->
+  <!-- NOTICIAS DE IMPACTO SDE & RD -->
   <section class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 style="font-family: 'Bebas Neue', sans-serif; color: var(--crema); font-size: 2rem;">📰 Últimas Noticias</h2>
+      <h2 style="font-family: 'DM Sans', sans-serif; color: var(--crema); font-size: 2rem; font-weight: 600;">📰 Noticias de Impacto</h2>
     </div>
     <div class="row g-4">
+      
       <!-- Noticia 1: Hub Logístico en SDE -->
-      <div class="col-md-4 col-sm-6">
+      <div class="col-lg-4 col-md-6">
         <div class="news-card">
-          <img src="https://images.pexels.com/photos/4481256/pexels-photo-4481256.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Hub Logístico" loading="lazy">
+          <img src="https://images.pexels.com/photos/4481256/pexels-photo-4481256.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Hub Logístico SDE" loading="lazy">
           <div class="card-body">
-            <h3 class="card-title">Nuevo Hub Logístico en SDE</h3>
-            <p class="card-text">Se inaugura el centro de distribución más grande del Caribe, conectando mercados con tecnología de punta.</p>
+            <h3 class="card-title">Nuevo Hub Logístico en Santo Domingo Este</h3>
+            <p class="card-text">Se inaugura el centro de distribución más moderno del Caribe, con capacidad para procesar 50,000 contenedores al año y generar 2,000 empleos directos en la zona de INVIVIENDA.</p>
             <a href="#" class="btn-news">Leer más</a>
           </div>
         </div>
       </div>
+
       <!-- Noticia 2: Becas INFOTEP Cloud -->
-      <div class="col-md-4 col-sm-6">
+      <div class="col-lg-4 col-md-6">
         <div class="news-card">
-          <img src="https://images.pexels.com/photos/267350/pexels-photo-267350.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Becas INFOTEP" loading="lazy">
+          <img src="https://images.pexels.com/photos/267350/pexels-photo-267350.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Becas INFOTEP Cloud" loading="lazy">
           <div class="card-body">
-            <h3 class="card-title">Becas INFOTEP Cloud 2026</h3>
-            <p class="card-text">INFOTEP lanza 5,000 becas para especializaciones en computación en la nube y ciberseguridad.</p>
+            <h3 class="card-title">INFOTEP Lanza 5,000 Becas Cloud</h3>
+            <p class="card-text">El programa de especialización en computación en la nube, ciberseguridad y data science estará disponible para residentes de Santo Domingo Este y Los Mina con becas completas del gobierno.</p>
             <a href="#" class="btn-news">Leer más</a>
           </div>
         </div>
       </div>
+
       <!-- Noticia 3: Aranceles DGA 2026 -->
-      <div class="col-md-4 col-sm-6">
+      <div class="col-lg-4 col-md-6">
         <div class="news-card">
           <img src="https://images.pexels.com/photos/3943715/pexels-photo-3943715.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Aranceles DGA" loading="lazy">
           <div class="card-body">
-            <h3 class="card-title">Aranceles DGA 2026</h3>
-            <p class="card-text">Nuevas disposiciones de la DGA simplifican trámites para importación de tecnología y materia prima.</p>
+            <h3 class="card-title">DGA Simplifica Aranceles para Tecnología</h3>
+            <p class="card-text">Las nuevas disposiciones de la Dirección General de Aduanas reducen en un 15% los costos de importación para equipos tecnológicos y materia prima, beneficiando a pymes de SDE.</p>
             <a href="#" class="btn-news">Leer más</a>
           </div>
         </div>
       </div>
+
       <!-- Noticia 4: Proyecto Av. España -->
-      <div class="col-md-4 col-sm-6">
+      <div class="col-lg-4 col-md-6">
         <div class="news-card">
-          <img src="https://images.pexels.com/photos/31092194/pexels-photo-31092194/free-photo-of-vista-aerea-del-malecon-de-santo-domingo.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Av. España" loading="lazy">
+          <img src="https://images.pexels.com/photos/31092194/pexels-photo-31092194/free-photo-of-vista-aerea-del-malecon-de-santo-domingo.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Avenida España" loading="lazy">
           <div class="card-body">
-            <h3 class="card-title">Remodelación Av. España</h3>
-            <p class="card-text">El MOPC anuncia la ampliación de la Avenida España para mejorar el flujo vehicular hacia el Este.</p>
+            <h3 class="card-title">Remodelación de la Avenida España</h3>
+            <p class="card-text">El MOPC anuncia una inversión de RD$800 millones para ampliar la Avenida España, incluyendo nuevos carriles exclusivos y ciclovías que conectarán SDE con el Distrito Nacional.</p>
             <a href="#" class="btn-news">Leer más</a>
           </div>
         </div>
       </div>
+
       <!-- Noticia 5: Estabilidad del Peso Dominicano -->
-      <div class="col-md-4 col-sm-6">
+      <div class="col-lg-4 col-md-6">
         <div class="news-card">
           <img src="https://images.pexels.com/photos/47344/dollar-currency-money-us-dollar-47344.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Peso Dominicano" loading="lazy">
           <div class="card-body">
-            <h3 class="card-title">Peso Dominicano se fortalece</h3>
-            <p class="card-text">El Banco Central reporta una inflación controlada y estabilidad cambiaria récord en el primer trimestre.</p>
+            <h3 class="card-title">Peso Dominicano Alcanza Estabilidad Histórica</h3>
+            <p class="card-text">El Banco Central reporta una inflación controlada del 3.8% y reservas internacionales récord de US$15,000 millones, fortaleciendo la economía nacional y el poder adquisitivo.</p>
             <a href="#" class="btn-news">Leer más</a>
           </div>
         </div>
@@ -740,43 +701,38 @@ footer {
     </div>
   </section>
 
-  <!-- ===== SECCIÓN BUSINESS & LOGISTICS 2026 ===== -->
+  <!-- SECCIÓN BUSINESS & LOGISTICS -->
   <section id="business-section" class="business-section">
     <div class="business-container">
       <div class="business-header">
-        <span class="business-badge">EL FAROL BUSINESS 2026</span>
+        <span class="business-badge">EL FAROL BUSINESS</span>
         <h2>EQUIPAMIENTO PC & <span>LOGÍSTICA AVANZADA</span></h2>
         <p>Hardware profesional y suministros de oficina con respaldo legal y tracking en tiempo real</p>
       </div>
 
       <div class="business-grid">
-        <!-- CUADRO 1: CONTRATOS DE EQUIPAMIENTO (Hardware PC/Laptops) -->
+        <!-- CUADRO CONTRATOS -->
         <div class="business-card">
           <div class="business-icon">💻</div>
           <h3>CONTRATOS DE EQUIPAMIENTO</h3>
-          <p><strong>Hardware PC/Laptops profesional:</strong> Equipamiento integral para empresas con computadoras de alto rendimiento. Todas las transacciones se formalizan mediante <strong>contratos legales de suministro</strong> con garantía limitada del fabricante y soporte técnico incluido.</p>
-          <a href="mailto:contracts@elfarolaldia.com?subject=Consulta%20de%20Contrato%202026" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
+          <p><strong>Hardware PC/Laptops profesional:</strong> Equipamiento integral para empresas con computadoras de alto rendimiento. Todas las transacciones se formalizan mediante contratos legales de suministro con garantía limitada del fabricante.</p>
+          <a href="mailto:contracts@elfarolaldia.com?subject=Consulta%20de%20Contrato%202026" class="btn-outline">📧 CONTRATOS</a>
         </div>
 
-        <!-- CUADRO 2: LOGÍSTICA CORPORATIVA & DROPSHIPPING 2026 (ACTUALIZADO) -->
+        <!-- CUADRO LOGÍSTICA -->
         <div class="business-card">
           <div class="business-icon">📦</div>
-          <h3>LOGÍSTICA CORPORATIVA & DROPSHIPPING 2026</h3>
-          <p><strong>Puente logístico avanzado USA-RD:</strong> Ofrecemos:</p>
-          <ul>
-            <li><strong>Gestión DGA Express:</strong> Tramitación aduanal legal y transparente</li>
-            <li><strong>Rastreo en Tiempo Real:</strong> Control total desde almacenes en USA hasta SDE</li>
-            <li><strong>Distribución Corporativa:</strong> Entrega de equipos pesados y suministros masivos directamente en oficina</li>
-          </ul>
-          <a href="mailto:logistics@elfarolaldia.com?subject=Solicitud%20de%20Suministros%20Hardware" class="btn-outline">📧 AFILIARSE COMO PROVEEDOR</a>
+          <h3>LOGÍSTICA CORPORATIVA</h3>
+          <p><strong>Puente logístico avanzado USA-RD:</strong> Gestión DGA Express con tramitación aduanal legal, rastreo en tiempo real desde almacenes en USA hasta SDE, y distribución corporativa de equipos pesados.</p>
+          <a href="mailto:logistics@elfarolaldia.com?subject=Solicitud%20de%20Suministros%20Hardware" class="btn-outline">📧 LOGÍSTICA</a>
         </div>
 
-        <!-- CUADRO 3: SUMINISTROS DE OFICINA (Papelería) -->
+        <!-- CUADRO SUMINISTROS -->
         <div class="business-card">
           <div class="business-icon">📄</div>
           <h3>SUMINISTROS DE OFICINA</h3>
-          <p><strong>Papelería corporativa:</strong> Gestión de suministros de oficina y consumibles bajo <strong>estándares de calidad internacional</strong>. Cumplimos con los tiempos de entrega pactados y ofrecemos garantía en todos nuestros productos de papelería y suministros.</p>
-          <a href="mailto:contracts@elfarolaldia.com?subject=Cotización%20-%20Suministros%20de%20Oficina%202026" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
+          <p><strong>Papelería corporativa:</strong> Gestión de suministros de oficina y consumibles bajo estándares de calidad internacional. Cumplimos con los tiempos de entrega pactados en toda la región de Santo Domingo.</p>
+          <a href="mailto:contracts@elfarolaldia.com?subject=Cotización%20-%20Suministros" class="btn-outline">📧 SUMINISTROS</a>
         </div>
       </div>
 
@@ -785,12 +741,12 @@ footer {
         <div class="contact-cards">
           <div class="contact-card">
             <h4>CONTRATOS</h4>
-            <p>Para equipamiento PC/Laptops y suministros de oficina</p>
+            <p>Para equipamiento y suministros</p>
             <a href="mailto:contracts@elfarolaldia.com" class="contact-email">contracts@elfarolaldia.com</a>
           </div>
           <div class="contact-card">
-            <h4>LOGÍSTICA 2026</h4>
-            <p>Para proveedores, dropshipping y operaciones DGA</p>
+            <h4>LOGÍSTICA</h4>
+            <p>Para proveedores y dropshipping</p>
             <a href="mailto:logistics@elfarolaldia.com" class="contact-email">logistics@elfarolaldia.com</a>
           </div>
         </div>
@@ -800,7 +756,7 @@ footer {
           <span class="name">JOSE GREGORIO MAÑAN SANTANA</span>
         </div>
 
-        <!-- MARCO LEGAL INTEGRADO -->
+        <!-- MARCO LEGAL -->
         <div class="legal-footer">
           <p><strong>MARCO LEGAL:</strong> El Farol al Día opera bajo los marcos legales de comercio electrónico de la República Dominicana y las normativas de exportación de EE.UU. No nos hacemos responsables por aranceles aduanales externos (DGA). Equipos cuentan con garantía limitada del fabricante.</p>
         </div>
@@ -815,85 +771,65 @@ footer {
     <div class="footer-desc">Periódico digital dominicano con noticias en tiempo real</div>
     <div class="footer-links">
       <a href="/">INICIO</a>
-      <a href="/nosotros">NOSOTROS</a>
-      <a href="/contacto">CONTACTO</a>
       <a href="/privacidad">PRIVACIDAD</a>
       <a href="/sitemap.xml">SITEMAP</a>
-      <a href="/robots.txt">ROBOTS</a>
     </div>
     
-    <!-- MARCO LEGAL EN FOOTER PRINCIPAL -->
     <div class="legal-footer" style="margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
-      <p><strong>AVISO LEGAL:</strong> El Farol al Día opera bajo los marcos legales de comercio electrónico de la República Dominicana y las normativas de exportación de EE.UU. No nos hacemos responsables por aranceles aduanales externos. Equipos cuentan con garantía limitada del fabricante.</p>
+      <p><strong>AVISO LEGAL:</strong> El Farol al Día opera bajo los marcos legales de comercio electrónico de la República Dominicana y las normativas de exportación de EE.UU. No nos hacemos responsables por aranceles aduanales externos.</p>
     </div>
     
     <div class="footer-copy">
       <p>© 2026 El Farol al Día · Todos los derechos reservados</p>
-      <p style="font-size:10px;margin-top:5px">Generado con Gemini 2.5 Flash + Wikipedia + Contexto RD</p>
     </div>
   </div>
 </footer>
 
-<!-- Bootstrap JS (opcional para interactividad) -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-const CONFIG = {
-  CATS: ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'],
-  EMOJIS: { Nacionales:'🏛️', Deportes:'⚽', Internacionales:'🌍', Economía:'💼', Tecnología:'💻', Espectáculos:'🎬' },
-  MESES: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-};
-
-let todas = [], categoriaActiva = null, cargando = false;
-
-// Fecha
+// Fecha actual
 function actualizarFecha() {
   const f = new Date();
-  const el = document.getElementById('hero-fecha');
-  el.textContent = `${String(f.getDate()).padStart(2,'0')} DE ${CONFIG.MESES[f.getMonth()]} DE ${f.getFullYear()} · SANTO DOMINGO, RD`;
-  el.setAttribute('datetime', f.toISOString().split('T')[0]);
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('hero-fecha').textContent = 
+    `${String(f.getDate()).padStart(2,'0')} DE ${meses[f.getMonth()]} DE ${f.getFullYear()} · SANTO DOMINGO, RD`;
 }
-
-// Categorías
-function crearCats() {
-  const c = document.getElementById('cats');
-  let html = '<button class="cat-btn active" data-cat="null" aria-label="Todas las categorías">📰 TODAS</button>';
-  CONFIG.CATS.forEach(cat => {
-    html += `<button class="cat-btn" data-cat="${cat}" aria-label="Categoría ${cat}">${CONFIG.EMOJIS[cat]} ${cat}</button>`;
-  });
-  c.innerHTML = html;
-  c.querySelectorAll('.cat-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const cat = this.dataset.cat === 'null' ? null : this.dataset.cat;
-      filtrar(cat, this);
-    });
-  });
-}
-
-// Filtrar (simulado)
-function filtrar(cat, btn) {
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  categoriaActiva = cat;
-  // Aquí iría la lógica de filtrado si hubiera más noticias
-}
+actualizarFecha();
 
 // Smooth scroll para el botón Negocios
-document.addEventListener('DOMContentLoaded', function() {
-  actualizarFecha();
-  crearCats();
-
-  const negociosLink = document.querySelector('a[href="#business-section"]');
-  if (negociosLink) {
-    negociosLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      const target = document.querySelector('#business-section');
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  }
+document.querySelector('a[href="#business-section"]')?.addEventListener('click', function(e) {
+  e.preventDefault();
+  document.querySelector('#business-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 </script>
+
+<!-- Estilos adicionales para Google Translate -->
+<style>
+/* Mejoras para el widget en móvil */
+.goog-te-gadget-simple {
+  background: transparent !important;
+  border: 1px solid var(--borde) !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+.goog-te-gadget-simple span {
+  color: var(--crema) !important;
+}
+.goog-te-gadget-simple img {
+  filter: brightness(0.8);
+}
+.goog-te-gadget-icon {
+  margin-right: 4px !important;
+}
+/* Ocultar elementos no deseados de Google */
+.goog-te-banner-frame, .goog-te-balloon-frame {
+  display: none !important;
+}
+</style>
+
 </body>
 </html>
