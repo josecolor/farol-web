@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
+  <!-- Bootstrap 5 CSS (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -37,51 +40,9 @@
   <meta name="twitter:description" content="Periódico digital dominicano con noticias verificadas. Información actualizada 24/7 desde Santo Domingo.">
   <meta name="twitter:image" content="https://elfarolaldia.com/static/og-image.jpg">
 
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "El Farol al Día",
-    "url": "https://elfarolaldia.com/",
-    "description": "Periódico digital dominicano con noticias verificadas de República Dominicana",
-    "inLanguage": "es-DO",
-    "publisher": {
-      "@type": "Organization",
-      "name": "El Farol al Día",
-      "logo": { "@type": "ImageObject", "url": "https://elfarolaldia.com/static/favicon.png" }
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://elfarolaldia.com/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
-  </script>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "NewsMediaOrganization",
-    "name": "El Farol al Día",
-    "url": "https://elfarolaldia.com/",
-    "logo": "https://elfarolaldia.com/static/favicon.png",
-    "sameAs": [
-      "https://www.facebook.com/elfarolaldia",
-      "https://twitter.com/elfarolaldia"
-    ],
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Santo Domingo Este",
-      "addressRegion": "Santo Domingo",
-      "addressCountry": "República Dominicana"
-    }
-  }
-  </script>
-
+  <!-- Fonts de tu marca -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://images.pexels.com">
-  <link rel="dns-prefetch" href="https://api.pexels.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
@@ -229,7 +190,7 @@ nav a.nav-negocios:hover {
   font-size: 11px; letter-spacing: 2px; color: var(--muted); display: block;
 }
 
-/* CATEGORÍAS */
+/* CATEGORÍAS (Boostrap Overrides) */
 .cats {
   display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
   padding: 0 20px 40px; position: relative; z-index: 1;
@@ -250,79 +211,65 @@ main {
   padding: 0 20px 60px; position: relative; z-index: 1; width: 100%;
 }
 
-/* GRID */
-.noticias-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 25px; }
+/* Tarjetas de Noticias con Bootstrap */
+.news-card {
+  background: var(--papel);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: var(--transition);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
-.noticias-grid .card:first-child {
-  grid-column: 1/-1;
-  display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 0;
+.news-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--fuego);
+  box-shadow: 0 15px 30px rgba(255,85,0,0.2);
 }
-.noticias-grid .card:first-child .card-img { height: 380px; }
-.noticias-grid .card:first-child .card-body { padding: 40px; }
-.noticias-grid .card:first-child .card-titulo { font-size: 32px; margin-bottom: 20px; }
-.noticias-grid .card:first-child .card-descripcion { display: block; font-size: 15px; color: var(--crema2); margin: 15px 0; line-height: 1.5; }
 
-/* CARD */
-.card {
-  background: var(--papel); border: 1px solid var(--borde);
-  border-radius: 16px; overflow: hidden; cursor: pointer;
-  transition: var(--transition); text-decoration: none;
-  color: inherit; display: flex; flex-direction: column;
+.news-card .card-img-top {
+  height: 180px;
+  object-fit: cover;
+  background: var(--borde);
 }
-.card:hover {
-  border-color: var(--fuego); transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,85,0,.2);
-}
-.card-img {
-  width: 100%; height: 200px; overflow: hidden;
-  background: var(--borde); position: relative;
-}
-.card-img::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.5));
-  opacity: 0; transition: opacity .3s;
-}
-.card:hover .card-img::after { opacity: 1; }
-.card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
-.card:hover .card-img img { transform: scale(1.08); }
 
-.card-body { padding: 22px; flex: 1; display: flex; flex-direction: column; }
-.card-seccion {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px;
-  color: var(--fuego); background: rgba(255,85,0,.12);
-  border: 1px solid rgba(255,85,0,.25); padding: 4px 12px;
-  border-radius: 20px; display: inline-block; margin-bottom: 14px; align-self: flex-start;
+.news-card .card-body {
+  padding: 1.25rem;
+  flex: 1;
 }
-.card-titulo {
-  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
-  letter-spacing: .5px; line-height: 1.3; margin-bottom: 12px;
-  color: var(--crema); transition: color .2s;
-}
-.card:hover .card-titulo { color: var(--fuego); }
-.card-descripcion { display: none; font-size: 14px; color: var(--crema2); margin-bottom: 15px; line-height: 1.4; }
-.card-meta {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
-  display: flex; gap: 15px; margin-bottom: 15px; margin-top: auto;
-}
-.card-link {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px;
-  color: var(--fuego); margin-top: 10px; display: inline-block;
-  border-bottom: 1px solid transparent; transition: border-color .2s; align-self: flex-start;
-}
-.card:hover .card-link { border-bottom-color: var(--fuego); }
 
-/* LOADING */
-.loading-wrap {
-  grid-column: 1/-1; text-align: center; padding: 100px 20px;
-  color: var(--muted); background: var(--papel);
-  border-radius: 20px; border: 1px solid var(--borde);
+.news-card .card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  color: var(--crema);
+  margin-bottom: 0.75rem;
 }
-.spinner {
-  width: 48px; height: 48px;
-  border: 4px solid rgba(255,85,0,.15); border-top-color: var(--fuego);
-  border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;
+
+.news-card .card-text {
+  color: var(--crema2);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+.news-card .btn-news {
+  background: transparent;
+  border: 1px solid var(--fuego);
+  color: var(--fuego);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: var(--transition);
+  align-self: flex-start;
+}
+
+.news-card .btn-news:hover {
+  background: var(--fuego);
+  color: #fff;
+}
 
 /* ===== SECCIÓN BUSINESS & LOGISTICS 2026 ===== */
 .business-section {
@@ -397,7 +344,7 @@ main {
   font-style: italic;
 }
 
-/* Grid de servicios */
+/* Grid de servicios corporativos */
 .business-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -671,22 +618,15 @@ footer {
 
 /* RESPONSIVE */
 @media (max-width: 1100px) { 
-  .noticias-grid { grid-template-columns: repeat(2,1fr); }
   .business-grid { grid-template-columns: repeat(2,1fr); }
 }
 @media (max-width: 900px) {
   nav { display: none; }
-  .noticias-grid .card:first-child { grid-template-columns: 1fr; }
-  .noticias-grid .card:first-child .card-img { height: 250px; }
-  .noticias-grid .card:first-child .card-body { padding: 25px; }
-  .noticias-grid .card:first-child .card-titulo { font-size: 26px; }
-}
-@media (max-width: 700px) {
-  .noticias-grid { grid-template-columns: 1fr; }
   .hero { padding: 50px 15px 30px; }
   .hero h1 { font-size: 40px; }
   .live-badge { display: none; }
-  
+}
+@media (max-width: 700px) {
   .business-grid { grid-template-columns: 1fr; }
   .contact-cards { grid-template-columns: 1fr; }
   .business-section { padding: 40px 20px; }
@@ -736,14 +676,69 @@ footer {
     <time class="hero-fecha" id="hero-fecha" datetime=""></time>
   </section>
 
-  <nav class="cats" id="cats" aria-label="Categorías de noticias"></nav>
-
-  <div class="noticias-grid" id="grid" aria-live="polite">
-    <div class="loading-wrap">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Cargando noticias desde El Farol...</p>
+  <!-- NUEVA SECCIÓN DE NOTICIAS CON BOOTSTRAP -->
+  <section class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 style="font-family: 'Bebas Neue', sans-serif; color: var(--crema); font-size: 2rem;">📰 Últimas Noticias</h2>
     </div>
-  </div>
+    <div class="row g-4">
+      <!-- Noticia 1: Hub Logístico en SDE -->
+      <div class="col-md-4 col-sm-6">
+        <div class="news-card">
+          <img src="https://images.pexels.com/photos/4481256/pexels-photo-4481256.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Hub Logístico" loading="lazy">
+          <div class="card-body">
+            <h3 class="card-title">Nuevo Hub Logístico en SDE</h3>
+            <p class="card-text">Se inaugura el centro de distribución más grande del Caribe, conectando mercados con tecnología de punta.</p>
+            <a href="#" class="btn-news">Leer más</a>
+          </div>
+        </div>
+      </div>
+      <!-- Noticia 2: Becas INFOTEP Cloud -->
+      <div class="col-md-4 col-sm-6">
+        <div class="news-card">
+          <img src="https://images.pexels.com/photos/267350/pexels-photo-267350.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Becas INFOTEP" loading="lazy">
+          <div class="card-body">
+            <h3 class="card-title">Becas INFOTEP Cloud 2026</h3>
+            <p class="card-text">INFOTEP lanza 5,000 becas para especializaciones en computación en la nube y ciberseguridad.</p>
+            <a href="#" class="btn-news">Leer más</a>
+          </div>
+        </div>
+      </div>
+      <!-- Noticia 3: Aranceles DGA 2026 -->
+      <div class="col-md-4 col-sm-6">
+        <div class="news-card">
+          <img src="https://images.pexels.com/photos/3943715/pexels-photo-3943715.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Aranceles DGA" loading="lazy">
+          <div class="card-body">
+            <h3 class="card-title">Aranceles DGA 2026</h3>
+            <p class="card-text">Nuevas disposiciones de la DGA simplifican trámites para importación de tecnología y materia prima.</p>
+            <a href="#" class="btn-news">Leer más</a>
+          </div>
+        </div>
+      </div>
+      <!-- Noticia 4: Proyecto Av. España -->
+      <div class="col-md-4 col-sm-6">
+        <div class="news-card">
+          <img src="https://images.pexels.com/photos/31092194/pexels-photo-31092194/free-photo-of-vista-aerea-del-malecon-de-santo-domingo.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Av. España" loading="lazy">
+          <div class="card-body">
+            <h3 class="card-title">Remodelación Av. España</h3>
+            <p class="card-text">El MOPC anuncia la ampliación de la Avenida España para mejorar el flujo vehicular hacia el Este.</p>
+            <a href="#" class="btn-news">Leer más</a>
+          </div>
+        </div>
+      </div>
+      <!-- Noticia 5: Estabilidad del Peso Dominicano -->
+      <div class="col-md-4 col-sm-6">
+        <div class="news-card">
+          <img src="https://images.pexels.com/photos/47344/dollar-currency-money-us-dollar-47344.jpeg?auto=compress&cs=tinysrgb&w=600" class="card-img-top" alt="Peso Dominicano" loading="lazy">
+          <div class="card-body">
+            <h3 class="card-title">Peso Dominicano se fortalece</h3>
+            <p class="card-text">El Banco Central reporta una inflación controlada y estabilidad cambiaria récord en el primer trimestre.</p>
+            <a href="#" class="btn-news">Leer más</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- ===== SECCIÓN BUSINESS & LOGISTICS 2026 ===== -->
   <section id="business-section" class="business-section">
@@ -760,7 +755,7 @@ footer {
           <div class="business-icon">💻</div>
           <h3>CONTRATOS DE EQUIPAMIENTO</h3>
           <p><strong>Hardware PC/Laptops profesional:</strong> Equipamiento integral para empresas con computadoras de alto rendimiento. Todas las transacciones se formalizan mediante <strong>contratos legales de suministro</strong> con garantía limitada del fabricante y soporte técnico incluido.</p>
-          <a href="mailto:contracts@elfarolaldia.com?subject=Solicitud%20de%20Cotización%20-%20Equipamiento%20PC%202026" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
+          <a href="mailto:contracts@elfarolaldia.com?subject=Consulta%20de%20Contrato%202026" class="btn-outline">📧 SOLICITAR COTIZACIÓN</a>
         </div>
 
         <!-- CUADRO 2: LOGÍSTICA CORPORATIVA & DROPSHIPPING 2026 (ACTUALIZADO) -->
@@ -773,7 +768,7 @@ footer {
             <li><strong>Rastreo en Tiempo Real:</strong> Control total desde almacenes en USA hasta SDE</li>
             <li><strong>Distribución Corporativa:</strong> Entrega de equipos pesados y suministros masivos directamente en oficina</li>
           </ul>
-          <a href="mailto:logistics@elfarolaldia.com?subject=Proveedor%202026%20-%20Logística%20Corporativa" class="btn-outline">📧 AFILIARSE COMO PROVEEDOR</a>
+          <a href="mailto:logistics@elfarolaldia.com?subject=Solicitud%20de%20Suministros%20Hardware" class="btn-outline">📧 AFILIARSE COMO PROVEEDOR</a>
         </div>
 
         <!-- CUADRO 3: SUMINISTROS DE OFICINA (Papelería) -->
@@ -839,6 +834,9 @@ footer {
   </div>
 </footer>
 
+<!-- Bootstrap JS (opcional para interactividad) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
 const CONFIG = {
   CATS: ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'],
@@ -872,86 +870,19 @@ function crearCats() {
   });
 }
 
-// Filtrar
+// Filtrar (simulado)
 function filtrar(cat, btn) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   categoriaActiva = cat;
-  renderizar(cat ? todas.filter(n => n.seccion === cat) : todas);
-  history.replaceState(null, '', cat ? `/?categoria=${encodeURIComponent(cat)}` : '/');
-}
-
-// Renderizar
-function renderizar(noticias) {
-  const grid = document.getElementById('grid');
-  if (!noticias?.length) {
-    grid.innerHTML = `<div class="loading-wrap" role="alert"><p>📰 No hay noticias en esta categoría</p></div>`;
-    return;
-  }
-  grid.innerHTML = noticias.map((n, i) => {
-    const fecha = new Date(n.fecha);
-    const fStr  = fecha.toLocaleDateString('es-DO', { day:'2-digit', month:'short', year:'numeric' });
-    const isFirst = i === 0 && !categoriaActiva;
-    return `
-    <a class="card" href="/noticia/${n.slug}" aria-label="Leer: ${n.titulo}">
-      <div class="card-img">
-        <img src="${n.imagen}"
-          alt="${n.imagen_alt || n.titulo}"
-          onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'"
-          loading="${i < 3 ? 'eager' : 'lazy'}"
-          decoding="async"
-          width="800" height="450">
-      </div>
-      <div class="card-body">
-        <span class="card-seccion">${CONFIG.EMOJIS[n.seccion]||'📰'} ${n.seccion}</span>
-        <h3 class="card-titulo">${n.titulo}</h3>
-        ${isFirst && n.seo_description ? `<p class="card-descripcion">${n.seo_description}</p>` : ''}
-        <div class="card-meta">
-          <time datetime="${fecha.toISOString().split('T')[0]}">📅 ${fStr}</time>
-          <span>👁 ${n.vistas||0} lecturas</span>
-        </div>
-        <span class="card-link">LEER NOTICIA COMPLETA →</span>
-      </div>
-    </a>`;
-  }).join('');
-}
-
-// Cargar noticias
-async function cargar() {
-  if (cargando) return;
-  cargando = true;
-  try {
-    const ctrl = new AbortController();
-    const tm   = setTimeout(() => ctrl.abort(), 10000);
-    const res  = await fetch('/api/noticias', { signal: ctrl.signal });
-    clearTimeout(tm);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Error');
-    todas = data.noticias || [];
-    renderizar(categoriaActiva ? todas.filter(n => n.seccion === categoriaActiva) : todas);
-  } catch(e) {
-    if (e.name !== 'AbortError') {
-      document.getElementById('grid').innerHTML = `
-        <div class="loading-wrap" role="alert">
-          <p style="color:#ff4444">❌ Error cargando noticias</p>
-          <p style="font-size:13px;margin-top:10px;color:var(--muted)">Verifica tu conexión e intenta de nuevo</p>
-          <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--fuego);color:white;border:none;border-radius:30px;cursor:pointer;font-family:'JetBrains Mono'">REINTENTAR</button>
-        </div>`;
-    }
-  } finally {
-    cargando = false;
-  }
+  // Aquí iría la lógica de filtrado si hubiera más noticias
 }
 
 // Smooth scroll para el botón Negocios
 document.addEventListener('DOMContentLoaded', function() {
   actualizarFecha();
   crearCats();
-  cargar();
-  setInterval(cargar, 30000);
 
-  // Smooth scroll para el enlace de negocios
   const negociosLink = document.querySelector('a[href="#business-section"]');
   if (negociosLink) {
     negociosLink.addEventListener('click', function(e) {
