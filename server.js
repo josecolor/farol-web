@@ -1,26 +1,52 @@
-  /**
- * 🏮 EL FAROL AL DÍA — V31.0 + SEGURIDAD BASIC AUTH
- * + Wikipedia API como contexto inteligente para Gemini
- * + Lógica de imágenes mejorada (prioridad RD / SDE)
- * + Alt SEO geolocalizado República Dominicana
- * + Query de imagen inteligente por zona local
- * + Basic Auth protegiendo /redaccion y /api/admin
+/**
+ * 🏮 EL FAROL AL DÍA — V34.0 FINAL
+ * + Basic Auth protege /redaccion y /api/admin (usuario: director / clave: 311)
+ * + Wikipedia + Wikimedia Commons para imágenes coherentes
+ * + Mapeo forzado de personajes públicos (Trump, Ortiz, Abinader...)
+ * + Memoria IA en PostgreSQL (persiste entre reinicios)
+ * + Banco local 17 categorías × 10 fotos
+ * + Coach de redacción + Comentarios + SEO E-E-A-T
  */
 
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const cron = require('node-cron');
-const { Pool } = require('pg');
-const sharp = require('sharp');
+const express   = require('express');
+const cors      = require('cors');
+const path      = require('path');
+const fs        = require('fs');
+const cron      = require('node-cron');
+const { Pool }  = require('pg');
+const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
-const crypto = require('crypto');
-// ===== NUEVO: Importar basic-auth =====
-const basicAuth = require('express-basic-auth');
+const crypto    = require('crypto');
 
-const app = express();
-const PORT = process.env.PORT || 8080;
+// Basic Auth — protege el panel de redacción
+let basicAuth;
+try {
+    basicAuth = require('express-basic-auth');
+} catch(e) {
+    console.warn('⚠️ express-basic-auth no instalado. Ejecuta: npm install express-basic-auth');
+    // Middleware de emergencia que igual protege
+    basicAuth = (opts) => (req, res, next) => {
+        const auth = req.headers.authorization;
+        if (!auth || !auth.startsWith('Basic ')) {
+            res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día"');
+            return res.status(401).send('Acceso no autorizado');
+        }
+        const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
+        const users = opts.users || {};
+        if (users[user] === pass) return next();
+        res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día"');
+        return res.status(401).send('Credenciales inválidas');
+    };
+}
+
+const authMiddleware = basicAuth({
+    users: { 'director': '311' },
+    challenge: true,
+    realm: 'El Farol al Día - Panel de Redacción'
+});
+
+const app      = express();
+const PORT     = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
@@ -33,7 +59,6 @@ const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
 const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
 const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
-
 // Busca watermark con cualquier nombre en la carpeta static
 const WATERMARK_PATH = (() => {
     const variantes = [
@@ -53,26 +78,6 @@ const WATERMARK_PATH = (() => {
     return path.join(__dirname, 'static', 'watermark.png'); // fallback
 })();
 const rssParser             = new RSSParser({ timeout: 10000 });
-
-// ══════════════════════════════════════════════════════════
-// ===== NUEVO: MIDDLEWARE DE AUTENTICACIÓN BÁSICA =====
-// Protege las rutas de administración y redacción
-// Usuario: director | Contraseña: 311
-// ══════════════════════════════════════════════════════════
-const authMiddleware = basicAuth({
-    users: { 'director': '311' },
-    challenge: true,
-    realm: 'El Farol al Día - Panel de Redacción',
-    unauthorizedResponse: (req) => ({
-        error: 'Acceso no autorizado',
-        message: 'Se requieren credenciales válidas para acceder al panel de redacción',
-        status: 401
-    })
-});
-
-// Aplicar autenticación a las rutas sensibles
-app.use(['/redaccion', '/api/admin', '/api/generar-noticia', '/api/eliminar', '/api/actualizar-imagen'], authMiddleware);
-// ══════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════
 // BASE DE DATOS
@@ -1917,8 +1922,7 @@ app.get('/api/pais-actual', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
 app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-// ===== RUTA DE REDACCIÓN (protegida) =====
-app.get('/redaccion',  authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
 app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
 app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
@@ -2216,7 +2220,7 @@ app.get('/status', async (req, res) => {
         const r   = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
-            status: 'OK', version: '31.0',
+            status: 'OK', version: '34.0',
             noticias:       parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
             facebook:       FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
@@ -2242,13 +2246,11 @@ async function iniciar() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V32.0 + SEGURIDAD BASIC AUTH              ║
+║  🏮 EL FAROL AL DÍA — V32.0                                     ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📚 Wikipedia               ║
-║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T                ║
-║  🏮 Watermark auto-regenera si Railway limpia /tmp               ║
-║  🔒 SEGURIDAD ACTIVA — Panel de redacción protegido             ║
-║  👤 Usuario: director · 🔑 Contraseña: 311                      ║
+║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T               ║
+║  🏮 Watermark auto-regenera si Railway limpia /tmp              ║
 ║                                                                  ║
 ║  Facebook:  ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
 ║  Twitter:   ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
