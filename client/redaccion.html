@@ -43,6 +43,15 @@ header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:
 .btn-portal{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 16px;border-radius:6px;transition:all .2s}
 .btn-portal:hover{border-color:rgba(255,85,0,.4);color:var(--fuego)}
 
+/* SELECTOR DE PAÍS */
+.pais-selector{position:relative;display:inline-block;margin-left:15px}
+.pais-btn{background:transparent;border:1px solid var(--borde);color:var(--crema);padding:5px 10px;border-radius:5px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;display:flex;align-items:center;gap:5px;transition:all .2s}
+.pais-btn:hover{border-color:var(--fuego);color:var(--fuego)}
+.pais-menu{display:none;position:absolute;top:100%;right:0;background:var(--papel);border:1px solid var(--borde);border-radius:5px;z-index:1000;min-width:200px;box-shadow:0 10px 25px rgba(0,0,0,.5)}
+.pais-menu a{display:block;padding:10px 12px;color:var(--crema);text-decoration:none;border-bottom:1px solid var(--borde);font-family:'JetBrains Mono',monospace;font-size:11px;transition:all .2s}
+.pais-menu a:hover{background:rgba(255,85,0,.1);color:var(--fuego)}
+.pais-menu a:last-child{border-bottom:none}
+
 /* TICKER */
 .ticker{background:var(--fuego);height:30px;display:flex;align-items:center;overflow:hidden}
 .ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
@@ -176,6 +185,27 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
 .mem-tasa.baja{color:var(--rojo)}
 .mem-empty{text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
 
+/* COACH DASHBOARD */
+.coach-dashboard{background:var(--papel);border-radius:12px;padding:18px;margin-bottom:20px;border:1px solid rgba(255,85,0,.2)}
+.coach-header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+.coach-header h3{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fuego)}
+.coach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px}
+.coach-card{background:rgba(0,0,0,.4);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--borde)}
+.coach-card .valor{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--fuego);line-height:1}
+.coach-card .etiqueta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:5px}
+.coach-categorias{display:flex;flex-direction:column;gap:8px;margin:15px 0}
+.coach-cat-item{display:flex;justify-content:space-between;padding:10px;background:rgba(0,0,0,.3);border-radius:6px;font-size:12px}
+.coach-cat-nombre{font-family:'Bebas Neue',sans-serif;color:var(--crema)}
+.coach-cat-stats{font-family:'JetBrains Mono',monospace}
+.coach-cat-stats .alto{color:var(--verde)}
+.coach-cat-stats .medio{color:#ffc107}
+.coach-cat-stats .bajo{color:var(--rojo)}
+.coach-recomendaciones{background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.15);border-radius:8px;padding:15px;margin-top:15px}
+.coach-rec-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--verde);margin-bottom:10px}
+.coach-rec-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11px;color:var(--crema2)}
+.coach-rec-item:last-child{border-bottom:none}
+.coach-rec-item .tag{background:rgba(255,85,0,.2);color:var(--fuego);padding:2px 6px;border-radius:3px;margin-right:8px;font-size:9px}
+
 /* MODALES */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
 .modal-bg.open{display:flex}
@@ -221,6 +251,20 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
       <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
     </a>
     <div class="header-right">
+      <!-- SELECTOR DE PAÍS / IDIOMA (NUEVO) -->
+      <div class="pais-selector">
+        <button class="pais-btn" onclick="togglePaisMenu()">
+          🌍 <span id="pais-actual">RD</span> ▼
+        </button>
+        <div class="pais-menu" id="pais-menu">
+          <a href="/cambiar-pais/es-do">🇩🇴 RD - República Dominicana</a>
+          <a href="/cambiar-pais/es-us">🇺🇸 USA (Dominicanos)</a>
+          <a href="/cambiar-pais/es-es">🇪🇸 España</a>
+          <a href="/cambiar-pais/en-us">🇺🇸 English (US)</a>
+          <a href="/cambiar-pais/fr">🇫🇷 Français</a>
+          <a href="/cambiar-pais/pt">🇧🇷 Português</a>
+        </div>
+      </div>
       <span class="header-clock" id="reloj">00:00:00</span>
       <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
       <a href="/" class="btn-portal">🌐 VER PORTAL</a>
@@ -232,12 +276,11 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
   <div class="ticker-tag">🏮 REDACCIÓN</div>
   <div class="ticker-scroll">
     <div class="ticker-inner">
-      <span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>El Farol al Día · Periódico Digital Dominicano · 73M imágenes Wikimedia Commons</span>
       <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
-      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
-      <span>//</span><span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
-      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS + Personajes públicos + HREFLANG</span>
+      <span>//</span><span>Dominicanos en USA, España, Francia, Brasil · Cobertura Internacional</span>
+      <span>//</span><span>El Farol al Día · Periódico Digital Dominicano · 73M imágenes Wikimedia Commons</span>
     </div>
   </div>
 </div>
@@ -271,7 +314,8 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida — dato más importante primero</div>
             <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
             <div class="cap-item"><div class="cap-dot"></div> Wikipedia + Memoria IA entre publicaciones</div>
-            <div class="cap-item"><div class="cap-dot"></div> Pexels filtrado — sin bodas, mascotas ni moda</div>
+            <div class="cap-item"><div class="cap-dot"></div> Wikimedia Commons + Personajes públicos (Trump, Abinader, Ortiz)</div>
+            <div class="cap-item"><div class="cap-dot"></div> HREFLANG — dominicanos en USA, España, Francia, Brasil</div>
             <div class="cap-item"><div class="cap-dot"></div> Facebook + Twitter automático tras publicar</div>
           </div>
         </div>
@@ -338,10 +382,44 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             <span class="bp-icon" id="bpIcon">🚀</span>
             <div>
               <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
-              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Memoria · Pexels · Redes</span>
+              <span class="bp-sub" id="bpSub">Wikimedia · Wikipedia · Personajes · Memoria · Pexels</span>
             </div>
           </button>
           <div id="msgGenerar" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- COACH DE REDACCIÓN (NUEVO) -->
+      <div class="coach-dashboard" id="coach-dashboard" style="display:none">
+        <div class="coach-header">
+          <span style="font-size:24px">📊</span>
+          <h3>COACH DE REDACCIÓN</h3>
+          <button class="btn btn-ghost" style="width:auto;padding:4px 8px;font-size:10px;margin-left:auto" onclick="cargarCoach()">🔄</button>
+        </div>
+        <div id="coach-loading" style="text-align:center;padding:15px">
+          <div class="bp-spin" style="display:inline-block"></div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px">Analizando rendimiento...</p>
+        </div>
+        <div id="coach-content" style="display:none">
+          <div class="coach-grid">
+            <div class="coach-card">
+              <div class="valor" id="coach-total">0</div>
+              <div class="etiqueta">NOTICIAS (7d)</div>
+            </div>
+            <div class="coach-card">
+              <div class="valor" id="coach-vistas">0</div>
+              <div class="etiqueta">VISTAS</div>
+            </div>
+            <div class="coach-card">
+              <div class="valor" id="coach-promedio">0</div>
+              <div class="etiqueta">PROMEDIO</div>
+            </div>
+          </div>
+          <div class="coach-categorias" id="coach-categorias"></div>
+          <div class="coach-recomendaciones" id="coach-recomendaciones">
+            <div class="coach-rec-titulo">💡 RECOMENDACIONES</div>
+            <div id="coach-rec-lista"></div>
+          </div>
         </div>
       </div>
 
@@ -425,12 +503,13 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
         <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
         <div class="card-body">
           <div>
-            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">V31.0 ✅</span></div>
+            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">V34.0 ✅</span></div>
             <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash</span></div>
-            <div class="sys-row"><span class="sys-key">IMÁGENES</span><span class="sys-val">Pexels + Banco local</span></div>
-            <div class="sys-row"><span class="sys-key">COBERTURA</span><span class="sys-val">🌍 RD + Mundial</span></div>
-            <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">Schema.org + OG</span></div>
+            <div class="sys-row"><span class="sys-key">IMÁGENES</span><span class="sys-val">Wikimedia + Wikipedia + Pexels</span></div>
+            <div class="sys-row"><span class="sys-key">PERSONAJES</span><span class="sys-val">50+ figuras públicas</span></div>
+            <div class="sys-row"><span class="sys-key">HREFLANG</span><span class="sys-val">7 países/idiomas</span></div>
             <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
+            <div class="sys-row"><span class="sys-key">WIKIMEDIA</span><span class="badge badge-on">✅ 73M</span></div>
             <div class="sys-row"><span class="sys-key">WIKIPEDIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
             <div class="sys-row"><span class="sys-key">FACEBOOK</span><span class="badge badge-on" id="sysFB">✅</span></div>
             <div class="sys-row"><span class="sys-key">TWITTER/X</span><span class="badge badge-on" id="sysTW">✅</span></div>
@@ -497,7 +576,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
       placeholder="https://... pega aquí la URL de la nueva imagen"
       oninput="previewImagen(this.value)">
     <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
-      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link directo de la imagen y pégalo arriba.
+      Busca en <strong style="color:var(--fuego)">commons.wikimedia.org</strong>, copia el link directo.
     </p>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
@@ -516,6 +595,37 @@ setInterval(() => {
   document.getElementById('reloj').textContent =
     new Date().toLocaleTimeString('es-DO', { hour12: false });
 }, 1000);
+
+/* ── SELECTOR DE PAÍS (NUEVO) ── */
+function togglePaisMenu() {
+  const menu = document.getElementById('pais-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', function(event) {
+  const menu = document.getElementById('pais-menu');
+  const boton = event.target.closest('.pais-btn');
+  if (!boton && menu.style.display === 'block') {
+    menu.style.display = 'none';
+  }
+});
+
+async function cargarPaisActual() {
+  try {
+    const res = await fetch(`${API}/api/pais-actual`);
+    const data = await res.json();
+    const span = document.getElementById('pais-actual');
+    const paises = {
+      'es-do': 'RD',
+      'es-us': 'USA',
+      'es-es': 'ES',
+      'en-us': 'EN',
+      'fr': 'FR',
+      'pt': 'PT'
+    };
+    span.textContent = paises[data.pais] || 'RD';
+  } catch(e) { console.error('Error país:', e); }
+}
 
 /* ── CARGAR CONFIG ── */
 async function cargarConfig() {
@@ -572,7 +682,7 @@ async function generarNoticia() {
   const sub  = document.getElementById('bpSub');
   spin.style.display = 'block'; icon.style.display = 'none';
   txt.textContent = 'GENERANDO...';
-  sub.textContent = 'Memoria → Wikipedia → Gemini → Pexels → Redes';
+  sub.textContent = 'Wikimedia → Wikipedia → Personajes → Memoria → Pexels';
 
   try {
     const r = await fetch(`${API}/api/generar-noticia`, {
@@ -585,7 +695,8 @@ async function generarNoticia() {
       showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true);
       cargarEstadisticas();
       cargarListaNoticias();
-      setTimeout(cargarMemoria, 3000); // actualizar memoria tras publicar
+      cargarCoach();
+      setTimeout(cargarMemoria, 3000);
     } else {
       showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
     }
@@ -593,7 +704,70 @@ async function generarNoticia() {
   finally {
     spin.style.display = 'none'; icon.style.display = 'block';
     txt.textContent = 'GENERAR NOTICIA AHORA';
-    sub.textContent = 'Gemini · Wikipedia · Memoria · Pexels · Redes';
+    sub.textContent = 'Wikimedia · Wikipedia · Personajes · Memoria · Pexels';
+  }
+}
+
+/* ── COACH (NUEVO) ── */
+async function cargarCoach() {
+  const dashboard = document.getElementById('coach-dashboard');
+  const loading = document.getElementById('coach-loading');
+  const content = document.getElementById('coach-content');
+  
+  dashboard.style.display = 'block';
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  
+  try {
+    const res = await fetch(`${API}/api/coach?dias=7`);
+    const data = await res.json();
+    
+    if (!data.success) throw new Error(data.error);
+    
+    document.getElementById('coach-total').textContent = data.resumen.total_noticias;
+    document.getElementById('coach-vistas').textContent = data.resumen.total_vistas.toLocaleString();
+    document.getElementById('coach-promedio').textContent = data.resumen.promedio_general;
+    
+    let categoriasHTML = '';
+    data.categorias.forEach(c => {
+      const color = c.rendimiento >= 100 ? 'alto' : c.rendimiento >= 70 ? 'medio' : 'bajo';
+      categoriasHTML += `
+        <div class="coach-cat-item">
+          <span class="coach-cat-nombre">${c.nombre}</span>
+          <span class="coach-cat-stats ${color}">
+            ${c.vistas_promedio} vistas · ${c.rendimiento}%
+          </span>
+        </div>
+      `;
+    });
+    document.getElementById('coach-categorias').innerHTML = categoriasHTML;
+    
+    const recsRes = await fetch(`${API}/api/coach/recomendar`);
+    const recsData = await recsRes.json();
+    
+    if (recsData.success && recsData.recomendaciones.length > 0) {
+      let recsHTML = '';
+      recsData.recomendaciones.forEach(r => {
+        recsHTML += `
+          <div class="coach-rec-item">
+            <span class="tag">${r.tipo.toUpperCase()}</span>
+            ${r.mensaje}<br>
+            <span style="color:var(--muted);font-size:10px">${r.sugerencia}</span>
+          </div>
+        `;
+      });
+      document.getElementById('coach-rec-lista').innerHTML = recsHTML;
+    } else {
+      document.getElementById('coach-rec-lista').innerHTML = 
+        '<div style="color:var(--muted);padding:8px">Sigue publicando para obtener recomendaciones</div>';
+    }
+    
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    
+  } catch (error) {
+    loading.innerHTML = '<p style="color:var(--rojo)">❌ Error cargando coach</p>';
+    console.error(error);
   }
 }
 
@@ -645,12 +819,12 @@ async function verStatus() {
     const r = await fetch(`${API}/status`);
     if (!r.ok) return;
     const d = await r.json();
-    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V31 ✅';
+    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V34 ✅';
     document.getElementById('sysFB').textContent  = d.facebook?.includes('✅') ? '✅' : '⚠️';
     document.getElementById('sysTW').textContent  = d.twitter?.includes('✅')  ? '✅' : '⚠️';
     document.getElementById('sysWM').textContent  = d.marca_de_agua?.includes('✅') ? '✅' : '⚠️';
     document.getElementById('sysWM').className    = d.marca_de_agua?.includes('✅') ? 'badge badge-on' : 'badge badge-warn';
-    alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${d.version}\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ${d.wikipedia || '✅ Activa'}\nSistema: ${d.sistema}`);
+    alert(`🏮 EL FAROL AL DÍA V34.0\n\nVersión: ${d.version}\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ✅\nWikimedia: ✅ 73M imágenes\nHREFLANG: 7 países activos\nSistema: ${d.sistema}`);
   } catch(e) { alert('Error: ' + e.message); }
 }
 
@@ -770,6 +944,7 @@ async function confirmarEliminar() {
       todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
       renderizarLista(todasNoticias);
       cargarEstadisticas();
+      cargarCoach();
       showMsg('msgGenerar', '🗑️ Noticia eliminada correctamente', true);
     } else {
       showMsg('msgGenerar', '❌ Error: ' + (d.error||''), false);
@@ -955,10 +1130,14 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarMemoria();
   cargarCalidadSEO();
   cargarComentariosAdmin();
+  cargarPaisActual();
+  cargarCoach();
+  
   setInterval(cargarEstadisticas, 30000);
   setInterval(cargarMemoria, 60000);
   setInterval(cargarCalidadSEO, 60000);
   setInterval(cargarComentariosAdmin, 60000);
+  setInterval(cargarCoach, 300000); // cada 5 minutos
 });
 </script>
 </body>
