@@ -1,7 +1,7 @@
 {
   "name": "el-farol-al-dia",
   "version": "32.0.0",
-  "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA, Wikipedia, Redes Sociales y Comentarios",
+  "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA, Wikipedia, Redes Sociales, Comentarios y Seguridad Basic Auth",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,8 @@
     "sharp": "^0.33.3",
     "rss-parser": "^3.13.0",
     "axios": "^1.6.0",
-    "crypto": "^1.0.1"
+    "crypto": "^1.0.1",
+    "express-basic-auth": "^1.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -31,7 +32,9 @@
     "facebook",
     "twitter",
     "seo",
-    "periodismo-digital"
+    "periodismo-digital",
+    "seguridad",
+    "basic-auth"
   ],
   "author": "El Farol al Día",
   "license": "MIT",
