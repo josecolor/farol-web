@@ -2144,6 +2144,12 @@ app.get('/robots.txt', (req, res) => {
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
 });
 
+// ads.txt — requerido por Google AdSense para verificar propiedad
+app.get('/ads.txt', (req, res) => {
+    res.header('Content-Type', 'text/plain');
+    res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
+});
+
 app.get('/api/estadisticas', async (req, res) => {
     try {
         const r = await pool.query('SELECT COUNT(*) as c, SUM(vistas) as v FROM noticias WHERE estado=$1', ['publicada']);
