@@ -1,224 +1,134 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-DO">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Política de Privacidad | El Farol al Día</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            line-height: 1.6;
-        }
-        /* HEADER */
-        header {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-bottom: 3px solid #ff9800;
-            padding: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
-        }
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-decoration: none;
-            color: #ff9800;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .logo span {
-            font-size: 32px;
-        }
-        nav {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            transition: color 0.3s;
-            font-weight: 500;
-        }
-        nav a:hover {
-            color: #ff9800;
-        }
-        /* MAIN */
-        main {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        .card {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-radius: 10px;
-            border-left: 4px solid #ff9800;
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-        h1 {
-            color: #ff9800;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        h2 {
-            color: #ff9800;
-            margin: 25px 0 10px;
-            font-size: 1.5rem;
-        }
-        p, ul {
-            margin-bottom: 15px;
-            color: #ddd;
-        }
-        ul {
-            padding-left: 20px;
-        }
-        li {
-            margin-bottom: 5px;
-        }
-        .btn-volver {
-            display: inline-block;
-            background: transparent;
-            border: 2px solid #ff9800;
-            color: #ff9800;
-            padding: 10px 30px;
-            border-radius: 40px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s;
-            margin-top: 20px;
-        }
-        .btn-volver:hover {
-            background: #ff9800;
-            color: black;
-            transform: translateY(-2px);
-        }
-        /* FOOTER */
-        footer {
-            background: #1a1a1a;
-            border-top: 2px solid #ff9800;
-            padding: 30px 20px;
-            text-align: center;
-            color: #888;
-            margin-top: 60px;
-        }
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .footer-content a {
-            color: #ff9800;
-            text-decoration: none;
-            margin: 0 10px;
-            transition: color 0.3s;
-        }
-        .footer-content a:hover {
-            color: #ffb333;
-        }
-        @media (max-width: 768px) {
-            .header-container {
-                flex-direction: column;
-                gap: 15px;
-            }
-            nav {
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad | El Farol al Día</title>
+<meta name="description" content="Política de Privacidad de El Farol al Día, periódico digital dominicano. Conoce cómo protegemos tus datos personales.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://elfarolaldia.com/privacidad">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--fuego:#FF5500;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#777}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.8;min-height:100vh}
+header{background:rgba(7,7,7,.97);border-bottom:2px solid var(--fuego);padding:0 20px;height:65px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px}
+.logo-icon{width:38px;height:38px;background:var(--fuego);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.back-btn{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 14px;border-radius:6px;transition:all .2s}
+.back-btn:hover{border-color:var(--fuego);color:var(--fuego)}
+.container{max-width:860px;margin:0 auto;padding:50px 24px 80px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:var(--fuego);margin-bottom:8px}
+.fecha{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:40px;display:block}
+h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--fuego);margin:36px 0 12px;padding-top:12px;border-top:1px solid var(--borde)}
+p{color:var(--crema2);margin-bottom:16px;font-size:15px}
+ul{color:var(--crema2);padding-left:20px;margin-bottom:16px;font-size:15px}
+ul li{margin-bottom:8px}
+a{color:var(--fuego);text-decoration:none}
+a:hover{text-decoration:underline}
+.highlight{background:rgba(255,85,0,.08);border:1px solid rgba(255,85,0,.2);border-radius:8px;padding:18px 20px;margin:20px 0}
+.highlight p{margin:0;font-size:14px}
+footer{background:var(--tinta);border-top:1px solid var(--borde);padding:30px 20px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+footer a{color:var(--crema2);text-decoration:none;margin:0 10px}
+footer a:hover{color:var(--fuego)}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <a href="/" class="logo">
-                <span>🏮</span>
-                El Farol al Día
-            </a>
-            <nav>
-                <a href="/">Inicio</a>
-                <a href="/nosotros">Sobre Nosotros</a>
-                <a href="/contacto">Contacto</a>
-                <a href="/privacidad">Privacidad</a>
-            </nav>
-        </div>
-    </header>
+<header>
+  <a href="/" class="logo"><div class="logo-icon">🏮</div>EL FAROL AL DÍA</a>
+  <a href="/" class="back-btn">← VOLVER AL INICIO</a>
+</header>
 
-    <main>
-        <div class="card">
-            <h1>Política de Privacidad</h1>
-            
-            <p><strong>Última actualización:</strong> 13 de marzo de 2026</p>
-            
-            <p>En <strong>El Farol al Día</strong>, respetamos tu privacidad y estamos comprometidos con la protección de tus datos personales. Esta política explica cómo recopilamos, usamos y compartimos tu información cuando visitas nuestro sitio web.</p>
-            
-            <h2>1. Datos que recopilamos</h2>
-            <p>Podemos recopilar información personal que tú nos proporcionas voluntariamente, como tu nombre, correo electrónico y mensajes cuando te comunicas con nosotros a través de formularios de contacto. También recopilamos datos de navegación de forma automática mediante cookies y tecnologías similares.</p>
-            
-            <h2>2. Uso de cookies</h2>
-            <p>Utilizamos cookies para mejorar tu experiencia, analizar el tráfico del sitio y personalizar el contenido. Las cookies son pequeños archivos de texto que se almacenan en tu dispositivo. Puedes configurar tu navegador para rechazarlas, pero algunas funciones del sitio podrían verse afectadas.</p>
-            
-            <h2>3. Finalidad del tratamiento</h2>
-            <p>La información recopilada se utiliza para:</p>
-            <ul>
-                <li>Responder a tus consultas y comentarios.</li>
-                <li>Mejorar nuestros servicios y contenido editorial.</li>
-                <li>Cumplir con obligaciones legales y normativas.</li>
-                <li>Mostrar anuncios personalizados (cuando se implemente publicidad).</li>
-            </ul>
-            
-            <h2>4. Compartir información</h2>
-            <p>No vendemos, alquilamos ni compartimos tus datos personales con terceros, excepto cuando sea necesario para cumplir con la ley, proteger nuestros derechos, o con proveedores de servicios que nos ayudan a operar el sitio (por ejemplo, hosting, análisis web) bajo estrictas cláusulas de confidencialidad.</p>
-            
-            <h2>5. Tus derechos (GDPR)</h2>
-            <p>Si resides en el Espacio Económico Europeo, tienes derecho a acceder, rectificar, eliminar y limitar el tratamiento de tus datos, así como a la portabilidad de los mismos. Para ejercer estos derechos, contáctanos en <a href="mailto:jose.colorvision@gmail.com" style="color:#ff9800;">jose.colorvision@gmail.com</a>.</p>
-            
-            <h2>6. Seguridad de los datos</h2>
-            <p>Implementamos medidas de seguridad técnicas y organizativas para proteger tu información contra accesos no autorizados, pérdida o alteración. Sin embargo, ninguna transmisión por Internet es 100% segura.</p>
-            
-            <h2>7. Cambios en la política</h2>
-            <p>Podemos actualizar esta política periódicamente. Publicaremos cualquier cambio en esta página con la fecha de revisión correspondiente. Te recomendamos revisarla cada cierto tiempo.</p>
-            
-            <h2>8. Contacto</h2>
-            <p>Si tienes preguntas sobre esta Política de Privacidad, puedes escribirnos a <a href="mailto:jose.colorvision@gmail.com" style="color:#ff9800;">jose.colorvision@gmail.com</a> o a través de nuestro <a href="/contacto" style="color:#ff9800;">formulario de contacto</a>.</p>
-            
-            <div style="text-align: center;">
-                <a href="/" class="btn-volver">← Volver al Inicio</a>
-            </div>
-        </div>
-    </main>
+<div class="container">
+  <h1>POLÍTICA DE PRIVACIDAD</h1>
+  <span class="fecha">Última actualización: 17 de Marzo de 2026 · elfarolaldia.com</span>
 
-    <footer>
-        <div class="footer-content">
-            <p>🏮 El Farol al Día - Periódico Digital Dominicano</p>
-            <p style="margin-top: 10px;">
-                <a href="/">Inicio</a> | 
-                <a href="/nosotros">Nosotros</a> | 
-                <a href="/contacto">Contacto</a> | 
-                <a href="/privacidad">Privacidad</a>
-            </p>
-            <p style="margin-top: 15px;">&copy; 2026 El Farol al Día. Todos los derechos reservados.</p>
-        </div>
-    </footer>
+  <div class="highlight">
+    <p>El Farol al Día respeta tu privacidad. Esta política explica qué información recopilamos, cómo la usamos y cómo la protegemos. Al usar nuestro sitio web, aceptas las prácticas descritas en este documento.</p>
+  </div>
+
+  <h2>1. INFORMACIÓN QUE RECOPILAMOS</h2>
+  <p>El Farol al Día puede recopilar los siguientes tipos de información:</p>
+  <ul>
+    <li><strong>Información de uso:</strong> páginas visitadas, tiempo en el sitio, artículos leídos y clicks realizados.</li>
+    <li><strong>Datos técnicos:</strong> dirección IP, tipo de navegador, sistema operativo y dispositivo utilizado.</li>
+    <li><strong>Comentarios:</strong> cuando dejas un comentario en una noticia, guardamos tu nombre y el texto del comentario.</li>
+    <li><strong>Correos electrónicos:</strong> si nos contactas a través de nuestros correos corporativos, guardamos esa comunicación para responderte.</li>
+  </ul>
+
+  <h2>2. USO DE LA INFORMACIÓN</h2>
+  <p>Utilizamos la información recopilada para:</p>
+  <ul>
+    <li>Mejorar la experiencia de lectura y personalizar el contenido.</li>
+    <li>Analizar el tráfico del sitio con fines estadísticos.</li>
+    <li>Responder a consultas y comentarios de usuarios.</li>
+    <li>Cumplir con obligaciones legales aplicables en la República Dominicana.</li>
+    <li>Mostrar publicidad relevante a través de Google AdSense.</li>
+  </ul>
+
+  <h2>3. GOOGLE ADSENSE Y PUBLICIDAD</h2>
+  <p>Este sitio utiliza <strong>Google AdSense</strong> para mostrar anuncios. Google puede usar cookies para mostrar anuncios basados en tus visitas previas a este y otros sitios web. Puedes optar por no recibir publicidad personalizada visitando <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Configuración de anuncios de Google</a>.</p>
+  <p>Google, como proveedor externo, utiliza cookies para publicar anuncios en nuestro sitio. El uso de la cookie DART por parte de Google le permite publicar anuncios a nuestros usuarios en función de su visita a otros sitios de Internet.</p>
+
+  <h2>4. COOKIES</h2>
+  <p>Nuestro sitio utiliza cookies para mejorar tu experiencia. Las cookies son pequeños archivos de texto almacenados en tu navegador. Utilizamos:</p>
+  <ul>
+    <li><strong>Cookies esenciales:</strong> necesarias para el funcionamiento básico del sitio.</li>
+    <li><strong>Cookies de análisis:</strong> nos ayudan a entender cómo los usuarios interactúan con el sitio.</li>
+    <li><strong>Cookies de publicidad:</strong> utilizadas por Google AdSense para mostrar anuncios relevantes.</li>
+    <li><strong>Cookies de preferencia de idioma:</strong> recordamos tu idioma o país preferido.</li>
+  </ul>
+  <p>Puedes controlar las cookies desde la configuración de tu navegador. Ten en cuenta que deshabilitar cookies puede afectar la funcionalidad del sitio.</p>
+
+  <h2>5. COMPARTICIÓN DE DATOS</h2>
+  <p>No vendemos ni alquilamos tu información personal a terceros. Podemos compartir datos con:</p>
+  <ul>
+    <li><strong>Google:</strong> para servicios de análisis (Google Analytics) y publicidad (Google AdSense).</li>
+    <li><strong>Proveedores de servicios:</strong> empresas que nos ayudan a operar el sitio (hosting, etc.).</li>
+    <li><strong>Autoridades legales:</strong> cuando sea requerido por ley en la República Dominicana.</li>
+  </ul>
+
+  <h2>6. SEGURIDAD DE DATOS</h2>
+  <p>Implementamos medidas de seguridad técnicas y organizativas para proteger tu información contra acceso no autorizado, alteración o divulgación. Sin embargo, ningún método de transmisión por Internet es 100% seguro.</p>
+
+  <h2>7. TUS DERECHOS</h2>
+  <p>De acuerdo con la legislación dominicana aplicable, tienes derecho a:</p>
+  <ul>
+    <li>Acceder a los datos personales que tenemos sobre ti.</li>
+    <li>Solicitar la corrección de datos inexactos.</li>
+    <li>Solicitar la eliminación de tus datos personales.</li>
+    <li>Oponerte al procesamiento de tus datos para ciertos fines.</li>
+  </ul>
+  <p>Para ejercer estos derechos, contáctanos en <a href="mailto:legal@elfarolaldia.com">legal@elfarolaldia.com</a>.</p>
+
+  <h2>8. ENLACES A TERCEROS</h2>
+  <p>Nuestro sitio puede contener enlaces a sitios web de terceros. No somos responsables de las prácticas de privacidad de esos sitios. Te recomendamos revisar sus políticas de privacidad.</p>
+
+  <h2>9. MENORES DE EDAD</h2>
+  <p>El Farol al Día no recopila intencionalmente información personal de menores de 13 años. Si eres padre o tutor y crees que tu hijo nos ha proporcionado información personal, contáctanos para eliminarla.</p>
+
+  <h2>10. CAMBIOS A ESTA POLÍTICA</h2>
+  <p>Podemos actualizar esta política periódicamente. Te notificaremos de cambios significativos publicando la nueva política en esta página con la fecha de actualización.</p>
+
+  <h2>11. CONTACTO</h2>
+  <p>Si tienes preguntas sobre esta Política de Privacidad, contáctanos:</p>
+  <ul>
+    <li>📧 <a href="mailto:legal@elfarolaldia.com">legal@elfarolaldia.com</a></li>
+    <li>🌐 <a href="https://elfarolaldia.com">elfarolaldia.com</a></li>
+    <li>📍 Santo Domingo Este, República Dominicana</li>
+  </ul>
+</div>
+
+<footer>
+  <div>© 2026 El Farol al Día · República Dominicana</div>
+  <div style="margin-top:10px">
+    <a href="/">INICIO</a>
+    <a href="/privacidad">PRIVACIDAD</a>
+    <a href="/terminos">TÉRMINOS</a>
+    <a href="/cookies">COOKIES</a>
+    <a href="/contacto">CONTACTO</a>
+  </div>
+</footer>
 </body>
 </html>
