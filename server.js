@@ -289,7 +289,139 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
 }
 
 // ══════════════════════════════════════════════════════════
-// MARCA DE AGUA
+// 🤖 TELEGRAM BOT — El Farol al Día
+// Token: guardado en variable de entorno TELEGRAM_TOKEN
+// Chat ID: se captura automáticamente cuando alguien escribe al bot
+// ══════════════════════════════════════════════════════════
+
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
+let   TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
+
+/**
+ * Envía un mensaje a Telegram con formato periodístico.
+ * Si TELEGRAM_CHAT_ID no está configurado, intenta obtenerlo
+ * de los últimos updates del bot automáticamente.
+ */
+async function publicarEnTelegram(titulo, slug, urlImagen, descripcion, seccion) {
+    if (!TELEGRAM_TOKEN) {
+        console.log('   📱 Telegram: sin token configurado');
+        return false;
+    }
+
+    // Si no hay Chat ID, intentar obtenerlo automáticamente
+    if (!TELEGRAM_CHAT_ID) {
+        TELEGRAM_CHAT_ID = await obtenerChatIdTelegram();
+        if (!TELEGRAM_CHAT_ID) {
+            console.log('   📱 Telegram: sin Chat ID — escríbele algo al bot para activarlo');
+            return false;
+        }
+    }
+
+    try {
+        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
+        const emoji = {
+            'Nacionales':      '🏛️',
+            'Deportes':        '⚽',
+            'Internacionales': '🌍',
+            'Economía':        '💰',
+            'Tecnología':      '💻',
+            'Espectáculos':    '🎬'
+        }[seccion] || '📰';
+
+        const mensaje = `${emoji} *${titulo}*\n\n${descripcion || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
+
+        // Intentar enviar con imagen primero
+        if (urlImagen && urlImagen.startsWith('http')) {
+            try {
+                const resImg = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id:    TELEGRAM_CHAT_ID,
+                        photo:      urlImagen,
+                        caption:    mensaje,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                const dataImg = await resImg.json();
+                if (dataImg.ok) {
+                    console.log(`   📱 Telegram ✅ (con imagen)`);
+                    return true;
+                }
+            } catch(e) { /* fallback a texto */ }
+        }
+
+        // Fallback: solo texto
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id:                  TELEGRAM_CHAT_ID,
+                text:                     mensaje,
+                parse_mode:               'Markdown',
+                disable_web_page_preview: false
+            })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            console.log(`   📱 Telegram ✅ (texto)`);
+            return true;
+        }
+        console.warn(`   📱 Telegram ❌: ${data.description}`);
+        return false;
+    } catch(err) {
+        console.warn(`   📱 Telegram error: ${err.message}`);
+        return false;
+    }
+}
+
+/**
+ * Obtiene el Chat ID automáticamente del último mensaje recibido por el bot.
+ * El Director solo necesita escribirle cualquier cosa al bot UNA VEZ.
+ */
+async function obtenerChatIdTelegram() {
+    if (!TELEGRAM_TOKEN) return null;
+    try {
+        const res  = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=1&offset=-1`);
+        const data = await res.json();
+        if (data.ok && data.result?.length) {
+            const chatId = data.result[0]?.message?.chat?.id
+                        || data.result[0]?.channel_post?.chat?.id;
+            if (chatId) {
+                console.log(`   📱 Telegram Chat ID detectado: ${chatId}`);
+                TELEGRAM_CHAT_ID = chatId.toString();
+                return TELEGRAM_CHAT_ID;
+            }
+        }
+    } catch(e) { /* silencioso */ }
+    return null;
+}
+
+/**
+ * Envía mensaje de bienvenida cuando el bot se activa por primera vez.
+ */
+async function bienvenidaTelegram() {
+    if (!TELEGRAM_TOKEN) return;
+    // Esperar 3 segundos para que el servidor arranque
+    await new Promise(r => setTimeout(r, 3000));
+    const chatId = await obtenerChatIdTelegram();
+    if (!chatId) return;
+
+    try {
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id:    chatId,
+                text:       `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`,
+                parse_mode: 'Markdown'
+            })
+        });
+        console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
+    } catch(e) { /* silencioso */ }
+}
+
+
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     try {
@@ -1821,14 +1953,16 @@ CONTENIDO:
         // Aprender: registrar query de imagen exitosa
         if (qi) registrarQueryPexels(qi, categoria, true);
 
-        // Publicar en redes (no bloquea)
+        // Publicar en redes (no bloquea la respuesta)
         Promise.allSettled([
             publicarEnFacebook(titulo, slFin, urlFinal, desc),
-            publicarEnTwitter(titulo, slFin, desc)
+            publicarEnTwitter(titulo, slFin, desc),
+            publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
         ]).then(results => {
             const fb = results[0].value ? '📘✅' : '📘❌';
             const tw = results[1].value ? '🐦✅' : '🐦❌';
-            console.log(`   Redes: ${fb} ${tw}`);
+            const tg = results[2].value ? '📱✅' : '📱❌';
+            console.log(`   Redes: ${fb} ${tw} ${tg}`);
         });
 
         return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada en web + redes' };
@@ -2026,6 +2160,31 @@ app.get('/api/pais-actual', (req, res) => {
 });
 
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
+
+// ── TELEGRAM — endpoints de gestión ──
+// Ver qué Chat ID tiene el bot detectado
+app.get('/api/telegram/status', authMiddleware, async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    const chatIdActual = TELEGRAM_CHAT_ID || await obtenerChatIdTelegram();
+    res.json({
+        token_activo:  !!TELEGRAM_TOKEN,
+        chat_id:       chatIdActual || 'No detectado — escríbele al bot primero',
+        instruccion:   chatIdActual ? '✅ Bot listo para recibir noticias' : '⚠️ Escríbele cualquier mensaje al bot de Telegram para activarlo'
+    });
+});
+
+// Enviar noticia de prueba a Telegram
+app.post('/api/telegram/test', authMiddleware, async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    const ok = await publicarEnTelegram(
+        '🏮 El Farol al Día — Prueba de conexión',
+        '',
+        'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
+        'El bot de El Farol al Día está activo y funcionando correctamente. ¡Listo para recibir noticias de Último Minuto en Santo Domingo Este y toda RD!',
+        'Nacionales'
+    );
+    res.json({ success: ok, mensaje: ok ? '✅ Mensaje de prueba enviado a Telegram' : '❌ Error — revisa el Chat ID' });
+});
 app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
@@ -2370,8 +2529,10 @@ async function iniciar() {
 ║  Watermark: ${fs.existsSync(WATERMARK_PATH)          ? '✅ ACTIVA          ' : '⚠️  Falta watermark '}║
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
-    // 5 segundos después de arrancar: regenerar watermarks si /tmp fue limpiado
+    // 5 segundos después: regenerar watermarks perdidos
     setTimeout(regenerarWatermarksLostidos, 5000);
+    // 8 segundos después: bienvenida Telegram (si está configurado)
+    setTimeout(bienvenidaTelegram, 8000);
 }
 
 iniciar();
