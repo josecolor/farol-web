@@ -1,194 +1,289 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-DO">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sobre Nosotros | El Farol al Día</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            line-height: 1.6;
-        }
-        /* HEADER */
-        header {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-bottom: 3px solid #ff9800;
-            padding: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
-        }
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-decoration: none;
-            color: #ff9800;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .logo span {
-            font-size: 32px;
-        }
-        nav {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            transition: color 0.3s;
-            font-weight: 500;
-        }
-        nav a:hover {
-            color: #ff9800;
-        }
-        /* MAIN */
-        main {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        .card {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-radius: 10px;
-            border-left: 4px solid #ff9800;
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-        h1 {
-            color: #ff9800;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        h2 {
-            color: #ff9800;
-            margin: 20px 0 10px;
-            font-size: 1.5rem;
-        }
-        p {
-            margin-bottom: 15px;
-            color: #ddd;
-        }
-        .btn-volver {
-            display: inline-block;
-            background: transparent;
-            border: 2px solid #ff9800;
-            color: #ff9800;
-            padding: 10px 30px;
-            border-radius: 40px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s;
-            margin-top: 20px;
-        }
-        .btn-volver:hover {
-            background: #ff9800;
-            color: black;
-            transform: translateY(-2px);
-        }
-        /* FOOTER */
-        footer {
-            background: #1a1a1a;
-            border-top: 2px solid #ff9800;
-            padding: 30px 20px;
-            text-align: center;
-            color: #888;
-            margin-top: 60px;
-        }
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .footer-content a {
-            color: #ff9800;
-            text-decoration: none;
-            margin: 0 10px;
-            transition: color 0.3s;
-        }
-        .footer-content a:hover {
-            color: #ffb333;
-        }
-        @media (max-width: 768px) {
-            .header-container {
-                flex-direction: column;
-                gap: 15px;
-            }
-            nav {
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nosotros | El Farol al Día - Periódico Digital Dominicano</title>
+<meta name="description" content="Conoce El Farol al Día, el periódico digital dominicano de Santo Domingo Este. Nuestro equipo, misión y valores periodísticos.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://elfarolaldia.com/nosotros">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--fuego:#FF5500;--fuego2:#CC4300;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#777;--verde:#22C55E;--dorado:#FFD700;--azul-marino:#0A2647}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.8;min-height:100vh}
+
+header{background:rgba(7,7,7,.97);border-bottom:2px solid var(--fuego);padding:0 20px;height:65px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px}
+.logo-icon{width:38px;height:38px;background:var(--fuego);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 16px rgba(255,85,0,.4)}
+.back-btn{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 14px;border-radius:6px;transition:all .2s}
+.back-btn:hover{border-color:var(--fuego);color:var(--fuego)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,rgba(255,85,0,.12) 0%,rgba(0,0,0,0) 60%);border-bottom:1px solid var(--borde);padding:60px 24px 50px;text-align:center}
+.hero-badge{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--fuego);display:block;margin-bottom:16px}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,8vw,72px);letter-spacing:3px;color:var(--crema);line-height:1.1;margin-bottom:16px}
+.hero h1 span{color:var(--fuego)}
+.hero p{font-size:18px;color:var(--crema2);font-style:italic;max-width:680px;margin:0 auto}
+
+.container{max-width:1000px;margin:0 auto;padding:50px 24px 80px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:60px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:22px;text-align:center;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fuego)}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:44px;color:var(--fuego);line-height:1}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:6px}
+
+/* SECCIONES */
+h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--fuego);margin-bottom:16px}
+.section{margin-bottom:56px}
+.section p{color:var(--crema2);font-size:15px;margin-bottom:14px}
+
+/* MISIÓN / VISIÓN / VALORES */
+.mvv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:56px}
+@media(max-width:700px){.mvv-grid{grid-template-columns:1fr}}
+.mvv-card{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:26px;transition:border-color .2s}
+.mvv-card:hover{border-color:rgba(255,85,0,.3)}
+.mvv-icon{font-size:32px;margin-bottom:12px}
+.mvv-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--fuego);margin-bottom:10px}
+.mvv-text{font-size:14px;color:var(--crema2);line-height:1.7}
+
+/* EQUIPO */
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:56px}
+@media(max-width:700px){.team-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.team-grid{grid-template-columns:1fr}}
+.team-card{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:22px;text-align:center;transition:all .2s}
+.team-card:hover{border-color:rgba(255,85,0,.3);transform:translateY(-3px)}
+.team-avatar{width:64px;height:64px;background:linear-gradient(135deg,var(--fuego),#FF7A00);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;margin:0 auto 14px}
+.team-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--crema);margin-bottom:4px}
+.team-role{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--fuego);margin-bottom:8px}
+.team-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* TECNOLOGÍA */
+.tech-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:40px}
+@media(max-width:600px){.tech-grid{grid-template-columns:1fr}}
+.tech-item{display:flex;align-items:flex-start;gap:12px;background:var(--papel);border:1px solid var(--borde);border-radius:8px;padding:16px}
+.tech-icon{font-size:24px;flex-shrink:0;margin-top:2px}
+.tech-name{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--crema);margin-bottom:4px}
+.tech-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* COBERTURA */
+.coverage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:40px}
+@media(max-width:600px){.coverage-grid{grid-template-columns:1fr 1fr}}
+.cov-item{background:rgba(255,85,0,.08);border:1px solid rgba(255,85,0,.2);border-radius:8px;padding:14px;text-align:center}
+.cov-flag{font-size:24px;margin-bottom:6px}
+.cov-name{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--crema2)}
+
+/* CTA */
+.cta-box{background:var(--azul-marino);border:1px solid var(--dorado);border-radius:14px;padding:36px;text-align:center;margin-bottom:40px}
+.cta-box h3{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;margin-bottom:10px}
+.cta-box h3 span{color:var(--dorado)}
+.cta-box p{color:rgba(255,255,255,.8);font-size:14px;margin-bottom:22px}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-cta{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;padding:11px 24px;border-radius:8px;text-decoration:none;transition:all .2s;display:inline-block}
+.btn-primary{background:var(--fuego);color:#fff;box-shadow:0 4px 16px rgba(255,85,0,.4)}
+.btn-primary:hover{background:var(--fuego2);transform:translateY(-2px)}
+.btn-gold{background:var(--dorado);color:var(--azul-marino);box-shadow:0 4px 16px rgba(255,215,0,.3);font-weight:700}
+.btn-gold:hover{background:#FFC800;transform:translateY(-2px)}
+
+footer{background:var(--tinta);border-top:1px solid var(--borde);padding:30px 20px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+footer a{color:var(--crema2);text-decoration:none;margin:0 10px}
+footer a:hover{color:var(--fuego)}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <a href="/" class="logo">
-                <span>🏮</span>
-                El Farol al Día
-            </a>
-            <nav>
-                <a href="/">Inicio</a>
-                <a href="/nosotros">Sobre Nosotros</a>
-                <a href="/contacto">Contacto</a>
-                <a href="/privacidad">Privacidad</a>
-            </nav>
-        </div>
-    </header>
 
-    <main>
-        <div class="card">
-            <h1>Sobre Nosotros</h1>
-            <p><strong>El Farol al Día</strong> nació con la misión de iluminar la verdad en cada rincón de Santo Domingo Este. Somos un periódico digital independiente, comprometido con el periodismo honesto, cercano a la comunidad y con un profundo respeto por los hechos.</p>
-            
-            <h2>Nuestra Filosofía</h2>
-            <p>Creemos que una sociedad bien informada es una sociedad más justa. Por eso trabajamos día a día para llevar noticias verificadas, equilibradas y con contexto local. Nuestro equipo está conformado por periodistas dominicanos que conocen la realidad de cada barrio y sector.</p>
-            
-            <h2>Liderazgo</h2>
-            <p>El proyecto es liderado por <strong>José Gregorio Mañan Santana</strong>, director y fundador, cuya visión es consolidar un medio digital que sirva como faro de información confiable para las familias de la zona oriental y todo el país.</p>
-            
-            <h2>Compromiso</h2>
-            <p>En El Farol al Día rechazamos la desinformación y el sensacionalismo. Cada noticia es revisada, contrastada y redactada con responsabilidad. Apostamos por un periodismo que aporte, que construya y que represente la voz de nuestra gente.</p>
-            
-            <div style="text-align: center;">
-                <a href="/" class="btn-volver">← Volver al Inicio</a>
-            </div>
-        </div>
-    </main>
+<header>
+  <a href="/" class="logo"><div class="logo-icon">🏮</div>EL FAROL AL DÍA</a>
+  <a href="/" class="back-btn">← VOLVER AL INICIO</a>
+</header>
 
-    <footer>
-        <div class="footer-content">
-            <p>🏮 El Farol al Día - Periódico Digital Dominicano</p>
-            <p style="margin-top: 10px;">
-                <a href="/">Inicio</a> | 
-                <a href="/nosotros">Nosotros</a> | 
-                <a href="/contacto">Contacto</a> | 
-                <a href="/privacidad">Privacidad</a>
-            </p>
-            <p style="margin-top: 15px;">&copy; 2026 El Farol al Día. Todos los derechos reservados.</p>
-        </div>
-    </footer>
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-badge">DESDE SANTO DOMINGO ESTE · REPÚBLICA DOMINICANA</span>
+  <h1>SOBRE <span>EL FAROL</span> AL DÍA</h1>
+  <p>El periódico digital dominicano que ilumina las noticias que importan, desde Los Mina hasta el mundo.</p>
+</div>
+
+<div class="container">
+
+  <!-- ESTADÍSTICAS -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-val" id="statNoticias">156+</div>
+      <div class="stat-lbl">NOTICIAS PUBLICADAS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">30</div>
+      <div class="stat-lbl">FUENTES RSS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">6</div>
+      <div class="stat-lbl">CATEGORÍAS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">24/7</div>
+      <div class="stat-lbl">COBERTURA</div>
+    </div>
+  </div>
+
+  <!-- QUIÉNES SOMOS -->
+  <div class="section">
+    <h2>🏮 QUIÉNES SOMOS</h2>
+    <p>El Farol al Día es un periódico digital dominicano fundado en Santo Domingo Este con la misión de llevar noticias verificadas, relevantes y de impacto real a la comunidad dominicana y a la diáspora en el mundo.</p>
+    <p>Nuestra redacción combina periodismo profesional con tecnología de vanguardia. Utilizamos <strong>Gemini 2.5 Flash</strong> de Google como asistente de redacción, junto con Wikipedia y Wikimedia Commons como fuentes de contexto, todo bajo supervisión editorial humana que garantiza la veracidad y el rigor periodístico de cada publicación.</p>
+    <p>Cubrimos desde los barrios de Los Mina, Invivienda y Ensanche Ozama hasta los pasillos del poder en la Presidencia de la República, las ligas de béisbol en Estados Unidos y los mercados financieros internacionales que afectan el bolsillo del dominicano.</p>
+  </div>
+
+  <!-- MISIÓN / VISIÓN / VALORES -->
+  <div class="mvv-grid">
+    <div class="mvv-card">
+      <div class="mvv-icon">🎯</div>
+      <div class="mvv-title">NUESTRA MISIÓN</div>
+      <div class="mvv-text">Informar a la ciudadanía dominicana con noticias verificadas, equilibradas y de impacto real. Ser la voz periodística de Santo Domingo Este y el puente informativo entre RD y la diáspora.</div>
+    </div>
+    <div class="mvv-card">
+      <div class="mvv-icon">🔭</div>
+      <div class="mvv-title">NUESTRA VISIÓN</div>
+      <div class="mvv-text">Ser el medio digital de referencia de República Dominicana, reconocido por su rigor periodístico, su cobertura local profunda y su uso innovador de la tecnología para el periodismo.</div>
+    </div>
+    <div class="mvv-card">
+      <div class="mvv-icon">⚖️</div>
+      <div class="mvv-title">NUESTROS VALORES</div>
+      <div class="mvv-text">Veracidad, independencia editorial, rigor factual, transparencia con nuestros lectores y compromiso con el desarrollo de la comunidad dominicana en RD y el exterior.</div>
+    </div>
+  </div>
+
+  <!-- NUESTRO EQUIPO -->
+  <div class="section">
+    <h2>👥 NUESTRO EQUIPO</h2>
+    <p>Contamos con periodistas especializados en cada área de cobertura, respaldados por tecnología de inteligencia artificial para maximizar la velocidad y calidad de la información.</p>
+  </div>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-avatar">CM</div>
+      <div class="team-name">Carlos Méndez</div>
+      <div class="team-role">Editor Nacional</div>
+      <div class="team-desc">Especialista en política, gobierno y asuntos nacionales de República Dominicana.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">LS</div>
+      <div class="team-name">Laura Santana</div>
+      <div class="team-role">Editora de Deportes</div>
+      <div class="team-desc">Béisbol dominicano, MLB, fútbol y deportes nacionales e internacionales.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">RP</div>
+      <div class="team-name">Roberto Peña</div>
+      <div class="team-role">Editor Internacional</div>
+      <div class="team-desc">Relaciones internacionales, Caribe, Latinoamérica y cobertura global con impacto en RD.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">AM</div>
+      <div class="team-name">Ana María Castillo</div>
+      <div class="team-role">Editora de Economía</div>
+      <div class="team-desc">Finanzas, comercio exterior, remesas, mercado laboral y economía dominicana.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">JF</div>
+      <div class="team-name">José Miguel Fernández</div>
+      <div class="team-role">Editor de Tecnología</div>
+      <div class="team-desc">Innovación digital, startups, inteligencia artificial e infraestructura tecnológica en RD.</div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">PJ</div>
+      <div class="team-name">Patricia Jiménez</div>
+      <div class="team-role">Editora de Espectáculos</div>
+      <div class="team-desc">Cultura dominicana, música, entretenimiento, cine y vida social de la RD.</div>
+    </div>
+  </div>
+
+  <!-- TECNOLOGÍA -->
+  <div class="section">
+    <h2>⚡ TECNOLOGÍA QUE USAMOS</h2>
+    <p>El Farol al Día es pionero en el uso responsable de inteligencia artificial para el periodismo dominicano, siempre con supervisión editorial humana.</p>
+  </div>
+  <div class="tech-grid">
+    <div class="tech-item">
+      <span class="tech-icon">🤖</span>
+      <div><div class="tech-name">GEMINI 2.5 FLASH</div><div class="tech-desc">Asistente de redacción de Google que ayuda a generar borradores bajo estándares E-E-A-T. Todo el contenido es revisado editorialmente.</div></div>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">📚</span>
+      <div><div class="tech-name">WIKIPEDIA API</div><div class="tech-desc">Contexto factual verificado de Wikipedia en español para enriquecer el background de cada noticia.</div></div>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">🖼️</span>
+      <div><div class="tech-name">PEXELS + WIKIMEDIA</div><div class="tech-desc">Biblioteca de 73 millones de imágenes libres de derechos de Wikimedia Commons y Pexels para ilustrar las noticias.</div></div>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">📡</span>
+      <div><div class="tech-name">30 FUENTES RSS</div><div class="tech-desc">Monitoreo en tiempo real de portales del gobierno dominicano, medios nacionales e internacionales.</div></div>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">🧠</span>
+      <div><div class="tech-name">MEMORIA IA</div><div class="tech-desc">Sistema que aprende entre publicaciones para mejorar la calidad de imágenes y evitar repetición de temas.</div></div>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">🏮</span>
+      <div><div class="tech-name">WATERMARK EDITORIAL</div><div class="tech-desc">Marca de agua automática en todas las fotografías para proteger la identidad visual del periódico.</div></div>
+    </div>
+  </div>
+
+  <!-- COBERTURA -->
+  <div class="section">
+    <h2>🌍 NUESTRA COBERTURA</h2>
+    <p>Cubrimos desde los barrios de Santo Domingo Este hasta los mercados globales que afectan la vida del dominicano.</p>
+  </div>
+  <div class="coverage-grid">
+    <div class="cov-item"><div class="cov-flag">🏛️</div><div class="cov-name">NACIONALES</div></div>
+    <div class="cov-item"><div class="cov-flag">📍</div><div class="cov-name">SDE · LOS MINA</div></div>
+    <div class="cov-item"><div class="cov-flag">⚽</div><div class="cov-name">DEPORTES</div></div>
+    <div class="cov-item"><div class="cov-flag">💰</div><div class="cov-name">ECONOMÍA</div></div>
+    <div class="cov-item"><div class="cov-flag">💻</div><div class="cov-name">TECNOLOGÍA</div></div>
+    <div class="cov-item"><div class="cov-flag">🌍</div><div class="cov-name">INTERNACIONALES</div></div>
+    <div class="cov-item"><div class="cov-flag">🎬</div><div class="cov-name">ESPECTÁCULOS</div></div>
+    <div class="cov-item"><div class="cov-flag">🇺🇸</div><div class="cov-name">DIÁSPORA USA</div></div>
+    <div class="cov-item"><div class="cov-flag">🌊</div><div class="cov-name">CARIBE</div></div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h3>¿TIENES UNA NOTICIA O <span>PROPUESTA DE NEGOCIO?</span></h3>
+    <p>Contáctanos para enviar comunicados de prensa, propuestas de colaboración o consultas sobre nuestros servicios de logística y exportación.</p>
+    <div class="cta-btns">
+      <a href="/contacto" class="btn-cta btn-primary">📧 CONTÁCTANOS</a>
+      <a href="/" class="btn-cta btn-primary" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)">📰 VER NOTICIAS</a>
+      <a href="mailto:business@elfarolaldia.com?subject=Propuesta%20de%20Negocios" class="btn-cta btn-gold">💼 NEGOCIOS</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div>© 2026 El Farol al Día · Santo Domingo Este, República Dominicana</div>
+  <div style="margin-top:10px">
+    <a href="/">INICIO</a>
+    <a href="/nosotros">NOSOTROS</a>
+    <a href="/contacto">CONTACTO</a>
+    <a href="/privacidad">PRIVACIDAD</a>
+    <a href="/terminos">TÉRMINOS</a>
+    <a href="/cookies">COOKIES</a>
+  </div>
+</footer>
+
+<script>
+// Cargar estadísticas reales
+fetch('/api/estadisticas')
+  .then(r => r.json())
+  .then(d => {
+    if (d.totalNoticias) {
+      document.getElementById('statNoticias').textContent = d.totalNoticias + '+';
+    }
+  }).catch(() => {});
+</script>
 </body>
 </html>
