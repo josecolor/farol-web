@@ -18,32 +18,31 @@ const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
 
-// Basic Auth — protege el panel de redacción
-let basicAuth;
-try {
-    basicAuth = require('express-basic-auth');
-} catch(e) {
-    console.warn('⚠️ express-basic-auth no instalado. Ejecuta: npm install express-basic-auth');
-    // Middleware de emergencia que igual protege
-    basicAuth = (opts) => (req, res, next) => {
-        const auth = req.headers.authorization;
-        if (!auth || !auth.startsWith('Basic ')) {
-            res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día"');
-            return res.status(401).send('Acceso no autorizado');
-        }
-        const [user, pass] = Buffer.from(auth.split(' ')[1], 'base64').toString().split(':');
-        const users = opts.users || {};
-        if (users[user] === pass) return next();
-        res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día"');
-        return res.status(401).send('Credenciales inválidas');
-    };
-}
+// ══════════════════════════════════════════════════════════
+// 🔒 BASIC AUTH — Protege /redaccion y rutas admin
+// Usuario: director | Contraseña: 311
+// ══════════════════════════════════════════════════════════
+function authMiddleware(req, res, next) {
+    const auth = req.headers['authorization'];
 
-const authMiddleware = basicAuth({
-    users: { 'director': '311' },
-    challenge: true,
-    realm: 'El Farol al Día - Panel de Redacción'
-});
+    if (!auth || !auth.startsWith('Basic ')) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día - Redacción"');
+        return res.status(401).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acceso Restringido</title><style>body{background:#070707;color:#EDE8DF;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.box{background:#141418;border:1px solid #FF5500;border-radius:12px;padding:40px;text-align:center;max-width:380px}h2{color:#FF5500;font-size:22px;margin-bottom:10px}p{color:#A89F94;font-size:14px;margin-bottom:20px}a{display:inline-block;background:#FF5500;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold}a:hover{background:#CC4300}</style></head><body><div class="box"><h2>🏮 ACCESO RESTRINGIDO</h2><p>El panel de redacción requiere autenticación.<br><br>Usuario: <strong>director</strong><br>Contraseña: <strong>311</strong></p><a href="/redaccion">ENTRAR AL PANEL</a></div></body></html>`);
+    }
+
+    try {
+        const decoded = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
+        const [user, ...passParts] = decoded.split(':');
+        const pass = passParts.join(':'); // por si la contraseña tiene ':'
+
+        if (user === 'director' && pass === '311') {
+            return next();
+        }
+    } catch(e) { /* credenciales malformadas */ }
+
+    res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día - Redacción"');
+    return res.status(401).send('Credenciales incorrectas. Usuario: director / Contraseña: 311');
+}
 
 const app      = express();
 const PORT     = process.env.PORT || 8080;
@@ -1926,6 +1925,8 @@ app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dir
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
 app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
 app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
+app.get('/terminos',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'terminos.html')));
+app.get('/cookies',    (req, res) => res.sendFile(path.join(__dirname, 'client', 'cookies.html')));
 
 // ── CACHÉ EN MEMORIA — evita ir a BD en cada visita ──
 let _cacheNoticias = null;
