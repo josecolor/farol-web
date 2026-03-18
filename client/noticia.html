@@ -1,198 +1,493 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-DO">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- META_TAGS -->
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
+<meta name="google-adsense-account" content="ca-pub-5280872495839888">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--fuego:#FF5500;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#555}
+:root{--fuego:#FF5500;--fuego2:#FF7A00;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#555;--verde:#22C55E}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.6}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 50% 40% at 70% 0%,rgba(255,85,0,.06) 0%,transparent 55%);pointer-events:none;z-index:0}
-header{background:rgba(7,7,7,.97);border-bottom:1px solid var(--borde);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
-.header-inner{max-width:1240px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px}
-.logo-icon{width:32px;height:32px;background:var(--fuego);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 12px rgba(255,85,0,.4)}
-nav a{color:var(--crema2);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;padding:6px 12px;border-radius:5px;transition:all .2s;border:1px solid transparent}
-nav a:hover{color:var(--fuego);border-color:rgba(255,85,0,.2);background:rgba(255,85,0,.06)}
 
-main{max-width:780px;margin:0 auto;padding:48px 24px 80px;position:relative;z-index:1}
+/* HEADER */
+header{background:rgba(7,7,7,.97);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.header-inner{max-width:1300px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;flex-shrink:0}
+.logo-icon{width:32px;height:32px;background:var(--fuego);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 12px rgba(255,85,0,.4)}
+.header-cats{display:flex;gap:4px;flex-wrap:wrap}
+.header-cats a{color:var(--crema2);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 10px;border-radius:4px;border:1px solid transparent;transition:all .2s;white-space:nowrap}
+.header-cats a:hover{color:var(--fuego);border-color:rgba(255,85,0,.25);background:rgba(255,85,0,.06)}
+.header-home{color:var(--crema2);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;padding:6px 14px;border-radius:5px;border:1px solid var(--borde);transition:all .2s;white-space:nowrap}
+.header-home:hover{color:var(--fuego);border-color:rgba(255,85,0,.3)}
 
 /* BREADCRUMB */
-.breadcrumb{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:8px}
-.breadcrumb a{color:var(--muted);text-decoration:none;transition:color .2s}
+.breadcrumb-wrap{max-width:1300px;margin:0 auto;padding:14px 24px 0}
+.breadcrumb{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.breadcrumb a{color:var(--muted);text-decoration:none;transition:color .2s;display:flex;align-items:center;gap:4px}
 .breadcrumb a:hover{color:var(--fuego)}
+.breadcrumb-sep{color:var(--borde);font-size:10px}
+.breadcrumb span{color:var(--crema2)}
 
-/* SECCION TAG */
-.seccion-tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.25);padding:4px 14px;border-radius:3px;display:inline-block;margin-bottom:18px}
+/* LAYOUT */
+.page-layout{max-width:1300px;margin:0 auto;padding:24px 24px 80px;display:grid;grid-template-columns:1fr 300px;gap:32px;align-items:start;position:relative;z-index:1}
+@media(max-width:960px){.page-layout{grid-template-columns:1fr}}
 
-/* TITULO */
-h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(32px,6vw,54px);letter-spacing:1px;line-height:1.1;margin-bottom:18px;color:var(--crema)}
-
-/* META */
-.meta{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--borde)}
-.meta-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+/* MAIN ARTICLE */
+main{min-width:0}
+.seccion-tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.25);padding:4px 14px;border-radius:3px;display:inline-block;margin-bottom:18px;text-decoration:none}
+.seccion-tag:hover{background:rgba(255,85,0,.2)}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,50px);letter-spacing:1px;line-height:1.1;margin-bottom:18px;color:var(--crema)}
+.meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--borde)}
+.meta-item{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
 .meta-item strong{color:var(--crema2)}
-
-/* IMAGEN */
-.imagen-wrap{margin:0 0 36px;border-radius:10px;overflow:hidden;border:1px solid var(--borde);position:relative}
-.imagen-wrap img{width:100%;max-height:480px;object-fit:cover;display:block}
-.imagen-caption{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);padding:8px 14px;background:rgba(0,0,0,.5);position:absolute;bottom:0;left:0;right:0}
-
-/* CONTENIDO */
+.imagen-wrap{margin:0 0 32px;border-radius:10px;overflow:hidden;border:1px solid var(--borde);position:relative}
+.imagen-wrap img{width:100%;max-height:460px;object-fit:cover;display:block}
+.imagen-caption{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.6);padding:7px 12px;background:rgba(0,0,0,.6)}
 .contenido{font-size:17px;line-height:1.85;color:var(--crema2)}
 .contenido p{margin-bottom:22px}
-.contenido p:first-child{font-size:19px;color:var(--crema);font-weight:600;line-height:1.6}
+.contenido p:first-child{font-size:18px;color:var(--crema);font-weight:600;line-height:1.65}
 .contenido a{color:var(--fuego);text-decoration:underline}
 
+/* ── ANTERIOR / SIGUIENTE ── */
+.nav-noticias{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px;margin-bottom:40px}
+.nav-btn{display:flex;align-items:center;gap:10px;background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;transition:all .2s;min-width:0}
+.nav-btn:hover{border-color:rgba(255,85,0,.4);background:rgba(255,85,0,.05)}
+.nav-btn.prev{flex-direction:row}
+.nav-btn.next{flex-direction:row-reverse;text-align:right}
+.nav-arrow{font-size:20px;flex-shrink:0;color:var(--fuego)}
+.nav-info{min-width:0}
+.nav-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px}
+.nav-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--crema);line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.nav-btn:hover .nav-titulo{color:var(--fuego)}
+@media(max-width:600px){.nav-noticias{grid-template-columns:1fr}}
+
 /* COMPARTIR */
-.compartir{margin-top:48px;padding:24px;background:var(--papel);border:1px solid var(--borde);border-radius:10px}
-.compartir h3{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);margin-bottom:16px}
-.compartir-btns{display:flex;gap:10px;flex-wrap:wrap}
-.share-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--crema2);padding:10px 20px;border-radius:6px;text-decoration:none;border:1px solid var(--borde);transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px}
+.compartir{margin-top:32px;padding:20px;background:var(--papel);border:1px solid var(--borde);border-radius:10px}
+.compartir h3{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;color:var(--fuego);margin-bottom:14px}
+.compartir-btns{display:flex;gap:8px;flex-wrap:wrap}
+.share-btn{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--crema2);padding:9px 16px;border-radius:6px;text-decoration:none;border:1px solid var(--borde);transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px}
 .share-btn:hover{background:var(--fuego);color:#fff;border-color:var(--fuego);transform:translateY(-2px)}
 
 /* RELACIONADAS */
-.relacionadas{margin-top:48px}
-.relacionadas h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--fuego);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--borde)}
-.rel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.relacionadas{margin-top:40px}
+.relacionadas h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--fuego);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--borde)}
+.rel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:600px){.rel-grid{grid-template-columns:1fr}}
 .rel-card{background:var(--papel);border:1px solid var(--borde);border-radius:8px;overflow:hidden;text-decoration:none;color:inherit;transition:all .2s;display:block}
-.rel-card:hover{border-color:rgba(255,85,0,.35);transform:translateY(-3px)}
-.rel-card img{width:100%;height:110px;object-fit:cover;display:block}
+.rel-card:hover{border-color:rgba(255,85,0,.35);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.rel-card img{width:100%;height:120px;object-fit:cover;display:block}
 .rel-body{padding:12px}
+.rel-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--fuego);margin-bottom:5px}
 .rel-titulo{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--crema);line-height:1.2;margin-bottom:6px}
 .rel-card:hover .rel-titulo{color:var(--fuego)}
 .rel-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
 
+/* ── SIDEBAR ── */
+.sidebar{position:sticky;top:80px;display:flex;flex-direction:column;gap:18px}
+.sidebar-card{background:var(--papel);border:1px solid var(--borde);border-radius:10px;overflow:hidden}
+.sidebar-header{padding:12px 16px;border-bottom:1px solid var(--borde);background:rgba(255,85,0,.05)}
+.sidebar-header h4{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:3px;color:var(--fuego)}
+.sidebar-body{padding:14px 16px}
+
+/* Categorías sidebar */
+.cat-links{display:flex;flex-direction:column;gap:4px}
+.cat-link-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--crema2);border:1px solid transparent;transition:all .2s}
+.cat-link-item:hover{color:var(--fuego);border-color:rgba(255,85,0,.2);background:rgba(255,85,0,.06)}
+.cat-link-item span{font-size:14px}
+
+/* Últimas noticias sidebar */
+.sidebar-news{display:flex;flex-direction:column;gap:10px}
+.sidebar-noticia{display:flex;gap:10px;align-items:flex-start;text-decoration:none;color:inherit;padding:8px;border-radius:7px;transition:background .2s;border:1px solid transparent}
+.sidebar-noticia:hover{background:rgba(255,85,0,.05);border-color:rgba(255,85,0,.15)}
+.sidebar-thumb{width:52px;height:40px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
+.sidebar-info{}
+.sidebar-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);line-height:1.2;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sidebar-noticia:hover .sidebar-titulo{color:var(--fuego)}
+.sidebar-fecha{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)}
+
+/* Tendencias / tags */
+.tags-cloud{display:flex;flex-wrap:wrap;gap:6px}
+.tag-item{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--crema2);background:rgba(255,255,255,.04);border:1px solid var(--borde);padding:5px 10px;border-radius:20px;text-decoration:none;transition:all .2s}
+.tag-item:hover{color:var(--fuego);border-color:rgba(255,85,0,.3);background:rgba(255,85,0,.08)}
+
+/* COMENTARIOS */
+.comentarios{margin-top:40px}
+.comentarios h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--fuego);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--borde)}
+.comentario-form{background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:20px;margin-bottom:24px}
+.comentario-form h4{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--crema2);margin-bottom:14px}
+.com-input{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s;margin-bottom:12px}
+.com-input:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
+.com-input::placeholder{color:var(--muted);font-style:italic}
+.com-textarea{min-height:90px;resize:vertical;line-height:1.6}
+.btn-comentar{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 28px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;border:none;border-radius:8px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(255,85,0,.3)}
+.btn-comentar:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,85,0,.45)}
+.btn-comentar:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.com-msg{font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 14px;border-radius:7px;margin-top:10px;display:none}
+.com-msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
+.com-msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#EF4444;display:block}
+.comentario-lista{display:flex;flex-direction:column;gap:12px}
+.comentario-item{background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:16px;transition:border-color .2s}
+.comentario-item:hover{border-color:rgba(255,85,0,.2)}
+.com-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.com-avatar{width:34px;height:34px;background:var(--fuego);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0}
+.com-nombre{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--crema)}
+.com-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto}
+.com-texto{font-size:14px;color:var(--crema2);line-height:1.7}
+.com-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:14px;letter-spacing:1px}
+.com-empty{text-align:center;padding:28px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);background:var(--papel);border:1px solid var(--borde);border-radius:10px}
+
+/* FOOTER */
 footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24px;text-align:center;position:relative;z-index:1}
 .footer-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--fuego);margin-bottom:10px}
 .footer-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:12px 0}
 .footer-links a{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-decoration:none;transition:color .2s}
 .footer-links a:hover{color:var(--fuego)}
-.footer-copy{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:16px;padding-top:16px;border-top:1px solid var(--borde)}
+.footer-copy{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--borde)}
 
-@media(max-width:600px){.rel-grid{grid-template-columns:1fr}.compartir-btns{flex-direction:column}.meta{gap:12px}}
-
-/* ── COMENTARIOS ── */
-.comentarios{margin-top:48px}
-.comentarios h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--fuego);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--borde)}
-.comentario-form{background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:22px;margin-bottom:28px}
-.comentario-form h4{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--crema2);margin-bottom:16px}
-.com-input{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s;margin-bottom:12px}
-.com-input:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
-.com-input::placeholder{color:var(--muted);font-style:italic}
-.com-textarea{min-height:90px;resize:vertical;line-height:1.6}
-.btn-comentar{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 28px;background:linear-gradient(135deg,var(--fuego),#FF7A00);color:#fff;border:none;border-radius:8px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(255,85,0,.3)}
-.btn-comentar:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,85,0,.45)}
-.btn-comentar:disabled{opacity:.6;cursor:not-allowed;transform:none}
-.com-msg{font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 14px;border-radius:7px;margin-top:10px;display:none}
-.com-msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#22C55E;display:block}
-.com-msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#EF4444;display:block}
-.comentario-lista{display:flex;flex-direction:column;gap:14px}
-.comentario-item{background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:18px;transition:border-color .2s}
-.comentario-item:hover{border-color:rgba(255,85,0,.2)}
-.com-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.com-avatar{width:36px;height:36px;background:var(--fuego);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0}
-.com-nombre{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--crema)}
-.com-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto}
-.com-texto{font-size:14px;color:var(--crema2);line-height:1.7}
-.com-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:1px}
-.com-empty{text-align:center;padding:32px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);background:var(--papel);border:1px solid var(--borde);border-radius:10px}
+/* MOBILE SIDEBAR toggle */
+.sidebar-toggle{display:none;width:100%;padding:12px;background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.25);border-radius:8px;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;margin-bottom:12px;text-align:center}
+@media(max-width:960px){
+  .sidebar-toggle{display:block}
+  .sidebar{position:static;top:auto}
+  .sidebar-inner{display:none}
+  .sidebar-inner.open{display:flex;flex-direction:column;gap:18px}
+}
 </style>
 </head>
 <body>
+
 <header>
   <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-icon">🏮</div>
-      EL FAROL AL DÍA
-    </a>
-    <nav><a href="/">← Inicio</a></nav>
+    <a href="/" class="logo"><div class="logo-icon">🏮</div>EL FAROL AL DÍA</a>
+    <div class="header-cats">
+      <a href="/#Nacionales">🏛️ NACIONALES</a>
+      <a href="/#Deportes">⚽ DEPORTES</a>
+      <a href="/#Internacionales">🌍 INTER.</a>
+      <a href="/#Economía">💰 ECONOMÍA</a>
+      <a href="/#Tecnología">💻 TECH</a>
+      <a href="/#Espectáculos">🎬 ESPECT.</a>
+    </div>
+    <a href="/" class="header-home">← INICIO</a>
   </div>
 </header>
 
-<main>
-  <div class="breadcrumb">
-    <a href="/">Inicio</a> › <span>{{SECCION}}</span> › <span style="color:var(--crema2)">Noticia</span>
-  </div>
+<!-- BREADCRUMB CON SCHEMA -->
+<div class="breadcrumb-wrap">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/"><span>🏠</span> Inicio</a>
+    <span class="breadcrumb-sep">›</span>
+    <a href="/#{{SECCION}}" id="breadSeccionLink">{{SECCION}}</a>
+    <span class="breadcrumb-sep">›</span>
+    <span id="breadTitulo">{{TITULO}}</span>
+  </nav>
+</div>
 
-  <article>
-    <span class="seccion-tag">{{SECCION}}</span>
-    <h1>{{TITULO}}</h1>
+<div class="page-layout">
 
-    <div class="meta">
-      <div class="meta-item">📅 <strong>{{FECHA}}</strong></div>
-      <div class="meta-item">✍️ <strong>{{REDACTOR}}</strong></div>
-      <div class="meta-item">👁 <strong>{{VISTAS}} vistas</strong></div>
-    </div>
+  <!-- ═══ ARTÍCULO PRINCIPAL ═══ -->
+  <main>
+    <article>
+      <a href="/#{{SECCION}}" class="seccion-tag">{{SECCION}}</a>
+      <h1>{{TITULO}}</h1>
 
-    <div class="imagen-wrap">
-      <img src="{{IMAGEN}}" alt="{{ALT}}"
-        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
-      <div class="imagen-caption">{{ALT}} — El Farol al Día</div>
-    </div>
-
-    <div class="contenido">{{CONTENIDO}}</div>
-
-    <div class="compartir">
-      <h3>📢 COMPARTIR ESTA NOTICIA</h3>
-      <div class="compartir-btns">
-        <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank">👍 Facebook</a>
-        <a class="share-btn" href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank">🐦 Twitter</a>
-        <a class="share-btn" href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank">💬 WhatsApp</a>
+      <div class="meta">
+        <div class="meta-item">📅 <strong>{{FECHA}}</strong></div>
+        <div class="meta-item">✍️ <strong>{{REDACTOR}}</strong></div>
+        <div class="meta-item">👁 <strong>{{VISTAS}} vistas</strong></div>
       </div>
-    </div>
-  </article>
 
-  <aside class="relacionadas">
-    <h3>📰 NOTICIAS RELACIONADAS</h3>
-    <div class="rel-grid" id="relacionadas">
-      <p style="color:var(--muted);font-size:13px">Cargando...</p>
-    </div>
+      <div class="imagen-wrap">
+        <img src="{{IMAGEN}}" alt="{{ALT}}"
+          onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
+        <div class="imagen-caption">{{ALT}} — El Farol al Día</div>
+      </div>
+
+      <div class="contenido">{{CONTENIDO}}</div>
+
+      <!-- COMPARTIR -->
+      <div class="compartir">
+        <h3>📢 COMPARTIR ESTA NOTICIA</h3>
+        <div class="compartir-btns">
+          <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank" rel="noopener">👍 Facebook</a>
+          <a class="share-btn" href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank" rel="noopener">🐦 Twitter/X</a>
+          <a class="share-btn" href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank" rel="noopener">💬 WhatsApp</a>
+          <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url={{URL}}" target="_blank" rel="noopener">💼 LinkedIn</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── NAVEGACIÓN ANTERIOR / SIGUIENTE ── -->
+    <nav class="nav-noticias" id="navNoticias" aria-label="Navegación entre noticias">
+      <a class="nav-btn prev" id="btnAnterior" href="#" style="visibility:hidden">
+        <span class="nav-arrow">←</span>
+        <div class="nav-info">
+          <div class="nav-label">ANTERIOR</div>
+          <div class="nav-titulo" id="titAnterior">Cargando...</div>
+        </div>
+      </a>
+      <a class="nav-btn next" id="btnSiguiente" href="#" style="visibility:hidden">
+        <div class="nav-info">
+          <div class="nav-label">SIGUIENTE</div>
+          <div class="nav-titulo" id="titSiguiente">Cargando...</div>
+        </div>
+        <span class="nav-arrow">→</span>
+      </a>
+    </nav>
+
+    <!-- ── NOTICIAS RELACIONADAS ── -->
+    <aside class="relacionadas">
+      <h3>📰 OTRAS NOTICIAS QUE TE PUEDEN INTERESAR</h3>
+      <div class="rel-grid" id="relacionadas">
+        <p style="color:var(--muted);font-size:13px;font-family:'JetBrains Mono',monospace">Cargando...</p>
+      </div>
+    </aside>
+
+    <!-- ── COMENTARIOS ── -->
+    <section class="comentarios">
+      <h3>💬 COMENTARIOS</h3>
+      <div class="comentario-form">
+        <h4>DEJA TU COMENTARIO</h4>
+        <input type="text" class="com-input" id="comNombre" placeholder="Tu nombre *" maxlength="80">
+        <textarea class="com-input com-textarea" id="comTexto" placeholder="Escribe tu comentario..." maxlength="1000"></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="comChars">0/1000</span>
+          <button class="btn-comentar" id="btnComentar" onclick="publicarComentario()">💬 PUBLICAR COMENTARIO</button>
+        </div>
+        <div class="com-msg" id="comMsg"></div>
+      </div>
+      <div class="com-count" id="comCount"></div>
+      <div class="comentario-lista" id="comLista">
+        <div class="com-empty">Cargando comentarios...</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">📊 VER TENDENCIAS Y CATEGORÍAS ↓</button>
+    <div class="sidebar-inner" id="sidebarInner">
+
+      <!-- CATEGORÍAS -->
+      <div class="sidebar-card">
+        <div class="sidebar-header"><h4>📂 CATEGORÍAS</h4></div>
+        <div class="sidebar-body">
+          <nav class="cat-links" aria-label="Categorías">
+            <a href="/#Nacionales"      class="cat-link-item"><span>🏛️</span> NACIONALES</a>
+            <a href="/#Deportes"        class="cat-link-item"><span>⚽</span> DEPORTES</a>
+            <a href="/#Internacionales" class="cat-link-item"><span>🌍</span> INTERNACIONALES</a>
+            <a href="/#Economía"        class="cat-link-item"><span>💰</span> ECONOMÍA</a>
+            <a href="/#Tecnología"      class="cat-link-item"><span>💻</span> TECNOLOGÍA · SDE</a>
+            <a href="/#Espectáculos"    class="cat-link-item"><span>🎬</span> ESPECTÁCULOS</a>
+            <a href="/#negocios"        class="cat-link-item" style="color:#FFD700;border-color:rgba(255,215,0,.2)"><span>💼</span> NEGOCIOS</a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- ÚLTIMAS 10 NOTICIAS -->
+      <div class="sidebar-card">
+        <div class="sidebar-header"><h4>🔥 ÚLTIMAS NOTICIAS</h4></div>
+        <div class="sidebar-body">
+          <nav class="sidebar-news" id="sidebarNoticias" aria-label="Últimas noticias">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando...</div>
+          </nav>
+        </div>
+      </div>
+
+      <!-- TEMAS TENDENCIA -->
+      <div class="sidebar-card">
+        <div class="sidebar-header"><h4>🏷️ TEMAS</h4></div>
+        <div class="sidebar-body">
+          <div class="tags-cloud">
+            <a href="/#Nacionales" class="tag-item">Política RD</a>
+            <a href="/#Deportes" class="tag-item">Béisbol</a>
+            <a href="/#Economía" class="tag-item">Economía</a>
+            <a href="/#Tecnología" class="tag-item">SDE</a>
+            <a href="/#Nacionales" class="tag-item">Abinader</a>
+            <a href="/#Internacionales" class="tag-item">Caribe</a>
+            <a href="/#Deportes" class="tag-item">MLB</a>
+            <a href="/#Tecnología" class="tag-item">Los Mina</a>
+            <a href="/#Economía" class="tag-item">Remesas</a>
+            <a href="/#Internacionales" class="tag-item">Haití</a>
+            <a href="/#Nacionales" class="tag-item">Policía</a>
+            <a href="/#Espectáculos" class="tag-item">Merengue</a>
+            <a href="/#Economía" class="tag-item">Turismo</a>
+            <a href="/#Tecnología" class="tag-item">INFOTEP</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- PÁGINAS LEGALES -->
+      <div class="sidebar-card">
+        <div class="sidebar-header"><h4>📋 PÁGINAS</h4></div>
+        <div class="sidebar-body">
+          <nav class="cat-links">
+            <a href="/nosotros"  class="cat-link-item"><span>👥</span> NOSOTROS</a>
+            <a href="/contacto"  class="cat-link-item"><span>📧</span> CONTACTO</a>
+            <a href="/privacidad" class="cat-link-item"><span>🔒</span> PRIVACIDAD</a>
+            <a href="/terminos"  class="cat-link-item"><span>📄</span> TÉRMINOS</a>
+            <a href="/cookies"   class="cat-link-item"><span>🍪</span> COOKIES</a>
+            <a href="/sitemap.xml" class="cat-link-item" target="_blank"><span>🗺️</span> SITEMAP</a>
+          </nav>
+        </div>
+      </div>
+
+    </div><!-- /sidebar-inner -->
   </aside>
-</main>
+
+</div><!-- /page-layout -->
 
 <footer>
   <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
   <div class="footer-links">
-    <a href="/">Inicio</a><a href="/sitemap.xml">Sitemap</a><a href="/robots.txt">Robots</a>
+    <a href="/">INICIO</a>
+    <a href="/nosotros">NOSOTROS</a>
+    <a href="/contacto">CONTACTO</a>
+    <a href="/privacidad">PRIVACIDAD</a>
+    <a href="/terminos">TÉRMINOS</a>
+    <a href="/cookies">COOKIES</a>
+    <a href="/sitemap.xml">SITEMAP</a>
   </div>
-  <div class="footer-copy">© 2026 El Farol al Día · Todos los derechos reservados</div>
+  <div class="footer-copy">© 2026 El Farol al Día · Santo Domingo Este, República Dominicana · Todos los derechos reservados</div>
 </footer>
 
-  <section class="comentarios">
-    <h3>💬 COMENTARIOS</h3>
-
-    <!-- Formulario -->
-    <div class="comentario-form">
-      <h4>DEJA TU COMENTARIO</h4>
-      <input type="text" class="com-input" id="comNombre" placeholder="Tu nombre *" maxlength="80">
-      <textarea class="com-input com-textarea" id="comTexto" placeholder="Escribe tu comentario... (máx. 1000 caracteres)" maxlength="1000"></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="comChars">0/1000</span>
-        <button class="btn-comentar" id="btnComentar" onclick="publicarComentario()">
-          💬 PUBLICAR COMENTARIO
-        </button>
-      </div>
-      <div class="com-msg" id="comMsg"></div>
-    </div>
-
-    <!-- Lista -->
-    <div class="com-count" id="comCount"></div>
-    <div class="comentario-lista" id="comLista">
-      <div class="com-empty">Cargando comentarios...</div>
-    </div>
-  </section>
-
 <script>
-// ── Obtener ID de la noticia desde la URL o data attribute ──
-const NOTICIA_SLUG = window.location.pathname.split('/noticia/')[1] || '';
+const SLUG = window.location.pathname.split('/noticia/')[1] || '';
 let NOTICIA_ID = null;
+let todasNoticias = [];
 
-// ── Cargar comentarios ──
+/* ── SIDEBAR MOBILE ── */
+function toggleSidebar() {
+  const inner = document.getElementById('sidebarInner');
+  inner.classList.toggle('open');
+}
+
+/* ── CARGAR TODO ── */
+async function iniciar() {
+  try {
+    const r = await fetch('/api/noticias');
+    const d = await r.json();
+    todasNoticias = d.noticias || [];
+
+    const actual = todasNoticias.find(n => n.slug === SLUG);
+    if (actual) {
+      NOTICIA_ID = actual.id;
+      cargarComentarios();
+      navegacionAnteriorSiguiente(actual);
+    }
+
+    cargarRelacionadas(actual);
+    cargarSidebar();
+    actualizarBreadcrumb(actual);
+  } catch(e) { console.error(e); }
+}
+
+/* ── BREADCRUMB dinámico ── */
+function actualizarBreadcrumb(noticia) {
+  if (!noticia) return;
+  const tit = document.getElementById('breadTitulo');
+  const sec = document.getElementById('breadSeccionLink');
+  if (tit) tit.textContent = noticia.titulo.length > 50
+    ? noticia.titulo.substring(0, 50) + '...' : noticia.titulo;
+  if (sec) {
+    sec.textContent = noticia.seccion;
+    sec.href = `/#${noticia.seccion}`;
+  }
+}
+
+/* ── ANTERIOR / SIGUIENTE ── */
+function navegacionAnteriorSiguiente(actual) {
+  const idx = todasNoticias.findIndex(n => n.id === actual.id);
+
+  const btnAnt = document.getElementById('btnAnterior');
+  const btnSig = document.getElementById('btnSiguiente');
+
+  // "Siguiente" = más reciente (idx - 1), "Anterior" = más antigua (idx + 1)
+  if (idx > 0) {
+    const sig = todasNoticias[idx - 1];
+    btnSig.href = `/noticia/${sig.slug}`;
+    document.getElementById('titSiguiente').textContent =
+      sig.titulo.length > 55 ? sig.titulo.substring(0, 55) + '…' : sig.titulo;
+    btnSig.style.visibility = 'visible';
+  }
+
+  if (idx < todasNoticias.length - 1) {
+    const ant = todasNoticias[idx + 1];
+    btnAnt.href = `/noticia/${ant.slug}`;
+    document.getElementById('titAnterior').textContent =
+      ant.titulo.length > 55 ? ant.titulo.substring(0, 55) + '…' : ant.titulo;
+    btnAnt.style.visibility = 'visible';
+  }
+}
+
+/* ── RELACIONADAS — misma sección + aleatorias ── */
+function cargarRelacionadas(actual) {
+  const c = document.getElementById('relacionadas');
+  if (!todasNoticias.length) { c.innerHTML = ''; return; }
+
+  const seccion = actual?.seccion || '';
+  const idActual = actual?.id;
+
+  // Primero misma sección, luego cualquier otra, excluir la actual
+  let mismaSec = todasNoticias.filter(n => n.seccion === seccion && n.id !== idActual);
+  let otras    = todasNoticias.filter(n => n.seccion !== seccion && n.id !== idActual);
+
+  // Mezclar aleatoriamente
+  mismaSec = mismaSec.sort(() => Math.random() - 0.5);
+  otras    = otras.sort(() => Math.random() - 0.5);
+
+  // Tomar 2 de la misma sección + 2 de otras = 4 total
+  const rel = [...mismaSec.slice(0, 2), ...otras.slice(0, 2)];
+
+  if (!rel.length) { c.innerHTML = '<p style="color:var(--muted);font-size:13px;font-family:JetBrains Mono,monospace">Sin noticias relacionadas aún</p>'; return; }
+
+  c.innerHTML = rel.map(n => {
+    const f = new Date(n.fecha).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' });
+    const img = n.imagen?.startsWith('http') ? n.imagen
+      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400';
+    return `
+    <a class="rel-card" href="/noticia/${n.slug}">
+      <img src="${img}" alt="${n.titulo}"
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
+      <div class="rel-body">
+        <div class="rel-seccion">${n.seccion}</div>
+        <div class="rel-titulo">${n.titulo.length > 60 ? n.titulo.substring(0,60)+'…' : n.titulo}</div>
+        <div class="rel-fecha">📅 ${f}</div>
+      </div>
+    </a>`;
+  }).join('');
+}
+
+/* ── SIDEBAR — últimas 10 noticias ── */
+function cargarSidebar() {
+  const nav = document.getElementById('sidebarNoticias');
+  const ultimas = todasNoticias.slice(0, 10);
+  if (!ultimas.length) { nav.innerHTML = ''; return; }
+
+  nav.innerHTML = ultimas.map(n => {
+    const f = new Date(n.fecha).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' });
+    const img = n.imagen?.startsWith('http') ? n.imagen
+      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
+    return `
+    <a class="sidebar-noticia" href="/noticia/${n.slug}">
+      <img class="sidebar-thumb" src="${img}" alt="${n.titulo}"
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'"
+        loading="lazy">
+      <div class="sidebar-info">
+        <div class="sidebar-titulo">${n.titulo}</div>
+        <div class="sidebar-fecha">📅 ${f} · ${n.seccion}</div>
+      </div>
+    </a>`;
+  }).join('');
+}
+
+/* ── COMENTARIOS ── */
 async function cargarComentarios() {
   if (!NOTICIA_ID) return;
   try {
@@ -200,19 +495,15 @@ async function cargarComentarios() {
     const d   = await r.json();
     const lista = document.getElementById('comLista');
     const count = document.getElementById('comCount');
-
     if (!d.comentarios?.length) {
-      lista.innerHTML  = '<div class="com-empty">Sé el primero en comentar esta noticia 🏮</div>';
+      lista.innerHTML  = '<div class="com-empty">Sé el primero en comentar 🏮</div>';
       count.textContent = '';
       return;
     }
-
     count.textContent = `${d.comentarios.length} COMENTARIO${d.comentarios.length !== 1 ? 'S' : ''}`;
     lista.innerHTML = d.comentarios.map(c => {
       const inicial = c.nombre.charAt(0).toUpperCase();
-      const fecha   = new Date(c.fecha).toLocaleDateString('es-DO', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-      });
+      const fecha = new Date(c.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
       return `
       <div class="comentario-item">
         <div class="com-header">
@@ -224,103 +515,47 @@ async function cargarComentarios() {
       </div>`;
     }).join('');
   } catch(e) {
-    document.getElementById('comLista').innerHTML =
-      '<div class="com-empty">No se pudieron cargar los comentarios</div>';
+    document.getElementById('comLista').innerHTML = '<div class="com-empty">No se pudieron cargar los comentarios</div>';
   }
 }
 
-// ── Publicar comentario ──
 async function publicarComentario() {
   if (!NOTICIA_ID) return;
   const nombre = document.getElementById('comNombre').value.trim();
   const texto  = document.getElementById('comTexto').value.trim();
-  const msg    = document.getElementById('comMsg');
   const btn    = document.getElementById('btnComentar');
-
   if (!nombre) { showComMsg('❌ Escribe tu nombre', false); return; }
-  if (!texto)  { showComMsg('❌ Escribe un comentario', false); return; }
-  if (texto.length < 3) { showComMsg('❌ Comentario muy corto', false); return; }
-
-  btn.disabled     = true;
-  btn.textContent  = 'Publicando...';
-
+  if (!texto || texto.length < 3) { showComMsg('❌ Comentario muy corto', false); return; }
+  btn.disabled = true; btn.textContent = 'Publicando...';
   try {
     const r = await fetch(`/api/comentarios/${NOTICIA_ID}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ nombre, texto })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, texto })
     });
     const d = await r.json();
-
     if (d.success) {
       document.getElementById('comNombre').value = '';
       document.getElementById('comTexto').value  = '';
       document.getElementById('comChars').textContent = '0/1000';
-      showComMsg('✅ Comentario publicado correctamente', true);
+      showComMsg('✅ Comentario publicado', true);
       await cargarComentarios();
-    } else {
-      showComMsg('❌ ' + (d.error || 'Error al publicar'), false);
-    }
-  } catch(e) {
-    showComMsg('❌ Error de conexión', false);
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = '💬 PUBLICAR COMENTARIO';
-  }
+    } else { showComMsg('❌ ' + (d.error || 'Error'), false); }
+  } catch(e) { showComMsg('❌ Error de conexión', false); }
+  finally { btn.disabled = false; btn.textContent = '💬 PUBLICAR COMENTARIO'; }
 }
 
 function showComMsg(txt, ok) {
   const el = document.getElementById('comMsg');
   el.textContent = txt;
-  el.className   = 'com-msg ' + (ok ? 'ok' : 'err');
+  el.className = 'com-msg ' + (ok ? 'ok' : 'err');
   setTimeout(() => { el.className = 'com-msg'; }, 5000);
 }
 
-// Contador de caracteres
 document.getElementById('comTexto').addEventListener('input', function() {
   document.getElementById('comChars').textContent = `${this.value.length}/1000`;
 });
 
-// ── Cargar noticias relacionadas ──
-async function cargarRelacionadas(){
-  try{
-    const res=await fetch('/api/noticias');
-    const data=await res.json();
-    if(!data.noticias?.length) return;
-    const seccion=document.querySelector('.seccion-tag')?.textContent||'';
-    const rel=data.noticias.filter(n=>n.seccion===seccion).slice(0,3);
-    const c=document.getElementById('relacionadas');
-    if(!rel.length){c.innerHTML='<p style="color:var(--muted);font-size:13px">No hay noticias relacionadas</p>';return;}
-    c.innerHTML=rel.map(n=>{
-      const f=new Date(n.fecha).toLocaleDateString('es-DO');
-      return `<a class="rel-card" href="/noticia/${n.slug}">
-        <img src="${n.imagen}" alt="${n.titulo}" onerror="this.src='https://via.placeholder.com/300x110?text=Noticia'">
-        <div class="rel-body">
-          <div class="rel-titulo">${n.titulo}</div>
-          <div class="rel-fecha">📅 ${f}</div>
-        </div>
-      </a>`;
-    }).join('');
-  }catch(e){console.error('Error relacionadas:',e);}
-}
-
-// ── Obtener ID de la noticia por slug ──
-async function obtenerIdNoticia() {
-  try {
-    const r = await fetch('/api/noticias');
-    const d = await r.json();
-    const noticia = (d.noticias || []).find(n => n.slug === NOTICIA_SLUG);
-    if (noticia) {
-      NOTICIA_ID = noticia.id;
-      cargarComentarios();
-    }
-  } catch(e) { console.error('Error obteniendo ID:', e); }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  cargarRelacionadas();
-  obtenerIdNoticia();
-});
+document.addEventListener('DOMContentLoaded', iniciar);
 </script>
 </body>
 </html>
