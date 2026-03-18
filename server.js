@@ -6,8 +6,7 @@
  * + Memoria IA en PostgreSQL (persiste entre reinicios)
  * + Banco local 17 categorías × 10 fotos
  * + Coach de redacción + Comentarios + SEO E-E-A-T
- * + Telegram Bot automático (node-telegram-bot-api)
- * + Bridge Facebook mejorado
+ * + Telegram Bot automático (usando axios y crypto)
  */
 
 const express   = require('express');
@@ -19,7 +18,7 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
-const TelegramBot = require('node-telegram-bot-api');
+const axios     = require('axios');
 
 // ══════════════════════════════════════════════════════════
 // 🔒 BASIC AUTH — Protege /redaccion y rutas admin
@@ -63,36 +62,8 @@ const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
 
 // ===== TELEGRAM BOT CONFIG =====
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8737097121:AAGiOFVpxLbbpH4iE9dlx4lJN8uAMtIPACo'; // Token de prueba
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8737097121:AAGiOFVpxLbbpH4iE9dlx4lJN8uAMtIPACo';
 let TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
-let telegramBot = null;
-
-// Inicializar bot de Telegram si hay token
-if (TELEGRAM_TOKEN) {
-    try {
-        telegramBot = new TelegramBot(TELEGRAM_TOKEN, { polling: false });
-        console.log('📱 Telegram Bot inicializado correctamente');
-        
-        // Intentar obtener el chat ID automáticamente al arrancar
-        setTimeout(async () => {
-            const chatId = await obtenerChatIdTelegram();
-            if (chatId) {
-                TELEGRAM_CHAT_ID = chatId;
-                console.log(`📱 Chat ID detectado: ${chatId}`);
-                // Enviar mensaje de bienvenida
-                try {
-                    await telegramBot.sendMessage(chatId, 
-                        `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](${BASE_URL})\n📍 Santo Domingo Este, RD`,
-                        { parse_mode: 'Markdown' }
-                    );
-                    console.log('📱 Mensaje de bienvenida enviado ✅');
-                } catch(e) { /* silencioso */ }
-            }
-        }, 5000);
-    } catch(e) {
-        console.error('❌ Error al inicializar Telegram Bot:', e.message);
-    }
-}
 
 // Busca watermark con cualquier nombre en la carpeta static
 const WATERMARK_PATH = (() => {
@@ -130,7 +101,7 @@ app.use('/static', express.static(path.join(__dirname, 'static'), {
 app.use(express.static(path.join(__dirname, 'client'), {
     setHeaders: (res, fp) => {
         if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(fp))
-            res.setHeader('Cache-Control', 'public,max-age-2592000,immutable');
+            res.setHeader('Cache-Control', 'public,max-age=2592000,immutable');
         else if (/\.(css|js)$/i.test(fp))
             res.setHeader('Cache-Control', 'public,max-age=86400');
     }
@@ -138,167 +109,115 @@ app.use(express.static(path.join(__dirname, 'client'), {
 app.use(cors());
 
 // ══════════════════════════════════════════════════════════
-// ▶ FUNCIÓN PARA ENVIAR NOTICIAS A REDES SOCIALES
-// Se llama automáticamente después de publicar una noticia
+// 📱 FUNCIÓN PARA ENVIAR A TELEGRAM (usando axios)
 // ══════════════════════════════════════════════════════════
-async function enviarNoticiaRedes(noticia) {
-    const { titulo, slug, imagen, seo_description, seccion } = noticia;
-    const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-    const resultados = [];
+async function enviarTelegram(noticia) {
+    if (!TELEGRAM_TOKEN) {
+        console.log('   📱 Telegram: sin token configurado');
+        return false;
+    }
 
-    // 1. Publicar en Facebook
-    if (FB_PAGE_ID && FB_PAGE_TOKEN) {
-        try {
-            const mensajeFB = `🏮 ${titulo}\n\n${seo_description || ''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
-            
-            // Intentar con foto primero
-            const form = new URLSearchParams();
-            form.append('url', imagen);
-            form.append('caption', mensajeFB);
-            form.append('access_token', FB_PAGE_TOKEN);
-
-            let resFB = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { 
-                method: 'POST', 
-                body: form 
-            });
-            let dataFB = await resFB.json();
-
-            if (dataFB.error) {
-                // Fallback a link
-                const form2 = new URLSearchParams();
-                form2.append('message', mensajeFB);
-                form2.append('link', urlNoticia);
-                form2.append('access_token', FB_PAGE_TOKEN);
-                
-                resFB = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { 
-                    method: 'POST', 
-                    body: form2 
-                });
-                dataFB = await resFB.json();
-                if (dataFB.error) throw new Error(dataFB.error.message);
-            }
-            
-            resultados.push({ red: 'facebook', exito: true });
-            console.log(`   📘 Facebook ✅`);
-        } catch(err) {
-            resultados.push({ red: 'facebook', exito: false, error: err.message });
-            console.warn(`   ⚠️ Facebook: ${err.message}`);
+    // Intentar obtener Chat ID automáticamente si no lo tenemos
+    if (!TELEGRAM_CHAT_ID) {
+        TELEGRAM_CHAT_ID = await obtenerChatIdTelegram();
+        if (!TELEGRAM_CHAT_ID) {
+            console.log('   📱 Telegram: sin Chat ID — escríbele algo al bot para activarlo');
+            return false;
         }
     }
 
-    // 2. Publicar en Twitter/X
-    if (TWITTER_API_KEY && TWITTER_API_SECRET && TWITTER_ACCESS_TOKEN && TWITTER_ACCESS_SECRET) {
+    try {
+        const { titulo, slug, imagen, seo_description, seccion } = noticia;
+        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
+        
+        const emoji = {
+            'Nacionales':      '🏛️',
+            'Deportes':        '⚽',
+            'Internacionales': '🌍',
+            'Economía':        '💰',
+            'Tecnología':      '💻',
+            'Espectáculos':    '🎬'
+        }[seccion] || '📰';
+
+        const mensaje = `${emoji} *${titulo}*\n\n${seo_description || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
+
+        // Intentar enviar con imagen primero
         try {
-            const textoBase = `🏮 ${titulo}\n\n${urlNoticia}\n\n#ElFarolAlDía #RD`;
-            const tweet = textoBase.length > 280 ? textoBase.substring(0, 277) + '...' : textoBase;
-            const tweetUrl = 'https://api.twitter.com/2/tweets';
-            const authHeader = generarOAuthHeader('POST', tweetUrl, {}, 
-                TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET);
-            
-            const resTW = await fetch(tweetUrl, {
-                method: 'POST',
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: tweet })
+            const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+                chat_id: TELEGRAM_CHAT_ID,
+                photo: imagen,
+                caption: mensaje,
+                parse_mode: 'Markdown'
             });
-            const dataTW = await res.json();
-            if (dataTW.errors || dataTW.error) throw new Error(JSON.stringify(dataTW.errors || dataTW.error));
-            
-            resultados.push({ red: 'twitter', exito: true });
-            console.log(`   🐦 Twitter ✅`);
-        } catch(err) {
-            resultados.push({ red: 'twitter', exito: false, error: err.message });
-            console.warn(`   ⚠️ Twitter: ${err.message}`);
-        }
-    }
-
-    // 3. Publicar en Telegram
-    if (telegramBot && TELEGRAM_CHAT_ID) {
-        try {
-            const emoji = {
-                'Nacionales':      '🏛️',
-                'Deportes':        '⚽',
-                'Internacionales': '🌍',
-                'Economía':        '💰',
-                'Tecnología':      '💻',
-                'Espectáculos':    '🎬'
-            }[seccion] || '📰';
-
-            const mensajeTG = `${emoji} *${titulo}*\n\n${seo_description || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
-
-            // Intentar enviar con imagen
-            try {
-                await telegramBot.sendPhoto(TELEGRAM_CHAT_ID, imagen, {
-                    caption: mensajeTG,
-                    parse_mode: 'Markdown'
-                });
-                resultados.push({ red: 'telegram', exito: true });
+            if (response.data.ok) {
                 console.log(`   📱 Telegram ✅ (con imagen)`);
-            } catch(e) {
-                // Fallback a texto
-                await telegramBot.sendMessage(TELEGRAM_CHAT_ID, mensajeTG, {
-                    parse_mode: 'Markdown',
-                    disable_web_page_preview: false
-                });
-                resultados.push({ red: 'telegram', exito: true });
-                console.log(`   📱 Telegram ✅ (texto)`);
+                return true;
             }
-        } catch(err) {
-            resultados.push({ red: 'telegram', exito: false, error: err.message });
-            console.warn(`   ⚠️ Telegram: ${err.message}`);
+        } catch(e) {
+            // Fallback a solo texto
+            const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: TELEGRAM_CHAT_ID,
+                text: mensaje,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: false
+            });
+            if (response.data.ok) {
+                console.log(`   📱 Telegram ✅ (texto)`);
+                return true;
+            }
         }
+    } catch (err) {
+        console.warn(`   ⚠️ Telegram error: ${err.message}`);
+        
+        // Registrar error en memoria_ia
+        try {
+            await pool.query(
+                `INSERT INTO memoria_ia(tipo, valor, categoria, fallos) VALUES('error', $1, $2, 1)`,
+                [`Telegram: ${err.message.substring(0, 150)}`, noticia.seccion || 'general']
+            );
+        } catch (e) {}
+        
+        return false;
     }
-
-    // Registrar errores en memoria_ia si los hay
-    for (const r of resultados) {
-        if (!r.exito) {
-            await registrarError('red_social', `${r.red}: ${r.error}`, seccion);
-        }
-    }
-
-    return resultados;
 }
 
-// ══════════════════════════════════════════════════════════
-// ▶ FUNCIÓN PARA OBTENER CHAT ID DE TELEGRAM AUTOMÁTICAMENTE
-// ══════════════════════════════════════════════════════════
+/**
+ * Obtiene el Chat ID automáticamente del último mensaje recibido por el bot
+ */
 async function obtenerChatIdTelegram() {
-    if (!telegramBot) return null;
+    if (!TELEGRAM_TOKEN) return null;
     try {
-        const updates = await telegramBot.getUpdates({ limit: 1, timeout: 0 });
-        if (updates && updates.length > 0) {
-            const chatId = updates[0]?.message?.chat?.id || updates[0]?.channel_post?.chat?.id;
+        const response = await axios.get(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=1&offset=-1`);
+        const data = response.data;
+        if (data.ok && data.result && data.result.length > 0) {
+            const chatId = data.result[0]?.message?.chat?.id || data.result[0]?.channel_post?.chat?.id;
             if (chatId) {
-                TELEGRAM_CHAT_ID = chatId.toString();
-                return TELEGRAM_CHAT_ID;
+                console.log(`   📱 Telegram Chat ID detectado: ${chatId}`);
+                return chatId.toString();
             }
         }
     } catch(e) { /* silencioso */ }
     return null;
 }
 
-// ══════════════════════════════════════════════════════════
-// ▶ ENDPOINT DE PRUEBA PARA TELEGRAM (protegido con Basic Auth)
-// ══════════════════════════════════════════════════════════
-app.get('/api/admin/test-bot', authMiddleware, async (req, res) => {
-    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+/**
+ * Envía mensaje de bienvenida cuando el bot se activa
+ */
+async function bienvenidaTelegram() {
+    if (!TELEGRAM_TOKEN) return;
     
-    const testNoticia = {
-        titulo: '🏮 PRUEBA — Bot de Telegram de El Farol al Día',
-        slug: 'test-bot-telegram',
-        imagen: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
-        seo_description: 'Esta es una noticia de prueba para verificar la conexión del bot de Telegram.',
-        seccion: 'Nacionales'
-    };
+    const chatId = await obtenerChatIdTelegram();
+    if (!chatId) return;
 
-    const resultados = await enviarNoticiaRedes(testNoticia);
-    
-    res.json({
-        success: true,
-        telegram_token: TELEGRAM_TOKEN ? '✅ Configurado' : '❌ No configurado',
-        telegram_chat_id: TELEGRAM_CHAT_ID || '⚠️ No detectado - Escríbele un mensaje al bot primero',
-        resultados
-    });
-});
+    try {
+        await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            chat_id: chatId,
+            text: `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](${BASE_URL})\n📍 Santo Domingo Este, RD`,
+            parse_mode: 'Markdown'
+        });
+        console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
+    } catch(e) { /* silencioso */ }
+}
 
 // ══════════════════════════════════════════════════════════
 // ▶ WIKIPEDIA API — CONTEXTO INTELIGENTE
@@ -386,7 +305,7 @@ async function buscarContextoWikipedia(titulo, categoria) {
 }
 
 // ══════════════════════════════════════════════════════════
-// FACEBOOK (función individual por compatibilidad)
+// FACEBOOK
 // ══════════════════════════════════════════════════════════
 async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
     if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
@@ -1706,7 +1625,7 @@ CONTENIDO:
 
         if (qi) registrarQueryPexels(qi, categoria, true);
 
-        // ===== NUEVO: Enviar a todas las redes automáticamente =====
+        // ===== NUEVO: Enviar a Telegram automáticamente =====
         const noticiaPublicada = {
             titulo,
             slug: slFin,
@@ -1716,11 +1635,21 @@ CONTENIDO:
         };
         
         // No esperar a que termine para no bloquear la respuesta
-        enviarNoticiaRedes(noticiaPublicada).catch(e => {
-            console.error('❌ Error enviando a redes:', e.message);
+        enviarTelegram(noticiaPublicada).catch(e => {
+            console.error('❌ Error enviando a Telegram:', e.message);
         });
 
-        return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada en web + redes' };
+        // También enviar a Facebook y Twitter (código existente)
+        Promise.allSettled([
+            publicarEnFacebook(titulo, slFin, urlFinal, desc),
+            publicarEnTwitter(titulo, slFin, desc)
+        ]).then(results => {
+            const fb = results[0].value ? '📘✅' : '📘❌';
+            const tw = results[1].value ? '🐦✅' : '🐦❌';
+            console.log(`   Redes: ${fb} ${tw}`);
+        });
+
+        return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada en web + Telegram + redes' };
 
     } catch (error) {
         console.error('❌', error.message);
@@ -1898,24 +1827,24 @@ app.get('/api/pais-actual', (req, res) => {
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
 
 // ===== RUTA DE PRUEBA PARA TELEGRAM =====
-app.get('/api/admin/test-bot', authMiddleware, async (req, res) => {
+app.get('/api/admin/test-telegram', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
     
     const testNoticia = {
         titulo: '🏮 PRUEBA — Bot de Telegram de El Farol al Día',
         slug: 'test-bot-telegram',
         imagen: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
-        seo_description: 'Esta es una noticia de prueba para verificar la conexión del bot de Telegram. El sistema de El Farol al Día está funcionando correctamente.',
+        seo_description: 'Esta es una noticia de prueba para verificar la conexión del bot de Telegram.',
         seccion: 'Nacionales'
     };
 
-    const resultados = await enviarNoticiaRedes(testNoticia);
+    const resultado = await enviarTelegram(testNoticia);
     
     res.json({
-        success: true,
+        success: resultado,
         telegram_token: TELEGRAM_TOKEN ? '✅ Configurado' : '❌ No configurado',
         telegram_chat_id: TELEGRAM_CHAT_ID || '⚠️ No detectado - Escríbele un mensaje al bot primero',
-        resultados
+        mensaje: resultado ? '✅ Mensaje enviado' : '❌ Error al enviar'
     });
 });
 
@@ -2252,6 +2181,14 @@ async function iniciar() {
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
     setTimeout(regenerarWatermarksLostidos, 5000);
+    // Intentar bienvenida de Telegram después de 8 segundos
+    setTimeout(async () => {
+        const chatId = await obtenerChatIdTelegram();
+        if (chatId && TELEGRAM_TOKEN) {
+            TELEGRAM_CHAT_ID = chatId;
+            await bienvenidaTelegram();
+        }
+    }, 8000);
 }
 
 iniciar();
