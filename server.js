@@ -1587,20 +1587,28 @@ ESTRUCTURA OBLIGATORIA (pirámide invertida periodística):
 REGLAS SEO GOOGLE NEWS 2025 — CRÍTICO PARA INDEXACIÓN:
 TÍTULO:
 - Entre 10 y 110 caracteres (ideal 60-70 para Google News)
+- PALABRAS DE ORO — úsalas cuando aplique al tema:
+  * "Último Minuto" — para noticias urgentes, breaking news, hechos recientes
+  * "Santo Domingo Este" — cuando la noticia tenga conexión con SDE, Los Mina, Invivienda, Ozama
+  * Ejemplos BUENOS con palabras de oro:
+    - "Último Minuto: Policía Nacional detiene banda en Santo Domingo Este"
+    - "Santo Domingo Este recibe inversión de RD$500M en infraestructura vial"
+    - "Último Minuto — Banco Central RD sube tasas de interés al 7.5%"
 - Debe incluir: hecho concreto + actor + contexto RD
-- Formato: [Verbo de acción] + [Quién] + [Qué] + [RD/Dominicana/Santo Domingo]
-- BUENOS: "Banco Central RD reduce tasa a 7% para impulsar crédito hipotecario"
-- MALOS: "Importantes avances en materia económica" (vago, sin datos, sin actor)
-- PROHIBIDO: fechas en el título ("En marzo..."), números al inicio, clickbait
+- PROHIBIDO: fechas en el título, números al inicio, clickbait puro
 
 DESCRIPCIÓN SEO (meta description):
 - Exactamente 150-160 caracteres — ni más, ni menos
+- OBLIGATORIO incluir al menos UNA de estas frases cuando aplique:
+  * "último minuto" — noticias de hoy, hechos recientes
+  * "Santo Domingo Este" — noticias locales SDE
+  * "noticias República Dominicana" — cobertura nacional
 - Responde: QUÉ pasó + QUIÉN lo hizo + DÓNDE en RD + impacto directo
-- Incluir keyword principal + "República Dominicana" o ciudad específica
 - NO repetir el título palabra por palabra
 
 KEYWORDS (5 palabras clave):
 - Siempre incluir "república dominicana" como primera keyword
+- Segunda keyword: "último minuto república dominicana" O "santo domingo este noticias"
 - Agregar ciudad específica si aplica (santo domingo, santiago, etc.)
 - Incluir el tema principal (economía, seguridad, béisbol, etc.)
 - Pensar en cómo buscaría esto un dominicano en Google
