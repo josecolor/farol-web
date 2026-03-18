@@ -604,6 +604,30 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
         </div>
       </div>
 
+      <!-- TELEGRAM BOT -->
+      <div class="card" style="border-color:rgba(0,136,204,.3)">
+        <div class="card-header" style="border-bottom-color:rgba(0,136,204,.15)">
+          <h2 style="color:#29B6F6">📱 TELEGRAM BOT</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarStatusTelegram()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div id="telegramStatus" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+            <div style="text-align:center;padding:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Verificando bot...</div>
+          </div>
+          <div style="background:rgba(0,136,204,.06);border:1px solid rgba(0,136,204,.2);border-radius:8px;padding:12px;margin-bottom:12px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:#29B6F6;margin-bottom:6px">📋 INSTRUCCIONES DE ACTIVACIÓN</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.7">
+              1. Busca tu bot en Telegram<br>
+              2. Escríbele cualquier mensaje (ej: "Hola")<br>
+              3. Haz clic en 🔄 para detectar el Chat ID<br>
+              4. Envía prueba para confirmar
+            </div>
+          </div>
+          <button class="btn btn-ghost" style="border-color:rgba(0,136,204,.3);color:#29B6F6;margin-bottom:8px" onclick="probarTelegram()">📤 ENVIAR MENSAJE DE PRUEBA</button>
+          <div id="msgTelegram" class="msg"></div>
+        </div>
+      </div>
+
       <!-- BANCO DE IMÁGENES -->
       <div class="card">
         <div class="card-header"><h2>🖼️ BANCO DE IMÁGENES</h2></div>
@@ -1224,6 +1248,43 @@ async function cargarCoach(dias = coachDiasActual) {
   }
 }
 
+/* ── TELEGRAM ── */
+async function cargarStatusTelegram() {
+  const div = document.getElementById('telegramStatus');
+  try {
+    const r = await fetch(`${API}/api/telegram/status?pin=${PIN}`);
+    const d = await r.json();
+    div.innerHTML = `
+      <div class="sys-row">
+        <span class="sys-key">TOKEN</span>
+        <span class="badge ${d.token_activo ? 'badge-on' : 'badge-warn'}">${d.token_activo ? '✅ ACTIVO' : '❌ FALTA'}</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">CHAT ID</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${d.chat_id.includes('No') ? '#ffc107' : 'var(--verde)'}">${d.chat_id}</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">ESTADO</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2)">${d.instruccion}</span>
+      </div>`;
+  } catch(e) {
+    div.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error conectando</div>';
+  }
+}
+
+async function probarTelegram() {
+  try {
+    const r = await fetch(`${API}/api/telegram/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    showMsg('msgTelegram', d.mensaje, d.success);
+    if (d.success) cargarStatusTelegram();
+  } catch(e) { showMsg('msgTelegram', '❌ ' + e.message, false); }
+}
+
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
   cargarConfig();
@@ -1233,11 +1294,13 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarCalidadSEO();
   cargarComentariosAdmin();
   cargarCoach();
+  cargarStatusTelegram();
   setInterval(cargarEstadisticas, 30000);
   setInterval(cargarMemoria, 60000);
   setInterval(cargarCalidadSEO, 60000);
   setInterval(cargarComentariosAdmin, 60000);
   setInterval(cargarCoach, 120000);
+  setInterval(cargarStatusTelegram, 60000);
 });
 </script>
 </body>
