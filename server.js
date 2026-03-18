@@ -1,11 +1,13 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.0 FINAL
+ * 🏮 EL FAROL AL DÍA — V34.0 FINAL + TELEGRAM BOT
  * + Basic Auth protege /redaccion y /api/admin (usuario: director / clave: 311)
  * + Wikipedia + Wikimedia Commons para imágenes coherentes
  * + Mapeo forzado de personajes públicos (Trump, Ortiz, Abinader...)
  * + Memoria IA en PostgreSQL (persiste entre reinicios)
  * + Banco local 17 categorías × 10 fotos
  * + Coach de redacción + Comentarios + SEO E-E-A-T
+ * + Telegram Bot automático (node-telegram-bot-api)
+ * + Bridge Facebook mejorado
  */
 
 const express   = require('express');
@@ -17,6 +19,7 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
+const TelegramBot = require('node-telegram-bot-api');
 
 // ══════════════════════════════════════════════════════════
 // 🔒 BASIC AUTH — Protege /redaccion y rutas admin
@@ -58,6 +61,39 @@ const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
 const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
 const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
+
+// ===== TELEGRAM BOT CONFIG =====
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8737097121:AAGiOFVpxLbbpH4iE9dlx4lJN8uAMtIPACo'; // Token de prueba
+let TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
+let telegramBot = null;
+
+// Inicializar bot de Telegram si hay token
+if (TELEGRAM_TOKEN) {
+    try {
+        telegramBot = new TelegramBot(TELEGRAM_TOKEN, { polling: false });
+        console.log('📱 Telegram Bot inicializado correctamente');
+        
+        // Intentar obtener el chat ID automáticamente al arrancar
+        setTimeout(async () => {
+            const chatId = await obtenerChatIdTelegram();
+            if (chatId) {
+                TELEGRAM_CHAT_ID = chatId;
+                console.log(`📱 Chat ID detectado: ${chatId}`);
+                // Enviar mensaje de bienvenida
+                try {
+                    await telegramBot.sendMessage(chatId, 
+                        `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](${BASE_URL})\n📍 Santo Domingo Este, RD`,
+                        { parse_mode: 'Markdown' }
+                    );
+                    console.log('📱 Mensaje de bienvenida enviado ✅');
+                } catch(e) { /* silencioso */ }
+            }
+        }, 5000);
+    } catch(e) {
+        console.error('❌ Error al inicializar Telegram Bot:', e.message);
+    }
+}
+
 // Busca watermark con cualquier nombre en la carpeta static
 const WATERMARK_PATH = (() => {
     const variantes = [
@@ -94,7 +130,7 @@ app.use('/static', express.static(path.join(__dirname, 'static'), {
 app.use(express.static(path.join(__dirname, 'client'), {
     setHeaders: (res, fp) => {
         if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(fp))
-            res.setHeader('Cache-Control', 'public,max-age=2592000,immutable');
+            res.setHeader('Cache-Control', 'public,max-age-2592000,immutable');
         else if (/\.(css|js)$/i.test(fp))
             res.setHeader('Cache-Control', 'public,max-age=86400');
     }
@@ -102,29 +138,183 @@ app.use(express.static(path.join(__dirname, 'client'), {
 app.use(cors());
 
 // ══════════════════════════════════════════════════════════
+// ▶ FUNCIÓN PARA ENVIAR NOTICIAS A REDES SOCIALES
+// Se llama automáticamente después de publicar una noticia
+// ══════════════════════════════════════════════════════════
+async function enviarNoticiaRedes(noticia) {
+    const { titulo, slug, imagen, seo_description, seccion } = noticia;
+    const urlNoticia = `${BASE_URL}/noticia/${slug}`;
+    const resultados = [];
+
+    // 1. Publicar en Facebook
+    if (FB_PAGE_ID && FB_PAGE_TOKEN) {
+        try {
+            const mensajeFB = `🏮 ${titulo}\n\n${seo_description || ''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
+            
+            // Intentar con foto primero
+            const form = new URLSearchParams();
+            form.append('url', imagen);
+            form.append('caption', mensajeFB);
+            form.append('access_token', FB_PAGE_TOKEN);
+
+            let resFB = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { 
+                method: 'POST', 
+                body: form 
+            });
+            let dataFB = await resFB.json();
+
+            if (dataFB.error) {
+                // Fallback a link
+                const form2 = new URLSearchParams();
+                form2.append('message', mensajeFB);
+                form2.append('link', urlNoticia);
+                form2.append('access_token', FB_PAGE_TOKEN);
+                
+                resFB = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { 
+                    method: 'POST', 
+                    body: form2 
+                });
+                dataFB = await resFB.json();
+                if (dataFB.error) throw new Error(dataFB.error.message);
+            }
+            
+            resultados.push({ red: 'facebook', exito: true });
+            console.log(`   📘 Facebook ✅`);
+        } catch(err) {
+            resultados.push({ red: 'facebook', exito: false, error: err.message });
+            console.warn(`   ⚠️ Facebook: ${err.message}`);
+        }
+    }
+
+    // 2. Publicar en Twitter/X
+    if (TWITTER_API_KEY && TWITTER_API_SECRET && TWITTER_ACCESS_TOKEN && TWITTER_ACCESS_SECRET) {
+        try {
+            const textoBase = `🏮 ${titulo}\n\n${urlNoticia}\n\n#ElFarolAlDía #RD`;
+            const tweet = textoBase.length > 280 ? textoBase.substring(0, 277) + '...' : textoBase;
+            const tweetUrl = 'https://api.twitter.com/2/tweets';
+            const authHeader = generarOAuthHeader('POST', tweetUrl, {}, 
+                TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET);
+            
+            const resTW = await fetch(tweetUrl, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: tweet })
+            });
+            const dataTW = await res.json();
+            if (dataTW.errors || dataTW.error) throw new Error(JSON.stringify(dataTW.errors || dataTW.error));
+            
+            resultados.push({ red: 'twitter', exito: true });
+            console.log(`   🐦 Twitter ✅`);
+        } catch(err) {
+            resultados.push({ red: 'twitter', exito: false, error: err.message });
+            console.warn(`   ⚠️ Twitter: ${err.message}`);
+        }
+    }
+
+    // 3. Publicar en Telegram
+    if (telegramBot && TELEGRAM_CHAT_ID) {
+        try {
+            const emoji = {
+                'Nacionales':      '🏛️',
+                'Deportes':        '⚽',
+                'Internacionales': '🌍',
+                'Economía':        '💰',
+                'Tecnología':      '💻',
+                'Espectáculos':    '🎬'
+            }[seccion] || '📰';
+
+            const mensajeTG = `${emoji} *${titulo}*\n\n${seo_description || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
+
+            // Intentar enviar con imagen
+            try {
+                await telegramBot.sendPhoto(TELEGRAM_CHAT_ID, imagen, {
+                    caption: mensajeTG,
+                    parse_mode: 'Markdown'
+                });
+                resultados.push({ red: 'telegram', exito: true });
+                console.log(`   📱 Telegram ✅ (con imagen)`);
+            } catch(e) {
+                // Fallback a texto
+                await telegramBot.sendMessage(TELEGRAM_CHAT_ID, mensajeTG, {
+                    parse_mode: 'Markdown',
+                    disable_web_page_preview: false
+                });
+                resultados.push({ red: 'telegram', exito: true });
+                console.log(`   📱 Telegram ✅ (texto)`);
+            }
+        } catch(err) {
+            resultados.push({ red: 'telegram', exito: false, error: err.message });
+            console.warn(`   ⚠️ Telegram: ${err.message}`);
+        }
+    }
+
+    // Registrar errores en memoria_ia si los hay
+    for (const r of resultados) {
+        if (!r.exito) {
+            await registrarError('red_social', `${r.red}: ${r.error}`, seccion);
+        }
+    }
+
+    return resultados;
+}
+
+// ══════════════════════════════════════════════════════════
+// ▶ FUNCIÓN PARA OBTENER CHAT ID DE TELEGRAM AUTOMÁTICAMENTE
+// ══════════════════════════════════════════════════════════
+async function obtenerChatIdTelegram() {
+    if (!telegramBot) return null;
+    try {
+        const updates = await telegramBot.getUpdates({ limit: 1, timeout: 0 });
+        if (updates && updates.length > 0) {
+            const chatId = updates[0]?.message?.chat?.id || updates[0]?.channel_post?.chat?.id;
+            if (chatId) {
+                TELEGRAM_CHAT_ID = chatId.toString();
+                return TELEGRAM_CHAT_ID;
+            }
+        }
+    } catch(e) { /* silencioso */ }
+    return null;
+}
+
+// ══════════════════════════════════════════════════════════
+// ▶ ENDPOINT DE PRUEBA PARA TELEGRAM (protegido con Basic Auth)
+// ══════════════════════════════════════════════════════════
+app.get('/api/admin/test-bot', authMiddleware, async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
+    
+    const testNoticia = {
+        titulo: '🏮 PRUEBA — Bot de Telegram de El Farol al Día',
+        slug: 'test-bot-telegram',
+        imagen: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
+        seo_description: 'Esta es una noticia de prueba para verificar la conexión del bot de Telegram.',
+        seccion: 'Nacionales'
+    };
+
+    const resultados = await enviarNoticiaRedes(testNoticia);
+    
+    res.json({
+        success: true,
+        telegram_token: TELEGRAM_TOKEN ? '✅ Configurado' : '❌ No configurado',
+        telegram_chat_id: TELEGRAM_CHAT_ID || '⚠️ No detectado - Escríbele un mensaje al bot primero',
+        resultados
+    });
+});
+
+// ══════════════════════════════════════════════════════════
 // ▶ WIKIPEDIA API — CONTEXTO INTELIGENTE
-// Busca contexto real sobre el tema antes de llamar a Gemini.
-// Prioriza artículos en español sobre RD, SDE y el Caribe.
 // ══════════════════════════════════════════════════════════
 
-/**
- * Mapeo de palabras clave locales → términos Wikipedia en español
- * para que la búsqueda sea precisa y no traiga contenido genérico.
- */
 const WIKI_TERMINOS_RD = {
-    // Zonas locales
     'los mina':          'Los Mina Santo Domingo',
     'invivienda':        'Instituto Nacional de la Vivienda República Dominicana',
     'ensanche ozama':    'Ensanche Ozama Santo Domingo Este',
     'santo domingo este':'Santo Domingo Este',
     'sabana perdida':    'Sabana Perdida Santo Domingo',
     'villa mella':       'Villa Mella Santo Domingo',
-    // Instituciones
     'policia nacional':  'Policía Nacional República Dominicana',
     'presidencia':       'Presidencia de la República Dominicana',
     'procuraduria':      'Procuraduría General de la República Dominicana',
     'banco central':     'Banco Central de la República Dominicana',
-    // Temas frecuentes
     'beisbol':           'Béisbol en República Dominicana',
     'turismo':           'Turismo en República Dominicana',
     'economia':          'Economía de República Dominicana',
@@ -134,14 +324,8 @@ const WIKI_TERMINOS_RD = {
     'haití':             'Relaciones entre República Dominicana y Haití',
 };
 
-/**
- * Busca contexto en Wikipedia (API pública, sin clave).
- * Retorna un resumen de máximo 3 párrafos para enriquecer el prompt de Gemini.
- * Si falla silenciosamente, retorna string vacío para no bloquear la generación.
- */
 async function buscarContextoWikipedia(titulo, categoria) {
     try {
-        // Detectar si el tema tiene un término RD mapeado
         const tituloLower = titulo.toLowerCase();
         let terminoBusqueda = null;
 
@@ -152,7 +336,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
             }
         }
 
-        // Si no hay mapeo, construir búsqueda genérica con contexto RD
         if (!terminoBusqueda) {
             const mapaCategoria = {
                 'Nacionales':       `${titulo} República Dominicana`,
@@ -165,7 +348,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
             terminoBusqueda = mapaCategoria[categoria] || `${titulo} República Dominicana`;
         }
 
-        // Paso 1: Buscar el artículo más relevante
         const urlBusqueda = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(terminoBusqueda)}&format=json&srlimit=3&origin=*`;
         const ctrlBusq    = new AbortController();
         const tmBusq      = setTimeout(() => ctrlBusq.abort(), 6000);
@@ -178,7 +360,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
 
         const paginaId = resultados[0].pageid;
 
-        // Paso 2: Extraer extracto del artículo
         const urlExtracto = `https://es.wikipedia.org/w/api.php?action=query&pageids=${paginaId}&prop=extracts&exintro=true&exchars=1500&format=json&origin=*`;
         const ctrlExtr    = new AbortController();
         const tmExtr      = setTimeout(() => ctrlExtr.abort(), 6000);
@@ -189,7 +370,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
         const pagina       = dataExtracto?.query?.pages?.[paginaId];
         if (!pagina?.extract) return '';
 
-        // Limpiar HTML de Wikipedia y recortar
         const textoLimpio = pagina.extract
             .replace(/<[^>]+>/g, ' ')
             .replace(/\s+/g, ' ')
@@ -200,14 +380,13 @@ async function buscarContextoWikipedia(titulo, categoria) {
         return `\n📚 CONTEXTO WIKIPEDIA (usar como referencia factual, no copiar):\nArtículo: "${resultados[0].title}"\n${textoLimpio}\n`;
 
     } catch (err) {
-        // Silencioso — Wikipedia es opcional, no crítica
         console.log(`   📚 Wikipedia: no disponible (${err.message})`);
         return '';
     }
 }
 
 // ══════════════════════════════════════════════════════════
-// FACEBOOK
+// FACEBOOK (función individual por compatibilidad)
 // ══════════════════════════════════════════════════════════
 async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
     if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
@@ -289,139 +468,7 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🤖 TELEGRAM BOT — El Farol al Día
-// Token: guardado en variable de entorno TELEGRAM_TOKEN
-// Chat ID: se captura automáticamente cuando alguien escribe al bot
-// ══════════════════════════════════════════════════════════
-
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
-let   TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
-
-/**
- * Envía un mensaje a Telegram con formato periodístico.
- * Si TELEGRAM_CHAT_ID no está configurado, intenta obtenerlo
- * de los últimos updates del bot automáticamente.
- */
-async function publicarEnTelegram(titulo, slug, urlImagen, descripcion, seccion) {
-    if (!TELEGRAM_TOKEN) {
-        console.log('   📱 Telegram: sin token configurado');
-        return false;
-    }
-
-    // Si no hay Chat ID, intentar obtenerlo automáticamente
-    if (!TELEGRAM_CHAT_ID) {
-        TELEGRAM_CHAT_ID = await obtenerChatIdTelegram();
-        if (!TELEGRAM_CHAT_ID) {
-            console.log('   📱 Telegram: sin Chat ID — escríbele algo al bot para activarlo');
-            return false;
-        }
-    }
-
-    try {
-        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const emoji = {
-            'Nacionales':      '🏛️',
-            'Deportes':        '⚽',
-            'Internacionales': '🌍',
-            'Economía':        '💰',
-            'Tecnología':      '💻',
-            'Espectáculos':    '🎬'
-        }[seccion] || '📰';
-
-        const mensaje = `${emoji} *${titulo}*\n\n${descripcion || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
-
-        // Intentar enviar con imagen primero
-        if (urlImagen && urlImagen.startsWith('http')) {
-            try {
-                const resImg = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id:    TELEGRAM_CHAT_ID,
-                        photo:      urlImagen,
-                        caption:    mensaje,
-                        parse_mode: 'Markdown'
-                    })
-                });
-                const dataImg = await resImg.json();
-                if (dataImg.ok) {
-                    console.log(`   📱 Telegram ✅ (con imagen)`);
-                    return true;
-                }
-            } catch(e) { /* fallback a texto */ }
-        }
-
-        // Fallback: solo texto
-        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id:                  TELEGRAM_CHAT_ID,
-                text:                     mensaje,
-                parse_mode:               'Markdown',
-                disable_web_page_preview: false
-            })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            console.log(`   📱 Telegram ✅ (texto)`);
-            return true;
-        }
-        console.warn(`   📱 Telegram ❌: ${data.description}`);
-        return false;
-    } catch(err) {
-        console.warn(`   📱 Telegram error: ${err.message}`);
-        return false;
-    }
-}
-
-/**
- * Obtiene el Chat ID automáticamente del último mensaje recibido por el bot.
- * El Director solo necesita escribirle cualquier cosa al bot UNA VEZ.
- */
-async function obtenerChatIdTelegram() {
-    if (!TELEGRAM_TOKEN) return null;
-    try {
-        const res  = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=1&offset=-1`);
-        const data = await res.json();
-        if (data.ok && data.result?.length) {
-            const chatId = data.result[0]?.message?.chat?.id
-                        || data.result[0]?.channel_post?.chat?.id;
-            if (chatId) {
-                console.log(`   📱 Telegram Chat ID detectado: ${chatId}`);
-                TELEGRAM_CHAT_ID = chatId.toString();
-                return TELEGRAM_CHAT_ID;
-            }
-        }
-    } catch(e) { /* silencioso */ }
-    return null;
-}
-
-/**
- * Envía mensaje de bienvenida cuando el bot se activa por primera vez.
- */
-async function bienvenidaTelegram() {
-    if (!TELEGRAM_TOKEN) return;
-    // Esperar 3 segundos para que el servidor arranque
-    await new Promise(r => setTimeout(r, 3000));
-    const chatId = await obtenerChatIdTelegram();
-    if (!chatId) return;
-
-    try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id:    chatId,
-                text:       `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`,
-                parse_mode: 'Markdown'
-            })
-        });
-        console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
-    } catch(e) { /* silencioso */ }
-}
-
-
+// MARCA DE AGUA
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     try {
@@ -474,9 +521,6 @@ app.get('/img/:nombre', async (req, res) => {
 // ══════════════════════════════════════════════════════════
 // CONFIG IA
 // ══════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════
-// ▶ CONFIG IA — GUARDADA EN POSTGRESQL (persiste entre reinicios)
-// ══════════════════════════════════════════════════════════
 
 const CONFIG_IA_DEFAULT = {
     enabled: true,
@@ -487,10 +531,8 @@ const CONFIG_IA_DEFAULT = {
     evitar: 'Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Repetir noticias ya publicadas. Copiar texto de Wikipedia.'
 };
 
-// Copia en memoria — se carga desde BD al arrancar
 let CONFIG_IA = { ...CONFIG_IA_DEFAULT };
 
-// Cargar config desde PostgreSQL
 async function cargarConfigIA() {
     try {
         const r = await pool.query(`SELECT valor FROM memoria_ia WHERE tipo='config_ia' AND valor IS NOT NULL ORDER BY ultima_vez DESC LIMIT 1`);
@@ -509,7 +551,6 @@ async function cargarConfigIA() {
     return CONFIG_IA;
 }
 
-// Guardar config en PostgreSQL — sobrevive reinicios y limpiezas de Railway
 async function guardarConfigIA(cfg) {
     try {
         const valor = JSON.stringify(cfg);
@@ -553,7 +594,7 @@ async function llamarGemini(prompt, reintentos = 3) {
                         contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: {
                             temperature:     0.8,
-                            maxOutputTokens: 4000,   // 2500 cortaba el contenido a la mitad
+                            maxOutputTokens: 4000,
                             stopSequences:   []
                         }
                     })
@@ -583,13 +624,7 @@ async function llamarGemini(prompt, reintentos = 3) {
 // ▶ MAPEO FORZADO DE IMÁGENES — PERSONAJES Y TEMAS ESPECÍFICOS
 // ══════════════════════════════════════════════════════════
 
-// ══════════════════════════════════════════════════════════
-// ▶ BANCO DE PERSONAJES Y TEMAS — QUERIES PEXELS ESPECÍFICAS
-//   Solo fotos de prensa reales, a color, horizontales
-// ══════════════════════════════════════════════════════════
 const MAPEO_IMAGENES = {
-
-    // 🇺🇸 POLÍTICOS INTERNACIONALES
     'donald trump':     ['trump president podium microphone', 'trump white house press conference', 'american president speech flag'],
     'trump':            ['trump president podium microphone', 'american president official speech', 'white house press briefing'],
     'joe biden':        ['biden president official ceremony', 'american president white house', 'us president podium speech'],
@@ -602,8 +637,6 @@ const MAPEO_IMAGENES = {
     'white house':      ['white house washington dc exterior', 'us capitol government building', 'washington dc landmark'],
     'congreso eeuu':    ['us congress capitol building', 'senate chamber government session', 'american congress session'],
     'onu':              ['united nations general assembly', 'un building new york diplomacy', 'international diplomacy conference'],
-
-    // 🇩🇴 POLÍTICOS DOMINICANOS
     'abinader':         ['latin american president ceremony', 'caribbean government official speech', 'dominican republic president podium'],
     'luis abinader':    ['latin american president ceremony', 'caribbean government official speech', 'dominican republic government event'],
     'leonel':           ['latin american politician speech', 'caribbean political leader podium', 'dominican republic political event'],
@@ -612,89 +645,29 @@ const MAPEO_IMAGENES = {
     'hipólito':         ['latin american president government', 'caribbean official ceremony', 'dominican republic political leader'],
     'palacio nacional': ['government palace latin america', 'caribbean presidential palace', 'dominican republic government building'],
     'congreso nacional':['latin american parliament building', 'caribbean congress session hall', 'government assembly chamber'],
-
-    // ⚾ BÉISBOL — PELOTEROS DOMINICANOS Y MLB
     'david ortiz':      ['baseball player batting stadium', 'mlb baseball hitter home run', 'baseball legend championship series'],
     'big papi':         ['baseball player batting mlb', 'baseball legend career highlights', 'mlb all star game baseball'],
     'pedro martinez':   ['baseball pitcher throwing mound', 'mlb pitcher strikeout stadium', 'baseball pitcher windup delivery'],
     'vladimir guerrero':['baseball outfielder batting mlb', 'dominican baseball player stadium', 'mlb latin player batting'],
-    'vladimir guerrero jr': ['first baseman batting mlb', 'baseball power hitter stadium', 'mlb slugger home run swing'],
     'juan soto':        ['baseball outfielder batting stance', 'mlb young star baseball game', 'baseball player stadium crowd'],
-    'robinson canó':    ['baseball second baseman fielding', 'mlb infielder play action', 'baseball player game action'],
-    'robinson cano':    ['baseball second baseman fielding', 'mlb infielder play action', 'baseball player game action'],
-    'albert pujols':    ['baseball first baseman batting', 'mlb career hits record baseball', 'baseball hall fame hitter'],
-    'fernando tatis':   ['baseball shortstop fielding mlb', 'young baseball player action', 'mlb shortstop batting swing'],
-    'tatis':            ['baseball shortstop fielding mlb', 'young baseball star action', 'mlb player batting crowd'],
     'béisbol':          ['baseball dominican republic stadium', 'baseball game crowd fans', 'baseball player batting pitch'],
     'beisbol':          ['baseball dominican republic stadium', 'baseball game crowd fans', 'baseball player batting pitch'],
-    'liga dominicana':  ['baseball stadium fans crowd', 'dominican baseball winter league', 'baseball game night stadium lights'],
-    'estadio quisqueya':['baseball stadium night game', 'baseball field crowd lights', 'caribbean baseball stadium'],
-    'mlb':              ['major league baseball stadium', 'mlb baseball game action', 'professional baseball player batting'],
-
-    // ⚽ FÚTBOL Y DEPORTES INTERNACIONALES
     'messi':            ['soccer player dribbling ball', 'football player celebrating goal', 'professional soccer match action'],
-    'lionel messi':     ['soccer player ball control', 'football match professional player', 'soccer world cup action'],
     'ronaldo':          ['soccer player jumping heading', 'football professional player goal', 'soccer match celebration'],
-    'cristiano ronaldo':['soccer player celebrating goal', 'professional football match action', 'soccer star stadium crowd'],
-    'mbappé':           ['soccer player sprint dribble', 'professional football match speed', 'soccer young star action'],
-    'neymar':           ['soccer player skill dribbling', 'brazil football player action', 'professional soccer match play'],
-    'copa mundial':     ['soccer world cup trophy', 'football world cup stadium', 'world cup celebration fans'],
-    'nfl':              ['american football game action', 'nfl quarterback passing stadium', 'football players game field'],
-    'nba':              ['basketball game action arena', 'nba player dunk basket', 'professional basketball match crowd'],
-
-    // 🏛️ INSTITUCIONES DOMINICANAS
     'inapa':            ['water treatment plant infrastructure', 'water pipe installation workers', 'clean water supply system caribbean'],
     'acueducto':        ['water infrastructure construction', 'pipeline water system workers', 'water treatment facility caribbean'],
     'policía nacional': ['police officers patrol street', 'law enforcement officers uniform', 'police car lights patrol'],
-    'policia nacional': ['police officers patrol street', 'law enforcement officers uniform', 'police patrol caribbean'],
     'mopc':             ['road construction highway workers', 'infrastructure bridge construction', 'road paving machinery workers'],
-    'ministerio':       ['government ministry building official', 'government officials meeting conference', 'latin america government office'],
-    'presidencia':      ['government official press conference', 'presidential palace latin america', 'government ceremony latin american'],
-    'procuraduria':     ['justice court law building', 'prosecutor official ceremony', 'legal system government officials'],
-    'banco central':    ['bank building financial district', 'central bank official building', 'financial institution economics'],
-    'mepyd':            ['economic development meeting officials', 'government economic planning', 'latin america economic conference'],
-    'invivienda':       ['social housing construction caribbean', 'residential building construction workers', 'affordable housing development latin'],
-
-    // 💰 ECONOMÍA Y FINANZAS
     'remesas':          ['money transfer wire payment', 'financial transaction bank office', 'currency exchange money'],
     'dólar':            ['us dollar bills currency', 'currency exchange money market', 'dollar bills financial'],
     'inflación':        ['supermarket prices grocery store', 'consumer prices market shopping', 'economic inflation grocery'],
     'turismo':          ['tourist beach resort caribbean', 'punta cana beach hotel pool', 'dominican republic resort tourism'],
-    'punta cana':       ['punta cana beach resort pool', 'caribbean beach resort palm trees', 'luxury hotel beach caribbean'],
-    'zona franca':      ['industrial park factory workers', 'manufacturing workers production line', 'free trade zone factory'],
-
-    // 🌍 TEMAS INTERNACIONALES
     'haití':            ['haiti dominican border crossing', 'haiti poverty urban scene', 'dominican haiti border fence'],
     'migración':        ['migrants crossing border fence', 'immigration customs border patrol', 'refugee migrants group walking'],
-    'cuba':             ['cuba havana street cars', 'cuban street life scene', 'havana cuba architecture'],
-    'venezuela':        ['venezuela caracas city scene', 'latin america crisis protest', 'venezuela economy crisis'],
-    'china':            ['china beijing skyline city', 'chinese business meeting trade', 'china economy business district'],
-    'rusia':            ['russia moscow skyline', 'russia kremlin government', 'moscow city russia'],
-    'ucrania':          ['ukraine war conflict zone', 'ukraine soldiers military', 'ukraine city damage conflict'],
-    'israel':           ['israel conflict middle east', 'jerusalem city landmark', 'middle east conflict news'],
-    'palestina':        ['gaza conflict humanitarian', 'middle east conflict civilians', 'humanitarian crisis aid workers'],
-    'nato':             ['nato military alliance meeting', 'military alliance soldiers', 'nato headquarters building'],
-
-    // 🏥 SALUD Y MEDICINA
     'covid':            ['hospital doctors protective gear', 'medical workers ppe hospital', 'healthcare workers pandemic'],
     'dengue':           ['mosquito prevention public health', 'health workers fumigation caribbean', 'mosquito control public health'],
-    'hospital':         ['hospital emergency room doctors', 'medical staff hospital corridor', 'healthcare facility doctors nurses'],
-    'vacuna':           ['vaccination clinic health worker', 'nurse giving injection patient', 'health campaign vaccination caribbean'],
-
-    // 💻 TECNOLOGÍA
     'inteligencia artificial': ['artificial intelligence technology computer', 'ai machine learning digital', 'technology innovation digital future'],
-    'ia':               ['artificial intelligence digital technology', 'computer brain machine learning', 'ai technology innovation'],
-    'criptomoneda':     ['cryptocurrency bitcoin digital money', 'blockchain technology digital finance', 'crypto trading screen charts'],
-    'bitcoin':          ['bitcoin cryptocurrency digital', 'crypto market trading charts', 'digital currency bitcoin symbol'],
-    'starlink':         ['satellite internet technology space', 'internet satellite dish technology', 'space technology satellite orbit'],
-
-    // 🌿 MEDIO AMBIENTE
     'huracán':          ['hurricane satellite view storm', 'tropical storm weather satellite', 'hurricane damage aftermath caribbean'],
-    'terremoto':        ['earthquake damage buildings rubble', 'natural disaster rescue workers', 'earthquake destruction aftermath'],
-    'inundación':       ['flood water streets cars', 'flooding disaster rescue boats', 'heavy rain flood streets caribbean'],
-    'cambio climático': ['climate change drought cracked earth', 'environmental pollution factory smoke', 'climate activists protest sign'],
-
-    // Por CATEGORÍA (fallback cuando no hay coincidencia específica)
     'Nacionales':       ['dominican republic government building', 'santo domingo city street life', 'caribbean capital urban scene'],
     'Deportes':         ['dominican athlete sports competition', 'caribbean sports stadium crowd', 'latin american sports event'],
     'Internacionales':  ['international diplomacy meeting flags', 'world leaders conference summit', 'global news event press'],
@@ -711,7 +684,7 @@ const QUERIES_PROHIBIDAS = [
 ];
 
 // ══════════════════════════════════════════════════════════
-// ▶ WIKIPEDIA IMÁGENES — FOTO PRINCIPAL DEL ARTÍCULO
+// ▶ WIKIPEDIA IMÁGENES
 // ══════════════════════════════════════════════════════════
 
 async function buscarImagenWikipedia(titulo) {
@@ -743,7 +716,7 @@ async function buscarImagenWikipedia(titulo) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ▶ WIKIMEDIA COMMONS — 73 MILLONES DE IMÁGENES LIBRES
+// ▶ WIKIMEDIA COMMONS
 // ══════════════════════════════════════════════════════════
 
 async function buscarImagenWikimediaCommons(titulo) {
@@ -776,35 +749,23 @@ async function buscarImagenWikimediaCommons(titulo) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ▶ BUSCADOR INTEGRADO: WIKIMEDIA + WIKIPEDIA + PEXELS
-// ══════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════
-// ▶ VALIDADOR DE IMAGEN — solo acepta fotos reales, no logos ni mapas
+// ▶ VALIDADOR DE IMAGEN
 // ══════════════════════════════════════════════════════════
 
 function esImagenValida(url) {
     if (!url) return false;
     const u = url.toLowerCase();
-
-    // ❌ Rechazar formatos no fotográficos
     if (!/(\.jpg|\.jpeg|\.png|\.webp)/i.test(u)) return false;
-
-    // ❌ Rechazar logos, mapas, iconos, escudos, banderas
     const invalidos = [
         '.svg', 'flag', 'logo', 'map', 'coat_of_arms', 'seal', 'emblem',
         'icon', 'badge', 'crest', 'shield', 'blason', 'wikimedia-button',
         'powered_by', 'commons-logo', 'wikidata', 'location_map',
         'signature', 'symbol', 'insignia', 'stamp', 'medal',
-        // Imágenes históricas en blanco y negro
         '_bw', '-bw', 'black_white', 'blackwhite', 'grayscale',
         'circa_19', '_189', '_190', '_191', '_192', '_193', '_194',
-        // Tamaño demasiado pequeño (miniaturas)
         '20px', '30px', '40px', '50px', '60px', '70px', '80px',
     ];
     if (invalidos.some(i => u.includes(i))) return false;
-
-    // ❌ Rechazar URLs de Commons con patrones de imágenes viejas
     if (u.includes('commons.wikimedia.org')) {
         const patronesViejos = [
             'portrait_of', 'painting_of', 'sketch_of', 'drawing_of',
@@ -813,163 +774,74 @@ function esImagenValida(url) {
         ];
         if (patronesViejos.some(p => u.includes(p))) return false;
     }
-
-    // ✅ La imagen pasó todos los filtros
     return true;
 }
 
 async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA) {
     const tituloLower = titulo.toLowerCase();
 
-    // ── PASO 1: Mapeo forzado por personaje/tema conocido → PEXELS PRIMERO
     for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
         if (typeof queries === 'object' && Array.isArray(queries) && tituloLower.includes(clave)) {
             console.log(`   🎯 Mapeo forzado: "${clave}" → Pexels`);
             const urlPexels = await buscarEnPexels(queries);
             if (urlPexels) return urlPexels;
-            // Solo si Pexels falla, intentar Wikipedia
             const urlWiki = await buscarImagenWikipedia(clave);
             if (urlWiki && esImagenValida(urlWiki)) return urlWiki;
             break;
         }
     }
 
-    // ── PASO 2: Query específica de Gemini → más precisa al tema
     if (queryIA) {
         const urlQueryIA = await buscarEnPexels([queryIA]);
         if (urlQueryIA) { console.log(`   ✅ Pexels (Gemini query)`); return urlQueryIA; }
     }
 
-    // ── PASO 3: Queries detectadas por título y categoría
     const queries = detectarQueriesPexels(titulo, categoria, null);
     const urlPexels = await buscarEnPexels(queries);
     if (urlPexels) { console.log(`   ✅ Pexels (queries detectadas)`); return urlPexels; }
 
-    // ── PASO 4: Wikipedia — validada (foto real, a color, no histórica)
     const urlWiki = await buscarImagenWikipedia(titulo);
     if (urlWiki && esImagenValida(urlWiki)) { console.log(`   ✅ Wikipedia (validada)`); return urlWiki; }
 
-    // ── PASO 5: Wikimedia Commons — último recurso, validada
     const urlCommons = await buscarImagenWikimediaCommons(titulo);
     if (urlCommons && esImagenValida(urlCommons)) { console.log(`   ✅ Wikimedia (validada)`); return urlCommons; }
 
-    // ── PASO 6: Banco local — garantizado, siempre a color y relevante
     console.log(`   📸 Banco local (${subtemaLocal || categoria})`);
     return imgLocal(subtemaLocal, categoria);
 }
 
-// La lógica anterior buscaba en inglés genérico.
-// Ahora busca primero con términos específicos de RD/Caribe,
-// y si no hay resultados, cae al banco local.
 // ══════════════════════════════════════════════════════════
-
-/**
- * Términos de búsqueda Pexels específicos por zona local.
- * Pexels no tiene fotos etiquetadas "Los Mina RD", entonces
- * usamos equivalentes visuales que sí existen en su base.
- */
-// ══════════════════════════════════════════════════════════
-// ▶ BIBLIOTECA COMPLETA DE QUERIES PEXELS
-// Cada tema tiene 5+ queries en orden de relevancia
-// Si la primera no devuelve resultados, intenta la siguiente
+// ▶ BIBLIOTECA DE QUERIES PEXELS
 // ══════════════════════════════════════════════════════════
 const PEXELS_QUERIES_RD = {
-
-    // ── ZONAS LOCALES RD ──
     'los mina':           ['santo domingo urban street life', 'caribbean city neighborhood people', 'latin america urban community', 'dominican republic street market', 'caribbean urban daily life'],
     'invivienda':         ['social housing construction latin america', 'affordable housing caribbean', 'residential building construction workers', 'housing project urban development', 'latin america apartment building construction'],
     'ensanche ozama':     ['santo domingo city architecture', 'caribbean urban district street', 'dominican republic city life', 'latin america urban infrastructure', 'caribbean neighborhood road'],
     'santo domingo este': ['santo domingo dominican republic cityscape', 'caribbean capital city skyline', 'dominican republic urban life', 'santo domingo street photography', 'caribbean city architecture'],
     'villa mella':        ['dominican republic suburb community', 'caribbean neighborhood street life', 'latin america residential area', 'dominican city outskirts', 'caribbean people community'],
-    'sabana perdida':     ['dominican republic community neighborhood', 'caribbean urban street', 'latin america city district', 'dominican republic daily life', 'caribbean working class neighborhood'],
-
-    // ── POLÍTICA Y GOBIERNO ──
     'presidente':         ['president speech podium government', 'latin america president official event', 'government leader press conference', 'political leader official ceremony', 'president signing document desk'],
     'gobierno':           ['government building official meeting', 'latin america congress parliament', 'official government press conference', 'politicians meeting boardroom', 'government officials ceremony'],
     'congreso':           ['congress parliament building', 'legislators vote assembly hall', 'parliament session politicians', 'latin america congress building', 'government assembly debate'],
-    'senado':             ['senate chamber politicians', 'legislators assembly hall vote', 'government senate session', 'parliament chamber officials', 'politicians congressional session'],
-    'elecciones':         ['election voting booth ballot', 'people voting democracy caribbean', 'election campaign rally crowd', 'voting booth democracy latin america', 'election results announcement'],
-    'inauguracion':       ['inauguration ceremony official ribbon cutting', 'official opening ceremony government', 'latin america inauguration public event', 'government ribbon cutting ceremony', 'official ceremony crowd applause'],
-
-    // ── SEGURIDAD Y JUSTICIA ──
     'policia':            ['police patrol latin america street', 'law enforcement officer uniform', 'police investigation crime scene', 'caribbean police officers patrol', 'police arrest handcuffs law enforcement'],
     'crimen':             ['police crime investigation scene', 'law enforcement detective investigation', 'police tape crime scene urban', 'criminal investigation police work', 'security forces operation urban'],
-    'narcotráfico':       ['drug enforcement police operation', 'anti-narcotics law enforcement operation', 'police seizure drugs operation', 'security forces drug interdiction', 'police anti-drug operation press conference'],
-    'militar':            ['military soldiers uniform parade', 'armed forces military ceremony', 'soldiers military base training', 'latin america military defense', 'military officers uniform ceremony'],
-    'procuraduria':       ['attorney general office courthouse', 'prosecutor press conference podium', 'justice courthouse building', 'legal system courtroom lawyers', 'justice department officials meeting'],
-    'prision':            ['prison correctional facility security', 'jail bars cell incarceration', 'correctional facility guards', 'justice system incarceration', 'prison facility exterior security'],
-    'accidente':          ['traffic accident car crash road', 'emergency response accident scene', 'ambulance emergency response', 'accident highway first responders', 'car crash police accident investigation'],
-    'incendio':           ['fire emergency firefighters blaze', 'firefighters fighting building fire', 'fire truck emergency response fire', 'fire flames building emergency', 'firefighters rescue operation'],
-
-    // ── ECONOMÍA Y FINANZAS ──
     'economia':           ['business finance professionals meeting', 'stock market trading finance', 'bank building financial district', 'business executives boardroom discussion', 'economic growth financial chart data'],
     'banco':              ['bank building financial institution', 'bank teller customer service', 'modern bank interior lobby', 'financial institution banking', 'bank facade exterior architecture'],
     'remesas':            ['money transfer wire payment', 'international money transfer service', 'financial services payment technology', 'currency exchange money transfer', 'bank wire transfer international'],
-    'mercado':            ['market vendors selling products', 'outdoor market trade commerce', 'latin america market people buying', 'caribbean market fresh produce', 'street market vendors commerce'],
-    'comercio':           ['business commerce trade professionals', 'retail store shopping commerce', 'business meeting commerce deal', 'trade commerce handshake deal', 'small business owner shop'],
-    'inversion':          ['business investment meeting professionals', 'investment finance growth chart', 'businesspeople handshake deal investment', 'financial investment strategy meeting', 'business growth investment success'],
-    'inflacion':          ['grocery store prices inflation', 'supermarket shopping prices consumer', 'food prices market inflation', 'consumer prices shopping cart', 'inflation prices market economic'],
     'turismo':            ['punta cana beach resort luxury', 'caribbean beach turquoise water tourism', 'dominican republic resort hotel pool', 'tourists beach vacation caribbean', 'tropical beach resort tourism travel'],
-
-    // ── SALUD ──
     'salud':              ['hospital doctors medical staff', 'doctor patient consultation clinic', 'medical team healthcare professionals', 'hospital ward nurses doctors', 'healthcare medical professionals'],
     'hospital':           ['hospital building exterior entrance', 'hospital interior hallway medical staff', 'emergency room hospital doctors', 'hospital patients medical care', 'healthcare facility medical workers'],
-    'medicina':           ['medical doctors surgery operation', 'doctor examining patient stethoscope', 'medical professionals hospital team', 'surgeon operating room procedure', 'medicine healthcare professionals working'],
-    'vacuna':             ['vaccination injection healthcare nurse', 'vaccine shot medical professional', 'vaccination campaign healthcare workers', 'immunization vaccine health clinic', 'vaccine dose syringe medical'],
-    'epidemia':           ['public health medical response team', 'epidemiology health workers protective equipment', 'medical team public health response', 'healthcare workers protective masks', 'disease prevention public health'],
-    'dengue':             ['mosquito prevention public health campaign', 'fumigation pest control workers', 'public health fumigation urban', 'health workers fumigation community', 'vector control mosquito prevention'],
-
-    // ── EDUCACIÓN ──
     'educacion':          ['students classroom learning school', 'teacher students lesson classroom', 'university students campus education', 'school children learning books', 'education classroom latin america'],
-    'escuela':            ['school building education children', 'classroom students teacher learning', 'elementary school children study', 'school kids education classroom', 'school building entrance students'],
-    'universidad':        ['university campus students college', 'college students campus buildings', 'university lecture hall students', 'higher education students graduation', 'university library students studying'],
-    'maestro':            ['teacher classroom instruction students', 'teacher explaining lesson school', 'educator students whiteboard class', 'teacher children learning primary school', 'teaching education class children'],
-
-    // ── INFRAESTRUCTURA Y OBRAS ──
     'infraestructura':    ['road construction workers equipment', 'highway infrastructure construction project', 'bridge construction engineering workers', 'urban infrastructure development workers', 'road repair construction equipment'],
     'carretera':          ['road highway construction workers', 'new highway infrastructure latin america', 'road paving construction crew', 'highway project construction equipment', 'road infrastructure development latin america'],
     'construccion':       ['construction workers building site', 'construction project architecture workers', 'building construction crane workers', 'construction site safety workers', 'urban development construction project'],
-    'mopc':               ['road construction workers equipment caribbean', 'infrastructure government project workers', 'highway construction latin america', 'public works construction project', 'road infrastructure workers construction'],
     'vivienda':           ['housing construction workers project', 'residential homes construction site', 'affordable housing project community', 'housing development construction workers', 'new homes construction residential'],
     'agua':               ['water treatment plant infrastructure', 'water supply pipeline installation', 'water infrastructure workers construction', 'drinking water facility treatment', 'water system installation workers'],
-    'electricidad':       ['power lines electricity infrastructure', 'electrical workers power lines installation', 'electricity power plant energy', 'electrical infrastructure workers', 'power grid energy electricity workers'],
-
-    // ── DEPORTES ──
     'beisbol':            ['baseball game stadium fans crowd', 'baseball pitcher throwing stadium', 'baseball player batting home run', 'baseball team dugout players', 'dominican republic baseball stadium'],
-    'béisbol':            ['baseball game stadium fans crowd', 'baseball pitcher throwing stadium', 'baseball player batting home run', 'baseball team dugout players', 'baseball minor league players practice'],
     'futbol':             ['soccer football match stadium crowd', 'football players game action', 'soccer team training practice field', 'football game crowd stadium', 'soccer players game action sports'],
-    'fútbol':             ['soccer football match stadium crowd', 'football players game action', 'soccer team training practice field', 'football game crowd stadium', 'soccer players game action sports'],
-    'boxeo':              ['boxing match ring fighters', 'boxer training punching bag gym', 'boxing fight professional arena', 'boxers sparring training gym', 'boxing championship match ring'],
-    'atletismo':          ['athlete running track competition', 'track field athletics competition', 'runner athlete race stadium', 'athletics training professional athlete', 'sprinter race competition track'],
-    'natacion':           ['swimmer pool competition race', 'swimming championship athlete pool', 'competitive swimmer race lane', 'swimmer training pool laps', 'swimming competition athletes pool'],
-    'olimpiadas':         ['olympic games athletes competition', 'olympic stadium athletes ceremony', 'olympic torch ceremony athletes', 'olympic games sports competition', 'athletes olympic competition medal'],
-
-    // ── TECNOLOGÍA ──
     'tecnologia':         ['technology innovation digital business', 'tech startup team working computers', 'software developer coding computer', 'digital technology innovation lab', 'technology professionals working office'],
-    'inteligencia artificial': ['artificial intelligence technology computer', 'AI technology digital innovation', 'machine learning data technology', 'computer science AI research', 'technology AI digital transformation'],
-    'internet':           ['internet technology digital connection', 'wifi network digital connectivity', 'online technology internet use', 'digital internet connected devices', 'technology internet connectivity people'],
-    'ciberseguridad':     ['cybersecurity technology hacker computer', 'cyber security professional computer', 'digital security technology network', 'cybersecurity expert working computer', 'security technology digital protection'],
-
-    // ── CULTURA Y ENTRETENIMIENTO ──
     'musica':             ['music concert performance stage lights', 'musicians performing concert crowd', 'music band performance stage', 'concert live music crowd fans', 'singer performing microphone stage'],
-    'merengue':           ['latin music dance performance stage', 'caribbean music band performing', 'latin dance music concert crowd', 'tropical music festival performance', 'caribbean culture music dancing'],
-    'carnaval':           ['carnival parade colorful costumes crowd', 'festive parade celebration costumes', 'carnival celebration people dancing costumes', 'street parade festival celebration', 'carnival festive celebration crowd'],
-    'cine':               ['film cinema movie production', 'movie theater cinema audience', 'film production director actors set', 'cinema audience movie theater', 'film set production camera crew'],
-    'arte':               ['art gallery exhibition artist', 'contemporary art museum exhibition', 'artist painting studio creating', 'art exhibition gallery visitors', 'artistic performance culture'],
-
-    // ── MEDIO AMBIENTE ──
     'medio ambiente':     ['nature environment conservation forest', 'environmental protection activists', 'deforestation environmental issue forest', 'clean energy solar panels environment', 'environmental conservation activists nature'],
-    'clima':              ['climate change storm weather extreme', 'climate environmental weather impact', 'storm hurricane extreme weather', 'climate change environmental protest', 'weather storm flooding climate'],
-    'huracan':            ['hurricane storm damage destruction', 'tropical storm damage aftermath', 'hurricane flooding streets damage', 'tropical cyclone storm destruction', 'disaster relief hurricane aftermath'],
-    'inundacion':         ['flood flooding water streets', 'flood disaster emergency response', 'flooding streets cars water', 'flood damage homes community', 'flood emergency rescue workers'],
-
-    // ── RELACIONES INTERNACIONALES ──
     'haiti':              ['haiti dominican republic border crossing', 'haitian dominican diplomacy officials', 'border security latin america', 'diplomatic meeting caribbean officials', 'humanitarian aid border caribbean'],
-    'diplomacia':         ['diplomacy meeting international officials', 'diplomatic summit world leaders', 'international meeting conference table', 'diplomats officials handshake meeting', 'international summit conference officials'],
-    'estados unidos':     ['united states government washington dc', 'us capitol building washington', 'american flag government building', 'washington dc government official', 'united states diplomacy official'],
-    'migracion':          ['immigration border crossing people', 'migrants border crossing', 'immigration officials border security', 'refugee migrants humanitarian', 'border crossing immigration control'],
-
-    // ── CATEGORÍAS GENERALES (fallback por sección) ──
     'Nacionales':         ['dominican republic government news', 'santo domingo city official event', 'dominican republic flag ceremony', 'caribbean government officials press', 'latin america news event crowd'],
     'Deportes':           ['dominican republic athlete sports', 'caribbean sports competition athlete', 'sports game stadium crowd latin america', 'athlete competition professional sports', 'sports training professional athlete'],
     'Internacionales':    ['international news world leaders', 'global summit conference diplomacy', 'world news event international', 'latin america international relations', 'caribbean diplomacy international meeting'],
@@ -978,14 +850,9 @@ const PEXELS_QUERIES_RD = {
     'Espectáculos':       ['latin entertainment music show concert', 'caribbean cultural performance arts', 'entertainment show stage lights', 'celebrity artist performance concert', 'latin music culture entertainment'],
 };
 
-/**
- * Busca en Pexels con múltiples queries de fallback.
- * Intenta queries más específicos primero, luego genéricos.
- */
 async function buscarEnPexels(queries) {
     if (!PEXELS_API_KEY) return null;
 
-    // Términos prohibidos — fotos que no tienen nada que ver con noticias
     const BLOQUEADOS = ['wedding', 'bride', 'groom', 'bridal', 'couple', 'romance', 'romantic',
         'fashion', 'model', 'party', 'celebration', 'flowers', 'love', 'kiss', 'marriage'];
 
@@ -1013,10 +880,8 @@ async function buscarEnPexels(queries) {
             const data = await res.json();
             if (!data.photos?.length) continue;
 
-            // Tomar foto aleatoria de las primeras 5 para variedad
             const foto = data.photos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, data.photos.length))];
             console.log(`   📸 Pexels: "${query}" → ${foto.id}`);
-            // Aprender: esta query funcionó
             registrarQueryPexels(query, 'general', true);
             return foto.src.large2x || foto.src.large || foto.src.original;
         } catch { continue; }
@@ -1024,18 +889,12 @@ async function buscarEnPexels(queries) {
     return null;
 }
 
-/**
- * Detecta si el título o categoría tiene zona local RD
- * y retorna las queries de Pexels más apropiadas.
- */
 function detectarQueriesPexels(titulo, categoria, queryIA) {
     const tituloLower = titulo.toLowerCase();
     const queries = [];
 
-    // Prioridad 1: Query específica de Gemini
     if (queryIA) queries.push(queryIA);
 
-    // Prioridad 2: Todas las palabras clave que coincidan en el título
     const catsSaltar = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
     for (const [clave, qs] of Object.entries(PEXELS_QUERIES_RD)) {
         if (catsSaltar.includes(clave)) continue;
@@ -1044,23 +903,21 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
         }
     }
 
-    // Prioridad 3: Categoría general como fallback
     if (PEXELS_QUERIES_RD[categoria]) {
         queries.push(...PEXELS_QUERIES_RD[categoria]);
     }
 
-    // Prioridad 4: Siempre terminar con fallback seguro RD
     queries.push(
         'dominican republic news event',
         'caribbean latin america people',
         'santo domingo dominican republic'
     );
 
-    return [...new Set(queries)].slice(0, 12); // máximo 12 queries
+    return [...new Set(queries)].slice(0, 12);
 }
 
 // ══════════════════════════════════════════════════════════
-// BANCO LOCAL DE IMÁGENES — 10 fotos por categoría
+// BANCO LOCAL DE IMÁGENES
 // ══════════════════════════════════════════════════════════
 const PB  = 'https://images.pexels.com/photos';
 const OPT = '?auto=compress&cs=tinysrgb&w=800';
@@ -1150,18 +1007,6 @@ const BANCO_LOCAL = {
         `${PB}/186077/pexels-photo-186077.jpeg${OPT}`,
         `${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`,
     ],
-    'deporte-futbol': [
-        `${PB}/46798/pexels-photo-46798.jpeg${OPT}`,
-        `${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,
-        `${PB}/3873098/pexels-photo-3873098.jpeg${OPT}`,
-        `${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,
-        `${PB}/274422/pexels-photo-274422.jpeg${OPT}`,
-        `${PB}/1171084/pexels-photo-1171084.jpeg${OPT}`,
-        `${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,
-        `${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,
-        `${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,
-        `${PB}/114296/pexels-photo-114296.jpeg${OPT}`,
-    ],
     'deporte-general': [
         `${PB}/863988/pexels-photo-863988.jpeg${OPT}`,
         `${PB}/936094/pexels-photo-936094.jpeg${OPT}`,
@@ -1246,30 +1091,6 @@ const BANCO_LOCAL = {
         `${PB}/7541956/pexels-photo-7541956.jpeg${OPT}`,
         `${PB}/6129113/pexels-photo-6129113.jpeg${OPT}`,
     ],
-    'vivienda-social': [
-        `${PB}/323780/pexels-photo-323780.jpeg${OPT}`,
-        `${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`,
-        `${PB}/2102587/pexels-photo-2102587.jpeg${OPT}`,
-        `${PB}/1370704/pexels-photo-1370704.jpeg${OPT}`,
-        `${PB}/259588/pexels-photo-259588.jpeg${OPT}`,
-        `${PB}/1029599/pexels-photo-1029599.jpeg${OPT}`,
-        `${PB}/280229/pexels-photo-280229.jpeg${OPT}`,
-        `${PB}/534151/pexels-photo-534151.jpeg${OPT}`,
-        `${PB}/1080721/pexels-photo-1080721.jpeg${OPT}`,
-        `${PB}/2724749/pexels-photo-2724749.jpeg${OPT}`,
-    ],
-    'transporte-vial': [
-        `${PB}/93398/pexels-photo-93398.jpeg${OPT}`,
-        `${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,
-        `${PB}/1494277/pexels-photo-1494277.jpeg${OPT}`,
-        `${PB}/210182/pexels-photo-210182.jpeg${OPT}`,
-        `${PB}/2199293/pexels-photo-2199293.jpeg${OPT}`,
-        `${PB}/3806978/pexels-photo-3806978.jpeg${OPT}`,
-        `${PB}/1838640/pexels-photo-1838640.jpeg${OPT}`,
-        `${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,
-        `${PB}/3802510/pexels-photo-3802510.jpeg${OPT}`,
-        `${PB}/163786/pexels-photo-163786.jpeg${OPT}`,
-    ],
 };
 
 const FALLBACK_CAT = {
@@ -1290,29 +1111,11 @@ function imgLocal(sub, cat) {
     return banco[Math.floor(Math.random() * banco.length)];
 }
 
-/**
- * Obtener imagen: intenta Pexels con queries RD → banco local.
- * Nunca retorna null.
- */
-async function obtenerImagen(titulo, categoria, subtemaLocal, queryIA) {
-    const queries = detectarQueriesPexels(titulo, categoria, queryIA);
-    const urlPexels = await buscarEnPexels(queries);
-    if (urlPexels) return urlPexels;
-    console.log(`   📸 Pexels sin resultado → banco local (${subtemaLocal || 'general'})`);
-    return imgLocal(subtemaLocal, categoria);
-}
-
 // ══════════════════════════════════════════════════════════
-// ▶ ALT SEO MEJORADO — GEOLOCALIZADO RD
+// ▶ ALT SEO MEJORADO
 // ══════════════════════════════════════════════════════════
 
-/**
- * Genera el texto alt de la imagen con términos SEO de RD.
- * Google prioriza el texto alt para indexar imágenes en News.
- * Formato: "[Descripción visual] - [Contexto RD] - El Farol al Día"
- */
 function generarAltSEO(titulo, categoria, altIA, subtema) {
-    // Si la IA generó un alt bueno (>15 chars), enriquecerlo
     if (altIA && altIA.length > 15) {
         const yaTieneRD = altIA.toLowerCase().includes('dominican') ||
                           altIA.toLowerCase().includes('república') ||
@@ -1320,7 +1123,6 @@ function generarAltSEO(titulo, categoria, altIA, subtema) {
 
         if (yaTieneRD) return `${altIA} - El Farol al Día`;
 
-        // Agregar contexto RD al alt de la IA
         const contextoCat = {
             'Nacionales':      'noticias República Dominicana',
             'Deportes':        'deportes dominicanos',
@@ -1332,7 +1134,6 @@ function generarAltSEO(titulo, categoria, altIA, subtema) {
         return `${altIA}, ${contextoCat[categoria] || 'República Dominicana'} - El Farol al Día`;
     }
 
-    // Construir alt desde cero si la IA no lo generó bien
     const base = {
         'Nacionales':      `Noticia nacional ${titulo.substring(0, 40)} - Santo Domingo, República Dominicana`,
         'Deportes':        `Deportes dominicanos ${titulo.substring(0, 40)} - El Farol al Día RD`,
@@ -1356,7 +1157,6 @@ function metaTagsCompletos(n, url) {
     const fi  = new Date(n.fecha).toISOString(), ue = esc(url);
     const wc  = (n.contenido || '').split(/\s+/).filter(w => w).length;
 
-    // ── Palabras de Oro siempre presentes en keywords ──
     const keywordsSEO = [
         n.seo_keywords || '',
         'último minuto república dominicana',
@@ -1366,7 +1166,6 @@ function metaTagsCompletos(n, url) {
         'el farol al día'
     ].filter(Boolean).join(', ');
 
-    // ── PILAR 1: Schema NewsArticle COMPLETO — Google Search Central ──
     const schema = {
         "@context":         "https://schema.org",
         "@type":            "NewsArticle",
@@ -1424,7 +1223,6 @@ function metaTagsCompletos(n, url) {
         }
     };
 
-    // ── Breadcrumb con Palabras de Oro ──
     const bread = {
         "@context": "https://schema.org",
         "@type":    "BreadcrumbList",
@@ -1436,7 +1234,6 @@ function metaTagsCompletos(n, url) {
         ]
     };
 
-    // ── Organization Schema ──
     const orgSchema = {
         "@context":    "https://schema.org",
         "@type":       "NewsMediaOrganization",
@@ -1447,10 +1244,10 @@ function metaTagsCompletos(n, url) {
         "logo": { "@type": "ImageObject", "url": `${BASE_URL}/static/favicon.png` }
     };
 
-    // ── Título SEO enriquecido ──
     const tituloSEO = (n.titulo.toLowerCase().includes('santo domingo') || n.titulo.toLowerCase().includes('sde'))
         ? `${t} | El Farol al Día`
         : `${t} | Último Minuto RD · El Farol al Día`;
+    
     return `<title>${tituloSEO}</title>
 <meta name="description" content="${d}">
 <meta name="keywords" content="${esc(keywordsSEO)}">
@@ -1555,7 +1352,6 @@ async function inicializarBase() {
             )
         `);
 
-        // ── TABLA DE MEMORIA IA ──────────────────────────────
         await client.query(`
             CREATE TABLE IF NOT EXISTS memoria_ia(
                 id SERIAL PRIMARY KEY,
@@ -1568,13 +1364,11 @@ async function inicializarBase() {
                 ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        // Índice para búsquedas rápidas
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_memoria_tipo
             ON memoria_ia(tipo, categoria)
         `).catch(() => {});
 
-        // ── TABLA DE COMENTARIOS ────────────────────────
         await client.query(`
             CREATE TABLE IF NOT EXISTS comentarios(
                 id SERIAL PRIMARY KEY,
@@ -1601,20 +1395,13 @@ async function inicializarBase() {
     } finally {
         client.release();
     }
-    // Cargar config IA desde PostgreSQL (persiste entre reinicios)
     await cargarConfigIA();
 }
 
 // ══════════════════════════════════════════════════════════
 // ▶ SISTEMA DE MEMORIA IA
-// Aprende qué queries de Pexels funcionan bien por categoría,
-// qué temas generan errores, y construye contexto entre publicaciones
 // ══════════════════════════════════════════════════════════
 
-/**
- * Registra un query de Pexels como exitoso o fallido
- * para que el sistema aprenda qué funciona por categoría
- */
 async function registrarQueryPexels(query, categoria, exito) {
     try {
         await pool.query(`
@@ -1623,7 +1410,6 @@ async function registrarQueryPexels(query, categoria, exito) {
             ON CONFLICT DO NOTHING
         `, [query, categoria, exito ? 1 : 0, exito ? 0 : 1]);
 
-        // Si ya existe, actualizar contadores
         await pool.query(`
             UPDATE memoria_ia
             SET exitos = exitos + $1,
@@ -1634,10 +1420,6 @@ async function registrarQueryPexels(query, categoria, exito) {
     } catch(e) { /* silencioso */ }
 }
 
-/**
- * Obtiene los mejores queries de Pexels aprendidos para una categoría
- * Prioriza los que tienen más éxitos y menos fallos
- */
 async function obtenerMejoresQueries(categoria) {
     try {
         const r = await pool.query(`
@@ -1654,9 +1436,6 @@ async function obtenerMejoresQueries(categoria) {
     } catch(e) { return []; }
 }
 
-/**
- * Registra un error de generación para no repetirlo
- */
 async function registrarError(tipo, descripcion, categoria) {
     try {
         await pool.query(`
@@ -1673,16 +1452,9 @@ async function registrarError(tipo, descripcion, categoria) {
     } catch(e) { /* silencioso */ }
 }
 
-/**
- * Construye contexto de memoria para el prompt de Gemini:
- * - Últimas 15 noticias publicadas (no repetir)
- * - Temas que fallaron recientemente (evitar)
- * - Queries exitosas de imagen (sugerir)
- */
 async function construirMemoria(categoria) {
     let memoria = '';
     try {
-        // Noticias recientes — no repetir
         const recientes = await pool.query(`
             SELECT titulo, fecha FROM noticias
             WHERE estado = 'publicada'
@@ -1694,7 +1466,6 @@ async function construirMemoria(categoria) {
             memoria += '\n';
         }
 
-        // Errores recientes — evitar esos temas
         const errores = await pool.query(`
             SELECT valor FROM memoria_ia
             WHERE tipo = 'error' AND categoria = $1
@@ -1707,7 +1478,6 @@ async function construirMemoria(categoria) {
             memoria += '\n';
         }
 
-        // Queries de imagen exitosas — sugerir
         const mejores = await obtenerMejoresQueries(categoria);
         if (mejores.length) {
             memoria += `\n💡 QUERIES DE IMAGEN QUE FUNCIONAN BIEN PARA ${categoria.toUpperCase()}:\n`;
@@ -1715,16 +1485,12 @@ async function construirMemoria(categoria) {
             memoria += '\n';
         }
 
-    } catch(e) { /* silencioso — memoria es opcional */ }
+    } catch(e) { /* silencioso */ }
     return memoria;
 }
 
-// ── REGENERAR WATERMARKS AL ARRANCAR ─────────────────────────
-// Si Railway limpió /tmp (cada ~8 días), restaura las imágenes
-// usando la URL original guardada en BD
 async function regenerarWatermarksLostidos() {
     try {
-        // Buscar noticias cuya imagen apunta a /img/ pero el archivo ya no existe en /tmp
         const r = await pool.query(`
             SELECT id, imagen, imagen_nombre, imagen_original
             FROM noticias
@@ -1740,9 +1506,8 @@ async function regenerarWatermarksLostidos() {
             const nombre = n.imagen_nombre || n.imagen.split('/img/')[1];
             if (!nombre) continue;
             const ruta = path.join('/tmp', nombre);
-            if (fs.existsSync(ruta)) continue; // ya existe, no regenerar
+            if (fs.existsSync(ruta)) continue;
 
-            // El archivo no existe — reprocesar con watermark
             const resultado = await aplicarMarcaDeAgua(n.imagen_original);
             if (resultado.procesada && resultado.nombre) {
                 await pool.query(
@@ -1751,7 +1516,6 @@ async function regenerarWatermarksLostidos() {
                 );
                 regeneradas++;
             }
-            // Pequeña pausa para no saturar al arrancar
             await new Promise(r => setTimeout(r, 200));
         }
         if (regeneradas > 0) {
@@ -1762,28 +1526,24 @@ async function regenerarWatermarksLostidos() {
         console.log(`⚠️ Regeneración watermarks: ${e.message}`);
     }
 }
+
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
 
-        // Memoria enriquecida: noticias previas + errores + queries exitosas
         const memoria = await construirMemoria(categoria);
 
-        // Fuente del contenido
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado. Reescribe con tu estilo periodístico, no copies textualmente.`
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana. Que sea un hecho real y relevante del contexto actual.`;
 
-        // Consultar Wikipedia ANTES de armar el prompt
-        // Si viene de RSS, limpiar el prefijo "TÍTULO:" de la primera línea
         const temaParaWiki = comunicadoExterno
             ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria
             : categoria;
 
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
 
-        // Prompt periodístico mejorado — coherencia imagen + SEO real
         const prompt = `${CONFIG_IA.instruccion_principal}
 
 ROL: Eres el editor jefe de El Farol al Día con 20 años de experiencia en periodismo dominicano. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes verificables, impacto real para el ciudadano dominicano. Periodismo serio, sin exageración ni sensacionalismo.
@@ -1883,8 +1643,6 @@ CONTENIDO:
         console.log(`\n📰 Generando: ${categoria}${comunicadoExterno ? ' (RSS)' : ''}`);
         const texto = await llamarGemini(prompt);
 
-        // Parsear respuesta de Gemini
-        // Gemini a veces añade ** o ## antes de las etiquetas — los limpiamos
         const textoLimpio = texto.replace(/^\s*[*#]+\s*/gm, '');
 
         let titulo = '', desc = '', pals = '', qi = '', ai = '', sub = '', contenido = '';
@@ -1907,7 +1665,6 @@ CONTENIDO:
         titulo    = titulo.replace(/[*_#`"]/g, '').trim();
         desc      = desc.replace(/[*_#`]/g, '').trim();
 
-        // Validación más estricta — detecta respuestas truncadas o mal formateadas
         if (!titulo)
             throw new Error('Gemini no devolvió TITULO');
         if (!contenido || contenido.length < 300)
@@ -1915,15 +1672,12 @@ CONTENIDO:
 
         console.log(`   📝 ${titulo}`);
 
-        // Imagen con lógica RD mejorada
         const urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
         const imgResult  = await aplicarMarcaDeAgua(urlOrig);
         const urlFinal   = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
 
-        // Alt SEO geolocalizado
         const altFinal   = generarAltSEO(titulo, categoria, ai, sub);
 
-        // Guardar en BD
         const sl    = slugify(titulo);
         const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
         const slFin  = existe.rows.length ? `${sl}-${Date.now()}` : sl;
@@ -1942,7 +1696,7 @@ CONTENIDO:
                 `Fotografía periodística: ${titulo}`,
                 imgResult.nombre || 'efd.jpg',
                 'el-farol',
-                urlOrig,        // URL original Pexels — fallback si /tmp se limpia
+                urlOrig,
                 'publicada'
             ]
         );
@@ -1950,26 +1704,26 @@ CONTENIDO:
         console.log(`\n✅ /noticia/${slFin}`);
         invalidarCache();
 
-        // Aprender: registrar query de imagen exitosa
         if (qi) registrarQueryPexels(qi, categoria, true);
 
-        // Publicar en redes (no bloquea la respuesta)
-        Promise.allSettled([
-            publicarEnFacebook(titulo, slFin, urlFinal, desc),
-            publicarEnTwitter(titulo, slFin, desc),
-            publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
-        ]).then(results => {
-            const fb = results[0].value ? '📘✅' : '📘❌';
-            const tw = results[1].value ? '🐦✅' : '🐦❌';
-            const tg = results[2].value ? '📱✅' : '📱❌';
-            console.log(`   Redes: ${fb} ${tw} ${tg}`);
+        // ===== NUEVO: Enviar a todas las redes automáticamente =====
+        const noticiaPublicada = {
+            titulo,
+            slug: slFin,
+            imagen: urlFinal,
+            seo_description: desc,
+            seccion: categoria
+        };
+        
+        // No esperar a que termine para no bloquear la respuesta
+        enviarNoticiaRedes(noticiaPublicada).catch(e => {
+            console.error('❌ Error enviando a redes:', e.message);
         });
 
         return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada en web + redes' };
 
     } catch (error) {
         console.error('❌', error.message);
-        // Aprender del error para no repetirlo
         await registrarError('generacion', error.message, categoria);
         return { success: false, error: error.message };
     }
@@ -1978,11 +1732,8 @@ CONTENIDO:
 // ══════════════════════════════════════════════════════════
 // RSS PORTALES GOBIERNO RD
 // ══════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════
-// FUENTES RSS — 30 FUENTES (gobierno RD + medios dominicanos + Caribe)
-// ══════════════════════════════════════════════════════════
+
 const FUENTES_RSS = [
-    // ── GOBIERNO RD (10 originales) ──
     { url: 'https://presidencia.gob.do/feed',           categoria: 'Nacionales',      nombre: 'Presidencia RD' },
     { url: 'https://policia.gob.do/feed',               categoria: 'Nacionales',      nombre: 'Policía Nacional' },
     { url: 'https://www.mopc.gob.do/feed',              categoria: 'Nacionales',      nombre: 'MOPC' },
@@ -1993,8 +1744,6 @@ const FUENTES_RSS = [
     { url: 'https://www.invivienda.gob.do/feed',        categoria: 'Nacionales',      nombre: 'Invivienda' },
     { url: 'https://mitur.gob.do/feed',                 categoria: 'Nacionales',      nombre: 'Turismo' },
     { url: 'https://pgr.gob.do/feed',                   categoria: 'Nacionales',      nombre: 'Procuraduría' },
-
-    // ── MEDIOS DOMINICANOS ──
     { url: 'https://www.diariolibre.com/feed',          categoria: 'Nacionales',      nombre: 'Diario Libre' },
     { url: 'https://listindiario.com/feed',             categoria: 'Nacionales',      nombre: 'Listín Diario' },
     { url: 'https://elnacional.com.do/feed/',           categoria: 'Nacionales',      nombre: 'El Nacional' },
@@ -2005,19 +1754,13 @@ const FUENTES_RSS = [
     { url: 'https://www.noticiassin.com/feed/',         categoria: 'Nacionales',      nombre: 'Noticias SIN' },
     { url: 'https://www.cdt.com.do/feed/',              categoria: 'Deportes',        nombre: 'CDT Deportes' },
     { url: 'https://www.beisbolrd.com/feed/',           categoria: 'Deportes',        nombre: 'Béisbol RD' },
-
-    // ── INTERNACIONALES / CARIBE ──
     { url: 'https://www.reuters.com/arc/outboundfeeds/rss/category/latam/?outputType=xml', categoria: 'Internacionales', nombre: 'Reuters LatAm' },
     { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',   categoria: 'Internacionales', nombre: 'BBC Mundo' },
     { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', categoria: 'Internacionales', nombre: 'NYT World' },
     { url: 'https://www.elnuevoherald.com/ultimas-noticias/?widgetName=rssfeed&widgetContentId=725095&getXmlFeed=true', categoria: 'Internacionales', nombre: 'El Nuevo Herald' },
-
-    // ── TECNOLOGÍA / ECONOMÍA GLOBAL ──
     { url: 'https://feeds.feedburner.com/TechCrunch',  categoria: 'Tecnología',      nombre: 'TechCrunch' },
     { url: 'https://www.wired.com/feed/rss',           categoria: 'Tecnología',      nombre: 'Wired' },
     { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economía',   nombre: 'Bloomberg Markets' },
-
-    // ── ESPECTÁCULOS / CULTURA ──
     { url: 'https://www.primerahora.com/entretenimiento/feed/',  categoria: 'Espectáculos', nombre: 'Primera Hora Ent.' },
     { url: 'https://www.telemundo.com/shows/rss',      categoria: 'Espectáculos',    nombre: 'Telemundo' },
     { url: 'https://www.univision.com/rss',            categoria: 'Espectáculos',    nombre: 'Univision' },
@@ -2067,28 +1810,21 @@ async function procesarRSS() {
 // ══════════════════════════════════════════════════════════
 const CATS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
 
-// ── KEEP-ALIVE — evita cold start de Railway ──────────
-// Hace ping al propio servidor cada 14 minutos para mantenerlo despierto
 cron.schedule('*/14 * * * *', async () => {
     try {
         await fetch(`http://localhost:${PORT}/health`);
     } catch(e) { /* silencioso */ }
 });
 
-// Cada 4 horas: generar una noticia nueva
 cron.schedule('0 */4 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
     await generarNoticia(CATS[Math.floor(Math.random() * CATS.length)]);
 });
 
-// 4 veces al día: procesar RSS gobierno
 cron.schedule('0 1,7,13,19 * * *', async () => {
     await procesarRSS();
 });
 
-// ══════════════════════════════════════════════════════════
-// RUTAS
-// ══════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════
 // ▶ COACH DE REDACCIÓN
 // ══════════════════════════════════════════════════════════
@@ -2161,30 +1897,28 @@ app.get('/api/pais-actual', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
 
-// ── TELEGRAM — endpoints de gestión ──
-// Ver qué Chat ID tiene el bot detectado
-app.get('/api/telegram/status', authMiddleware, async (req, res) => {
+// ===== RUTA DE PRUEBA PARA TELEGRAM =====
+app.get('/api/admin/test-bot', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const chatIdActual = TELEGRAM_CHAT_ID || await obtenerChatIdTelegram();
+    
+    const testNoticia = {
+        titulo: '🏮 PRUEBA — Bot de Telegram de El Farol al Día',
+        slug: 'test-bot-telegram',
+        imagen: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
+        seo_description: 'Esta es una noticia de prueba para verificar la conexión del bot de Telegram. El sistema de El Farol al Día está funcionando correctamente.',
+        seccion: 'Nacionales'
+    };
+
+    const resultados = await enviarNoticiaRedes(testNoticia);
+    
     res.json({
-        token_activo:  !!TELEGRAM_TOKEN,
-        chat_id:       chatIdActual || 'No detectado — escríbele al bot primero',
-        instruccion:   chatIdActual ? '✅ Bot listo para recibir noticias' : '⚠️ Escríbele cualquier mensaje al bot de Telegram para activarlo'
+        success: true,
+        telegram_token: TELEGRAM_TOKEN ? '✅ Configurado' : '❌ No configurado',
+        telegram_chat_id: TELEGRAM_CHAT_ID || '⚠️ No detectado - Escríbele un mensaje al bot primero',
+        resultados
     });
 });
 
-// Enviar noticia de prueba a Telegram
-app.post('/api/telegram/test', authMiddleware, async (req, res) => {
-    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const ok = await publicarEnTelegram(
-        '🏮 El Farol al Día — Prueba de conexión',
-        '',
-        'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
-        'El bot de El Farol al Día está activo y funcionando correctamente. ¡Listo para recibir noticias de Último Minuto en Santo Domingo Este y toda RD!',
-        'Nacionales'
-    );
-    res.json({ success: ok, mensaje: ok ? '✅ Mensaje de prueba enviado a Telegram' : '❌ Error — revisa el Chat ID' });
-});
 app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
@@ -2193,16 +1927,14 @@ app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client',
 app.get('/terminos',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'terminos.html')));
 app.get('/cookies',    (req, res) => res.sendFile(path.join(__dirname, 'client', 'cookies.html')));
 
-// ── CACHÉ EN MEMORIA — evita ir a BD en cada visita ──
 let _cacheNoticias = null;
 let _cacheFecha    = 0;
-const CACHE_TTL    = 60 * 1000; // 60 segundos
+const CACHE_TTL    = 60 * 1000;
 
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 app.get('/api/noticias', async (req, res) => {
     try {
-        // Servir desde caché si es reciente
         if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL) {
             return res.json({ success: true, noticias: _cacheNoticias, cached: true });
         }
@@ -2263,12 +1995,6 @@ app.post('/api/procesar-rss', authMiddleware, async (req, res) => {
     res.json({ success: true, mensaje: 'RSS iniciado' });
 });
 
-// ▶ Endpoint para probar Wikipedia en aislado
-// Ver memoria del sistema
-// ── COMENTARIOS ─────────────────────────────────────────
-// ORDEN CRÍTICO: rutas específicas ANTES que rutas con parámetros dinámicos
-
-// POST: eliminar comentario — VA PRIMERO (evita que Express confunda "eliminar" con :noticia_id)
 app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
     if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     try {
@@ -2277,7 +2003,6 @@ app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// GET: todos los comentarios para admin
 app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
     try {
@@ -2292,7 +2017,6 @@ app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// GET: comentarios de una noticia (ruta paramétrica — va DESPUÉS de las específicas)
 app.get('/api/comentarios/:noticia_id', async (req, res) => {
     try {
         const r = await pool.query(`
@@ -2305,7 +2029,6 @@ app.get('/api/comentarios/:noticia_id', async (req, res) => {
     } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-// POST: publicar comentario
 app.post('/api/comentarios/:noticia_id', async (req, res) => {
     const { nombre, texto } = req.body;
     const noticia_id = parseInt(req.params.noticia_id);
@@ -2409,7 +2132,6 @@ app.get('/robots.txt', (req, res) => {
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
 });
 
-// ads.txt — requerido por Google AdSense para verificar propiedad
 app.get('/ads.txt', (req, res) => {
     res.header('Content-Type', 'text/plain');
     res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
@@ -2475,14 +2197,12 @@ app.get('/api/admin/config', authMiddleware, (req, res) => {
 app.post('/api/admin/config', authMiddleware, express.json(), async (req, res) => {
     const { pin, enabled, instruccion_principal, tono, extension, evitar, enfasis } = req.body;
     if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
-    // Actualizar en memoria
     if (enabled !== undefined)  CONFIG_IA.enabled = enabled;
     if (instruccion_principal)  CONFIG_IA.instruccion_principal = instruccion_principal;
     if (tono)                   CONFIG_IA.tono = tono;
     if (extension)              CONFIG_IA.extension = extension;
     if (evitar)                 CONFIG_IA.evitar = evitar;
     if (enfasis)                CONFIG_IA.enfasis = enfasis;
-    // Guardar en PostgreSQL — persiste entre reinicios
     const ok = await guardarConfigIA(CONFIG_IA);
     res.json({ success: ok });
 });
@@ -2497,11 +2217,12 @@ app.get('/status', async (req, res) => {
             rss_procesados: parseInt(rss.rows[0].count),
             facebook:       FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
             twitter:        TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            telegram:       TELEGRAM_TOKEN ? '✅ Activo' : '⚠️ Sin token',
             pexels_api:     PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
             wikipedia:      '✅ Activa (API pública, sin key)',
             marca_de_agua:  fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
             ia_activa:      CONFIG_IA.enabled,
-            sistema:        'Web + Facebook + Twitter + RSS gobierno + Wikipedia + Watermark + SEO'
+            sistema:        'Web + Facebook + Twitter + Telegram + RSS + Wikipedia + Watermark + SEO'
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -2518,21 +2239,19 @@ async function iniciar() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V32.0                                     ║
+║  🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT                      ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📚 Wikipedia               ║
+║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📱 Telegram                ║
 ║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T               ║
 ║  🏮 Watermark auto-regenera si Railway limpia /tmp              ║
 ║                                                                  ║
 ║  Facebook:  ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
 ║  Twitter:   ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
+║  Telegram:  ${TELEGRAM_TOKEN                         ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
 ║  Watermark: ${fs.existsSync(WATERMARK_PATH)          ? '✅ ACTIVA          ' : '⚠️  Falta watermark '}║
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
-    // 5 segundos después: regenerar watermarks perdidos
     setTimeout(regenerarWatermarksLostidos, 5000);
-    // 8 segundos después: bienvenida Telegram (si está configurado)
-    setTimeout(bienvenidaTelegram, 8000);
 }
 
 iniciar();
