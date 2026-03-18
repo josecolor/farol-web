@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.0 FINAL + TELEGRAM BOT + CORS BLOGGER
+ * 🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT + CORS ABIERTO PARA BLOGGER
  * + Basic Auth protege /redaccion y /api/admin (usuario: director / clave: 311)
  * + Wikipedia + Wikimedia Commons para imágenes coherentes
  * + Mapeo forzado de personajes públicos (Trump, Ortiz, Abinader...)
@@ -7,10 +7,8 @@
  * + Banco local 17 categorías × 10 fotos
  * + Coach de redacción + Comentarios + SEO E-E-A-T
  * + Telegram Bot automático (node-telegram-bot-api)
- * + ARRANQUE OPTIMIZADO — Sin SIGTERM, watermarks en segundo plano
  * + 🚫 AdSense INTACTO — pub-5280872495839888 NO TOCADO
- * + 🌐 CORS CONFIGURADO PARA BLOGGER — permite peticiones desde blogspot.com
- * + ✅ VERSIÓN REVISADA - SIN ERRORES DE CIERRE
+ * + 🌐 CORS ABIERTO — permite que BLOGGER y cualquier sitio web acceda a /api/noticias
  */
 
 const express = require('express');
@@ -53,6 +51,18 @@ function authMiddleware(req, res, next) {
 const app = express();
 const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
+
+// ===== CORS ABIERTO PARA BLOGGER - ¡ESTO ES LO QUE NECESITAS! =====
+// Permite que cualquier sitio web (incluyendo Blogger) acceda a la API
+app.use(cors({
+    origin: '*', // Permite TODOS los orígenes, incluido cualquier subdominio de blogspot.com
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true
+}));
+
+// Middleware adicional para asegurar que OPTIONS funcione correctamente
+app.options('*', cors());
 
 if (!process.env.DATABASE_URL) { console.error('❌ DATABASE_URL requerido'); process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
@@ -122,64 +132,6 @@ app.use(express.static(path.join(__dirname, 'client'), {
     }
 }));
 
-// ===== CONFIGURACIÓN CORS MEJORADA PARA BLOGGER =====
-// Configuración de CORS permitiendo múltiples orígenes
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Permitir solicitudes sin origen (como aplicaciones móviles o postman)
-        if (!origin) {
-            return callback(null, true);
-        }
-        
-        // Lista de patrones permitidos
-        const allowedPatterns = [
-            /\.blogspot\.com$/,           // Cualquier subdominio de Blogger
-            /^https?:\/\/[a-zA-Z0-9-]+\.blogspot\.com/, // Más específico
-            /elfarolaldia\.com$/,          // Tu dominio principal
-            /localhost/,                   // Para desarrollo local
-            /127\.0\.0\.1/                  // Para desarrollo local
-        ];
-        
-        // Verificar si el origen coincide con algún patrón permitido
-        const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
-        
-        if (isAllowed) {
-            return callback(null, true);
-        }
-        
-        // En producción, podrías querer bloquear otros orígenes
-        // Por ahora, permitimos todo para evitar problemas
-        console.log(`⚠️ CORS: Origen permitido (modo permisivo): ${origin}`);
-        return callback(null, true);
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true,
-    optionsSuccessStatus: 200
-};
-
-// Aplicar CORS a todas las rutas
-app.use(cors(corsOptions));
-
-// Middleware adicional para asegurar headers CORS en respuestas
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-        res.header('Access-Control-Allow-Origin', origin);
-    } else {
-        res.header('Access-Control-Allow-Origin', '*');
-    }
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Manejar preflight requests (OPTIONS)
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
-
 // ══════════════════════════════════════════════════════════
 // 📱 FUNCIÓN PARA ENVIAR A TELEGRAM
 // ══════════════════════════════════════════════════════════
@@ -189,7 +141,6 @@ async function enviarTelegram(noticia) {
         return false;
     }
 
-    // Intentar obtener Chat ID automáticamente si no lo tenemos
     if (!TELEGRAM_CHAT_ID) {
         TELEGRAM_CHAT_ID = await obtenerChatIdTelegram();
         if (!TELEGRAM_CHAT_ID) {
@@ -213,7 +164,6 @@ async function enviarTelegram(noticia) {
 
         const mensaje = `${emoji} *${titulo}*\n\n${seo_description || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
 
-        // Intentar enviar con imagen primero
         try {
             await telegramBot.sendPhoto(TELEGRAM_CHAT_ID, imagen, {
                 caption: mensaje,
@@ -222,7 +172,6 @@ async function enviarTelegram(noticia) {
             console.log(`   📱 Telegram ✅ (con imagen)`);
             return true;
         } catch (e) {
-            // Fallback a solo texto
             await telegramBot.sendMessage(TELEGRAM_CHAT_ID, mensaje, {
                 parse_mode: 'Markdown',
                 disable_web_page_preview: false
@@ -232,22 +181,16 @@ async function enviarTelegram(noticia) {
         }
     } catch (err) {
         console.warn(`   ⚠️ Telegram error: ${err.message}`);
-
-        // Registrar error en memoria_ia
         try {
             await pool.query(
                 `INSERT INTO memoria_ia(tipo, valor, categoria, fallos) VALUES('error', $1, $2, 1)`,
                 [`Telegram: ${err.message.substring(0, 150)}`, noticia.seccion || 'general']
             );
         } catch (e) { }
-
         return false;
     }
 }
 
-/**
- * Obtiene el Chat ID automáticamente del último mensaje recibido por el bot
- */
 async function obtenerChatIdTelegram() {
     if (!telegramBot) return null;
     try {
@@ -263,12 +206,8 @@ async function obtenerChatIdTelegram() {
     return null;
 }
 
-/**
- * Envía mensaje de bienvenida cuando el bot se activa
- */
 async function bienvenidaTelegram() {
     if (!telegramBot || !TELEGRAM_CHAT_ID) return;
-
     try {
         await telegramBot.sendMessage(
             TELEGRAM_CHAT_ID,
@@ -483,7 +422,6 @@ app.get('/img/:nombre', async (req, res) => {
         res.setHeader('Cache-Control', 'public,max-age=604800');
         return res.sendFile(ruta);
     }
-    // /tmp fue limpiado — buscar URL original en BD y redirigir
     try {
         const nombre = req.params.nombre;
         const r = await pool.query(
@@ -1480,7 +1418,7 @@ async function regenerarWatermarksLostidos() {
               AND imagen_original IS NOT NULL
               AND imagen_original != ''
             ORDER BY fecha DESC LIMIT 30
-        `); // Reducido de 50 a 30 para ser más rápido
+        `);
 
         if (!r.rows.length) {
             console.log('🏮 No hay watermarks para regenerar');
@@ -1488,7 +1426,6 @@ async function regenerarWatermarksLostidos() {
         }
 
         let regeneradas = 0;
-        // Procesar en lotes de 5 para no saturar
         for (let i = 0; i < r.rows.length; i += 5) {
             const batch = r.rows.slice(i, i + 5);
             await Promise.all(batch.map(async (n) => {
@@ -1496,7 +1433,7 @@ async function regenerarWatermarksLostidos() {
                 if (!nombre) return;
 
                 const ruta = path.join('/tmp', nombre);
-                if (fs.existsSync(ruta)) return; // ya existe, no regenerar
+                if (fs.existsSync(ruta)) return;
 
                 try {
                     const resultado = await aplicarMarcaDeAgua(n.imagen_original);
@@ -1507,12 +1444,9 @@ async function regenerarWatermarksLostidos() {
                         );
                         regeneradas++;
                     }
-                } catch (e) {
-                    // Error silencioso - no detener el lote
-                }
+                } catch (e) { }
             }));
 
-            // Pequeña pausa entre lotes
             await new Promise(r => setTimeout(r, 100));
         }
 
@@ -1704,7 +1638,6 @@ CONTENIDO:
 
         if (qi) registrarQueryPexels(qi, categoria, true);
 
-        // ===== NUEVO: Enviar a Telegram automáticamente =====
         const noticiaPublicada = {
             titulo,
             slug: slFin,
@@ -1713,14 +1646,12 @@ CONTENIDO:
             seccion: categoria
         };
 
-        // No esperar a que termine para no bloquear la respuesta
         if (telegramBot) {
             enviarTelegram(noticiaPublicada).catch(e => {
                 console.error('❌ Error enviando a Telegram:', e.message);
             });
         }
 
-        // También enviar a Facebook y Twitter
         Promise.allSettled([
             publicarEnFacebook(titulo, slFin, urlFinal, desc),
             publicarEnTwitter(titulo, slFin, desc)
@@ -1948,6 +1879,7 @@ const CACHE_TTL = 60 * 1000;
 
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
+// ===== ENDPOINT PRINCIPAL DE NOTICIAS - CON CORS ABIERTO =====
 app.get('/api/noticias', async (req, res) => {
     try {
         if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL) {
@@ -1960,7 +1892,7 @@ app.get('/api/noticias', async (req, res) => {
         _cacheNoticias = r.rows;
         _cacheFecha = Date.now();
 
-        // Asegurar headers CORS específicos para esta respuesta
+        // Headers CORS explícitos
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -2253,7 +2185,7 @@ app.get('/status', async (req, res) => {
             wikipedia: '✅ Activa (API pública, sin key)',
             marca_de_agua: fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
             ia_activa: CONFIG_IA.enabled,
-            sistema: 'Web + Facebook + Twitter + Telegram + RSS + Wikipedia + Watermark + SEO + CORS Blogger'
+            sistema: 'Web + Facebook + Twitter + Telegram + RSS + Wikipedia + Watermark + SEO + CORS Abierto'
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -2263,31 +2195,27 @@ app.get('/status', async (req, res) => {
 app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE OPTIMIZADO — NO BLOQUEA, NO SIGTERM
+// ARRANQUE OPTIMIZADO
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
-        // 1. Inicializar BD rápido (esto es necesario y rápido)
         await inicializarBase();
 
-        // 2. Arrancar el servidor INMEDIATAMENTE (Railway ya ve que está online)
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT + CORS BLOGGER       ║
+║  🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT + CORS ABIERTO       ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🌐 Servidor ONLINE en puerto ${PORT}                             ║
 ║  📱 Telegram: ${TELEGRAM_TOKEN ? '✅ Configurado' : '⚠️ Sin token'}                     ║
-║  🌐 CORS Blogger: ✅ ACTIVADO (permite blogspot.com)            ║
+║  🌐 CORS: ✅ ABIERTO (cualquier sitio puede acceder a /api/noticias)║
 ║  ⏳ Iniciando tareas en segundo plano...                        ║
 ╚══════════════════════════════════════════════════════════════════╝`);
         });
 
-        // 3. Tareas en segundo plano (NO BLOQUEAN el arranque)
         setTimeout(async () => {
             console.log('⏳ Iniciando tareas post-arranque...');
 
-            // 3.1 Telegram - intentar conectar y enviar bienvenida (sin await)
             if (telegramBot) {
                 setTimeout(async () => {
                     try {
@@ -2299,10 +2227,9 @@ async function iniciar() {
                     } catch (e) {
                         console.log('📱 Telegram no disponible aún (el bot necesita un mensaje)');
                     }
-                }, 2000); // 2 segundos después
+                }, 2000);
             }
 
-            // 3.2 Watermarks - 10 segundos después (ya con Telegram conectado)
             setTimeout(async () => {
                 console.log('🏮 Regenerando watermarks en segundo plano...');
                 try {
@@ -2311,9 +2238,9 @@ async function iniciar() {
                 } catch (e) {
                     console.log('⚠️ Error en watermarks (no crítico):', e.message);
                 }
-            }, 10000); // 10 segundos después del arranque
+            }, 10000);
 
-        }, 3000); // 3 segundos después del arranque
+        }, 3000);
 
     } catch (error) {
         console.error('❌ Error fatal al iniciar:', error);
