@@ -1,268 +1,217 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es-DO">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contacto | El Farol al Día</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0a0a0a;
-            color: #e0e0e0;
-            line-height: 1.6;
-        }
-        /* HEADER */
-        header {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-bottom: 3px solid #ff9800;
-            padding: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
-        }
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-decoration: none;
-            color: #ff9800;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .logo span {
-            font-size: 32px;
-        }
-        nav {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        nav a {
-            color: #fff;
-            text-decoration: none;
-            transition: color 0.3s;
-            font-weight: 500;
-        }
-        nav a:hover {
-            color: #ff9800;
-        }
-        /* MAIN */
-        main {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
-        .card {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-radius: 10px;
-            border-left: 4px solid #ff9800;
-            padding: 30px;
-            margin-bottom: 30px;
-        }
-        h1 {
-            color: #ff9800;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .contact-info {
-            margin: 30px 0;
-            background: #1f1f1f;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .contact-info p {
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .contact-info i {
-            color: #ff9800;
-            font-size: 1.2rem;
-            min-width: 30px;
-        }
-        .whatsapp-link {
-            color: #25D366;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        .whatsapp-link:hover {
-            text-decoration: underline;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            color: #ff9800;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 2px solid #333;
-            background: #222;
-            color: white;
-            font-family: inherit;
-            transition: all 0.3s;
-        }
-        input:focus, textarea:focus {
-            border-color: #ff9800;
-            outline: none;
-            background: #2a2a2a;
-        }
-        textarea {
-            min-height: 120px;
-            resize: vertical;
-        }
-        button {
-            background: #ff9800;
-            color: black;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 40px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        button:hover {
-            background: #ffb333;
-            transform: translateY(-2px);
-        }
-        .btn-volver {
-            display: inline-block;
-            background: transparent;
-            border: 2px solid #ff9800;
-            color: #ff9800;
-            padding: 10px 30px;
-            border-radius: 40px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .btn-volver:hover {
-            background: #ff9800;
-            color: black;
-            transform: translateY(-2px);
-        }
-        /* FOOTER */
-        footer {
-            background: #1a1a1a;
-            border-top: 2px solid #ff9800;
-            padding: 30px 20px;
-            text-align: center;
-            color: #888;
-            margin-top: 60px;
-        }
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .footer-content a {
-            color: #ff9800;
-            text-decoration: none;
-            margin: 0 10px;
-            transition: color 0.3s;
-        }
-        .footer-content a:hover {
-            color: #ffb333;
-        }
-        @media (max-width: 768px) {
-            .header-container {
-                flex-direction: column;
-                gap: 15px;
-            }
-            nav {
-                flex-direction: column;
-                width: 100%;
-                text-align: center;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contacto | El Farol al Día</title>
+<meta name="description" content="Contáctanos en El Farol al Día. Periodismo digital dominicano desde Santo Domingo Este. Correo, logística y negocios.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://elfarolaldia.com/contacto">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--fuego:#FF5500;--fuego2:#CC4300;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#777;--verde:#22C55E;--dorado:#FFD700;--azul-marino:#0A2647}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.7;min-height:100vh}
+header{background:rgba(7,7,7,.97);border-bottom:2px solid var(--fuego);padding:0 20px;height:65px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px}
+.logo-icon{width:38px;height:38px;background:var(--fuego);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.back-btn{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 14px;border-radius:6px;transition:all .2s}
+.back-btn:hover{border-color:var(--fuego);color:var(--fuego)}
+.container{max-width:1000px;margin:0 auto;padding:50px 24px 80px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:2px;color:var(--fuego);margin-bottom:8px}
+.subtitle{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:2px;margin-bottom:50px;display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:40px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.contact-card{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:28px;transition:all .2s;text-decoration:none;color:inherit;display:block}
+.contact-card:hover{border-color:var(--fuego);transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.card-icon{font-size:36px;margin-bottom:14px}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--fuego);margin-bottom:8px}
+.card-desc{font-size:13px;color:var(--crema2);line-height:1.6;margin-bottom:16px}
+.card-email{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--crema);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:8px 12px;border-radius:6px;display:block;word-break:break-all}
+/* Business card gold */
+.contact-card.business{background:var(--azul-marino);border-color:rgba(255,215,0,.3)}
+.contact-card.business:hover{border-color:var(--dorado)}
+.contact-card.business .card-title{color:var(--dorado)}
+.contact-card.business .card-email{background:rgba(255,215,0,.1);border-color:rgba(255,215,0,.3);color:var(--dorado)}
+/* Form */
+.form-section{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:32px;margin-bottom:32px}
+.form-section h2{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--fuego);margin-bottom:20px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:600px){.frow{grid-template-columns:1fr}}
+.fgroup{margin-bottom:16px}
+.fgroup label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:7px}
+.fgroup input,.fgroup select,.fgroup textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s}
+.fgroup input:focus,.fgroup select:focus,.fgroup textarea:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
+.fgroup input::placeholder,.fgroup textarea::placeholder{color:var(--muted);font-style:italic}
+.fgroup select option{background:#111}
+.fgroup textarea{min-height:110px;resize:vertical;line-height:1.6}
+.btn-send{width:100%;padding:15px;background:linear-gradient(135deg,var(--fuego),#FF7A00);border:none;border-radius:8px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(255,85,0,.35)}
+.btn-send:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,85,0,.5)}
+.msg-ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);padding:12px 16px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none}
+/* Location */
+.location-bar{background:var(--papel);border:1px solid var(--borde);border-radius:12px;padding:22px 28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.loc-item{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--crema2)}
+.loc-item strong{color:var(--crema)}
+footer{background:var(--tinta);border-top:1px solid var(--borde);padding:30px 20px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+footer a{color:var(--crema2);text-decoration:none;margin:0 10px}
+footer a:hover{color:var(--fuego)}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-container">
-            <a href="/" class="logo">
-                <span>🏮</span>
-                El Farol al Día
-            </a>
-            <nav>
-                <a href="/">Inicio</a>
-                <a href="/nosotros">Sobre Nosotros</a>
-                <a href="/contacto">Contacto</a>
-                <a href="/privacidad">Privacidad</a>
-            </nav>
-        </div>
-    </header>
+<header>
+  <a href="/" class="logo"><div class="logo-icon">🏮</div>EL FAROL AL DÍA</a>
+  <a href="/" class="back-btn">← VOLVER AL INICIO</a>
+</header>
 
-    <main>
-        <div class="card">
-            <h1>Contacto</h1>
-            
-            <div class="contact-info">
-                <p><i>📧</i> Correo: <a href="mailto:jose.colorvision@gmail.com" style="color:#ff9800;">jose.colorvision@gmail.com</a></p>
-                <p><i>📱</i> WhatsApp: <a href="https://wa.me/18093041128" class="whatsapp-link" target="_blank">+1 809-304-1128</a></p>
-                <p><i>🏢</i> Santo Domingo Este, República Dominicana</p>
-            </div>
-            
-            <h2 style="color:#ff9800; margin-top: 30px;">Escríbenos</h2>
-            <form id="contactForm" onsubmit="event.preventDefault(); alert('Gracias por contactarnos. Te responderemos a la brevedad.');">
-                <div class="form-group">
-                    <label>Nombre</label>
-                    <input type="text" placeholder="Tu nombre" required>
-                </div>
-                <div class="form-group">
-                    <label>Correo electrónico</label>
-                    <input type="email" placeholder="tucorreo@ejemplo.com" required>
-                </div>
-                <div class="form-group">
-                    <label>Mensaje</label>
-                    <textarea placeholder="Escribe tu mensaje..." required></textarea>
-                </div>
-                <button type="submit">Enviar mensaje</button>
-            </form>
-            
-            <div style="text-align: center; margin-top: 30px;">
-                <a href="/" class="btn-volver">← Volver al Inicio</a>
-            </div>
-        </div>
-    </main>
+<div class="container">
+  <h1>CONTACTO</h1>
+  <span class="subtitle">ESTAMOS AQUÍ PARA AYUDARTE · SANTO DOMINGO ESTE, RD</span>
 
-    <footer>
-        <div class="footer-content">
-            <p>🏮 El Farol al Día - Periódico Digital Dominicano</p>
-            <p style="margin-top: 10px;">
-                <a href="/">Inicio</a> | 
-                <a href="/nosotros">Nosotros</a> | 
-                <a href="/contacto">Contacto</a> | 
-                <a href="/privacidad">Privacidad</a>
-            </p>
-            <p style="margin-top: 15px;">&copy; 2026 El Farol al Día. Todos los derechos reservados.</p>
-        </div>
-    </footer>
+  <!-- TARJETAS DE CONTACTO -->
+  <div class="grid">
+
+    <a class="contact-card" href="mailto:redaccion@elfarolaldia.com?subject=Consulta%20Editorial">
+      <div class="card-icon">📰</div>
+      <div class="card-title">REDACCIÓN EDITORIAL</div>
+      <div class="card-desc">Envíanos noticias, comunicados de prensa, correcciones o sugerencias de contenido para nuestra redacción.</div>
+      <span class="card-email">redaccion@elfarolaldia.com</span>
+    </a>
+
+    <a class="contact-card business" href="mailto:logistics@elfarolaldia.com?subject=Consulta%20Logística%20-%20El%20Farol%20Business&body=Buenos%20días,%0A%0AMe%20interesa%20obtener%20información%20sobre%20sus%20servicios%20de%20logística.%0A%0ANombre:%0AEmpresa:%0APaís:%0AConsulta:">
+      <div class="card-icon">🚢</div>
+      <div class="card-title">LOGÍSTICA & ENVÍOS</div>
+      <div class="card-desc">Consultas sobre exportación RD→USA, gestión aduanal, tracking en tiempo real y coordinación con agentes en Miami y NY.</div>
+      <span class="card-email">logistics@elfarolaldia.com</span>
+    </a>
+
+    <a class="contact-card business" href="mailto:acquisitions@elfarolaldia.com?subject=Adquisiciones%20USA%20-%20Equipamiento%20PC&body=Buenos%20días,%0A%0AQuiero%20consultar%20sobre%20adquisición%20de%20equipos%20tecnológicos.%0A%0ANombre:%0AEmpresa:%0ACantidad%20estimada:%0APresupuesto:">
+      <div class="card-icon">🇺🇸</div>
+      <div class="card-title">ADQUISICIONES USA</div>
+      <div class="card-desc">Equipamiento PC profesional, servidores y suministros de oficina certificados para importación/exportación con documentación legal.</div>
+      <span class="card-email">acquisitions@elfarolaldia.com</span>
+    </a>
+
+    <a class="contact-card" href="mailto:legal@elfarolaldia.com?subject=Consulta%20Legal">
+      <div class="card-icon">⚖️</div>
+      <div class="card-title">LEGAL & PRIVACIDAD</div>
+      <div class="card-desc">Consultas sobre derechos de autor, eliminación de contenido, privacidad de datos o marco legal de operaciones.</div>
+      <span class="card-email">legal@elfarolaldia.com</span>
+    </a>
+
+    <a class="contact-card" href="mailto:publicidad@elfarolaldia.com?subject=Consulta%20Publicidad">
+      <div class="card-icon">📢</div>
+      <div class="card-title">PUBLICIDAD</div>
+      <div class="card-desc">Opciones de patrocinio, publicidad nativa y campañas digitales para llegar a nuestra audiencia dominicana.</div>
+      <span class="card-email">publicidad@elfarolaldia.com</span>
+    </a>
+
+    <a class="contact-card business" href="mailto:business@elfarolaldia.com?subject=Consulta%20General%20de%20Negocios&body=Buenos%20días,%0A%0AMe%20interesa%20hacer%20negocios%20con%20El%20Farol%20al%20Día.%0A%0ANombre:%0AEmpresa:%0ATeléfono:%0AConsulta:">
+      <div class="card-icon">💼</div>
+      <div class="card-title">NEGOCIOS GENERALES</div>
+      <div class="card-desc">Alianzas comerciales, contratos de suministro, propuestas de colaboración empresarial RD–USA–Caribe.</div>
+      <span class="card-email">business@elfarolaldia.com</span>
+    </a>
+
+  </div>
+
+  <!-- FORMULARIO -->
+  <div class="form-section">
+    <h2>📩 ENVÍANOS UN MENSAJE</h2>
+    <div class="frow">
+      <div class="fgroup">
+        <label>TU NOMBRE *</label>
+        <input type="text" id="nombre" placeholder="Juan Pérez" maxlength="80">
+      </div>
+      <div class="fgroup">
+        <label>TU CORREO *</label>
+        <input type="email" id="email" placeholder="tu@correo.com">
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fgroup">
+        <label>EMPRESA / INSTITUCIÓN</label>
+        <input type="text" id="empresa" placeholder="Nombre de tu empresa (opcional)">
+      </div>
+      <div class="fgroup">
+        <label>ASUNTO *</label>
+        <select id="asunto">
+          <option value="">Selecciona un asunto...</option>
+          <option value="redaccion">Editorial / Noticias</option>
+          <option value="logistics">Logística & Envíos</option>
+          <option value="acquisitions">Adquisiciones USA</option>
+          <option value="publicidad">Publicidad</option>
+          <option value="legal">Legal / Privacidad</option>
+          <option value="business">Negocios Generales</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>TU MENSAJE *</label>
+      <textarea id="mensaje" placeholder="Escribe aquí tu consulta o mensaje..."></textarea>
+    </div>
+    <button class="btn-send" onclick="enviarFormulario()">📧 ENVIAR MENSAJE</button>
+    <div class="msg-ok" id="msgOk">✅ ¡Mensaje enviado! Te contactaremos a la brevedad posible.</div>
+  </div>
+
+  <!-- UBICACIÓN -->
+  <div class="location-bar">
+    <div class="loc-item">📍 <span><strong>Santo Domingo Este</strong>, República Dominicana</span></div>
+    <div class="loc-item">🌐 <span><strong>elfarolaldia.com</strong></span></div>
+    <div class="loc-item">🏭 <span>Hub Logístico <strong>Los Mina · Invivienda</strong></span></div>
+    <div class="loc-item">🇺🇸 <span>Operaciones en <strong>Miami · Nueva York</strong></span></div>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 El Farol al Día · República Dominicana</div>
+  <div style="margin-top:10px">
+    <a href="/">INICIO</a>
+    <a href="/privacidad">PRIVACIDAD</a>
+    <a href="/terminos">TÉRMINOS</a>
+    <a href="/cookies">COOKIES</a>
+    <a href="/contacto">CONTACTO</a>
+  </div>
+</footer>
+
+<script>
+function enviarFormulario() {
+  const nombre  = document.getElementById('nombre').value.trim();
+  const email   = document.getElementById('email').value.trim();
+  const asunto  = document.getElementById('asunto').value;
+  const mensaje = document.getElementById('mensaje').value.trim();
+
+  if (!nombre || !email || !asunto || !mensaje) {
+    alert('Por favor completa todos los campos obligatorios (*)');
+    return;
+  }
+  if (!email.includes('@')) {
+    alert('Por favor ingresa un correo válido');
+    return;
+  }
+
+  const correos = {
+    redaccion:    'redaccion@elfarolaldia.com',
+    logistics:    'logistics@elfarolaldia.com',
+    acquisitions: 'acquisitions@elfarolaldia.com',
+    publicidad:   'publicidad@elfarolaldia.com',
+    legal:        'legal@elfarolaldia.com',
+    business:     'business@elfarolaldia.com',
+    otro:         'business@elfarolaldia.com'
+  };
+
+  const destino = correos[asunto] || 'business@elfarolaldia.com';
+  const empresa = document.getElementById('empresa').value.trim();
+  const cuerpo  = `Nombre: ${nombre}\nCorreo: ${email}${empresa ? '\nEmpresa: ' + empresa : ''}\n\nMensaje:\n${mensaje}`;
+  const subject = encodeURIComponent(`[Web] ${asunto.charAt(0).toUpperCase()+asunto.slice(1)} - ${nombre}`);
+  const body    = encodeURIComponent(cuerpo);
+
+  window.location.href = `mailto:${destino}?subject=${subject}&body=${body}`;
+
+  document.getElementById('msgOk').style.display = 'block';
+  setTimeout(() => { document.getElementById('msgOk').style.display = 'none'; }, 5000);
+}
+</script>
 </body>
 </html>
