@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.0 FINAL + TELEGRAM BOT
+ * 🏮 EL FAROL AL DÍA — V34.0 FINAL + TELEGRAM BOT + CORS BLOGGER
  * + Basic Auth protege /redaccion y /api/admin (usuario: director / clave: 311)
  * + Wikipedia + Wikimedia Commons para imágenes coherentes
  * + Mapeo forzado de personajes públicos (Trump, Ortiz, Abinader...)
@@ -9,17 +9,19 @@
  * + Telegram Bot automático (node-telegram-bot-api)
  * + ARRANQUE OPTIMIZADO — Sin SIGTERM, watermarks en segundo plano
  * + 🚫 AdSense INTACTO — pub-5280872495839888 NO TOCADO
+ * + 🌐 CORS CONFIGURADO PARA BLOGGER — permite peticiones desde blogspot.com
+ * + ✅ VERSIÓN REVISADA - SIN ERRORES DE CIERRE
  */
 
-const express   = require('express');
-const cors      = require('cors');
-const path      = require('path');
-const fs        = require('fs');
-const cron      = require('node-cron');
-const { Pool }  = require('pg');
-const sharp     = require('sharp');
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const cron = require('node-cron');
+const { Pool } = require('pg');
+const sharp = require('sharp');
 const RSSParser = require('rss-parser');
-const crypto    = require('crypto');
+const crypto = require('crypto');
 const TelegramBot = require('node-telegram-bot-api');
 
 // ══════════════════════════════════════════════════════════
@@ -42,25 +44,25 @@ function authMiddleware(req, res, next) {
         if (user === 'director' && pass === '311') {
             return next();
         }
-    } catch(e) { /* credenciales malformadas */ }
+    } catch (e) { /* credenciales malformadas */ }
 
     res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día - Redacción"');
     return res.status(401).send('Credenciales incorrectas. Usuario: director / Contraseña: 311');
 }
 
-const app      = express();
-const PORT     = process.env.PORT || 8080;
+const app = express();
+const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
-if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
+if (!process.env.DATABASE_URL) { console.error('❌ DATABASE_URL requerido'); process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
-const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
-const FB_PAGE_ID            = process.env.FB_PAGE_ID            || null;
-const FB_PAGE_TOKEN         = process.env.FB_PAGE_TOKEN         || null;
-const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
-const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
-const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY || null;
+const FB_PAGE_ID = process.env.FB_PAGE_ID || null;
+const FB_PAGE_TOKEN = process.env.FB_PAGE_TOKEN || null;
+const TWITTER_API_KEY = process.env.TWITTER_API_KEY || null;
+const TWITTER_API_SECRET = process.env.TWITTER_API_SECRET || null;
+const TWITTER_ACCESS_TOKEN = process.env.TWITTER_ACCESS_TOKEN || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
 
 // ===== TELEGRAM BOT CONFIG =====
@@ -96,7 +98,7 @@ const WATERMARK_PATH = (() => {
     }
     return path.join(__dirname, 'static', 'watermark.png'); // fallback
 })();
-const rssParser             = new RSSParser({ timeout: 10000 });
+const rssParser = new RSSParser({ timeout: 10000 });
 
 // ══════════════════════════════════════════════════════════
 // BASE DE DATOS
@@ -119,7 +121,64 @@ app.use(express.static(path.join(__dirname, 'client'), {
             res.setHeader('Cache-Control', 'public,max-age=86400');
     }
 }));
-app.use(cors());
+
+// ===== CONFIGURACIÓN CORS MEJORADA PARA BLOGGER =====
+// Configuración de CORS permitiendo múltiples orígenes
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Permitir solicitudes sin origen (como aplicaciones móviles o postman)
+        if (!origin) {
+            return callback(null, true);
+        }
+        
+        // Lista de patrones permitidos
+        const allowedPatterns = [
+            /\.blogspot\.com$/,           // Cualquier subdominio de Blogger
+            /^https?:\/\/[a-zA-Z0-9-]+\.blogspot\.com/, // Más específico
+            /elfarolaldia\.com$/,          // Tu dominio principal
+            /localhost/,                   // Para desarrollo local
+            /127\.0\.0\.1/                  // Para desarrollo local
+        ];
+        
+        // Verificar si el origen coincide con algún patrón permitido
+        const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+        
+        if (isAllowed) {
+            return callback(null, true);
+        }
+        
+        // En producción, podrías querer bloquear otros orígenes
+        // Por ahora, permitimos todo para evitar problemas
+        console.log(`⚠️ CORS: Origen permitido (modo permisivo): ${origin}`);
+        return callback(null, true);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+// Aplicar CORS a todas las rutas
+app.use(cors(corsOptions));
+
+// Middleware adicional para asegurar headers CORS en respuestas
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Manejar preflight requests (OPTIONS)
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
 // ══════════════════════════════════════════════════════════
 // 📱 FUNCIÓN PARA ENVIAR A TELEGRAM
@@ -142,14 +201,14 @@ async function enviarTelegram(noticia) {
     try {
         const { titulo, slug, imagen, seo_description, seccion } = noticia;
         const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        
+
         const emoji = {
-            'Nacionales':      '🏛️',
-            'Deportes':        '⚽',
+            'Nacionales': '🏛️',
+            'Deportes': '⚽',
             'Internacionales': '🌍',
-            'Economía':        '💰',
-            'Tecnología':      '💻',
-            'Espectáculos':    '🎬'
+            'Economía': '💰',
+            'Tecnología': '💻',
+            'Espectáculos': '🎬'
         }[seccion] || '📰';
 
         const mensaje = `${emoji} *${titulo}*\n\n${seo_description || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
@@ -173,15 +232,15 @@ async function enviarTelegram(noticia) {
         }
     } catch (err) {
         console.warn(`   ⚠️ Telegram error: ${err.message}`);
-        
+
         // Registrar error en memoria_ia
         try {
             await pool.query(
                 `INSERT INTO memoria_ia(tipo, valor, categoria, fallos) VALUES('error', $1, $2, 1)`,
                 [`Telegram: ${err.message.substring(0, 150)}`, noticia.seccion || 'general']
             );
-        } catch (e) {}
-        
+        } catch (e) { }
+
         return false;
     }
 }
@@ -200,7 +259,7 @@ async function obtenerChatIdTelegram() {
                 return chatId.toString();
             }
         }
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
     return null;
 }
 
@@ -217,7 +276,7 @@ async function bienvenidaTelegram() {
             { parse_mode: 'Markdown' }
         );
         console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -225,23 +284,23 @@ async function bienvenidaTelegram() {
 // ══════════════════════════════════════════════════════════
 
 const WIKI_TERMINOS_RD = {
-    'los mina':          'Los Mina Santo Domingo',
-    'invivienda':        'Instituto Nacional de la Vivienda República Dominicana',
-    'ensanche ozama':    'Ensanche Ozama Santo Domingo Este',
-    'santo domingo este':'Santo Domingo Este',
-    'sabana perdida':    'Sabana Perdida Santo Domingo',
-    'villa mella':       'Villa Mella Santo Domingo',
-    'policia nacional':  'Policía Nacional República Dominicana',
-    'presidencia':       'Presidencia de la República Dominicana',
-    'procuraduria':      'Procuraduría General de la República Dominicana',
-    'banco central':     'Banco Central de la República Dominicana',
-    'beisbol':           'Béisbol en República Dominicana',
-    'turismo':           'Turismo en República Dominicana',
-    'economia':          'Economía de República Dominicana',
-    'educacion':         'Educación en República Dominicana',
-    'salud publica':     'Ministerio de Salud Pública República Dominicana',
-    'mopc':              'Ministerio de Obras Públicas República Dominicana',
-    'haití':             'Relaciones entre República Dominicana y Haití',
+    'los mina': 'Los Mina Santo Domingo',
+    'invivienda': 'Instituto Nacional de la Vivienda República Dominicana',
+    'ensanche ozama': 'Ensanche Ozama Santo Domingo Este',
+    'santo domingo este': 'Santo Domingo Este',
+    'sabana perdida': 'Sabana Perdida Santo Domingo',
+    'villa mella': 'Villa Mella Santo Domingo',
+    'policia nacional': 'Policía Nacional República Dominicana',
+    'presidencia': 'Presidencia de la República Dominicana',
+    'procuraduria': 'Procuraduría General de la República Dominicana',
+    'banco central': 'Banco Central de la República Dominicana',
+    'beisbol': 'Béisbol en República Dominicana',
+    'turismo': 'Turismo en República Dominicana',
+    'economia': 'Economía de República Dominicana',
+    'educacion': 'Educación en República Dominicana',
+    'salud publica': 'Ministerio de Salud Pública República Dominicana',
+    'mopc': 'Ministerio de Obras Públicas República Dominicana',
+    'haití': 'Relaciones entre República Dominicana y Haití',
 };
 
 async function buscarContextoWikipedia(titulo, categoria) {
@@ -258,36 +317,36 @@ async function buscarContextoWikipedia(titulo, categoria) {
 
         if (!terminoBusqueda) {
             const mapaCategoria = {
-                'Nacionales':       `${titulo} República Dominicana`,
-                'Deportes':         `${titulo} deporte dominicano`,
-                'Internacionales':  `${titulo} América Latina Caribe`,
-                'Economía':         `${titulo} economía dominicana`,
-                'Tecnología':       titulo,
-                'Espectáculos':     `${titulo} cultura dominicana`,
+                'Nacionales': `${titulo} República Dominicana`,
+                'Deportes': `${titulo} deporte dominicano`,
+                'Internacionales': `${titulo} América Latina Caribe`,
+                'Economía': `${titulo} economía dominicana`,
+                'Tecnología': titulo,
+                'Espectáculos': `${titulo} cultura dominicana`,
             };
             terminoBusqueda = mapaCategoria[categoria] || `${titulo} República Dominicana`;
         }
 
         const urlBusqueda = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(terminoBusqueda)}&format=json&srlimit=3&origin=*`;
-        const ctrlBusq    = new AbortController();
-        const tmBusq      = setTimeout(() => ctrlBusq.abort(), 6000);
+        const ctrlBusq = new AbortController();
+        const tmBusq = setTimeout(() => ctrlBusq.abort(), 6000);
         const resBusqueda = await fetch(urlBusqueda, { signal: ctrlBusq.signal }).finally(() => clearTimeout(tmBusq));
         if (!resBusqueda.ok) return '';
 
         const dataBusqueda = await resBusqueda.json();
-        const resultados   = dataBusqueda?.query?.search;
+        const resultados = dataBusqueda?.query?.search;
         if (!resultados?.length) return '';
 
         const paginaId = resultados[0].pageid;
 
         const urlExtracto = `https://es.wikipedia.org/w/api.php?action=query&pageids=${paginaId}&prop=extracts&exintro=true&exchars=1500&format=json&origin=*`;
-        const ctrlExtr    = new AbortController();
-        const tmExtr      = setTimeout(() => ctrlExtr.abort(), 6000);
+        const ctrlExtr = new AbortController();
+        const tmExtr = setTimeout(() => ctrlExtr.abort(), 6000);
         const resExtracto = await fetch(urlExtracto, { signal: ctrlExtr.signal }).finally(() => clearTimeout(tmExtr));
         if (!resExtracto.ok) return '';
 
         const dataExtracto = await resExtracto.json();
-        const pagina       = dataExtracto?.query?.pages?.[paginaId];
+        const pagina = dataExtracto?.query?.pages?.[paginaId];
         if (!pagina?.extract) return '';
 
         const textoLimpio = pagina.extract
@@ -312,22 +371,22 @@ async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
     if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
     try {
         const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const mensaje    = `🏮 ${titulo}\n\n${descripcion || ''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
+        const mensaje = `🏮 ${titulo}\n\n${descripcion || ''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
 
         const form = new URLSearchParams();
-        form.append('url',          urlImagen);
-        form.append('caption',      mensaje);
+        form.append('url', urlImagen);
+        form.append('caption', mensaje);
         form.append('access_token', FB_PAGE_TOKEN);
 
-        const res  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { method: 'POST', body: form });
+        const res = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { method: 'POST', body: form });
         const data = await res.json();
 
         if (data.error) {
             const form2 = new URLSearchParams();
-            form2.append('message',      mensaje);
-            form2.append('link',         urlNoticia);
+            form2.append('message', mensaje);
+            form2.append('link', urlNoticia);
             form2.append('access_token', FB_PAGE_TOKEN);
-            const res2  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { method: 'POST', body: form2 });
+            const res2 = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { method: 'POST', body: form2 });
             const data2 = await res2.json();
             if (data2.error) { console.warn(`   ⚠️ FB: ${data2.error.message}`); return false; }
         }
@@ -345,19 +404,19 @@ async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
 // ══════════════════════════════════════════════════════════
 function generarOAuthHeader(method, url, params, consumerKey, consumerSecret, accessToken, tokenSecret) {
     const oauthParams = {
-        oauth_consumer_key:     consumerKey,
-        oauth_nonce:            crypto.randomBytes(16).toString('hex'),
+        oauth_consumer_key: consumerKey,
+        oauth_nonce: crypto.randomBytes(16).toString('hex'),
         oauth_signature_method: 'HMAC-SHA1',
-        oauth_timestamp:        Math.floor(Date.now() / 1000).toString(),
-        oauth_token:            accessToken,
-        oauth_version:          '1.0'
+        oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+        oauth_token: accessToken,
+        oauth_version: '1.0'
     };
-    const allParams    = { ...params, ...oauthParams };
+    const allParams = { ...params, ...oauthParams };
     const sortedParams = Object.keys(allParams).sort()
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(allParams[k])}`).join('&');
-    const baseString   = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(sortedParams)}`;
-    const signingKey   = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
-    const signature    = crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
+    const baseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(sortedParams)}`;
+    const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+    const signature = crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
     oauthParams.oauth_signature = signature;
     return 'OAuth ' + Object.keys(oauthParams).sort()
         .map(k => `${encodeURIComponent(k)}="${encodeURIComponent(oauthParams[k])}"`)
@@ -368,11 +427,11 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
     if (!TWITTER_API_KEY || !TWITTER_API_SECRET || !TWITTER_ACCESS_TOKEN || !TWITTER_ACCESS_SECRET) return false;
     try {
         const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const textoBase  = `🏮 ${titulo}\n\n${urlNoticia}\n\n#ElFarolAlDía #RD`;
-        const tweet      = textoBase.length > 280 ? textoBase.substring(0, 277) + '...' : textoBase;
-        const tweetUrl   = 'https://api.twitter.com/2/tweets';
+        const textoBase = `🏮 ${titulo}\n\n${urlNoticia}\n\n#ElFarolAlDía #RD`;
+        const tweet = textoBase.length > 280 ? textoBase.substring(0, 277) + '...' : textoBase;
+        const tweetUrl = 'https://api.twitter.com/2/tweets';
         const authHeader = generarOAuthHeader('POST', tweetUrl, {}, TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET);
-        const res        = await fetch(tweetUrl, {
+        const res = await fetch(tweetUrl, {
             method: 'POST',
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: tweet })
@@ -394,20 +453,20 @@ async function aplicarMarcaDeAgua(urlImagen) {
     try {
         const response = await fetch(urlImagen);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const bufOrig   = Buffer.from(await response.arrayBuffer());
+        const bufOrig = Buffer.from(await response.arrayBuffer());
         if (!fs.existsSync(WATERMARK_PATH)) { console.warn('   ⚠️ Watermark no encontrado'); return { url: urlImagen, procesada: false }; }
-        const meta      = await sharp(bufOrig).metadata();
-        const w         = meta.width  || 800;
-        const h         = meta.height || 500;
-        const wmAncho   = Math.min(Math.round(w * 0.28), 300);
+        const meta = await sharp(bufOrig).metadata();
+        const w = meta.width || 800;
+        const h = meta.height || 500;
+        const wmAncho = Math.min(Math.round(w * 0.28), 300);
         const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
-        const wmMeta    = await sharp(wmResized).metadata();
-        const wmAlto    = wmMeta.height || 60;
-        const margen    = Math.round(w * 0.02);
-        const bufFinal  = await sharp(bufOrig)
+        const wmMeta = await sharp(wmResized).metadata();
+        const wmAlto = wmMeta.height || 60;
+        const margen = Math.round(w * 0.02);
+        const bufFinal = await sharp(bufOrig)
             .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
             .jpeg({ quality: 88 }).toBuffer();
-        const nombre    = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
+        const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
         console.log(`   🏮 Watermark: ${nombre}`);
         return { url: urlImagen, nombre, procesada: true };
@@ -420,7 +479,7 @@ async function aplicarMarcaDeAgua(urlImagen) {
 app.get('/img/:nombre', async (req, res) => {
     const ruta = path.join('/tmp', req.params.nombre);
     if (fs.existsSync(ruta)) {
-        res.setHeader('Content-Type',  'image/jpeg');
+        res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'public,max-age=604800');
         return res.sendFile(ruta);
     }
@@ -434,7 +493,7 @@ app.get('/img/:nombre', async (req, res) => {
         if (r.rows.length && r.rows[0].imagen_original) {
             return res.redirect(302, r.rows[0].imagen_original);
         }
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
     res.status(404).send('Imagen no disponible');
 });
 
@@ -464,7 +523,7 @@ async function cargarConfigIA() {
             CONFIG_IA = { ...CONFIG_IA_DEFAULT };
             console.log('✅ Config IA usando valores por defecto');
         }
-    } catch(e) {
+    } catch (e) {
         CONFIG_IA = { ...CONFIG_IA_DEFAULT };
         console.log('⚠️ Config IA: usando defecto (' + e.message + ')');
     }
@@ -484,7 +543,7 @@ async function guardarConfigIA(cfg) {
             WHERE tipo='config_ia' AND categoria='sistema'
         `, [valor]);
         return true;
-    } catch(e) {
+    } catch (e) {
         console.error('❌ guardarConfigIA:', e.message);
         return false;
     }
@@ -513,9 +572,9 @@ async function llamarGemini(prompt, reintentos = 3) {
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: {
-                            temperature:     0.8,
+                            temperature: 0.8,
                             maxOutputTokens: 4000,
-                            stopSequences:   []
+                            stopSequences: []
                         }
                     })
                 }
@@ -527,7 +586,7 @@ async function llamarGemini(prompt, reintentos = 3) {
                 continue;
             }
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data  = await res.json();
+            const data = await res.json();
             const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (!texto) throw new Error('Respuesta vacía');
             console.log(`   ✅ Gemini OK`);
@@ -545,55 +604,55 @@ async function llamarGemini(prompt, reintentos = 3) {
 // ══════════════════════════════════════════════════════════
 
 const MAPEO_IMAGENES = {
-    'donald trump':     ['trump president podium microphone', 'trump white house press conference', 'american president speech flag'],
-    'trump':            ['trump president podium microphone', 'american president official speech', 'white house press briefing'],
-    'joe biden':        ['biden president official ceremony', 'american president white house', 'us president podium speech'],
-    'biden':            ['us president official ceremony', 'american president speech podium', 'white house official event'],
-    'kamala harris':    ['us vice president official portrait', 'american politician speech podium', 'government official press conference'],
-    'obama':            ['barack obama official portrait', 'former us president speech', 'american president podium crowd'],
-    'putin':            ['russian president official ceremony', 'kremlin government official', 'russia president press conference'],
-    'elon musk':        ['tech entrepreneur conference stage', 'silicon valley ceo keynote speech', 'technology executive presentation'],
-    'casa blanca':      ['white house washington dc', 'white house lawn official', 'washington dc government building'],
-    'white house':      ['white house washington dc exterior', 'us capitol government building', 'washington dc landmark'],
-    'congreso eeuu':    ['us congress capitol building', 'senate chamber government session', 'american congress session'],
-    'onu':              ['united nations general assembly', 'un building new york diplomacy', 'international diplomacy conference'],
-    'abinader':         ['latin american president ceremony', 'caribbean government official speech', 'dominican republic president podium'],
-    'luis abinader':    ['latin american president ceremony', 'caribbean government official speech', 'dominican republic government event'],
-    'leonel':           ['latin american politician speech', 'caribbean political leader podium', 'dominican republic political event'],
+    'donald trump': ['trump president podium microphone', 'trump white house press conference', 'american president speech flag'],
+    'trump': ['trump president podium microphone', 'american president official speech', 'white house press briefing'],
+    'joe biden': ['biden president official ceremony', 'american president white house', 'us president podium speech'],
+    'biden': ['us president official ceremony', 'american president speech podium', 'white house official event'],
+    'kamala harris': ['us vice president official portrait', 'american politician speech podium', 'government official press conference'],
+    'obama': ['barack obama official portrait', 'former us president speech', 'american president podium crowd'],
+    'putin': ['russian president official ceremony', 'kremlin government official', 'russia president press conference'],
+    'elon musk': ['tech entrepreneur conference stage', 'silicon valley ceo keynote speech', 'technology executive presentation'],
+    'casa blanca': ['white house washington dc', 'white house lawn official', 'washington dc government building'],
+    'white house': ['white house washington dc exterior', 'us capitol government building', 'washington dc landmark'],
+    'congreso eeuu': ['us congress capitol building', 'senate chamber government session', 'american congress session'],
+    'onu': ['united nations general assembly', 'un building new york diplomacy', 'international diplomacy conference'],
+    'abinader': ['latin american president ceremony', 'caribbean government official speech', 'dominican republic president podium'],
+    'luis abinader': ['latin american president ceremony', 'caribbean government official speech', 'dominican republic government event'],
+    'leonel': ['latin american politician speech', 'caribbean political leader podium', 'dominican republic political event'],
     'leonel fernández': ['latin american president speech podium', 'caribbean political leader official', 'dominican political ceremony'],
-    'danilo medina':    ['latin american president ceremony', 'dominican government official event', 'caribbean politician speech'],
-    'hipólito':         ['latin american president government', 'caribbean official ceremony', 'dominican republic political leader'],
+    'danilo medina': ['latin american president ceremony', 'dominican government official event', 'caribbean politician speech'],
+    'hipólito': ['latin american president government', 'caribbean official ceremony', 'dominican republic political leader'],
     'palacio nacional': ['government palace latin america', 'caribbean presidential palace', 'dominican republic government building'],
-    'congreso nacional':['latin american parliament building', 'caribbean congress session hall', 'government assembly chamber'],
-    'david ortiz':      ['baseball player batting stadium', 'mlb baseball hitter home run', 'baseball legend championship series'],
-    'big papi':         ['baseball player batting mlb', 'baseball legend career highlights', 'mlb all star game baseball'],
-    'pedro martinez':   ['baseball pitcher throwing mound', 'mlb pitcher strikeout stadium', 'baseball pitcher windup delivery'],
-    'vladimir guerrero':['baseball outfielder batting mlb', 'dominican baseball player stadium', 'mlb latin player batting'],
-    'juan soto':        ['baseball outfielder batting stance', 'mlb young star baseball game', 'baseball player stadium crowd'],
-    'béisbol':          ['baseball dominican republic stadium', 'baseball game crowd fans', 'baseball player batting pitch'],
-    'beisbol':          ['baseball dominican republic stadium', 'baseball game crowd fans', 'baseball player batting pitch'],
-    'messi':            ['soccer player dribbling ball', 'football player celebrating goal', 'professional soccer match action'],
-    'ronaldo':          ['soccer player jumping heading', 'football professional player goal', 'soccer match celebration'],
-    'inapa':            ['water treatment plant infrastructure', 'water pipe installation workers', 'clean water supply system caribbean'],
-    'acueducto':        ['water infrastructure construction', 'pipeline water system workers', 'water treatment facility caribbean'],
+    'congreso nacional': ['latin american parliament building', 'caribbean congress session hall', 'government assembly chamber'],
+    'david ortiz': ['baseball player batting stadium', 'mlb baseball hitter home run', 'baseball legend championship series'],
+    'big papi': ['baseball player batting mlb', 'baseball legend career highlights', 'mlb all star game baseball'],
+    'pedro martinez': ['baseball pitcher throwing mound', 'mlb pitcher strikeout stadium', 'baseball pitcher windup delivery'],
+    'vladimir guerrero': ['baseball outfielder batting mlb', 'dominican baseball player stadium', 'mlb latin player batting'],
+    'juan soto': ['baseball outfielder batting stance', 'mlb young star baseball game', 'baseball player stadium crowd'],
+    'béisbol': ['baseball dominican republic stadium', 'baseball game crowd fans', 'baseball player batting pitch'],
+    'beisbol': ['baseball dominican republic stadium', 'baseball game crowd fans', 'baseball player batting pitch'],
+    'messi': ['soccer player dribbling ball', 'football player celebrating goal', 'professional soccer match action'],
+    'ronaldo': ['soccer player jumping heading', 'football professional player goal', 'soccer match celebration'],
+    'inapa': ['water treatment plant infrastructure', 'water pipe installation workers', 'clean water supply system caribbean'],
+    'acueducto': ['water infrastructure construction', 'pipeline water system workers', 'water treatment facility caribbean'],
     'policía nacional': ['police officers patrol street', 'law enforcement officers uniform', 'police car lights patrol'],
-    'mopc':             ['road construction highway workers', 'infrastructure bridge construction', 'road paving machinery workers'],
-    'remesas':          ['money transfer wire payment', 'financial transaction bank office', 'currency exchange money'],
-    'dólar':            ['us dollar bills currency', 'currency exchange money market', 'dollar bills financial'],
-    'inflación':        ['supermarket prices grocery store', 'consumer prices market shopping', 'economic inflation grocery'],
-    'turismo':          ['tourist beach resort caribbean', 'punta cana beach hotel pool', 'dominican republic resort tourism'],
-    'haití':            ['haiti dominican border crossing', 'haiti poverty urban scene', 'dominican haiti border fence'],
-    'migración':        ['migrants crossing border fence', 'immigration customs border patrol', 'refugee migrants group walking'],
-    'covid':            ['hospital doctors protective gear', 'medical workers ppe hospital', 'healthcare workers pandemic'],
-    'dengue':           ['mosquito prevention public health', 'health workers fumigation caribbean', 'mosquito control public health'],
+    'mopc': ['road construction highway workers', 'infrastructure bridge construction', 'road paving machinery workers'],
+    'remesas': ['money transfer wire payment', 'financial transaction bank office', 'currency exchange money'],
+    'dólar': ['us dollar bills currency', 'currency exchange money market', 'dollar bills financial'],
+    'inflación': ['supermarket prices grocery store', 'consumer prices market shopping', 'economic inflation grocery'],
+    'turismo': ['tourist beach resort caribbean', 'punta cana beach hotel pool', 'dominican republic resort tourism'],
+    'haití': ['haiti dominican border crossing', 'haiti poverty urban scene', 'dominican haiti border fence'],
+    'migración': ['migrants crossing border fence', 'immigration customs border patrol', 'refugee migrants group walking'],
+    'covid': ['hospital doctors protective gear', 'medical workers ppe hospital', 'healthcare workers pandemic'],
+    'dengue': ['mosquito prevention public health', 'health workers fumigation caribbean', 'mosquito control public health'],
     'inteligencia artificial': ['artificial intelligence technology computer', 'ai machine learning digital', 'technology innovation digital future'],
-    'huracán':          ['hurricane satellite view storm', 'tropical storm weather satellite', 'hurricane damage aftermath caribbean'],
-    'Nacionales':       ['dominican republic government building', 'santo domingo city street life', 'caribbean capital urban scene'],
-    'Deportes':         ['dominican athlete sports competition', 'caribbean sports stadium crowd', 'latin american sports event'],
-    'Internacionales':  ['international diplomacy meeting flags', 'world leaders conference summit', 'global news event press'],
-    'Economía':         ['latin america business professionals', 'caribbean financial district building', 'economic meeting executives'],
-    'Tecnología':       ['technology innovation digital latin', 'caribbean tech startup office', 'computer programming developer'],
-    'Espectáculos':     ['latin music concert stage performance', 'dominican entertainment show lights', 'caribbean festival dancing crowd'],
+    'huracán': ['hurricane satellite view storm', 'tropical storm weather satellite', 'hurricane damage aftermath caribbean'],
+    'Nacionales': ['dominican republic government building', 'santo domingo city street life', 'caribbean capital urban scene'],
+    'Deportes': ['dominican athlete sports competition', 'caribbean sports stadium crowd', 'latin american sports event'],
+    'Internacionales': ['international diplomacy meeting flags', 'world leaders conference summit', 'global news event press'],
+    'Economía': ['latin america business professionals', 'caribbean financial district building', 'economic meeting executives'],
+    'Tecnología': ['technology innovation digital latin', 'caribbean tech startup office', 'computer programming developer'],
+    'Espectáculos': ['latin music concert stage performance', 'dominican entertainment show lights', 'caribbean festival dancing crowd'],
 };
 
 const QUERIES_PROHIBIDAS = [
@@ -632,7 +691,7 @@ async function buscarImagenWikipedia(titulo) {
         const thumb = pages?.[pid]?.thumbnail?.source;
         if (thumb) { console.log(`   ✅ Wikipedia imagen: ${pageTitle}`); return thumb; }
         return null;
-    } catch(e) { return null; }
+    } catch (e) { return null; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -665,7 +724,7 @@ async function buscarImagenWikimediaCommons(titulo) {
             }
         }
         return null;
-    } catch(e) { return null; }
+    } catch (e) { return null; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -734,40 +793,40 @@ async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA
 // ▶ BIBLIOTECA DE QUERIES PEXELS
 // ══════════════════════════════════════════════════════════
 const PEXELS_QUERIES_RD = {
-    'los mina':           ['santo domingo urban street life', 'caribbean city neighborhood people', 'latin america urban community', 'dominican republic street market', 'caribbean urban daily life'],
-    'invivienda':         ['social housing construction latin america', 'affordable housing caribbean', 'residential building construction workers', 'housing project urban development', 'latin america apartment building construction'],
-    'ensanche ozama':     ['santo domingo city architecture', 'caribbean urban district street', 'dominican republic city life', 'latin america urban infrastructure', 'caribbean neighborhood road'],
+    'los mina': ['santo domingo urban street life', 'caribbean city neighborhood people', 'latin america urban community', 'dominican republic street market', 'caribbean urban daily life'],
+    'invivienda': ['social housing construction latin america', 'affordable housing caribbean', 'residential building construction workers', 'housing project urban development', 'latin america apartment building construction'],
+    'ensanche ozama': ['santo domingo city architecture', 'caribbean urban district street', 'dominican republic city life', 'latin america urban infrastructure', 'caribbean neighborhood road'],
     'santo domingo este': ['santo domingo dominican republic cityscape', 'caribbean capital city skyline', 'dominican republic urban life', 'santo domingo street photography', 'caribbean city architecture'],
-    'villa mella':        ['dominican republic suburb community', 'caribbean neighborhood street life', 'latin america residential area', 'dominican city outskirts', 'caribbean people community'],
-    'presidente':         ['president speech podium government', 'latin america president official event', 'government leader press conference', 'political leader official ceremony', 'president signing document desk'],
-    'gobierno':           ['government building official meeting', 'latin america congress parliament', 'official government press conference', 'politicians meeting boardroom', 'government officials ceremony'],
-    'congreso':           ['congress parliament building', 'legislators vote assembly hall', 'parliament session politicians', 'latin america congress building', 'government assembly debate'],
-    'policia':            ['police patrol latin america street', 'law enforcement officer uniform', 'police investigation crime scene', 'caribbean police officers patrol', 'police arrest handcuffs law enforcement'],
-    'crimen':             ['police crime investigation scene', 'law enforcement detective investigation', 'police tape crime scene urban', 'criminal investigation police work', 'security forces operation urban'],
-    'economia':           ['business finance professionals meeting', 'stock market trading finance', 'bank building financial district', 'business executives boardroom discussion', 'economic growth financial chart data'],
-    'banco':              ['bank building financial institution', 'bank teller customer service', 'modern bank interior lobby', 'financial institution banking', 'bank facade exterior architecture'],
-    'remesas':            ['money transfer wire payment', 'international money transfer service', 'financial services payment technology', 'currency exchange money transfer', 'bank wire transfer international'],
-    'turismo':            ['punta cana beach resort luxury', 'caribbean beach turquoise water tourism', 'dominican republic resort hotel pool', 'tourists beach vacation caribbean', 'tropical beach resort tourism travel'],
-    'salud':              ['hospital doctors medical staff', 'doctor patient consultation clinic', 'medical team healthcare professionals', 'hospital ward nurses doctors', 'healthcare medical professionals'],
-    'hospital':           ['hospital building exterior entrance', 'hospital interior hallway medical staff', 'emergency room hospital doctors', 'hospital patients medical care', 'healthcare facility medical workers'],
-    'educacion':          ['students classroom learning school', 'teacher students lesson classroom', 'university students campus education', 'school children learning books', 'education classroom latin america'],
-    'infraestructura':    ['road construction workers equipment', 'highway infrastructure construction project', 'bridge construction engineering workers', 'urban infrastructure development workers', 'road repair construction equipment'],
-    'carretera':          ['road highway construction workers', 'new highway infrastructure latin america', 'road paving construction crew', 'highway project construction equipment', 'road infrastructure development latin america'],
-    'construccion':       ['construction workers building site', 'construction project architecture workers', 'building construction crane workers', 'construction site safety workers', 'urban development construction project'],
-    'vivienda':           ['housing construction workers project', 'residential homes construction site', 'affordable housing project community', 'housing development construction workers', 'new homes construction residential'],
-    'agua':               ['water treatment plant infrastructure', 'water supply pipeline installation', 'water infrastructure workers construction', 'drinking water facility treatment', 'water system installation workers'],
-    'beisbol':            ['baseball game stadium fans crowd', 'baseball pitcher throwing stadium', 'baseball player batting home run', 'baseball team dugout players', 'dominican republic baseball stadium'],
-    'futbol':             ['soccer football match stadium crowd', 'football players game action', 'soccer team training practice field', 'football game crowd stadium', 'soccer players game action sports'],
-    'tecnologia':         ['technology innovation digital business', 'tech startup team working computers', 'software developer coding computer', 'digital technology innovation lab', 'technology professionals working office'],
-    'musica':             ['music concert performance stage lights', 'musicians performing concert crowd', 'music band performance stage', 'concert live music crowd fans', 'singer performing microphone stage'],
-    'medio ambiente':     ['nature environment conservation forest', 'environmental protection activists', 'deforestation environmental issue forest', 'clean energy solar panels environment', 'environmental conservation activists nature'],
-    'haiti':              ['haiti dominican republic border crossing', 'haitian dominican diplomacy officials', 'border security latin america', 'diplomatic meeting caribbean officials', 'humanitarian aid border caribbean'],
-    'Nacionales':         ['dominican republic government news', 'santo domingo city official event', 'dominican republic flag ceremony', 'caribbean government officials press', 'latin america news event crowd'],
-    'Deportes':           ['dominican republic athlete sports', 'caribbean sports competition athlete', 'sports game stadium crowd latin america', 'athlete competition professional sports', 'sports training professional athlete'],
-    'Internacionales':    ['international news world leaders', 'global summit conference diplomacy', 'world news event international', 'latin america international relations', 'caribbean diplomacy international meeting'],
-    'Economía':           ['latin america business finance economy', 'caribbean economic development', 'business professionals meeting economy', 'financial district bank economy', 'economy market trade latin america'],
-    'Tecnología':         ['technology innovation digital latin america', 'tech professionals working computers', 'digital innovation startup team', 'technology conference professionals', 'digital transformation business tech'],
-    'Espectáculos':       ['latin entertainment music show concert', 'caribbean cultural performance arts', 'entertainment show stage lights', 'celebrity artist performance concert', 'latin music culture entertainment'],
+    'villa mella': ['dominican republic suburb community', 'caribbean neighborhood street life', 'latin america residential area', 'dominican city outskirts', 'caribbean people community'],
+    'presidente': ['president speech podium government', 'latin america president official event', 'government leader press conference', 'political leader official ceremony', 'president signing document desk'],
+    'gobierno': ['government building official meeting', 'latin america congress parliament', 'official government press conference', 'politicians meeting boardroom', 'government officials ceremony'],
+    'congreso': ['congress parliament building', 'legislators vote assembly hall', 'parliament session politicians', 'latin america congress building', 'government assembly debate'],
+    'policia': ['police patrol latin america street', 'law enforcement officer uniform', 'police investigation crime scene', 'caribbean police officers patrol', 'police arrest handcuffs law enforcement'],
+    'crimen': ['police crime investigation scene', 'law enforcement detective investigation', 'police tape crime scene urban', 'criminal investigation police work', 'security forces operation urban'],
+    'economia': ['business finance professionals meeting', 'stock market trading finance', 'bank building financial district', 'business executives boardroom discussion', 'economic growth financial chart data'],
+    'banco': ['bank building financial institution', 'bank teller customer service', 'modern bank interior lobby', 'financial institution banking', 'bank facade exterior architecture'],
+    'remesas': ['money transfer wire payment', 'international money transfer service', 'financial services payment technology', 'currency exchange money transfer', 'bank wire transfer international'],
+    'turismo': ['punta cana beach resort luxury', 'caribbean beach turquoise water tourism', 'dominican republic resort hotel pool', 'tourists beach vacation caribbean', 'tropical beach resort tourism travel'],
+    'salud': ['hospital doctors medical staff', 'doctor patient consultation clinic', 'medical team healthcare professionals', 'hospital ward nurses doctors', 'healthcare medical professionals'],
+    'hospital': ['hospital building exterior entrance', 'hospital interior hallway medical staff', 'emergency room hospital doctors', 'hospital patients medical care', 'healthcare facility medical workers'],
+    'educacion': ['students classroom learning school', 'teacher students lesson classroom', 'university students campus education', 'school children learning books', 'education classroom latin america'],
+    'infraestructura': ['road construction workers equipment', 'highway infrastructure construction project', 'bridge construction engineering workers', 'urban infrastructure development workers', 'road repair construction equipment'],
+    'carretera': ['road highway construction workers', 'new highway infrastructure latin america', 'road paving construction crew', 'highway project construction equipment', 'road infrastructure development latin america'],
+    'construccion': ['construction workers building site', 'construction project architecture workers', 'building construction crane workers', 'construction site safety workers', 'urban development construction project'],
+    'vivienda': ['housing construction workers project', 'residential homes construction site', 'affordable housing project community', 'housing development construction workers', 'new homes construction residential'],
+    'agua': ['water treatment plant infrastructure', 'water supply pipeline installation', 'water infrastructure workers construction', 'drinking water facility treatment', 'water system installation workers'],
+    'beisbol': ['baseball game stadium fans crowd', 'baseball pitcher throwing stadium', 'baseball player batting home run', 'baseball team dugout players', 'dominican republic baseball stadium'],
+    'futbol': ['soccer football match stadium crowd', 'football players game action', 'soccer team training practice field', 'football game crowd stadium', 'soccer players game action sports'],
+    'tecnologia': ['technology innovation digital business', 'tech startup team working computers', 'software developer coding computer', 'digital technology innovation lab', 'technology professionals working office'],
+    'musica': ['music concert performance stage lights', 'musicians performing concert crowd', 'music band performance stage', 'concert live music crowd fans', 'singer performing microphone stage'],
+    'medio ambiente': ['nature environment conservation forest', 'environmental protection activists', 'deforestation environmental issue forest', 'clean energy solar panels environment', 'environmental conservation activists nature'],
+    'haiti': ['haiti dominican republic border crossing', 'haitian dominican diplomacy officials', 'border security latin america', 'diplomatic meeting caribbean officials', 'humanitarian aid border caribbean'],
+    'Nacionales': ['dominican republic government news', 'santo domingo city official event', 'dominican republic flag ceremony', 'caribbean government officials press', 'latin america news event crowd'],
+    'Deportes': ['dominican republic athlete sports', 'caribbean sports competition athlete', 'sports game stadium crowd latin america', 'athlete competition professional sports', 'sports training professional athlete'],
+    'Internacionales': ['international news world leaders', 'global summit conference diplomacy', 'world news event international', 'latin america international relations', 'caribbean diplomacy international meeting'],
+    'Economía': ['latin america business finance economy', 'caribbean economic development', 'business professionals meeting economy', 'financial district bank economy', 'economy market trade latin america'],
+    'Tecnología': ['technology innovation digital latin america', 'tech professionals working computers', 'digital innovation startup team', 'technology conference professionals', 'digital transformation business tech'],
+    'Espectáculos': ['latin entertainment music show concert', 'caribbean cultural performance arts', 'entertainment show stage lights', 'celebrity artist performance concert', 'latin music culture entertainment'],
 };
 
 async function buscarEnPexels(queries) {
@@ -791,10 +850,10 @@ async function buscarEnPexels(queries) {
         try {
             const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`;
             const ctrl = new AbortController();
-            const tm   = setTimeout(() => ctrl.abort(), 5000);
-            const res  = await fetch(url, {
+            const tm = setTimeout(() => ctrl.abort(), 5000);
+            const res = await fetch(url, {
                 headers: { Authorization: PEXELS_API_KEY },
-                signal:  ctrl.signal
+                signal: ctrl.signal
             }).finally(() => clearTimeout(tm));
             if (!res.ok) continue;
             const data = await res.json();
@@ -815,7 +874,7 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
 
     if (queryIA) queries.push(queryIA);
 
-    const catsSaltar = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
+    const catsSaltar = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
     for (const [clave, qs] of Object.entries(PEXELS_QUERIES_RD)) {
         if (catsSaltar.includes(clave)) continue;
         if (tituloLower.includes(clave.toLowerCase())) {
@@ -839,7 +898,7 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
 // ══════════════════════════════════════════════════════════
 // BANCO LOCAL DE IMÁGENES
 // ══════════════════════════════════════════════════════════
-const PB  = 'https://images.pexels.com/photos';
+const PB = 'https://images.pexels.com/photos';
 const OPT = '?auto=compress&cs=tinysrgb&w=800';
 
 const BANCO_LOCAL = {
@@ -1014,16 +1073,16 @@ const BANCO_LOCAL = {
 };
 
 const FALLBACK_CAT = {
-    'Nacionales':      'politica-gobierno',
-    'Deportes':        'deporte-general',
+    'Nacionales': 'politica-gobierno',
+    'Deportes': 'deporte-general',
     'Internacionales': 'relaciones-internacionales',
-    'Economía':        'economia-mercado',
-    'Tecnología':      'tecnologia',
-    'Espectáculos':    'cultura-musica',
-    'Salud':           'salud-medicina',
-    'Educación':       'educacion',
-    'Turismo':         'turismo',
-    'Ambiente':        'medio-ambiente',
+    'Economía': 'economia-mercado',
+    'Tecnología': 'tecnologia',
+    'Espectáculos': 'cultura-musica',
+    'Salud': 'salud-medicina',
+    'Educación': 'educacion',
+    'Turismo': 'turismo',
+    'Ambiente': 'medio-ambiente',
 };
 
 function imgLocal(sub, cat) {
@@ -1038,29 +1097,29 @@ function imgLocal(sub, cat) {
 function generarAltSEO(titulo, categoria, altIA, subtema) {
     if (altIA && altIA.length > 15) {
         const yaTieneRD = altIA.toLowerCase().includes('dominican') ||
-                          altIA.toLowerCase().includes('república') ||
-                          altIA.toLowerCase().includes('santo domingo');
+            altIA.toLowerCase().includes('república') ||
+            altIA.toLowerCase().includes('santo domingo');
 
         if (yaTieneRD) return `${altIA} - El Farol al Día`;
 
         const contextoCat = {
-            'Nacionales':      'noticias República Dominicana',
-            'Deportes':        'deportes dominicanos',
+            'Nacionales': 'noticias República Dominicana',
+            'Deportes': 'deportes dominicanos',
             'Internacionales': 'noticias internacionales impacto RD',
-            'Economía':        'economía República Dominicana',
-            'Tecnología':      'tecnología innovación RD',
-            'Espectáculos':    'cultura entretenimiento dominicano',
+            'Economía': 'economía República Dominicana',
+            'Tecnología': 'tecnología innovación RD',
+            'Espectáculos': 'cultura entretenimiento dominicano',
         };
         return `${altIA}, ${contextoCat[categoria] || 'República Dominicana'} - El Farol al Día`;
     }
 
     const base = {
-        'Nacionales':      `Noticia nacional ${titulo.substring(0, 40)} - Santo Domingo, República Dominicana`,
-        'Deportes':        `Deportes dominicanos ${titulo.substring(0, 40)} - El Farol al Día RD`,
+        'Nacionales': `Noticia nacional ${titulo.substring(0, 40)} - Santo Domingo, República Dominicana`,
+        'Deportes': `Deportes dominicanos ${titulo.substring(0, 40)} - El Farol al Día RD`,
         'Internacionales': `Noticias internacionales ${titulo.substring(0, 30)} - impacto en República Dominicana`,
-        'Economía':        `Economía dominicana ${titulo.substring(0, 35)} - finanzas República Dominicana`,
-        'Tecnología':      `Tecnología ${titulo.substring(0, 35)} - innovación República Dominicana`,
-        'Espectáculos':    `Espectáculos dominicanos ${titulo.substring(0, 35)} - cultura RD`,
+        'Economía': `Economía dominicana ${titulo.substring(0, 35)} - finanzas República Dominicana`,
+        'Tecnología': `Tecnología ${titulo.substring(0, 35)} - innovación República Dominicana`,
+        'Espectáculos': `Espectáculos dominicanos ${titulo.substring(0, 35)} - cultura RD`,
     };
 
     return (base[categoria] || `${titulo.substring(0, 50)} - noticias República Dominicana El Farol al Día`);
@@ -1072,10 +1131,10 @@ function generarAltSEO(titulo, categoria, altIA, subtema) {
 const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function metaTagsCompletos(n, url) {
-    const t   = esc(n.titulo), d = esc(n.seo_description || ''), k = esc(n.seo_keywords || '');
+    const t = esc(n.titulo), d = esc(n.seo_description || ''), k = esc(n.seo_keywords || '');
     const img = esc(n.imagen), red = esc(n.redactor), sec = esc(n.seccion);
-    const fi  = new Date(n.fecha).toISOString(), ue = esc(url);
-    const wc  = (n.contenido || '').split(/\s+/).filter(w => w).length;
+    const fi = new Date(n.fecha).toISOString(), ue = esc(url);
+    const wc = (n.contenido || '').split(/\s+/).filter(w => w).length;
 
     const keywordsSEO = [
         n.seo_keywords || '',
@@ -1087,87 +1146,87 @@ function metaTagsCompletos(n, url) {
     ].filter(Boolean).join(', ');
 
     const schema = {
-        "@context":         "https://schema.org",
-        "@type":            "NewsArticle",
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
         "mainEntityOfPage": { "@type": "WebPage", "@id": url },
-        "headline":         n.titulo,
-        "description":      n.seo_description || '',
-        "keywords":         keywordsSEO,
+        "headline": n.titulo,
+        "description": n.seo_description || '',
+        "keywords": keywordsSEO,
         "image": {
-            "@type":   "ImageObject",
-            "url":     n.imagen,
+            "@type": "ImageObject",
+            "url": n.imagen,
             "caption": n.imagen_caption || n.titulo,
-            "width":   1200,
-            "height":  630
+            "width": 1200,
+            "height": 630
         },
-        "datePublished":  fi,
-        "dateModified":   fi,
+        "datePublished": fi,
+        "dateModified": fi,
         "author": {
-            "@type":    "Person",
-            "name":     "José Gregorio Mañan Santana",
-            "url":      `${BASE_URL}/nosotros`,
+            "@type": "Person",
+            "name": "José Gregorio Mañan Santana",
+            "url": `${BASE_URL}/nosotros`,
             "jobTitle": "Director General",
             "worksFor": { "@type": "Organization", "name": "El Farol al Día" }
         },
         "creator": n.redactor,
         "publisher": {
             "@type": "NewsMediaOrganization",
-            "name":  "El Farol al Día",
-            "url":   BASE_URL,
+            "name": "El Farol al Día",
+            "url": BASE_URL,
             "sameAs": [
                 "https://www.facebook.com/elfarolaldia",
                 "https://twitter.com/elfarolaldia"
             ],
             "logo": {
-                "@type":  "ImageObject",
-                "url":    `${BASE_URL}/static/favicon.png`,
-                "width":  512,
+                "@type": "ImageObject",
+                "url": `${BASE_URL}/static/favicon.png`,
+                "width": 512,
                 "height": 512
             },
             "address": {
-                "@type":           "PostalAddress",
+                "@type": "PostalAddress",
                 "addressLocality": "Santo Domingo Este",
-                "addressRegion":   "Distrito Nacional",
-                "addressCountry":  "DO"
+                "addressRegion": "Distrito Nacional",
+                "addressCountry": "DO"
             }
         },
-        "articleSection":      n.seccion,
-        "wordCount":           wc,
-        "inLanguage":          "es-DO",
+        "articleSection": n.seccion,
+        "wordCount": wc,
+        "inLanguage": "es-DO",
         "isAccessibleForFree": true,
-        "copyrightHolder":     "El Farol al Día",
-        "copyrightYear":       new Date(n.fecha).getFullYear(),
+        "copyrightHolder": "El Farol al Día",
+        "copyrightYear": new Date(n.fecha).getFullYear(),
         "locationCreated": {
             "@type": "Place",
-            "name":  "Santo Domingo Este, República Dominicana"
+            "name": "Santo Domingo Este, República Dominicana"
         }
     };
 
     const bread = {
         "@context": "https://schema.org",
-        "@type":    "BreadcrumbList",
+        "@type": "BreadcrumbList",
         "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Inicio",                           "item": BASE_URL },
-            { "@type": "ListItem", "position": 2, "name": "Último Minuto RD",                 "item": `${BASE_URL}/` },
-            { "@type": "ListItem", "position": 3, "name": n.seccion,                          "item": `${BASE_URL}/#${(n.seccion || '').toLowerCase()}` },
-            { "@type": "ListItem", "position": 4, "name": n.titulo,                           "item": url }
+            { "@type": "ListItem", "position": 1, "name": "Inicio", "item": BASE_URL },
+            { "@type": "ListItem", "position": 2, "name": "Último Minuto RD", "item": `${BASE_URL}/` },
+            { "@type": "ListItem", "position": 3, "name": n.seccion, "item": `${BASE_URL}/#${(n.seccion || '').toLowerCase()}` },
+            { "@type": "ListItem", "position": 4, "name": n.titulo, "item": url }
         ]
     };
 
     const orgSchema = {
-        "@context":    "https://schema.org",
-        "@type":       "NewsMediaOrganization",
-        "name":        "El Farol al Día",
-        "url":         BASE_URL,
+        "@context": "https://schema.org",
+        "@type": "NewsMediaOrganization",
+        "name": "El Farol al Día",
+        "url": BASE_URL,
         "description": "Tu portal de noticias de Último Minuto en Santo Domingo Este y toda la República Dominicana",
-        "areaServed":  ["República Dominicana", "Santo Domingo Este", "Caribe"],
+        "areaServed": ["República Dominicana", "Santo Domingo Este", "Caribe"],
         "logo": { "@type": "ImageObject", "url": `${BASE_URL}/static/favicon.png` }
     };
 
     const tituloSEO = (n.titulo.toLowerCase().includes('santo domingo') || n.titulo.toLowerCase().includes('sde'))
         ? `${t} | El Farol al Día`
         : `${t} | Último Minuto RD · El Farol al Día`;
-    
+
     return `<title>${tituloSEO}</title>
 <meta name="description" content="${d}">
 <meta name="keywords" content="${esc(keywordsSEO)}">
@@ -1213,12 +1272,12 @@ function slugify(t) {
 }
 
 const REDACTORES = [
-    { nombre: 'Carlos Méndez',         esp: 'Nacionales' },
-    { nombre: 'Laura Santana',         esp: 'Deportes' },
-    { nombre: 'Roberto Peña',          esp: 'Internacionales' },
-    { nombre: 'Ana María Castillo',    esp: 'Economía' },
+    { nombre: 'Carlos Méndez', esp: 'Nacionales' },
+    { nombre: 'Laura Santana', esp: 'Deportes' },
+    { nombre: 'Roberto Peña', esp: 'Internacionales' },
+    { nombre: 'Ana María Castillo', esp: 'Economía' },
     { nombre: 'José Miguel Fernández', esp: 'Tecnología' },
-    { nombre: 'Patricia Jiménez',      esp: 'Espectáculos' }
+    { nombre: 'Patricia Jiménez', esp: 'Espectáculos' }
 ];
 
 function redactor(cat) {
@@ -1260,7 +1319,7 @@ async function inicializarBase() {
                     THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT;
                     END IF;
                 END $$;
-            `).catch(() => {});
+            `).catch(() => { });
         }
 
         await client.query(`
@@ -1287,7 +1346,7 @@ async function inicializarBase() {
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_memoria_tipo
             ON memoria_ia(tipo, categoria)
-        `).catch(() => {});
+        `).catch(() => { });
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS comentarios(
@@ -1302,7 +1361,7 @@ async function inicializarBase() {
         await client.query(`
             CREATE INDEX IF NOT EXISTS idx_comentarios_noticia
             ON comentarios(noticia_id, aprobado, fecha DESC)
-        `).catch(() => {});
+        `).catch(() => { });
 
         const fix = await client.query(`
             UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='pexels'
@@ -1337,7 +1396,7 @@ async function registrarQueryPexels(query, categoria, exito) {
                 ultima_vez = NOW()
             WHERE tipo = 'pexels_query' AND valor = $3 AND categoria = $4
         `, [exito ? 1 : 0, exito ? 0 : 1, query, categoria]);
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
 }
 
 async function obtenerMejoresQueries(categoria) {
@@ -1353,7 +1412,7 @@ async function obtenerMejoresQueries(categoria) {
             LIMIT 5
         `, [categoria]);
         return r.rows.map(r => r.valor);
-    } catch(e) { return []; }
+    } catch (e) { return []; }
 }
 
 async function registrarError(tipo, descripcion, categoria) {
@@ -1369,7 +1428,7 @@ async function registrarError(tipo, descripcion, categoria) {
             SET fallos = fallos + 1, ultima_vez = NOW()
             WHERE tipo = 'error' AND valor = $1
         `, [descripcion.substring(0, 200)]);
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
 }
 
 async function construirMemoria(categoria) {
@@ -1382,7 +1441,7 @@ async function construirMemoria(categoria) {
         `);
         if (recientes.rows.length) {
             memoria += `\n⛔ YA PUBLICADAS — NO repetir ni parafrasear:\n`;
-            memoria += recientes.rows.map((x, i) => `${i+1}. ${x.titulo}`).join('\n');
+            memoria += recientes.rows.map((x, i) => `${i + 1}. ${x.titulo}`).join('\n');
             memoria += '\n';
         }
 
@@ -1405,7 +1464,7 @@ async function construirMemoria(categoria) {
             memoria += '\n';
         }
 
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
     return memoria;
 }
 
@@ -1422,7 +1481,7 @@ async function regenerarWatermarksLostidos() {
               AND imagen_original != ''
             ORDER BY fecha DESC LIMIT 30
         `); // Reducido de 50 a 30 para ser más rápido
-        
+
         if (!r.rows.length) {
             console.log('🏮 No hay watermarks para regenerar');
             return;
@@ -1435,7 +1494,7 @@ async function regenerarWatermarksLostidos() {
             await Promise.all(batch.map(async (n) => {
                 const nombre = n.imagen_nombre || n.imagen.split('/img/')[1];
                 if (!nombre) return;
-                
+
                 const ruta = path.join('/tmp', nombre);
                 if (fs.existsSync(ruta)) return; // ya existe, no regenerar
 
@@ -1448,20 +1507,20 @@ async function regenerarWatermarksLostidos() {
                         );
                         regeneradas++;
                     }
-                } catch(e) {
+                } catch (e) {
                     // Error silencioso - no detener el lote
                 }
             }));
-            
+
             // Pequeña pausa entre lotes
             await new Promise(r => setTimeout(r, 100));
         }
-        
+
         if (regeneradas > 0) {
             console.log(`🏮 Watermarks regenerados: ${regeneradas}`);
             invalidarCache();
         }
-    } catch(e) {
+    } catch (e) {
         console.log(`⚠️ Error en regeneración: ${e.message}`);
     }
 }
@@ -1590,19 +1649,19 @@ CONTENIDO:
 
         for (const linea of textoLimpio.split('\n')) {
             const t = linea.trim();
-            if      (t.startsWith('TITULO:'))        titulo = t.replace('TITULO:', '').trim();
-            else if (t.startsWith('DESCRIPCION:'))   desc   = t.replace('DESCRIPCION:', '').trim();
-            else if (t.startsWith('PALABRAS:'))      pals   = t.replace('PALABRAS:', '').trim();
-            else if (t.startsWith('QUERY_IMAGEN:'))  qi     = t.replace('QUERY_IMAGEN:', '').trim();
-            else if (t.startsWith('ALT_IMAGEN:'))    ai     = t.replace('ALT_IMAGEN:', '').trim();
-            else if (t.startsWith('SUBTEMA_LOCAL:')) sub    = t.replace('SUBTEMA_LOCAL:', '').trim();
-            else if (t.startsWith('CONTENIDO:'))     enContenido = true;
-            else if (enContenido && t.length > 0)    bloques.push(t);
+            if (t.startsWith('TITULO:')) titulo = t.replace('TITULO:', '').trim();
+            else if (t.startsWith('DESCRIPCION:')) desc = t.replace('DESCRIPCION:', '').trim();
+            else if (t.startsWith('PALABRAS:')) pals = t.replace('PALABRAS:', '').trim();
+            else if (t.startsWith('QUERY_IMAGEN:')) qi = t.replace('QUERY_IMAGEN:', '').trim();
+            else if (t.startsWith('ALT_IMAGEN:')) ai = t.replace('ALT_IMAGEN:', '').trim();
+            else if (t.startsWith('SUBTEMA_LOCAL:')) sub = t.replace('SUBTEMA_LOCAL:', '').trim();
+            else if (t.startsWith('CONTENIDO:')) enContenido = true;
+            else if (enContenido && t.length > 0) bloques.push(t);
         }
 
         contenido = bloques.join('\n\n');
-        titulo    = titulo.replace(/[*_#`"]/g, '').trim();
-        desc      = desc.replace(/[*_#`]/g, '').trim();
+        titulo = titulo.replace(/[*_#`"]/g, '').trim();
+        desc = desc.replace(/[*_#`]/g, '').trim();
 
         if (!titulo)
             throw new Error('Gemini no devolvió TITULO');
@@ -1612,14 +1671,14 @@ CONTENIDO:
         console.log(`   📝 ${titulo}`);
 
         const urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
-        const imgResult  = await aplicarMarcaDeAgua(urlOrig);
-        const urlFinal   = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
+        const imgResult = await aplicarMarcaDeAgua(urlOrig);
+        const urlFinal = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
 
-        const altFinal   = generarAltSEO(titulo, categoria, ai, sub);
+        const altFinal = generarAltSEO(titulo, categoria, ai, sub);
 
-        const sl    = slugify(titulo);
+        const sl = slugify(titulo);
         const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
-        const slFin  = existe.rows.length ? `${sl}-${Date.now()}` : sl;
+        const slFin = existe.rows.length ? `${sl}-${Date.now()}` : sl;
 
         await pool.query(
             `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado)
@@ -1653,7 +1712,7 @@ CONTENIDO:
             seo_description: desc,
             seccion: categoria
         };
-        
+
         // No esperar a que termine para no bloquear la respuesta
         if (telegramBot) {
             enviarTelegram(noticiaPublicada).catch(e => {
@@ -1685,36 +1744,36 @@ CONTENIDO:
 // ══════════════════════════════════════════════════════════
 
 const FUENTES_RSS = [
-    { url: 'https://presidencia.gob.do/feed',           categoria: 'Nacionales',      nombre: 'Presidencia RD' },
-    { url: 'https://policia.gob.do/feed',               categoria: 'Nacionales',      nombre: 'Policía Nacional' },
-    { url: 'https://www.mopc.gob.do/feed',              categoria: 'Nacionales',      nombre: 'MOPC' },
-    { url: 'https://www.salud.gob.do/feed',             categoria: 'Nacionales',      nombre: 'Salud Pública' },
-    { url: 'https://www.educacion.gob.do/feed',         categoria: 'Nacionales',      nombre: 'Educación' },
-    { url: 'https://www.bancentral.gov.do/feed',        categoria: 'Economía',        nombre: 'Banco Central' },
-    { url: 'https://mepyd.gob.do/feed',                 categoria: 'Economía',        nombre: 'MEPyD' },
-    { url: 'https://www.invivienda.gob.do/feed',        categoria: 'Nacionales',      nombre: 'Invivienda' },
-    { url: 'https://mitur.gob.do/feed',                 categoria: 'Nacionales',      nombre: 'Turismo' },
-    { url: 'https://pgr.gob.do/feed',                   categoria: 'Nacionales',      nombre: 'Procuraduría' },
-    { url: 'https://www.diariolibre.com/feed',          categoria: 'Nacionales',      nombre: 'Diario Libre' },
-    { url: 'https://listindiario.com/feed',             categoria: 'Nacionales',      nombre: 'Listín Diario' },
-    { url: 'https://elnacional.com.do/feed/',           categoria: 'Nacionales',      nombre: 'El Nacional' },
-    { url: 'https://www.eldinero.com.do/feed/',         categoria: 'Economía',        nombre: 'El Dinero' },
-    { url: 'https://www.elcaribe.com.do/feed/',         categoria: 'Nacionales',      nombre: 'El Caribe' },
-    { url: 'https://acento.com.do/feed/',               categoria: 'Nacionales',      nombre: 'Acento' },
-    { url: 'https://www.hoy.com.do/feed/',              categoria: 'Nacionales',      nombre: 'Hoy' },
-    { url: 'https://www.noticiassin.com/feed/',         categoria: 'Nacionales',      nombre: 'Noticias SIN' },
-    { url: 'https://www.cdt.com.do/feed/',              categoria: 'Deportes',        nombre: 'CDT Deportes' },
-    { url: 'https://www.beisbolrd.com/feed/',           categoria: 'Deportes',        nombre: 'Béisbol RD' },
+    { url: 'https://presidencia.gob.do/feed', categoria: 'Nacionales', nombre: 'Presidencia RD' },
+    { url: 'https://policia.gob.do/feed', categoria: 'Nacionales', nombre: 'Policía Nacional' },
+    { url: 'https://www.mopc.gob.do/feed', categoria: 'Nacionales', nombre: 'MOPC' },
+    { url: 'https://www.salud.gob.do/feed', categoria: 'Nacionales', nombre: 'Salud Pública' },
+    { url: 'https://www.educacion.gob.do/feed', categoria: 'Nacionales', nombre: 'Educación' },
+    { url: 'https://www.bancentral.gov.do/feed', categoria: 'Economía', nombre: 'Banco Central' },
+    { url: 'https://mepyd.gob.do/feed', categoria: 'Economía', nombre: 'MEPyD' },
+    { url: 'https://www.invivienda.gob.do/feed', categoria: 'Nacionales', nombre: 'Invivienda' },
+    { url: 'https://mitur.gob.do/feed', categoria: 'Nacionales', nombre: 'Turismo' },
+    { url: 'https://pgr.gob.do/feed', categoria: 'Nacionales', nombre: 'Procuraduría' },
+    { url: 'https://www.diariolibre.com/feed', categoria: 'Nacionales', nombre: 'Diario Libre' },
+    { url: 'https://listindiario.com/feed', categoria: 'Nacionales', nombre: 'Listín Diario' },
+    { url: 'https://elnacional.com.do/feed/', categoria: 'Nacionales', nombre: 'El Nacional' },
+    { url: 'https://www.eldinero.com.do/feed/', categoria: 'Economía', nombre: 'El Dinero' },
+    { url: 'https://www.elcaribe.com.do/feed/', categoria: 'Nacionales', nombre: 'El Caribe' },
+    { url: 'https://acento.com.do/feed/', categoria: 'Nacionales', nombre: 'Acento' },
+    { url: 'https://www.hoy.com.do/feed/', categoria: 'Nacionales', nombre: 'Hoy' },
+    { url: 'https://www.noticiassin.com/feed/', categoria: 'Nacionales', nombre: 'Noticias SIN' },
+    { url: 'https://www.cdt.com.do/feed/', categoria: 'Deportes', nombre: 'CDT Deportes' },
+    { url: 'https://www.beisbolrd.com/feed/', categoria: 'Deportes', nombre: 'Béisbol RD' },
     { url: 'https://www.reuters.com/arc/outboundfeeds/rss/category/latam/?outputType=xml', categoria: 'Internacionales', nombre: 'Reuters LatAm' },
-    { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',   categoria: 'Internacionales', nombre: 'BBC Mundo' },
+    { url: 'https://feeds.bbci.co.uk/mundo/rss.xml', categoria: 'Internacionales', nombre: 'BBC Mundo' },
     { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', categoria: 'Internacionales', nombre: 'NYT World' },
     { url: 'https://www.elnuevoherald.com/ultimas-noticias/?widgetName=rssfeed&widgetContentId=725095&getXmlFeed=true', categoria: 'Internacionales', nombre: 'El Nuevo Herald' },
-    { url: 'https://feeds.feedburner.com/TechCrunch',  categoria: 'Tecnología',      nombre: 'TechCrunch' },
-    { url: 'https://www.wired.com/feed/rss',           categoria: 'Tecnología',      nombre: 'Wired' },
-    { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economía',   nombre: 'Bloomberg Markets' },
-    { url: 'https://www.primerahora.com/entretenimiento/feed/',  categoria: 'Espectáculos', nombre: 'Primera Hora Ent.' },
-    { url: 'https://www.telemundo.com/shows/rss',      categoria: 'Espectáculos',    nombre: 'Telemundo' },
-    { url: 'https://www.univision.com/rss',            categoria: 'Espectáculos',    nombre: 'Univision' },
+    { url: 'https://feeds.feedburner.com/TechCrunch', categoria: 'Tecnología', nombre: 'TechCrunch' },
+    { url: 'https://www.wired.com/feed/rss', categoria: 'Tecnología', nombre: 'Wired' },
+    { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economía', nombre: 'Bloomberg Markets' },
+    { url: 'https://www.primerahora.com/entretenimiento/feed/', categoria: 'Espectáculos', nombre: 'Primera Hora Ent.' },
+    { url: 'https://www.telemundo.com/shows/rss', categoria: 'Espectáculos', nombre: 'Telemundo' },
+    { url: 'https://www.univision.com/rss', categoria: 'Espectáculos', nombre: 'Univision' },
 ];
 
 async function procesarRSS() {
@@ -1735,9 +1794,9 @@ async function procesarRSS() {
                 if (yaExiste.rows.length) continue;
 
                 const comunicado = [
-                    item.title         ? `TÍTULO: ${item.title}`                              : '',
-                    item.contentSnippet? `RESUMEN: ${item.contentSnippet}`                    : '',
-                    item.content       ? `CONTENIDO: ${item.content?.substring(0, 2000)}`     : '',
+                    item.title ? `TÍTULO: ${item.title}` : '',
+                    item.contentSnippet ? `RESUMEN: ${item.contentSnippet}` : '',
+                    item.content ? `CONTENIDO: ${item.content?.substring(0, 2000)}` : '',
                     `FUENTE OFICIAL: ${fuente.nombre}`
                 ].filter(Boolean).join('\n');
 
@@ -1764,7 +1823,7 @@ const CATS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnolo
 cron.schedule('*/14 * * * *', async () => {
     try {
         await fetch(`http://localhost:${PORT}/health`);
-    } catch(e) { /* silencioso */ }
+    } catch (e) { /* silencioso */ }
 });
 
 cron.schedule('0 */4 * * *', async () => {
@@ -1789,23 +1848,23 @@ async function analizarRendimiento(dias = 7) {
             ORDER BY vistas DESC
         `);
         if (!noticias.rows.length) return { success: true, mensaje: 'No hay noticias', noticias: [] };
-        const total = noticias.rows.reduce((s,n) => s+(n.vistas||0), 0);
+        const total = noticias.rows.reduce((s, n) => s + (n.vistas || 0), 0);
         const promedio = Math.round(total / noticias.rows.length);
         const categorias = {};
-        ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'].forEach(cat => {
+        ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'].forEach(cat => {
             const rows = noticias.rows.filter(n => n.seccion === cat);
-            const vistas = rows.reduce((s,n) => s+(n.vistas||0), 0);
-            const prom = rows.length ? Math.round(vistas/rows.length) : 0;
+            const vistas = rows.reduce((s, n) => s + (n.vistas || 0), 0);
+            const prom = rows.length ? Math.round(vistas / rows.length) : 0;
             categorias[cat] = {
                 total: rows.length, vistas_totales: vistas, vistas_promedio: prom,
-                rendimiento: promedio ? Math.round((prom/promedio)*100) : 0,
+                rendimiento: promedio ? Math.round((prom / promedio) * 100) : 0,
                 mejor: rows[0] ? { titulo: rows[0].titulo, vistas: rows[0].vistas } : null
             };
         });
         const imagenes = await pool.query(`
             SELECT valor, exitos, fallos, categoria,
-                   ROUND((exitos::float / GREATEST(exitos+fallos,1))*100) as tasa
-            FROM memoria_ia WHERE tipo='pexels_query' AND (exitos+fallos) > 2
+                   ROUND((exitos::float / GREATEST(exitos + fallos, 1)) * 100) as tasa
+            FROM memoria_ia WHERE tipo='pexels_query' AND (exitos + fallos) > 2
             ORDER BY tasa DESC, exitos DESC LIMIT 10
         `);
         const errores = await pool.query(`
@@ -1813,10 +1872,12 @@ async function analizarRendimiento(dias = 7) {
             WHERE tipo='error' AND ultima_vez > NOW() - INTERVAL '7 days'
             ORDER BY fallos DESC LIMIT 5
         `);
-        return { success: true, periodo: `${dias} días`, total_noticias: noticias.rows.length,
+        return {
+            success: true, periodo: `${dias} días`, total_noticias: noticias.rows.length,
             total_vistas: total, promedio_general: promedio, categorias,
-            imagenes: imagenes.rows, errores: errores.rows };
-    } catch(e) { return { success: false, error: e.message }; }
+            imagenes: imagenes.rows, errores: errores.rows
+        };
+    } catch (e) { return { success: false, error: e.message }; }
 }
 
 app.get('/api/coach', async (req, res) => {
@@ -1827,7 +1888,7 @@ app.get('/api/coach', async (req, res) => {
         return res.json({
             success: true, periodo: analisis.periodo,
             total_noticias: analisis.total_noticias, total_vistas: analisis.total_vistas,
-            categorias: Object.entries(analisis.categorias).map(([n,d]) => ({
+            categorias: Object.entries(analisis.categorias).map(([n, d]) => ({
                 nombre: n, vistas_promedio: d.vistas_promedio, rendimiento: d.rendimiento
             }))
         });
@@ -1836,9 +1897,9 @@ app.get('/api/coach', async (req, res) => {
 });
 
 app.get('/cambiar-pais/:pais', (req, res) => {
-    const permitidos = ['es-do','es-us','es-es','en-us','fr','pt'];
+    const permitidos = ['es-do', 'es-us', 'es-es', 'en-us', 'fr', 'pt'];
     if (!permitidos.includes(req.params.pais)) return res.status(400).send('País no válido');
-    res.cookie('pais_seleccionado', req.params.pais, { maxAge: 30*24*60*60*1000, httpOnly: true });
+    res.cookie('pais_seleccionado', req.params.pais, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true });
     res.redirect(req.get('referer') || '/');
 });
 
@@ -1851,7 +1912,7 @@ app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
 // ===== RUTA DE PRUEBA PARA TELEGRAM (protegida) =====
 app.get('/api/admin/test-telegram', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    
+
     const testNoticia = {
         titulo: '🏮 PRUEBA — Bot de Telegram de El Farol al Día',
         slug: 'test-bot-telegram',
@@ -1861,7 +1922,7 @@ app.get('/api/admin/test-telegram', authMiddleware, async (req, res) => {
     };
 
     const resultado = await enviarTelegram(testNoticia);
-    
+
     res.json({
         success: resultado,
         telegram_token: TELEGRAM_TOKEN ? '✅ Configurado' : '❌ No configurado',
@@ -1873,17 +1934,17 @@ app.get('/api/admin/test-telegram', authMiddleware, async (req, res) => {
 // ══════════════════════════════════════════════════════════
 // RUTAS PÚBLICAS Y PROTEGIDAS
 // ══════════════════════════════════════════════════════════
-app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
-app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
-app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
+app.get('/contacto', (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
+app.get('/nosotros', (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
 app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
-app.get('/terminos',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'terminos.html')));
-app.get('/cookies',    (req, res) => res.sendFile(path.join(__dirname, 'client', 'cookies.html')));
+app.get('/terminos', (req, res) => res.sendFile(path.join(__dirname, 'client', 'terminos.html')));
+app.get('/cookies', (req, res) => res.sendFile(path.join(__dirname, 'client', 'cookies.html')));
 
 let _cacheNoticias = null;
-let _cacheFecha    = 0;
-const CACHE_TTL    = 60 * 1000;
+let _cacheFecha = 0;
+const CACHE_TTL = 60 * 1000;
 
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
@@ -1897,12 +1958,27 @@ app.get('/api/noticias', async (req, res) => {
             ['publicada']
         );
         _cacheNoticias = r.rows;
-        _cacheFecha    = Date.now();
+        _cacheFecha = Date.now();
+
+        // Asegurar headers CORS específicos para esta respuesta
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.setHeader('Cache-Control', 'public,max-age=60');
+        res.setHeader('Content-Type', 'application/json');
+
         res.json({ success: true, noticias: r.rows });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
+});
+
+// Manejar OPTIONS para CORS preflight
+app.options('/api/noticias', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.sendStatus(200);
 });
 
 app.post('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
@@ -1915,7 +1991,7 @@ app.post('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
         invalidarCache();
         console.log(`🖼️ Imagen actualizada: ID ${id}`);
         res.json({ success: true });
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
@@ -1930,7 +2006,7 @@ app.post('/api/eliminar/:id', authMiddleware, async (req, res) => {
         invalidarCache();
         console.log(`🗑️ Noticia eliminada: ID ${id}`);
         res.json({ success: true });
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
@@ -1954,7 +2030,7 @@ app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
     try {
         await pool.query('DELETE FROM comentarios WHERE id=$1', [parseInt(req.params.id)]);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
@@ -1968,7 +2044,7 @@ app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
             ORDER BY c.fecha DESC LIMIT 50
         `);
         res.json({ success: true, comentarios: r.rows });
-    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.get('/api/comentarios/:noticia_id', async (req, res) => {
@@ -1980,7 +2056,7 @@ app.get('/api/comentarios/:noticia_id', async (req, res) => {
             ORDER BY fecha ASC
         `, [req.params.noticia_id]);
         res.json({ success: true, comentarios: r.rows });
-    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.post('/api/comentarios/:noticia_id', async (req, res) => {
@@ -2001,10 +2077,10 @@ app.post('/api/comentarios/:noticia_id', async (req, res) => {
             INSERT INTO comentarios(noticia_id, nombre, texto)
             VALUES($1, $2, $3)
             RETURNING id, nombre, texto, fecha
-        `, [noticia_id, nombre.trim().substring(0,80), texto.trim().substring(0,1000)]);
+        `, [noticia_id, nombre.trim().substring(0, 80), texto.trim().substring(0, 1000)]);
         console.log(`💬 Comentario: noticia ${noticia_id} — ${nombre.trim()}`);
         res.json({ success: true, comentario: r.rows[0] });
-    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.get('/api/memoria', authMiddleware, async (req, res) => {
@@ -2012,13 +2088,13 @@ app.get('/api/memoria', authMiddleware, async (req, res) => {
     try {
         const queries = await pool.query(`
             SELECT tipo, valor, categoria, exitos, fallos,
-                   ROUND((exitos::float / GREATEST(exitos+fallos,1))*100) as pct_exito,
+                   ROUND((exitos::float / GREATEST(exitos + fallos, 1)) * 100) as pct_exito,
                    ultima_vez
             FROM memoria_ia
             ORDER BY ultima_vez DESC LIMIT 50
         `);
         res.json({ success: true, registros: queries.rows });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/wikipedia', async (req, res) => {
@@ -2038,20 +2114,20 @@ app.get('/noticia/:slug', async (req, res) => {
 
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
-            const urlN  = `${BASE_URL}/noticia/${n.slug}`;
+            const urlN = `${BASE_URL}/noticia/${n.slug}`;
             const cHTML = n.contenido.split('\n').filter(p => p.trim()).map(p => `<p>${p.trim()}</p>`).join('');
             html = html
                 .replace('<!-- META_TAGS -->', metaTagsCompletos(n, urlN))
-                .replace(/{{TITULO}}/g,    esc(n.titulo))
+                .replace(/{{TITULO}}/g, esc(n.titulo))
                 .replace(/{{CONTENIDO}}/g, cHTML)
-                .replace(/{{FECHA}}/g,     new Date(n.fecha).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' }))
-                .replace(/{{IMAGEN}}/g,    n.imagen)
-                .replace(/{{ALT}}/g,       esc(n.imagen_alt || n.titulo))
-                .replace(/{{VISTAS}}/g,    n.vistas)
-                .replace(/{{REDACTOR}}/g,  esc(n.redactor))
-                .replace(/{{SECCION}}/g,   esc(n.seccion))
-                .replace(/{{URL}}/g,       encodeURIComponent(urlN));
-            res.setHeader('Content-Type',  'text/html;charset=utf-8');
+                .replace(/{{FECHA}}/g, new Date(n.fecha).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' }))
+                .replace(/{{IMAGEN}}/g, n.imagen)
+                .replace(/{{ALT}}/g, esc(n.imagen_alt || n.titulo))
+                .replace(/{{VISTAS}}/g, n.vistas)
+                .replace(/{{REDACTOR}}/g, esc(n.redactor))
+                .replace(/{{SECCION}}/g, esc(n.seccion))
+                .replace(/{{URL}}/g, encodeURIComponent(urlN));
+            res.setHeader('Content-Type', 'text/html;charset=utf-8');
             res.setHeader('Cache-Control', 'public,max-age=300');
             res.send(html);
         } catch (e) {
@@ -2073,7 +2149,7 @@ app.get('/sitemap.xml', async (req, res) => {
             xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><changefreq>${d < 1 ? 'hourly' : d < 7 ? 'daily' : 'weekly'}</changefreq><priority>${d < 1 ? '1.0' : d < 7 ? '0.9' : d < 30 ? '0.7' : '0.5'}</priority></url>\n`;
         });
         xml += '</urlset>';
-        res.header('Content-Type',  'application/xml');
+        res.header('Content-Type', 'application/xml');
         res.header('Cache-Control', 'public,max-age=3600');
         res.send(xml);
     } catch (e) {
@@ -2129,14 +2205,14 @@ app.post('/api/publicar', express.json(), async (req, res) => {
     if (!titulo || !seccion || !contenido) return res.status(400).json({ success: false, error: 'Faltan campos' });
     try {
         const sl = slugify(titulo);
-        const e  = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
+        const e = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
         const slF = e.rows.length ? `${sl}-${Date.now()}` : sl;
         await pool.query(
             `INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
             [titulo, slF, seccion, contenido, red || 'Manual',
-             `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,
-             `${titulo} - noticias República Dominicana El Farol al Día`,
-             `Fotografía: ${titulo}`, 'efd.jpg', 'el-farol', 'publicada']
+                `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,
+                `${titulo} - noticias República Dominicana El Farol al Día`,
+                `Fotografía: ${titulo}`, 'efd.jpg', 'el-farol', 'publicada']
         );
         res.json({ success: true, slug: slF });
     } catch (e) {
@@ -2152,32 +2228,32 @@ app.get('/api/admin/config', authMiddleware, (req, res) => {
 app.post('/api/admin/config', authMiddleware, express.json(), async (req, res) => {
     const { pin, enabled, instruccion_principal, tono, extension, evitar, enfasis } = req.body;
     if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
-    if (enabled !== undefined)  CONFIG_IA.enabled = enabled;
-    if (instruccion_principal)  CONFIG_IA.instruccion_principal = instruccion_principal;
-    if (tono)                   CONFIG_IA.tono = tono;
-    if (extension)              CONFIG_IA.extension = extension;
-    if (evitar)                 CONFIG_IA.evitar = evitar;
-    if (enfasis)                CONFIG_IA.enfasis = enfasis;
+    if (enabled !== undefined) CONFIG_IA.enabled = enabled;
+    if (instruccion_principal) CONFIG_IA.instruccion_principal = instruccion_principal;
+    if (tono) CONFIG_IA.tono = tono;
+    if (extension) CONFIG_IA.extension = extension;
+    if (evitar) CONFIG_IA.evitar = evitar;
+    if (enfasis) CONFIG_IA.enfasis = enfasis;
     const ok = await guardarConfigIA(CONFIG_IA);
     res.json({ success: ok });
 });
 
 app.get('/status', async (req, res) => {
     try {
-        const r   = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
+        const r = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status: 'OK', version: '34.0',
-            noticias:       parseInt(r.rows[0].count),
+            noticias: parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
-            facebook:       FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
-            twitter:        TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
-            telegram:       TELEGRAM_TOKEN ? '✅ Activo' : '⚠️ Sin token',
-            pexels_api:     PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
-            wikipedia:      '✅ Activa (API pública, sin key)',
-            marca_de_agua:  fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
-            ia_activa:      CONFIG_IA.enabled,
-            sistema:        'Web + Facebook + Twitter + Telegram + RSS + Wikipedia + Watermark + SEO'
+            facebook: FB_PAGE_ID && FB_PAGE_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            twitter: TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            telegram: TELEGRAM_TOKEN ? '✅ Activo' : '⚠️ Sin token',
+            pexels_api: PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
+            wikipedia: '✅ Activa (API pública, sin key)',
+            marca_de_agua: fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
+            ia_activa: CONFIG_IA.enabled,
+            sistema: 'Web + Facebook + Twitter + Telegram + RSS + Wikipedia + Watermark + SEO + CORS Blogger'
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -2193,15 +2269,16 @@ async function iniciar() {
     try {
         // 1. Inicializar BD rápido (esto es necesario y rápido)
         await inicializarBase();
-        
+
         // 2. Arrancar el servidor INMEDIATAMENTE (Railway ya ve que está online)
         const server = app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT                      ║
+║  🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT + CORS BLOGGER       ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🌐 Servidor ONLINE en puerto ${PORT}                             ║
 ║  📱 Telegram: ${TELEGRAM_TOKEN ? '✅ Configurado' : '⚠️ Sin token'}                     ║
+║  🌐 CORS Blogger: ✅ ACTIVADO (permite blogspot.com)            ║
 ║  ⏳ Iniciando tareas en segundo plano...                        ║
 ╚══════════════════════════════════════════════════════════════════╝`);
         });
@@ -2209,7 +2286,7 @@ async function iniciar() {
         // 3. Tareas en segundo plano (NO BLOQUEAN el arranque)
         setTimeout(async () => {
             console.log('⏳ Iniciando tareas post-arranque...');
-            
+
             // 3.1 Telegram - intentar conectar y enviar bienvenida (sin await)
             if (telegramBot) {
                 setTimeout(async () => {
@@ -2219,23 +2296,23 @@ async function iniciar() {
                             TELEGRAM_CHAT_ID = chatId;
                             await bienvenidaTelegram();
                         }
-                    } catch(e) {
+                    } catch (e) {
                         console.log('📱 Telegram no disponible aún (el bot necesita un mensaje)');
                     }
                 }, 2000); // 2 segundos después
             }
-            
+
             // 3.2 Watermarks - 10 segundos después (ya con Telegram conectado)
             setTimeout(async () => {
                 console.log('🏮 Regenerando watermarks en segundo plano...');
                 try {
                     await regenerarWatermarksLostidos();
                     console.log('🏮 Watermarks regenerados exitosamente');
-                } catch(e) {
+                } catch (e) {
                     console.log('⚠️ Error en watermarks (no crítico):', e.message);
                 }
             }, 10000); // 10 segundos después del arranque
-            
+
         }, 3000); // 3 segundos después del arranque
 
     } catch (error) {
