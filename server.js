@@ -1223,39 +1223,137 @@ function metaTagsCompletos(n, url) {
     const img = esc(n.imagen), red = esc(n.redactor), sec = esc(n.seccion);
     const fi  = new Date(n.fecha).toISOString(), ue = esc(url);
     const wc  = (n.contenido || '').split(/\s+/).filter(w => w).length;
+
+    // ── Palabras de Oro siempre presentes en keywords ──
+    const keywordsSEO = [
+        n.seo_keywords || '',
+        'último minuto república dominicana',
+        'santo domingo este noticias',
+        'noticias el almirante',
+        'tendencias dominicanas',
+        'el farol al día'
+    ].filter(Boolean).join(', ');
+
+    // ── PILAR 1: Schema NewsArticle COMPLETO — Google Search Central ──
     const schema = {
-        "@context": "https://schema.org", "@type": "NewsArticle",
+        "@context":         "https://schema.org",
+        "@type":            "NewsArticle",
         "mainEntityOfPage": { "@type": "WebPage", "@id": url },
-        "headline": n.titulo, "description": n.seo_description || '',
-        "image": { "@type": "ImageObject", "url": n.imagen, "caption": n.imagen_caption || n.titulo, "width": 1200, "height": 630 },
-        "datePublished": fi, "dateModified": fi,
-        "author": { "@type": "Person", "name": n.redactor, "url": `${BASE_URL}/nosotros` },
-        "publisher": { "@type": "Organization", "name": "El Farol al Día", "url": BASE_URL, "logo": { "@type": "ImageObject", "url": `${BASE_URL}/static/favicon.png` } },
-        "articleSection": n.seccion, "wordCount": wc, "inLanguage": "es-DO", "isAccessibleForFree": true
+        "headline":         n.titulo,
+        "description":      n.seo_description || '',
+        "keywords":         keywordsSEO,
+        "image": {
+            "@type":   "ImageObject",
+            "url":     n.imagen,
+            "caption": n.imagen_caption || n.titulo,
+            "width":   1200,
+            "height":  630
+        },
+        "datePublished":  fi,
+        "dateModified":   fi,
+        "author": {
+            "@type":    "Person",
+            "name":     "José Gregorio Mañan Santana",
+            "url":      `${BASE_URL}/nosotros`,
+            "jobTitle": "Director General",
+            "worksFor": { "@type": "Organization", "name": "El Farol al Día" }
+        },
+        "creator": n.redactor,
+        "publisher": {
+            "@type": "NewsMediaOrganization",
+            "name":  "El Farol al Día",
+            "url":   BASE_URL,
+            "sameAs": [
+                "https://www.facebook.com/elfarolaldia",
+                "https://twitter.com/elfarolaldia"
+            ],
+            "logo": {
+                "@type":  "ImageObject",
+                "url":    `${BASE_URL}/static/favicon.png`,
+                "width":  512,
+                "height": 512
+            },
+            "address": {
+                "@type":           "PostalAddress",
+                "addressLocality": "Santo Domingo Este",
+                "addressRegion":   "Distrito Nacional",
+                "addressCountry":  "DO"
+            }
+        },
+        "articleSection":      n.seccion,
+        "wordCount":           wc,
+        "inLanguage":          "es-DO",
+        "isAccessibleForFree": true,
+        "copyrightHolder":     "El Farol al Día",
+        "copyrightYear":       new Date(n.fecha).getFullYear(),
+        "locationCreated": {
+            "@type": "Place",
+            "name":  "Santo Domingo Este, República Dominicana"
+        }
     };
+
+    // ── Breadcrumb con Palabras de Oro ──
     const bread = {
-        "@context": "https://schema.org", "@type": "BreadcrumbList",
+        "@context": "https://schema.org",
+        "@type":    "BreadcrumbList",
         "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Inicio", "item": BASE_URL },
-            { "@type": "ListItem", "position": 2, "name": n.seccion, "item": `${BASE_URL}/#${(n.seccion || '').toLowerCase()}` },
-            { "@type": "ListItem", "position": 3, "name": n.titulo, "item": url }
+            { "@type": "ListItem", "position": 1, "name": "Inicio",                           "item": BASE_URL },
+            { "@type": "ListItem", "position": 2, "name": "Último Minuto RD",                 "item": `${BASE_URL}/` },
+            { "@type": "ListItem", "position": 3, "name": n.seccion,                          "item": `${BASE_URL}/#${(n.seccion || '').toLowerCase()}` },
+            { "@type": "ListItem", "position": 4, "name": n.titulo,                           "item": url }
         ]
     };
-    return `<title>${t} | El Farol al Día</title>
-<meta name="description" content="${d}"><meta name="keywords" content="${k}"><meta name="author" content="${red}">
+
+    // ── Organization Schema ──
+    const orgSchema = {
+        "@context":    "https://schema.org",
+        "@type":       "NewsMediaOrganization",
+        "name":        "El Farol al Día",
+        "url":         BASE_URL,
+        "description": "Tu portal de noticias de Último Minuto en Santo Domingo Este y toda la República Dominicana",
+        "areaServed":  ["República Dominicana", "Santo Domingo Este", "Caribe"],
+        "logo": { "@type": "ImageObject", "url": `${BASE_URL}/static/favicon.png` }
+    };
+
+    // ── Título SEO enriquecido ──
+    const tituloSEO = (n.titulo.toLowerCase().includes('santo domingo') || n.titulo.toLowerCase().includes('sde'))
+        ? `${t} | El Farol al Día`
+        : `${t} | Último Minuto RD · El Farol al Día`;
+    return `<title>${tituloSEO}</title>
+<meta name="description" content="${d}">
+<meta name="keywords" content="${esc(keywordsSEO)}">
+<meta name="author" content="José Gregorio Mañan Santana · El Farol al Día">
+<meta name="news_keywords" content="último minuto, santo domingo este, noticias el almirante, tendencias dominicanas, ${esc(k)}">
+<meta name="geo.region" content="DO-01">
+<meta name="geo.placename" content="Santo Domingo Este, República Dominicana">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<link rel="canonical" href="${ue}"><link rel="alternate" hreflang="es-DO" href="${ue}"><link rel="alternate" hreflang="es" href="${ue}">
-<meta property="og:type" content="article"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}">
-<meta property="og:image" content="${img}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="${esc(n.imagen_alt || n.titulo)}"><meta property="og:url" content="${ue}">
-<meta property="og:site_name" content="El Farol al Día"><meta property="og:locale" content="es_DO">
-<meta property="article:published_time" content="${fi}"><meta property="article:modified_time" content="${fi}">
-<meta property="article:author" content="${red}"><meta property="article:section" content="${sec}"><meta property="article:tag" content="${k}">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${t}">
-<meta name="twitter:description" content="${d}"><meta name="twitter:image" content="${img}">
-<meta name="twitter:image:alt" content="${esc(n.imagen_alt || n.titulo)}"><meta name="twitter:site" content="@elfarolaldia">
+<link rel="canonical" href="${ue}">
+<link rel="alternate" hreflang="es-DO" href="${ue}">
+<link rel="alternate" hreflang="es" href="${ue}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="${t}">
+<meta property="og:description" content="${d}">
+<meta property="og:image" content="${img}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(n.imagen_alt || n.titulo)}">
+<meta property="og:url" content="${ue}">
+<meta property="og:site_name" content="El Farol al Día · Último Minuto RD">
+<meta property="og:locale" content="es_DO">
+<meta property="article:published_time" content="${fi}">
+<meta property="article:modified_time" content="${fi}">
+<meta property="article:author" content="José Gregorio Mañan Santana">
+<meta property="article:section" content="${sec}">
+<meta property="article:tag" content="${esc(keywordsSEO)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${t}">
+<meta name="twitter:description" content="${d}">
+<meta name="twitter:image" content="${img}">
+<meta name="twitter:image:alt" content="${esc(n.imagen_alt || n.titulo)}">
+<meta name="twitter:site" content="@elfarolaldia">
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
-<script type="application/ld+json">${JSON.stringify(bread)}</script>`;
+<script type="application/ld+json">${JSON.stringify(bread)}</script>
+<script type="application/ld+json">${JSON.stringify(orgSchema)}</script>`;
 }
 
 // ══════════════════════════════════════════════════════════
