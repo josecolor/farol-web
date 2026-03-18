@@ -6,7 +6,9 @@
  * + Memoria IA en PostgreSQL (persiste entre reinicios)
  * + Banco local 17 categorías × 10 fotos
  * + Coach de redacción + Comentarios + SEO E-E-A-T
- * + Telegram Bot automático (usando axios y crypto)
+ * + Telegram Bot automático (node-telegram-bot-api)
+ * + ARRANQUE OPTIMIZADO — Sin SIGTERM, watermarks en segundo plano
+ * + 🚫 AdSense INTACTO — pub-5280872495839888 NO TOCADO
  */
 
 const express   = require('express');
@@ -18,7 +20,7 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
-const axios     = require('axios');
+const TelegramBot = require('node-telegram-bot-api');
 
 // ══════════════════════════════════════════════════════════
 // 🔒 BASIC AUTH — Protege /redaccion y rutas admin
@@ -64,6 +66,17 @@ const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
 // ===== TELEGRAM BOT CONFIG =====
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8737097121:AAGiOFVpxLbbpH4iE9dlx4lJN8uAMtIPACo';
 let TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
+let telegramBot = null;
+
+// Inicializar bot de Telegram SOLO SI el token está disponible
+try {
+    if (TELEGRAM_TOKEN) {
+        telegramBot = new TelegramBot(TELEGRAM_TOKEN, { polling: false });
+        console.log('📱 Telegram Bot inicializado correctamente');
+    }
+} catch (e) {
+    console.error('❌ Error al inicializar Telegram Bot:', e.message);
+}
 
 // Busca watermark con cualquier nombre en la carpeta static
 const WATERMARK_PATH = (() => {
@@ -109,11 +122,11 @@ app.use(express.static(path.join(__dirname, 'client'), {
 app.use(cors());
 
 // ══════════════════════════════════════════════════════════
-// 📱 FUNCIÓN PARA ENVIAR A TELEGRAM (usando axios)
+// 📱 FUNCIÓN PARA ENVIAR A TELEGRAM
 // ══════════════════════════════════════════════════════════
 async function enviarTelegram(noticia) {
-    if (!TELEGRAM_TOKEN) {
-        console.log('   📱 Telegram: sin token configurado');
+    if (!telegramBot) {
+        console.log('   📱 Telegram: bot no inicializado');
         return false;
     }
 
@@ -143,28 +156,20 @@ async function enviarTelegram(noticia) {
 
         // Intentar enviar con imagen primero
         try {
-            const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
-                chat_id: TELEGRAM_CHAT_ID,
-                photo: imagen,
+            await telegramBot.sendPhoto(TELEGRAM_CHAT_ID, imagen, {
                 caption: mensaje,
                 parse_mode: 'Markdown'
             });
-            if (response.data.ok) {
-                console.log(`   📱 Telegram ✅ (con imagen)`);
-                return true;
-            }
-        } catch(e) {
+            console.log(`   📱 Telegram ✅ (con imagen)`);
+            return true;
+        } catch (e) {
             // Fallback a solo texto
-            const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-                chat_id: TELEGRAM_CHAT_ID,
-                text: mensaje,
+            await telegramBot.sendMessage(TELEGRAM_CHAT_ID, mensaje, {
                 parse_mode: 'Markdown',
                 disable_web_page_preview: false
             });
-            if (response.data.ok) {
-                console.log(`   📱 Telegram ✅ (texto)`);
-                return true;
-            }
+            console.log(`   📱 Telegram ✅ (texto)`);
+            return true;
         }
     } catch (err) {
         console.warn(`   ⚠️ Telegram error: ${err.message}`);
@@ -185,12 +190,11 @@ async function enviarTelegram(noticia) {
  * Obtiene el Chat ID automáticamente del último mensaje recibido por el bot
  */
 async function obtenerChatIdTelegram() {
-    if (!TELEGRAM_TOKEN) return null;
+    if (!telegramBot) return null;
     try {
-        const response = await axios.get(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=1&offset=-1`);
-        const data = response.data;
-        if (data.ok && data.result && data.result.length > 0) {
-            const chatId = data.result[0]?.message?.chat?.id || data.result[0]?.channel_post?.chat?.id;
+        const updates = await telegramBot.getUpdates({ limit: 1, timeout: 0 });
+        if (updates && updates.length > 0) {
+            const chatId = updates[0]?.message?.chat?.id || updates[0]?.channel_post?.chat?.id;
             if (chatId) {
                 console.log(`   📱 Telegram Chat ID detectado: ${chatId}`);
                 return chatId.toString();
@@ -204,17 +208,14 @@ async function obtenerChatIdTelegram() {
  * Envía mensaje de bienvenida cuando el bot se activa
  */
 async function bienvenidaTelegram() {
-    if (!TELEGRAM_TOKEN) return;
-    
-    const chatId = await obtenerChatIdTelegram();
-    if (!chatId) return;
+    if (!telegramBot || !TELEGRAM_CHAT_ID) return;
 
     try {
-        await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            chat_id: chatId,
-            text: `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](${BASE_URL})\n📍 Santo Domingo Este, RD`,
-            parse_mode: 'Markdown'
-        });
+        await telegramBot.sendMessage(
+            TELEGRAM_CHAT_ID,
+            `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](${BASE_URL})\n📍 Santo Domingo Este, RD`,
+            { parse_mode: 'Markdown' }
+        );
         console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
     } catch(e) { /* silencioso */ }
 }
@@ -1408,6 +1409,9 @@ async function construirMemoria(categoria) {
     return memoria;
 }
 
+// ══════════════════════════════════════════════════════════
+// ▶ NUEVA FUNCIÓN DE WATERMARKS OPTIMIZADA (en segundo plano)
+// ══════════════════════════════════════════════════════════
 async function regenerarWatermarksLostidos() {
     try {
         const r = await pool.query(`
@@ -1416,33 +1420,49 @@ async function regenerarWatermarksLostidos() {
             WHERE imagen LIKE '%/img/%'
               AND imagen_original IS NOT NULL
               AND imagen_original != ''
-            ORDER BY fecha DESC LIMIT 50
-        `);
-        if (!r.rows.length) return;
+            ORDER BY fecha DESC LIMIT 30
+        `); // Reducido de 50 a 30 para ser más rápido
+        
+        if (!r.rows.length) {
+            console.log('🏮 No hay watermarks para regenerar');
+            return;
+        }
 
         let regeneradas = 0;
-        for (const n of r.rows) {
-            const nombre = n.imagen_nombre || n.imagen.split('/img/')[1];
-            if (!nombre) continue;
-            const ruta = path.join('/tmp', nombre);
-            if (fs.existsSync(ruta)) continue;
+        // Procesar en lotes de 5 para no saturar
+        for (let i = 0; i < r.rows.length; i += 5) {
+            const batch = r.rows.slice(i, i + 5);
+            await Promise.all(batch.map(async (n) => {
+                const nombre = n.imagen_nombre || n.imagen.split('/img/')[1];
+                if (!nombre) return;
+                
+                const ruta = path.join('/tmp', nombre);
+                if (fs.existsSync(ruta)) return; // ya existe, no regenerar
 
-            const resultado = await aplicarMarcaDeAgua(n.imagen_original);
-            if (resultado.procesada && resultado.nombre) {
-                await pool.query(
-                    `UPDATE noticias SET imagen=$1, imagen_nombre=$2 WHERE id=$3`,
-                    [`${BASE_URL}/img/${resultado.nombre}`, resultado.nombre, n.id]
-                );
-                regeneradas++;
-            }
-            await new Promise(r => setTimeout(r, 200));
+                try {
+                    const resultado = await aplicarMarcaDeAgua(n.imagen_original);
+                    if (resultado.procesada && resultado.nombre) {
+                        await pool.query(
+                            `UPDATE noticias SET imagen=$1, imagen_nombre=$2 WHERE id=$3`,
+                            [`${BASE_URL}/img/${resultado.nombre}`, resultado.nombre, n.id]
+                        );
+                        regeneradas++;
+                    }
+                } catch(e) {
+                    // Error silencioso - no detener el lote
+                }
+            }));
+            
+            // Pequeña pausa entre lotes
+            await new Promise(r => setTimeout(r, 100));
         }
+        
         if (regeneradas > 0) {
             console.log(`🏮 Watermarks regenerados: ${regeneradas}`);
             invalidarCache();
         }
     } catch(e) {
-        console.log(`⚠️ Regeneración watermarks: ${e.message}`);
+        console.log(`⚠️ Error en regeneración: ${e.message}`);
     }
 }
 
@@ -1635,11 +1655,13 @@ CONTENIDO:
         };
         
         // No esperar a que termine para no bloquear la respuesta
-        enviarTelegram(noticiaPublicada).catch(e => {
-            console.error('❌ Error enviando a Telegram:', e.message);
-        });
+        if (telegramBot) {
+            enviarTelegram(noticiaPublicada).catch(e => {
+                console.error('❌ Error enviando a Telegram:', e.message);
+            });
+        }
 
-        // También enviar a Facebook y Twitter (código existente)
+        // También enviar a Facebook y Twitter
         Promise.allSettled([
             publicarEnFacebook(titulo, slFin, urlFinal, desc),
             publicarEnTwitter(titulo, slFin, desc)
@@ -1826,7 +1848,7 @@ app.get('/api/pais-actual', (req, res) => {
 
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
 
-// ===== RUTA DE PRUEBA PARA TELEGRAM =====
+// ===== RUTA DE PRUEBA PARA TELEGRAM (protegida) =====
 app.get('/api/admin/test-telegram', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
     
@@ -1848,6 +1870,9 @@ app.get('/api/admin/test-telegram', authMiddleware, async (req, res) => {
     });
 });
 
+// ══════════════════════════════════════════════════════════
+// RUTAS PÚBLICAS Y PROTEGIDAS
+// ══════════════════════════════════════════════════════════
 app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
@@ -2061,6 +2086,7 @@ app.get('/robots.txt', (req, res) => {
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
 });
 
+// 🚫 ADSENSE — NO TOCAR (pub-5280872495839888)
 app.get('/ads.txt', (req, res) => {
     res.header('Content-Type', 'text/plain');
     res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
@@ -2161,34 +2187,61 @@ app.get('/status', async (req, res) => {
 app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE
+// ARRANQUE OPTIMIZADO — NO BLOQUEA, NO SIGTERM
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
-    await inicializarBase();
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`
+    try {
+        // 1. Inicializar BD rápido (esto es necesario y rápido)
+        await inicializarBase();
+        
+        // 2. Arrancar el servidor INMEDIATAMENTE (Railway ya ve que está online)
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
 ║  🏮 EL FAROL AL DÍA — V34.0 + TELEGRAM BOT                      ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📱 Telegram                ║
-║  🧠 Memoria IA · 💬 Comentarios · 🔍 SEO E-E-A-T               ║
-║  🏮 Watermark auto-regenera si Railway limpia /tmp              ║
-║                                                                  ║
-║  Facebook:  ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
-║  Twitter:   ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
-║  Telegram:  ${TELEGRAM_TOKEN                         ? '✅ ACTIVO          ' : '⚠️  Sin credenciales'}║
-║  Watermark: ${fs.existsSync(WATERMARK_PATH)          ? '✅ ACTIVA          ' : '⚠️  Falta watermark '}║
+║  🌐 Servidor ONLINE en puerto ${PORT}                             ║
+║  📱 Telegram: ${TELEGRAM_TOKEN ? '✅ Configurado' : '⚠️ Sin token'}                     ║
+║  ⏳ Iniciando tareas en segundo plano...                        ║
 ╚══════════════════════════════════════════════════════════════════╝`);
-    });
-    setTimeout(regenerarWatermarksLostidos, 5000);
-    // Intentar bienvenida de Telegram después de 8 segundos
-    setTimeout(async () => {
-        const chatId = await obtenerChatIdTelegram();
-        if (chatId && TELEGRAM_TOKEN) {
-            TELEGRAM_CHAT_ID = chatId;
-            await bienvenidaTelegram();
-        }
-    }, 8000);
+        });
+
+        // 3. Tareas en segundo plano (NO BLOQUEAN el arranque)
+        setTimeout(async () => {
+            console.log('⏳ Iniciando tareas post-arranque...');
+            
+            // 3.1 Telegram - intentar conectar y enviar bienvenida (sin await)
+            if (telegramBot) {
+                setTimeout(async () => {
+                    try {
+                        const chatId = await obtenerChatIdTelegram();
+                        if (chatId) {
+                            TELEGRAM_CHAT_ID = chatId;
+                            await bienvenidaTelegram();
+                        }
+                    } catch(e) {
+                        console.log('📱 Telegram no disponible aún (el bot necesita un mensaje)');
+                    }
+                }, 2000); // 2 segundos después
+            }
+            
+            // 3.2 Watermarks - 10 segundos después (ya con Telegram conectado)
+            setTimeout(async () => {
+                console.log('🏮 Regenerando watermarks en segundo plano...');
+                try {
+                    await regenerarWatermarksLostidos();
+                    console.log('🏮 Watermarks regenerados exitosamente');
+                } catch(e) {
+                    console.log('⚠️ Error en watermarks (no crítico):', e.message);
+                }
+            }, 10000); // 10 segundos después del arranque
+            
+        }, 3000); // 3 segundos después del arranque
+
+    } catch (error) {
+        console.error('❌ Error fatal al iniciar:', error);
+        process.exit(1);
+    }
 }
 
 iniciar();
