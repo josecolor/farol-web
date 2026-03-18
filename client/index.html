@@ -641,7 +641,11 @@ body { top:0 !important; }
 
         <!-- DIRECTOR -->
         <div style="background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:20px 14px;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
-          <div style="width:52px;height:52px;background:linear-gradient(135deg,#0A2647,#1B3A5E);border:2px solid #FFD700;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 16px rgba(255,215,0,.25)">👤</div>
+          <div style="width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:2px solid #FFD700;box-shadow:0 0 20px rgba(255,215,0,.35)">
+            <img src="/static/director.jpg" alt="José Gregorio Apellio - Director El Farol al Día"
+              style="width:100%;height:100%;object-fit:cover;object-position:center top"
+              onerror="this.parentElement.innerHTML='<div style=\'width:64px;height:64px;background:linear-gradient(135deg,#0A2647,#FFD700);display:flex;align-items:center;justify-content:center;font-size:28px\'>🏮</div>'">
+          </div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:#FFD700;margin-bottom:6px">DIRECTOR & FUNDADOR</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#fff;line-height:1.2;margin-bottom:4px">JOSÉ GREGORIO<br>MAÑAN SANTANA</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.5">Santo Domingo Este<br>República Dominicana</div>
@@ -685,6 +689,88 @@ body { top:0 !important; }
       <a href="/terminos" style="color:var(--dorado)">Términos y Condiciones</a> ·
       <a href="/cookies" style="color:var(--dorado)">Política de Cookies</a></p>
     </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         🏆 COLABORADORES & TECNOLOGÍA — El Farol al Día
+    ══════════════════════════════════════════════════════ -->
+    <div style="margin:36px 0 28px;padding:36px 24px;background:linear-gradient(135deg,rgba(10,38,71,.75) 0%,rgba(7,7,7,.97) 100%);border:1px solid rgba(255,215,0,.2);border-radius:20px;position:relative;overflow:hidden">
+
+      <!-- Destellos decorativos -->
+      <div style="position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,215,0,.07) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
+      <div style="position:absolute;bottom:-50px;left:-50px;width:160px;height:160px;background:radial-gradient(circle,rgba(255,85,0,.05) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
+
+      <!-- Título -->
+      <div style="text-align:center;margin-bottom:30px;position:relative">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,215,0,.55);display:block;margin-bottom:8px">COLABORADORES & TECNOLOGÍA</span>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,4vw,30px);letter-spacing:4px;color:#fff;line-height:1">LAS MENTES DETRÁS DE <span style="color:var(--fuego)">EL FAROL</span></div>
+        <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#FF5500,transparent);margin:12px auto 0"></div>
+      </div>
+
+      <!-- Grid 4 tarjetas -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;position:relative">
+
+        <!-- DIRECTOR -->
+        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(255,215,0,.14)';this.style.borderColor='rgba(255,215,0,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(255,215,0,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FFD700,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#0A2647,#1a4a7a);border:2px solid rgba(255,215,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(255,215,0,.18)">👑</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,215,0,.65);margin-bottom:6px">DIRECTOR & FUNDADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#FFD700;line-height:1.25;margin-bottom:8px">JOSÉ GREGORIO<br>MAÑAN SANTANA</div>
+          <div style="width:30px;height:1px;background:rgba(255,215,0,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Visión · Editorial<br>SDE · RD</div>
+        </div>
+
+        <!-- GEMINI -->
+        <div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(66,133,244,.14)';this.style.borderColor='rgba(66,133,244,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(66,133,244,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#4285F4,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#0d1b3e,#1a3572);border:2px solid rgba(66,133,244,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(66,133,244,.18)">✨</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(66,133,244,.75);margin-bottom:6px">IA ENCARGADO</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#4285F4;margin-bottom:2px">GEMINI</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Google</div>
+          <div style="width:30px;height:1px;background:rgba(66,133,244,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Noticias · E-E-A-T<br>SEO · Contexto</div>
+        </div>
+
+        <!-- CLAUDE -->
+        <div style="background:rgba(255,85,0,.07);border:1px solid rgba(255,85,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(255,85,0,.14)';this.style.borderColor='rgba(255,85,0,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(255,85,0,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FF5500,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#1a0800,#3d1200);border:2px solid rgba(255,85,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(255,85,0,.18)">🏮</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,85,0,.8);margin-bottom:6px">IA DESARROLLADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#FF5500;margin-bottom:2px">CLAUDE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Anthropic</div>
+          <div style="width:30px;height:1px;background:rgba(255,85,0,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Arquitectura · Auth<br>AdSense · Server</div>
+        </div>
+
+        <!-- DEEPSEEK -->
+        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(16,185,129,.14)';this.style.borderColor='rgba(16,185,129,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(16,185,129,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#10B981,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#001a0d,#003320);border:2px solid rgba(16,185,129,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(16,185,129,.18)">🧠</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(16,185,129,.75);margin-bottom:6px">IA ESPECIALISTA</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#10B981;margin-bottom:2px">DEEPSEEK</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by DeepSeek AI</div>
+          <div style="width:30px;height:1px;background:rgba(16,185,129,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Datos · UI · Panel<br>Optimización</div>
+        </div>
+
+      </div>
+
+      <!-- Firma -->
+      <div style="text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.05)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);letter-spacing:2px">
+          🏮 CONSTRUIDO EN SANTO DOMINGO ESTE · REPÚBLICA DOMINICANA · 2026
+        </span>
+      </div>
+    </div>
+    <!-- FIN COLABORADORES & TECNOLOGÍA -->
+
     <div class="footer-copy">
       <p>© 2026 El Farol al Día · José Gregorio Mañan Santana · Todos los derechos reservados</p>
       <p style="font-size:10px;margin-top:5px">Powered by Gemini 2.5 Flash · Claude (Anthropic) · DeepSeek · Wikipedia · Pexels</p>
