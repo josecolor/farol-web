@@ -1,19 +1,18 @@
 {
   "name": "el-farol-al-dia",
   "version": "34.0.0",
-  "description": "Periódico Digital Dominicano - El Farol al Día",
+  "description": "Periódico Digital Dominicano - Versión PostgreSQL Directo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^4.18.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "pg": "^8.11.3",
     "sharp": "^0.32.6",
     "node-cron": "^3.0.3",
-    "rss-parser": "^3.13.0",
-    "axios": "^1.6.0"
+    "rss-parser": "^3.13.0"
   }
 }
