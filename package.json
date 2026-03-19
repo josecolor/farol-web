@@ -1,7 +1,7 @@
 {
   "name": "el-farol-al-dia",
-  "version": "34.0.0",
-  "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA, Wikipedia, Redes Sociales, Comentarios, Seguridad Basic Auth y Telegram Bot",
+  "version": "35.0.0",
+  "description": "Periódico Digital Dominicano - Sistema Automático de Noticias con IA, Wikipedia, Redes Sociales, Comentarios, Seguridad Basic Auth, Telegram Bot y Supabase Brain",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -18,7 +18,8 @@
     "axios": "^1.6.0",
     "crypto": "^1.0.1",
     "express-basic-auth": "^1.2.1",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "@supabase/supabase-js": "^2.38.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -33,6 +34,7 @@
     "facebook",
     "twitter",
     "telegram",
+    "supabase",
     "seo",
     "periodismo-digital",
     "seguridad",
