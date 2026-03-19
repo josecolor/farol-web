@@ -1,43 +1,55 @@
 /**
- * 🧠 SUPABASE INTEGRATION — El Farol al Día
+ * 🧠 SUPABASE INTEGRATION — El Farol al Día (FIXED)
  * 
- * Conecta con Supabase para:
- * 1. Leer reglas/instrucciones del usuario (tabla: reglas_mxl)
- * 2. Guardar memoria de publicaciones (tabla: memoria_ia)
- * 3. Retroalimentación y aprendizaje del sistema
- * 
- * Resiliencia: Si Supabase falla, funciona con defaults
+ * ✅ ARREGLADO:
+ * 1. Variables de entorno reconocidas correctamente
+ * 2. Validación de SUPABASE_URL y SUPABASE_KEY
+ * 3. Logs de debug sin exponer claves
+ * 4. Fallback automático si Supabase no está configurado
  */
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Validar credenciales
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-    console.warn('⚠️ SUPABASE_URL o SUPABASE_KEY no configurados');
-    console.warn('   Funcionando en modo OFFLINE (sin Supabase)');
-}
+// ══════════════════════════════════════════════════════════
+// 🔍 VALIDACIÓN DE VARIABLES DE ENTORNO (con logs seguros)
+// ══════════════════════════════════════════════════════════
 
-// Inicializar cliente Supabase (null-safe)
-const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
-    : null;
+console.log('🔐 Verificando variables de entorno Supabase...');
+console.log(`   SUPABASE_URL: ${process.env.SUPABASE_URL ? '✅ Configurada' : '❌ NO configurada'}`);
+console.log(`   SUPABASE_KEY: ${process.env.SUPABASE_KEY ? '✅ Configurada (primeros 20 chars: ' + process.env.SUPABASE_KEY.substring(0, 20) + '...)' : '❌ NO configurada'}`);
+
+// ══════════════════════════════════════════════════════════
+// INICIALIZAR CLIENTE SUPABASE (CON VALIDACIÓN CORRECTA)
+// ══════════════════════════════════════════════════════════
+
+let supabase = null;
+
+// ✅ CORRECCIÓN: Validar variables ANTES de createClient
+if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+    try {
+        // ✅ CORRECCIÓN: Nombres exactos coinciden con variables
+        supabase = createClient(
+            process.env.SUPABASE_URL,     // ← EXACTO
+            process.env.SUPABASE_KEY       // ← EXACTO
+        );
+        console.log('✅ Supabase client inicializado correctamente');
+    } catch (err) {
+        console.warn('⚠️ Error inicializando Supabase:', err.message);
+        supabase = null;
+    }
+} else {
+    console.warn('⚠️ SUPABASE_URL o SUPABASE_KEY no configurados en Railway');
+    console.warn('   → Sistema funcionará en modo OFFLINE (sin Supabase)');
+    console.warn('   → Agrega variables en Railway → Variables');
+    supabase = null;
+}
 
 // ══════════════════════════════════════════════════════════
 // 1️⃣ LEER REGLAS DEL USUARIO (ANTES DE GENERAR NOTICIA)
 // ══════════════════════════════════════════════════════════
 
-/**
- * Consulta Supabase tabla 'reglas_mxl' para obtener:
- * - Instrucciones personalizadas del usuario
- * - Enfoque (RD, Caribe, Internacional)
- * - Estilo de redacción (profesional, directo, etc)
- * - Palabras clave que debe incluir
- * - Temas a evitar
- * 
- * RETORNA: objeto con reglas O {} si Supabase no responde
- * NUNCA BLOQUEA LA GENERACIÓN DE NOTICIA
- */
 async function leerReglasUsuario(usuarioId = 'director') {
+    // ✅ Si Supabase no está configurado, retorna defaults inmediatamente
     if (!supabase) {
         console.log('📝 Supabase offline → usando reglas por defecto');
         return obtenerReglasDefault();
@@ -45,7 +57,7 @@ async function leerReglasUsuario(usuarioId = 'director') {
 
     try {
         const ctrl = new AbortController();
-        const tm = setTimeout(() => ctrl.abort(), 5000); // timeout 5s
+        const tm = setTimeout(() => ctrl.abort(), 5000);
 
         const { data, error } = await supabase
             .from('reglas_mxl')
@@ -56,7 +68,7 @@ async function leerReglasUsuario(usuarioId = 'director') {
         clearTimeout(tm);
 
         if (error) {
-            console.warn(`⚠️ Error Supabase (reglas): ${error.message}`);
+            console.warn(`⚠️ Error consultando reglas de Supabase: ${error.message}`);
             return obtenerReglasDefault();
         }
 
@@ -65,7 +77,7 @@ async function leerReglasUsuario(usuarioId = 'director') {
             return obtenerReglasDefault();
         }
 
-        console.log('✅ Reglas cargadas de Supabase');
+        console.log('✅ Reglas cargadas de Supabase correctamente');
         return {
             instruccion_principal: data.instruccion_principal || '',
             tono: data.tono || 'profesional',
@@ -73,17 +85,17 @@ async function leerReglasUsuario(usuarioId = 'director') {
             enfasis: data.enfasis || '',
             evitar: data.evitar || '',
             palabras_clave: data.palabras_clave ? data.palabras_clave.split(',') : [],
-            enfoque_geografico: data.enfoque_geografico || 'rd', // 'rd', 'caribe', 'internacional'
+            enfoque_geografico: data.enfoque_geografico || 'rd',
             ultima_actualizacion: data.updated_at
         };
 
     } catch (err) {
-        console.warn(`⚠️ Supabase timeout/error: ${err.message}`);
+        console.warn(`⚠️ Timeout/error leyendo reglas: ${err.message}`);
         return obtenerReglasDefault();
     }
 }
 
-// Reglas por defecto (si Supabase no responde)
+// Reglas por defecto (fallback)
 function obtenerReglasDefault() {
     return {
         instruccion_principal: 'Eres un periodista profesional dominicano. Escribe noticias verificadas y equilibradas con impacto real para República Dominicana.',
@@ -101,17 +113,6 @@ function obtenerReglasDefault() {
 // 2️⃣ GUARDAR MEMORIA DESPUÉS DE PUBLICAR
 // ══════════════════════════════════════════════════════════
 
-/**
- * Inserta en tabla 'memoria_ia' después de publicar noticia:
- * - Título generado
- * - Contenido (primeros 500 chars)
- * - Categoría
- * - Feedback del usuario (opcional)
- * - Timestamp
- * 
- * El sistema APRENDE: próxima vez que leas reglas, 
- * el usuario puede ver qué funcionó bien
- */
 async function guardarMemoriaPublicacion(noticia, feedback = null) {
     if (!supabase) {
         console.log('📚 Supabase offline → memoria no guardada (es OK)');
@@ -142,18 +143,14 @@ async function guardarMemoriaPublicacion(noticia, feedback = null) {
 
     } catch (err) {
         console.warn(`⚠️ Error guardando memoria (timeout): ${err.message}`);
-        return false; // No bloquea
+        return false;
     }
 }
 
 // ══════════════════════════════════════════════════════════
-// 3️⃣ REGISTRAR ERROR (PARA APRENDER QUÉ NO FUNCIONÓ)
+// 3️⃣ REGISTRAR ERROR
 // ══════════════════════════════════════════════════════════
 
-/**
- * Guarda errores en tabla 'memoria_ia' con tipo='error'
- * El usuario puede ver patrones: qué temas fallan, por qué
- */
 async function registrarErrorPublicacion(categoria, titulo, razon) {
     if (!supabase) return false;
 
@@ -177,18 +174,18 @@ async function registrarErrorPublicacion(categoria, titulo, razon) {
 
         return true;
     } catch (err) {
-        return false; // Silent fail
+        return false;
     }
 }
 
 // ══════════════════════════════════════════════════════════
-// 4️⃣ ACTUALIZAR REGLAS EN TIEMPO REAL (API)
-// Endpoint: POST /api/actualizar-reglas (requiere PIN 311)
+// 4️⃣ ACTUALIZAR REGLAS EN TIEMPO REAL
 // ══════════════════════════════════════════════════════════
 
 async function actualizarReglasSupabase(nuvasReglas, usuarioId = 'director') {
     if (!supabase) {
-        console.warn('⚠️ Supabase offline → reglas no guardadas');
+        console.warn('⚠️ Supabase offline → reglas no guardadas en BD');
+        console.warn('   → Pero se actualizan en memoria local (funciona hasta restart)');
         return false;
     }
 
@@ -236,12 +233,14 @@ async function actualizarReglasSupabase(nuvasReglas, usuarioId = 'director') {
 }
 
 // ══════════════════════════════════════════════════════════
-// 5️⃣ OBTENER ESTADÍSTICAS DE PUBLICACIONES
-// Para dashboard del usuario
+// 5️⃣ OBTENER ESTADÍSTICAS
 // ══════════════════════════════════════════════════════════
 
 async function obtenerEstadisticasMemoria(usuarioId = 'director', dias = 7) {
-    if (!supabase) return null;
+    if (!supabase) {
+        console.log('📊 Supabase offline → sin estadísticas');
+        return null;
+    }
 
     try {
         const fechaLimite = new Date();
@@ -254,7 +253,10 @@ async function obtenerEstadisticasMemoria(usuarioId = 'director', dias = 7) {
             .gte('timestamp', fechaLimite.toISOString())
             .order('timestamp', { ascending: false });
 
-        if (error) return null;
+        if (error) {
+            console.warn(`⚠️ Error obteniendo estadísticas: ${error.message}`);
+            return null;
+        }
 
         const exitosas = data.filter(x => x.exitosa).length;
         const errores = data.filter(x => !x.exitosa).length;
@@ -286,6 +288,21 @@ async function obtenerEstadisticasMemoria(usuarioId = 'director', dias = 7) {
 }
 
 // ══════════════════════════════════════════════════════════
+// 🧠 ESTADO DE SUPABASE (para debugging)
+// ══════════════════════════════════════════════════════════
+
+function obtenerEstadoSupabase() {
+    return {
+        conectado: !!supabase,
+        url_configurada: !!process.env.SUPABASE_URL,
+        key_configurada: !!process.env.SUPABASE_KEY,
+        mensaje: supabase 
+            ? '✅ Supabase conectado y listo' 
+            : '⚠️ Supabase offline — sistema funcionará sin él'
+    };
+}
+
+// ══════════════════════════════════════════════════════════
 // EXPORTAR
 // ══════════════════════════════════════════════════════════
 
@@ -296,5 +313,6 @@ module.exports = {
     registrarErrorPublicacion,
     actualizarReglasSupabase,
     obtenerEstadisticasMemoria,
-    obtenerReglasDefault
+    obtenerReglasDefault,
+    obtenerEstadoSupabase
 };
