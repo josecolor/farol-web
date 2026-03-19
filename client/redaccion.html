@@ -1,118 +1,619 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Redacción | El Farol al Día</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-/* 🎨 ESTILOS ORIGINALES DE EL FAROL */
-:root {
-  --fuego:  #FF5500;
-  --fuego2: #FF7A00;
-  --negro:  #080808;
-  --tinta:  #0E0E12;
-  --papel:  #141418;
-  --borde:  #1E1E26;
-  --crema:  #EDE8DF;
-  --crema2: #A89F94;
-  --muted:  #4E4E58;
-  --verde:  #22C55E;
-  --rojo:   #EF4444;
-  --azul:   #3B82F6;
-  --glow:   rgba(255,85,0,.35);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 100% 0%,rgba(255,85,0,.06) 0%,transparent 55%),radial-gradient(ellipse 40% 30% at 0% 100%,rgba(255,85,0,.03) 0%,transparent 50%);pointer-events:none;z-index:0}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Redacción - El Farol al Día</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 20px;
+        }
 
-/* HEADER & TICKER */
-header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);box-shadow:0 4px 30px rgba(255,85,0,.15)}
-.header-inner{max-width:1280px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
-.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
-.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px var(--glow)}
-.logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--fuego);line-height:1}
-.logo-text span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);display:block}
-.ticker{background:var(--fuego);height:30px;display:flex;align-items:center;overflow:hidden}
-.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
-.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 25s linear infinite;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.9)}
-@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-/* LAYOUT & CARDS */
-.container{max-width:1280px;margin:0 auto;padding:32px 28px 60px;position:relative;z-index:1}
-.layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
-.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.4)}
-.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015)}
-.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego)}
-.card-body{padding:22px}
+        header {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #FF5500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
 
-/* FORM ELEMENTS */
-.fgroup{margin-bottom:18px}
-.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
-textarea, select, input{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);border-radius:8px;font-family:inherit}
-.btn-orange{width:100%;padding:12px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;cursor:pointer}
-.msg{padding:10px;border-radius:6px;margin-top:10px;font-size:12px;display:none}
-.msg.ok{background:rgba(34,197,94,.1);color:var(--verde);display:block}
-.msg.err{background:rgba(239,68,68,.1);color:var(--rojo);display:block}
+        h1 {
+            font-size: 2.5em;
+            color: #FF5500;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
 
-/* IA SWITCH */
-.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;margin-bottom:20px}
-.switch{position:relative;display:inline-block;width:56px;height:30px}
-.switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;cursor:pointer;inset:0;background:#222;border-radius:30px;transition:.3s;border:1px solid rgba(255,255,255,.08)}
-.slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.3s}
-input:checked+.slider:before{transform:translateX(26px);background:var(--verde)}
+        .subtitle {
+            color: #888;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
 
-/* LISTAS */
-.noticias-list, .memoria-list{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto}
-.mem-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);padding:10px;border-radius:8px}
-.mem-tipo{font-size:10px;padding:2px 6px;background:var(--azul);border-radius:4px}
-.mem-valor{font-family:'JetBrains Mono',monospace;font-size:11px;flex:1}
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
 
-@media(max-width:900px){.layout{grid-template-columns:1fr}}
-</style>
+        .card {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #FF5500;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            background: #2a2a2a;
+            border: 2px solid #3a3a3a;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #FF5500;
+            box-shadow: 0 0 0 3px rgba(255,85,0,0.2);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            background: #FF5500;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        button:hover {
+            background: #ff6a1a;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255,85,0,0.3);
+        }
+
+        button.secondary {
+            background: transparent;
+            border-color: #FF5500;
+            color: #FF5500;
+        }
+
+        button.secondary:hover {
+            background: rgba(255,85,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .status.success {
+            background: rgba(0,255,0,0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            display: block;
+        }
+
+        .status.error {
+            background: rgba(255,0,0,0.1);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+            display: block;
+        }
+
+        .memoria-item {
+            background: #252525;
+            border-left: 4px solid #FF5500;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s;
+        }
+
+        .memoria-item:hover {
+            transform: translateX(5px);
+            background: #2a2a2a;
+        }
+
+        .memoria-item .titulo {
+            font-size: 1.1em;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .memoria-item .meta {
+            font-size: 0.8em;
+            color: #888;
+            display: flex;
+            gap: 15px;
+        }
+
+        .memoria-item .categoria {
+            background: #FF5500;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        .memoria-item.error {
+            border-left-color: #ff4444;
+        }
+
+        .memoria-item.error .categoria {
+            background: #ff4444;
+        }
+
+        .badge {
+            background: #FF5500;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #252525;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        .stat-box .numero {
+            font-size: 2em;
+            color: #FF5500;
+            font-weight: bold;
+        }
+
+        .stat-box .label {
+            color: #aaa;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+
+        .pin-input {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #FF5500;
+            z-index: 1000;
+        }
+
+        .pin-input input {
+            width: 80px;
+            padding: 8px;
+            text-align: center;
+            font-size: 1.2em;
+            letter-spacing: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pin-input {
+                position: static;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<header>
-  <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-flame">🏮</div>
-      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>SALA DE REDACCIÓN</span></div>
-    </a>
-    <span id="reloj" style="font-family:'JetBrains Mono',monospace;color:var(--muted)">00:00:00</span>
-  </div>
-</header>
-
-<div class="ticker">
-  <div class="ticker-tag">🏮 VIVO</div>
-  <div class="ticker-inner">
-    <span>CONECTADO A SUPABASE ✅</span><span>//</span><span>GEMINI 2.5 FLASH ACTIVO ✨</span><span>//</span><span>FOCO: SANTO DOMINGO ESTE 🇩🇴</span>
-  </div>
-</div>
-
-<div class="container">
-  <div class="layout">
-    
-    <div>
-      <div class="card">
-        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
-        <div class="card-body">
-          <div class="ia-row" id="iaRow">
-            <span style="font-size:24px">🏮</span>
-            <div style="flex:1;margin-left:15px">
-              <div style="font-family:'Bebas Neue';letter-spacing:1px">ESTADO DEL CEREBRO</div>
-              <div id="iaStatus" style="font-size:11px;color:var(--rojo)">● DESCONECTADO</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="iaToggle" onchange="actualizarIA()">
-              <span class="slider"></span>
-            </label>
-          </div>
+    <div class="container">
+        <!-- PIN Input -->
+        <div class="pin-input">
+            <input type="text" id="pinInput" placeholder="PIN 311" maxlength="3" value="311">
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-header">
+        <header>
+            <h1>🏮 Panel de Redacción - El Farol al Día</h1>
+            <div class="subtitle">CONFIGURACIÓN DE IA · REGLAS · MEMORIA · ESTADÍSTICAS</div>
+            <div id="connectionStatus" style="margin-top: 10px; font-size: 0.9em;"></div>
+        </header>
+
+        <div class="grid">
+            <div>
+                <!-- Configuración -->
+                <div class="card">
+                    <h2>📝 Configuración de Redacción</h2>
+                    
+                    <div id="configStatus" class="status"></div>
+
+                    <form id="configForm">
+                        <div class="form-group">
+                            <label>INSTRUCCIÓN PRINCIPAL</label>
+                            <textarea id="instruccionPrincipal" placeholder="Ej: Eres un periodista profesional dominicano...">Eres un periodista profesional dominicano. Escribe noticias verificadas y equilibradas con impacto real para República Dominicana.</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>ÉNFASIS / ENFOQUE LOCAL</label>
+                            <input type="text" id="enfasis" value="Noticias locales de Santo Domingo Este e impacto en RD">
+                        </div>
+
+                        <div class="form-group">
+                            <label>TONO DE REDACCIÓN</label>
+                            <select id="tono">
+                                <option value="profesional" selected>Profesional (estilo periódico tradicional)</option>
+                                <option value="directo">Directo (estilo noticioso clásico)</option>
+                                <option value="analítico">Analítico (con contexto y análisis)</option>
+                                <option value="juvenil">Juvenil (lenguaje moderno)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>ENFOQUE GEOGRÁFICO</label>
+                            <select id="enfoqueGeografico">
+                                <option value="rd">República Dominicana (Nacional)</option>
+                                <option value="sde">Santo Domingo Este (Local)</option>
+                                <option value="caribe">El Caribe</option>
+                                <option value="internacional">Internacional</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>EVITAR / TEMAS SENSIBLES</label>
+                            <input type="text" id="evitar" value="Especulación sin fuentes, titulares sensacionalistas">
+                        </div>
+
+                        <div class="form-group">
+                            <label>PALABRAS CLAVE (separadas por coma)</label>
+                            <input type="text" id="palabrasClave" value="república dominicana, santo domingo este, último minuto">
+                        </div>
+
+                        <button type="submit">💾 GUARDAR CONFIGURACIÓN</button>
+                    </form>
+
+                    <div style="margin-top: 20px; font-size: 0.8em; color: #666; text-align: center;">
+                        Última actualización: <span id="ultimaActualizacion">Nunca</span>
+                    </div>
+                </div>
+
+                <!-- Estadísticas Rápidas -->
+                <div class="card">
+                    <h2>📊 Estadísticas (7 días)</h2>
+                    <div id="statsContainer">
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="numero" id="totalPublicaciones">0</div>
+                                <div class="label">Publicaciones</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="numero" id="tasaExito">0%</div>
+                                <div class="label">Tasa de éxito</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="numero" id="totalErrores">0</div>
+                                <div class="label">Errores</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="secondary" onclick="cargarEstadisticas()" style="width: 100%;">🔄 REFRESCAR ESTADÍSTICAS</button>
+                </div>
+            </div>
+
+            <!-- Memoria IA -->
+            <div>
+                <div class="card">
+                    <h2>🧠 Memoria IA <span class="badge" id="memoriaCount">0</span></h2>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <button class="secondary" onclick="cargarMemoria()" style="margin-right: 10px;">🔄 REFRESCAR</button>
+                        <select id="memoriaFilter" onchange="filtrarMemoria()">
+                            <option value="todos">Todas</option>
+                            <option value="exitosas">Exitosas</option>
+                            <option value="errores">Errores</option>
+                        </select>
+                    </div>
+
+                    <div id="memoriaContainer">
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            Cargando memoria...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PIN = '311';
+        let memoriaOriginal = [];
+
+        // Verificar PIN automáticamente
+        document.getElementById('pinInput').addEventListener('input', function(e) {
+            if (this.value.length === 3) {
+                cargarConfig();
+                cargarMemoria();
+                cargarEstadisticas();
+            }
+        });
+
+        // Headers para fetch
+        function getHeaders() {
+            const pin = document.getElementById('pinInput').value;
+            return {
+                'Content-Type': 'application/json',
+                'X-PIN': pin
+            };
+        }
+
+        // ============================================================
+        // 1️⃣ CARGAR CONFIGURACIÓN DESDE SUPABASE
+        // ============================================================
+        async function cargarConfig() {
+            try {
+                const response = await fetch('/api/admin/config', {
+                    headers: getHeaders()
+                });
+                
+                if (!response.ok) throw new Error('Error al cargar configuración');
+                
+                const c = await response.json(); // ← c es la respuesta
+                
+                // ✅ ASIGNACIÓN CORRECTA - Usando los nombres exactos que envía el servidor
+                document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
+                document.getElementById('enfasis').value = c.enfasis || '';
+                document.getElementById('tono').value = c.tono || 'profesional';
+                document.getElementById('enfoqueGeografico').value = c.enfoque_geografico || 'rd';
+                document.getElementById('evitar').value = c.evitar || '';
+                document.getElementById('palabrasClave').value = Array.isArray(c.palabras_clave) ? c.palabras_clave.join(', ') : c.palabras_clave || '';
+                
+                if (c.ultima_actualizacion) {
+                    const fecha = new Date(c.ultima_actualizacion);
+                    document.getElementById('ultimaActualizacion').textContent = fecha.toLocaleString('es-DO');
+                }
+
+                if (c.offline) {
+                    showStatus('configStatus', '⚠️ Modo offline - usando configuración local', 'warning');
+                } else {
+                    showStatus('configStatus', '✅ Configuración cargada desde Supabase', 'success');
+                }
+
+                document.getElementById('connectionStatus').innerHTML = '✅ Conectado a Supabase';
+                
+            } catch (err) {
+                console.error('Error cargando config:', err);
+                showStatus('configStatus', '❌ Error cargando configuración. Usando valores por defecto.', 'error');
+                document.getElementById('connectionStatus').innerHTML = '⚠️ Sin conexión a Supabase';
+            }
+        }
+
+        // ============================================================
+        // 2️⃣ GUARDAR CONFIGURACIÓN
+        // ============================================================
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const config = {
+                instruccion: document.getElementById('instruccionPrincipal').value,
+                enfasis: document.getElementById('enfasis').value,
+                tono: document.getElementById('tono').value,
+                enfoque_geografico: document.getElementById('enfoqueGeografico').value,
+                evitar: document.getElementById('evitar').value,
+                palabras_clave: document.getElementById('palabrasClave').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/config', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('configStatus', '✅ Configuración guardada exitosamente en Supabase', 'success');
+                    cargarConfig(); // Recargar para mostrar fecha actualizada
+                    cargarMemoria(); // Actualizar memoria
+                } else {
+                    throw new Error(data.mensaje || 'Error al guardar');
+                }
+            } catch (err) {
+                showStatus('configStatus', `❌ Error: ${err.message}`, 'error');
+            }
+        });
+
+        // ============================================================
+        // 3️⃣ CARGAR MEMORIA
+        // ============================================================
+        async function cargarMemoria() {
+            try {
+                const response = await fetch('/api/memoria?limit=20', {
+                    headers: getHeaders()
+                });
+                
+                if (!response.ok) throw new Error('Error al cargar memoria');
+                
+                const d = await response.json();
+                
+                // ✅ ACCEDIENDO A d.data (como envía el servidor)
+                memoriaOriginal = d.data || [];
+                
+                document.getElementById('memoriaCount').textContent = memoriaOriginal.length;
+                filtrarMemoria();
+                
+            } catch (err) {
+                console.error('Error cargando memoria:', err);
+                document.getElementById('memoriaContainer').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ff4444;">
+                        ❌ Error cargando memoria<br>
+                        <small>${err.message}</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Filtrar memoria
+        function filtrarMemoria() {
+            const filtro = document.getElementById('memoriaFilter').value;
+            
+            let memoriaFiltrada = memoriaOriginal;
+            if (filtro === 'exitosas') {
+                memoriaFiltrada = memoriaOriginal.filter(item => item.exitosa === true);
+            } else if (filtro === 'errores') {
+                memoriaFiltrada = memoriaOriginal.filter(item => item.exitosa === false);
+            }
+
+            renderMemoria(memoriaFiltrada);
+        }
+
+        // Renderizar memoria
+        function renderMemoria(items) {
+            const container = document.getElementById('memoriaContainer');
+            
+            if (!items || items.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        📭 No hay registros en memoria
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="memoria-item ${item.exitosa === false ? 'error' : ''}">
+                    <div class="titulo">${item.titulo || 'Sin título'}</div>
+                    <div class="meta">
+                        <span>📅 ${new Date(item.fecha).toLocaleString('es-DO')}</span>
+                        <span>👁 ${item.categoria || 'Sin categoría'}</span>
+                    </div>
+                    <span class="categoria">${item.exitosa === false ? '❌ ERROR' : '✅ PUBLICADO'}</span>
+                    ${item.feedback ? `<div style="margin-top: 8px; font-size: 0.8em; color: #FFD700; border-top: 1px solid #333; padding-top: 8px;">💬 Feedback: ${item.feedback}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // ============================================================
+        // 4️⃣ CARGAR ESTADÍSTICAS
+        // ============================================================
+        async function cargarEstadisticas() {
+            try {
+                const response = await fetch('/api/admin/stats?dias=7', {
+                    headers: getHeaders()
+                });
+                
+                if (!response.ok) throw new Error('Error al cargar estadísticas');
+                
+                const stats = await response.json();
+                
+                if (stats && !stats.error) {
+                    document.getElementById('totalPublicaciones').textContent = stats.total || 0;
+                    document.getElementById('tasaExito').textContent = (stats.tasa_exito || 0) + '%';
+                    document.getElementById('totalErrores').textContent = stats.errores || 0;
+                }
+                
+            } catch (err) {
+                console.error('Error cargando estadísticas:', err);
+            }
+        }
+
+        // Mostrar estado
+        function showStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status ${type}`;
+            
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar salud del servidor
+            fetch('/api/health')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.supabase === 'conectado') {
+                        document.getElementById('connectionStatus').innerHTML = '✅ Conectado a Supabase';
+                    } else {
+                        document.getElementById('connectionStatus').innerHTML = '⚠️ Supabase offline - modo local';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('connectionStatus').innerHTML = '❌ Error de conexión';
+                });
+
+            // Cargar datos si el PIN ya está
+            if (document.getElementById('pinInput').value === PIN) {
+                cargarConfig();
+                cargarMemoria();
+                cargarEstadisticas();
+            }
+        });
+    </script>
+</body>
+</html>
