@@ -89,7 +89,7 @@ function authMiddleware(req, res, next) {
                 <div class="box">
                     <h2>🏮 ACCESO RESTRINGIDO</h2>
                     <p>El panel de redacción requiere autenticación.<br><br>Usuario: <strong>director</strong><br>Contraseña: <strong>311</strong></p>
-                    <a href="/redaccion">ENTRAR AL PANEL</a>
+                    <a href="/redaccion.html">ENTRAR AL PANEL</a>
                 </div>
             </body>
             </html>
@@ -539,6 +539,61 @@ app.get('/api/estadisticas', authMiddleware, async (req, res) => {
     }
 });
 
+// GET /api/coach - Coach de redacción
+app.get('/api/coach', authMiddleware, async (req, res) => {
+    const { pin, dias = 7 } = req.query;
+    
+    if (pin !== '311') {
+        return res.status(403).json({ error: 'PIN incorrecto' });
+    }
+    
+    try {
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - parseInt(dias));
+        
+        const noticias = await pool.query(
+            `SELECT id, titulo, seccion, vistas, fecha FROM noticias 
+             WHERE estado = 'publicada' AND fecha > $1 
+             ORDER BY fecha DESC`,
+            [fechaLimite.toISOString()]
+        );
+        
+        if (noticias.rows.length === 0) {
+            return res.json({ success: false, mensaje: 'No hay noticias en este período' });
+        }
+        
+        const totalVistas = noticias.rows.reduce((sum, n) => sum + (n.vistas || 0), 0);
+        const promedioGeneral = totalVistas / noticias.rows.length;
+        
+        const categorias = {};
+        const categoriasLista = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
+        
+        for (const cat of categoriasLista) {
+            const catNoticias = noticias.rows.filter(n => n.seccion === cat);
+            if (catNoticias.length > 0) {
+                const catVistas = catNoticias.reduce((sum, n) => sum + (n.vistas || 0), 0);
+                const catPromedio = catVistas / catNoticias.length;
+                categorias[cat] = {
+                    total: catNoticias.length,
+                    vistas_promedio: Math.round(catPromedio),
+                    rendimiento: promedioGeneral > 0 ? Math.round((catPromedio / promedioGeneral) * 100) : 0,
+                    mejor: catNoticias.sort((a, b) => (b.vistas || 0) - (a.vistas || 0))[0]
+                };
+            }
+        }
+        
+        res.json({
+            success: true,
+            total_noticias: noticias.rows.length,
+            total_vistas: totalVistas,
+            promedio_general: Math.round(promedioGeneral),
+            categorias
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // GET /status - Estado del sistema
 app.get('/status', async (req, res) => {
     try {
@@ -548,7 +603,8 @@ app.get('/status', async (req, res) => {
             version: '34.0',
             noticias: parseInt(r.rows[0].count),
             ia_activa: CONFIG_IA.enabled,
-            monetizacion: 'CPC V1.0 Activa'
+            monetizacion: 'CPC V1.0 Activa',
+            sistema: 'Web + Facebook + Twitter + Telegram + RSS 30 fuentes + Wikipedia + Watermark + SEO E-E-A-T'
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -559,8 +615,18 @@ app.get('/status', async (req, res) => {
 // PÁGINAS HTML
 // ============================================================
 
-// Sala de Redacción (protegida con Basic Auth)
+// Sala de Redacción (protegida con Basic Auth) - Ruta SIN .html
 app.get('/redaccion', authMiddleware, (req, res) => {
+    const pathRedaccion = path.join(__dirname, 'client', 'redaccion.html');
+    if (fs.existsSync(pathRedaccion)) {
+        res.sendFile(pathRedaccion);
+    } else {
+        res.status(404).send('Error: El archivo redaccion.html no existe en la carpeta client');
+    }
+});
+
+// Sala de Redacción - Ruta CON .html (fallback)
+app.get('/redaccion.html', authMiddleware, (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
@@ -652,7 +718,7 @@ async function iniciar() {
 ║  🏮 EL FAROL AL DÍA — V34.0 + MONETIZACIÓN CPC                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🌐 Servidor corriendo en puerto: ${PORT}                              ║
-║  📰 Sala de Redacción: http://localhost:${PORT}/redaccion            ║
+║  📰 Sala de Redacción: http://localhost:${PORT}/redaccion.html        ║
 ║  🔒 Usuario: director / Contraseña: 311                         ║
 ║  💰 Monetización CPC: ACTIVA                                    ║
 ╚══════════════════════════════════════════════════════════════════╝
