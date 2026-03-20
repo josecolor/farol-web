@@ -556,6 +556,11 @@ ALT_IMAGEN: [espanol 15-20 palabras con RD]
 SUBTEMA_LOCAL: [uno de: politica-gobierno, seguridad-policia, relaciones-internacionales, economia-mercado, infraestructura, salud-medicina, deporte-beisbol, deporte-futbol, deporte-general, tecnologia, educacion, cultura-musica, medio-ambiente, turismo, emergencia, vivienda-social, transporte-vial]
 CONTENIDO:
 [400-450 palabras, 5 parrafos]`;
+
+        console.log(`\n📰 Generando: ${categoria}${comunicadoExterno?' (RSS)':''}`);
+        const texto = await llamarGemini(prompt);
+        const textoLimpio = texto.replace(/^\s*[*#]+\s*/gm,'');
+
         let titulo='',desc='',pals='',qi='',ai='',sub='',contenido='';
         let enC=false; const bl=[];
         for(const l of textoLimpio.split('\n')){
