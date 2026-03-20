@@ -559,6 +559,8 @@ CONTENIDO:
 
         console.log(`\n📰 Generando: ${categoria}${comunicadoExterno?' (RSS)':''}`);
         const texto = await llamarGemini(prompt);
+        // Log para diagnosticar respuesta de Gemini
+        console.log(`   📄 Gemini respuesta (${texto.length} chars): ${texto.substring(0,150).replace(/\n/g,' ')}...`);
         const textoLimpio = texto.replace(/^\s*[*#]+\s*/gm,'');
 
         let titulo='',desc='',pals='',qi='',ai='',sub='',contenido='';
