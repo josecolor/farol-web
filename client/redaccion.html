@@ -1,188 +1,936 @@
-/**
- * 🏮 EL FAROL AL DÍA — V34.0 FINAL + MONETIZACIÓN CPC INTEGRADA
- * Integración de Módulo de Alto Valor (Bancos, Seguros, Inmobiliarias)
- * + Basic Auth (director / 311)
- * + Wikipedia Contextual + Redes Sociales (FB, TW, TG)
- */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redacción | El Farol al Día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fuego:  #FF5500;
+  --fuego2: #FF7A00;
+  --negro:  #080808;
+  --tinta:  #0E0E12;
+  --papel:  #141418;
+  --borde:  #1E1E26;
+  --crema:  #EDE8DF;
+  --crema2: #A89F94;
+  --muted:  #4E4E58;
+  --verde:  #22C55E;
+  --rojo:   #EF4444;
+  --azul:   #3B82F6;
+  --glow:   rgba(255,85,0,.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 100% 0%,rgba(255,85,0,.06) 0%,transparent 55%),radial-gradient(ellipse 40% 30% at 0% 100%,rgba(255,85,0,.03) 0%,transparent 50%);pointer-events:none;z-index:0}
 
-const express   = require('express');
-const cors      = require('cors');
-const path      = require('path');
-const fs        = require('fs');
-const cron      = require('node-cron');
-const { Pool }  = require('pg');
-const sharp      = require('sharp');
-const RSSParser = require('rss-parser');
-const crypto    = require('crypto');
+/* HEADER */
+header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);box-shadow:0 4px 30px rgba(255,85,0,.15)}
+.header-inner{max-width:1280px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px var(--glow)}
+.logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--fuego);line-height:1}
+.logo-text span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);display:block}
+.header-right{display:flex;align-items:center;gap:12px}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(255,85,0,.12);border:1px solid rgba(255,85,0,.3);padding:5px 14px;border-radius:20px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--fuego);box-shadow:0 0 8px var(--fuego);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.live-text{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--fuego)}
+.header-clock{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);letter-spacing:2px}
+.btn-portal{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 16px;border-radius:6px;transition:all .2s}
+.btn-portal:hover{border-color:rgba(255,85,0,.4);color:var(--fuego)}
 
-// ══════════════════════════════════════════════════════════
-// 💰 LÓGICA DE MONETIZACIÓN CPC (INYECCIÓN DIRECTA)
-// ══════════════════════════════════════════════════════════
+/* TICKER MONETIZADO */
+.ticker{background:var(--fuego);height:48px;display:flex;align-items:center;overflow:hidden;position:relative}
+.ticker::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 10px,rgba(0,0,0,.08) 10px,rgba(0,0,0,.08) 11px);pointer-events:none}
+.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0;position:relative;z-index:1}
+.ticker-scroll{flex:1;overflow:hidden;position:relative;z-index:1}
+.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 35s linear infinite;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.9)}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-monetizado{color:#00FF00;font-weight:bold;text-shadow:0 0 8px rgba(0,255,0,.5)}
+.ticker-adsense{color:#FFD700;font-weight:bold;text-shadow:0 0 8px rgba(255,215,0,.5)}
 
-const PALABRAS_CPC_TEMAS = {
-    'Economía': ['banco central', 'tasa de interés', 'inflación', 'dólar', 'reservas internacionales', 'deuda pública', 'PIB', 'crecimiento económico', 'criptomonedas', 'bolsa', 'dividendos'],
-    'Nacionales': ['inversión extranjera', 'zonas francas', 'incentivos fiscales', 'infraestructura vial', 'hipotecas', 'créditos', 'financiamiento', 'préstamos', 'plusvalía'],
-    'Internacionales': ['comercio internacional', 'aranceles', 'FMI', 'Banco Mundial', 'mercados emergentes'],
-    'Tecnología': ['fintech', 'ciberseguridad financiera', 'blockchain', 'pagos digitales', 'billetera digital'],
-    'Deportes': ['patrocinios', 'inversión deportiva', 'apuestas legales', 'seguros de atletas']
-};
+/* LAYOUT */
+.container{max-width:1280px;margin:0 auto;padding:32px 28px 60px;position:relative;z-index:1}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
 
-function monetizarNoticia(noticia) {
-    let tituloFinal = noticia.titulo;
-    let desc = noticia.descripcion.trim();
-    const contentLower = noticia.contenido.toLowerCase();
-    const categoria = noticia.seccion;
+/* CARD */
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .2s}
+.card:hover{border-color:rgba(255,85,0,.12)}
+.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);display:flex;align-items:center;justify-content:space-between}
+.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);display:flex;align-items:center;gap:10px}
+.card-body{padding:22px}
 
-    // 1. Enriquecer Título
-    if (categoria === 'Economía' && !tituloFinal.toLowerCase().includes('último minuto')) {
-        tituloFinal = `Último Minuto: ${tituloFinal} — Clima Inversión RD`;
-    } else if (categoria === 'Nacionales' && (contentLower.includes('vivienda') || contentLower.includes('construcción'))) {
-        tituloFinal = `Santo Domingo Este: ${tituloFinal} — Plusvalía Inmobiliaria`;
-    }
-    if (tituloFinal.length > 110) tituloFinal = tituloFinal.substring(0, 107) + '...';
+/* IA SWITCH */
+.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px;transition:border-color .3s}
+.ia-row.on{border-color:rgba(34,197,94,.25)}
+.ia-left{display:flex;align-items:center;gap:14px}
+.ia-lamp{font-size:28px;transition:filter .3s}
+.ia-row.on .ia-lamp{filter:drop-shadow(0 0 8px rgba(34,197,94,.5))}
+.ia-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--crema)}
+.ia-status{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:3px}
+.ia-status.on{color:var(--verde)}
+.ia-status.off{color:var(--rojo)}
+.switch{position:relative;display:inline-block;width:56px;height:30px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#222;border-radius:30px;transition:.3s;border:1px solid rgba(255,255,255,.08)}
+.slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.3s}
+input:checked+.slider{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4)}
+input:checked+.slider:before{transform:translateX(26px);background:var(--verde);box-shadow:0 0 8px var(--verde)}
 
-    // 2. Enriquecer Descripción (150-160 chars)
-    if (desc.length < 140) {
-        desc = `Último Minuto en RD: ${desc} Oportunidades de inversión y crecimiento en Santo Domingo Este. Análisis completo aquí.`;
-    }
-    desc = desc.substring(0, 159).trim() + '.';
+/* MONETIZACIÓN CARD */
+.card-monetizado{border-color:rgba(0,255,0,.3) !important;background:linear-gradient(135deg,rgba(0,50,30,.4) 0%,rgba(24,24,24,1) 70%) !important}
+.card-monetizado .card-header{border-bottom-color:rgba(0,255,0,.15) !important}
+.card-monetizado .card-header h2{color:#00FF00 !important}
 
-    // 3. Inyectar sutilmente en el contenido (Párrafo 4)
-    const parrafos = noticia.contenido.split('\n\n');
-    if (parrafos.length >= 4) {
-        let inyeccion = (categoria === 'Nacionales') ? ' Este desarrollo genera una plusvalía importante para los activos inmobiliarios en la zona.' : ' Expertos señalan que esto fortalece el clima de inversión y la estabilidad financiera en la región.';
-        parrafos[3] = parrafos[3] + inyeccion;
-    }
+/* CAPS */
+.cap-list{display:flex;flex-direction:column;gap:7px}
+.cap-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.cap-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);box-shadow:0 0 5px var(--verde);flex-shrink:0}
 
-    return {
-        titulo: tituloFinal,
-        descripcion: desc,
-        contenido: parrafos.join('\n\n')
-    };
+/* FORM */
+.fgroup{margin-bottom:18px}
+.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
+input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
+input::placeholder,textarea::placeholder{color:var(--muted);font-style:italic}
+select option{background:#0e0e12}
+textarea{resize:vertical;min-height:90px;line-height:1.65}
+
+/* CATEGORÍAS */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid var(--borde);background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.cat-tile .ce{font-size:20px;display:block;margin-bottom:5px}
+.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema);background:rgba(255,85,0,.06)}
+.cat-tile.sel{border-color:var(--fuego);background:rgba(255,85,0,.14);color:var(--fuego)}
+
+/* BOTÓN PUBLICAR */
+.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego) 0%,var(--fuego2) 100%);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;box-shadow:0 6px 24px var(--glow);position:relative;overflow:hidden}
+.btn-publish::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+.btn-publish:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,85,0,.5)}
+.bp-icon{font-size:22px}
+.bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
+.bp-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.7);display:block;margin-top:2px}
+.bp-spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* BOTONES */
+.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;width:100%;margin-bottom:10px}
+.btn-orange{background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;box-shadow:0 4px 16px var(--glow)}
+.btn-orange:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--glow)}
+.btn-green{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.25)}
+.btn-green:hover{background:rgba(34,197,94,.22)}
+.btn-ghost{background:transparent;color:var(--crema2);border:1px solid var(--borde)}
+.btn-ghost:hover{border-color:rgba(255,85,0,.3);color:var(--fuego)}
+.btn-blue{background:rgba(59,130,246,.12);color:var(--azul);border:1px solid rgba(59,130,246,.25)}
+.btn-blue:hover{background:rgba(59,130,246,.22)}
+
+/* MSG */
+.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none;line-height:1.5}
+.msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
+.msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--rojo);display:block}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;position:relative;overflow:hidden;text-align:center}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fuego)}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego);line-height:1}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:4px}
+
+/* SYS INFO */
+.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.sys-row:last-child{border-bottom:none}
+.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.badge{padding:2px 9px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace}
+.badge-on{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.2)}
+.badge-warn{background:rgba(255,193,7,.12);color:#ffc107;border:1px solid rgba(255,193,7,.2)}
+
+/* LISTA NOTICIAS */
+.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:4px}
+.noticias-list::-webkit-scrollbar{width:3px}
+.noticias-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px;transition:border-color .2s}
+.noticia-row:hover{border-color:rgba(255,85,0,.2)}
+.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
+.nr-info{flex:1;min-width:0}
+.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+.nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.btn-del{background:rgba(239,68,68,.12);color:var(--rojo);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-del:hover{background:rgba(239,68,68,.25)}
+.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego);border:1px solid rgba(255,85,0,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-edit-img:hover{background:rgba(255,85,0,.22)}
+.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px;transition:border-color .2s}
+.search-noticias:focus{outline:none;border-color:var(--fuego)}
+.search-noticias::placeholder{color:var(--muted);font-style:italic}
+.noticias-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px}
+
+/* MEMORIA IA */
+.memoria-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.memoria-list::-webkit-scrollbar{width:3px}
+.memoria-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+.mem-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.04);border-radius:7px;padding:8px 10px}
+.mem-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.mem-tipo.query{background:rgba(59,130,246,.15);color:var(--azul);border:1px solid rgba(59,130,246,.2)}
+.mem-tipo.error{background:rgba(239,68,68,.15);color:var(--rojo);border:1px solid rgba(239,68,68,.2)}
+.mem-valor{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mem-tasa{font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0}
+.mem-tasa.alta{color:var(--verde)}
+.mem-tasa.media{color:#ffc107}
+.mem-tasa.baja{color:var(--rojo)}
+.mem-empty{text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+
+/* MODALES */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.7);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.modal-icon{font-size:40px;margin-bottom:14px}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--rojo);margin-bottom:10px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.modal-btns{display:flex;gap:12px;justify-content:center}
+.btn-cancel{background:transparent;color:var(--crema2);border:1px solid var(--borde);border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--crema)}
+.btn-confirm-del{background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-confirm-del:hover{background:#C0392B;transform:translateY(-1px)}
+.modal-edit{max-width:480px}
+.modal-edit h3{color:var(--fuego)}
+.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid var(--borde);background:var(--borde);display:block}
+.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;transition:border-color .2s;margin-bottom:14px}
+.modal-input:focus{outline:none;border-color:var(--fuego)}
+.modal-input::placeholder{color:var(--muted);font-style:italic}
+.btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-confirm-edit:hover{background:var(--fuego2);transform:translateY(-1px)}
+
+/* SEO QUALITY */
+.seo-item{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px;margin-bottom:6px}
+.seo-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.seo-bars{display:flex;flex-direction:column;gap:4px}
+.seo-bar-row{display:flex;align-items:center;gap:8px}
+.seo-bar-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
+.seo-bar-track{flex:1;height:4px;background:var(--borde);border-radius:2px;overflow:hidden}
+.seo-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+.seo-bar-val{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);width:28px;text-align:right;flex-shrink:0}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+@media(max-width:600px){.container{padding:16px}.cat-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-flame">🏮</div>
+      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
+    </a>
+    <div class="header-right">
+      <span class="header-clock" id="reloj">00:00:00</span>
+      <!-- CRÉDITOS DESARROLLADORES -->
+      <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);padding:5px 12px;border-radius:20px">
+        <span style="font-size:14px">🤖</span>
+        <div style="line-height:1.2">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted)">DESARROLLADO POR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2)">CLAUDE <span style="color:var(--fuego)">+</span> DEEPSEEK</div>
+        </div>
+      </div>
+      <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
+      <a href="/" class="btn-portal">🌐 VER PORTAL</a>
+    </div>
+  </div>
+</header>
+
+<!-- TICKER MONETIZADO -->
+<div class="ticker">
+  <div class="ticker-tag">🏮 REDACCIÓN</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner">
+      <span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
+      <span class="ticker-adsense">//</span><span class="ticker-adsense">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · 156+ NOTICIAS · APROBACIÓN EN PROCESO 🚀</span>
+      <span class="ticker-monetizado">//</span><span class="ticker-monetizado">💸 MONETIZACIÓN CPC V1.0 ACTIVA: Plusvalía · Inversión · Banco Central · Fintech · Estabilidad Financiera</span>
+      <span class="ticker-monetizado">//</span><span class="ticker-monetizado">🏦 HIGH VALUE KEYWORDS: Créditos · Hipotecas · Seguros · Clima Inversión · Facilidades Préstamos · RD$50-200/clic</span>
+      <span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
+      <span class="ticker-adsense">//</span><span class="ticker-adsense">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · 156+ NOTICIAS · APROBACIÓN EN PROCESO 🚀</span>
+      <span class="ticker-monetizado">//</span><span class="ticker-monetizado">💸 MONETIZACIÓN CPC V1.0 ACTIVA: Plusvalía · Inversión · Banco Central · Fintech · Estabilidad Financiera</span>
+      <span class="ticker-monetizado">//</span><span class="ticker-monetizado">🏦 HIGH VALUE KEYWORDS: Créditos · Hipotecas · Seguros · Clima Inversión · Facilidades Préstamos · RD$50-200/clic</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- ═══ COLUMNA IZQUIERDA ═══ -->
+    <div>
+
+      <!-- MONETIZACIÓN CPC CARD -->
+      <div class="card card-monetizado">
+        <div class="card-header"><h2>💸 MONETIZACIÓN CPC V1.0</h2></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px">
+              <span style="font-size:14px">✅</span>
+              <div style="flex:1">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00;letter-spacing:1px">PALABRAS MÁGICAS CPC</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:2px">Plusvalía · Inversión · Clima de Inversión</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px">
+              <span style="font-size:14px">🏦</span>
+              <div style="flex:1">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00;letter-spacing:1px">INSTITUCIONES HIGH VALUE</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:2px">Banco Popular · Banreservas · Ministerio Hacienda</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px">
+              <span style="font-size:14px">💰</span>
+              <div style="flex:1">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00;letter-spacing:1px">VALOR PROMEDIO</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:2px">RD$50-200 USD por clic (vs RD$2-10 genérico)</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px">
+              <span style="font-size:14px">📈</span>
+              <div style="flex:1">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00;letter-spacing:1px">INYECCIÓN AUTOMÁTICA</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:2px">Cada noticia generada se enriquece SIN romper nada</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:rgba(0,0,0,.4);border:1px solid rgba(0,255,0,.2);border-radius:8px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.6">
+            <strong style="color:#00FF00">⚡ RESULTADO ESPERADO:</strong><br>
+            Título + Descripción + Keywords + Contenido se enriquecen con palabras de alto CPC automáticamente. Google AdSense ve: "Banco Central", "Hipotecas", "Fintech" = anuncios de RD$50-200/clic en lugar de genéricos.
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROL IA -->
+      <div class="card">
+        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
+        <div class="card-body">
+          <div class="ia-row" id="iaRow">
+            <div class="ia-left">
+              <span class="ia-lamp">🏮</span>
+              <div>
+                <div class="ia-name">GEMINI 2.5 FLASH</div>
+                <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="iaToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="cap-list">
+            <div class="cap-item"><div class="cap-dot"></div> Pensamiento crítico periodístico — 5W antes de escribir</div>
+            <div class="cap-item"><div class="cap-dot"></div> E-E-A-T: cita instituciones oficiales + datos verificables</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida — dato más importante primero</div>
+            <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
+            <div class="cap-item"><div class="cap-dot"></div> Wikipedia + Memoria IA entre publicaciones</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pexels filtrado — sin bodas, mascotas ni moda</div>
+            <div class="cap-item"><div class="cap-dot"></div> Facebook + Twitter automático tras publicar</div>
+            <div class="cap-item"><div class="cap-dot"></div> 💸 MONETIZACIÓN CPC automática en cada noticia</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSTRUCCIONES GEMINI -->
+      <div class="card">
+        <div class="card-header"><h2>📝 INSTRUCCIONES PARA GEMINI</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Instrucción Principal</label>
+            <textarea id="instruccionPrincipal" rows="5"
+              placeholder="Ej: Eres un periodista profesional dominicano especializado en medios digitales..."></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Énfasis Local y Alcance</label>
+            <textarea id="enfasis" rows="3"
+              placeholder="Ej: Prioriza noticias de Santo Domingo Este, Los Mina, Invivienda..."></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Tono de Noticias</label>
+            <select id="tono">
+              <option value="profesional">Profesional</option>
+              <option value="informal">Informal</option>
+              <option value="académico">Académico</option>
+              <option value="narrativo">Narrativo</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Extensión</label>
+            <select id="extension">
+              <option value="corta">Corta (200-300 palabras)</option>
+              <option value="media">Media (400-500 palabras)</option>
+              <option value="larga">Larga (600-800 palabras)</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Cosas que debe Evitar</label>
+            <textarea id="evitar" rows="3"
+              placeholder="Ej: Opiniones personales, rumores sin confirmar, sensacionalismo..."></textarea>
+          </div>
+          <button class="btn btn-orange" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
+          <div id="msgConfig" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- GENERAR NOTICIA -->
+      <div class="card">
+        <div class="card-header"><h2>🤖 GENERAR NOTICIA CON IA</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Selecciona Categoría</label>
+            <div class="cat-grid">
+              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
+              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
+              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
+              <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
+              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
+              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
+            </div>
+          </div>
+          <button class="btn-publish" onclick="generarNoticia()">
+            <div class="bp-spin" id="bpSpin"></div>
+            <span class="bp-icon" id="bpIcon">🚀</span>
+            <div>
+              <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
+              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Memoria · Pexels · Redes · CPC</span>
+            </div>
+          </button>
+          <div id="msgGenerar" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- MIS NOTICIAS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 MIS NOTICIAS</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarListaNoticias()">🔄</button>
+        </div>
+        <div class="card-body">
+          <input type="text" class="search-noticias" id="searchNoticias"
+            placeholder="🔍 Buscar por título o categoría..." oninput="filtrarLista()">
+          <div class="noticias-count" id="noticiasCount">Cargando...</div>
+          <div class="noticias-list" id="noticiasLista">
+            <div style="text-align:center;padding:30px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">
+              Cargando noticias...
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ COLUMNA DERECHA (SIMPLIFICADA) ═══ -->
+    <div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="card">
+        <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="statNoticias">—</div>
+              <div class="stat-lbl">PUBLICADAS</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="statVistas">—</div>
+              <div class="stat-lbl">VISTAS</div>
+            </div>
+          </div>
+          <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DEL SISTEMA -->
+      <div class="card">
+        <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
+        <div class="card-body">
+          <div>
+            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">V34 MONETIZADO ✅</span></div>
+            <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash</span></div>
+            <div class="sys-row"><span class="sys-key">IMÁGENES</span><span class="sys-val">Pexels + Wiki + Banco</span></div>
+            <div class="sys-row"><span class="sys-key">COBERTURA</span><span class="sys-val">🌍 RD + Mundial</span></div>
+            <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">E-E-A-T + Google News</span></div>
+            <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ POSTGRESQL</span></div>
+            <div class="sys-row"><span class="sys-key">WIKIPEDIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
+            <div class="sys-row"><span class="sys-key">CPC MONETIZACIÓN</span><span class="badge badge-on">✅ V1.0 ACTIVA</span></div>
+          </div>
+          <br>
+          <button class="btn btn-green" onclick="verStatus()">📡 VER STATUS COMPLETO</button>
+        </div>
+      </div>
+
+      <!-- MEMORIA IA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🧠 MEMORIA IA</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarMemoria()">🔄</button>
+        </div>
+        <div class="card-body">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            El sistema aprende qué imágenes y temas funcionan mejor en cada categoría.
+          </p>
+          <div class="memoria-list" id="memoriaLista">
+            <div class="mem-empty">Sin datos aún — se llena con cada publicación</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COACH DE REDACCIÓN -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📊 COACH DE REDACCIÓN</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarCoach()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <button onclick="cargarCoach(7)"  class="btn-periodo" data-dias="7"  style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--borde);background:rgba(255,85,0,.14);color:var(--fuego);cursor:pointer">7 DÍAS</button>
+            <button onclick="cargarCoach(30)" class="btn-periodo" data-dias="30" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--borde);background:transparent;color:var(--muted);cursor:pointer">30 DÍAS</button>
+          </div>
+          <div id="coachLista" style="display:flex;flex-direction:column;gap:6px">
+            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando análisis...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TODOS LOS MODALES Y SCRIPTS AQUÍ -->
+<div class="modal-bg" id="modalDel">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>CONFIRMAR ELIMINACIÓN</h3>
+    <p id="modalDelTxt">¿Eliminar esta noticia? La acción es permanente e irreversible.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
+      <button class="btn-confirm-del" onclick="confirmarEliminar()">🗑️ ELIMINAR</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalEditImg">
+  <div class="modal modal-edit">
+    <div class="modal-icon">🖼️</div>
+    <h3>CAMBIAR IMAGEN</h3>
+    <p id="modalEditTitulo" style="color:var(--crema2);font-size:12px;margin-bottom:0"></p>
+    <img id="modalImgPreview" class="modal-img-preview" src="" alt="Preview">
+    <input type="text" class="modal-input" id="modalImgUrl"
+      placeholder="https://... pega aquí la URL de la nueva imagen"
+      oninput="previewImagen(this.value)">
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link directo de la imagen y pégalo arriba.
+    </p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
+      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR IMAGEN</button>
+    </div>
+    <div id="msgEditImg" class="msg" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin, PIN = '311';
+let catActual = 'Nacionales';
+
+/* ── RELOJ ── */
+setInterval(() => {
+  document.getElementById('reloj').textContent =
+    new Date().toLocaleTimeString('es-DO', { hour12: false });
+}, 1000);
+
+/* ── CARGAR CONFIG ── */
+async function cargarConfig() {
+  try {
+    const r = await fetch(`${API}/api/admin/config?pin=${PIN}`);
+    if (!r.ok) return;
+    const c = await r.json();
+    document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
+    document.getElementById('enfasis').value              = c.enfasis               || '';
+    document.getElementById('tono').value                 = c.tono                  || 'profesional';
+    document.getElementById('extension').value            = c.extension             || 'media';
+    document.getElementById('evitar').value               = c.evitar                || '';
+    document.getElementById('iaToggle').checked           = c.enabled !== false;
+    actualizarIA();
+  } catch(e) { console.error('Config:', e); }
 }
 
-// ══════════════════════════════════════════════════════════
-// 🔒 SEGURIDAD Y CONFIGURACIÓN
-// ══════════════════════════════════════════════════════════
-
-function authMiddleware(req, res, next) {
-    const auth = req.headers['authorization'];
-    if (!auth || !auth.startsWith('Basic ')) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día"');
-        return res.status(401).send('Acceso Restringido: director / 311');
-    }
-    const decoded = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-    const [user, pass] = decoded.split(':');
-    if (user === 'director' && pass === '311') return next();
-    return res.status(401).send('Credenciales incorrectas');
-}
-
-const app  = express();
-const PORT = process.env.PORT || 8080;
-const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
-const rssParser = new RSSParser({ timeout: 10000 });
-const WATERMARK_PATH = path.join(__dirname, 'static', 'watermark.png');
-
-app.use(express.json({ limit: '50mb' }));
-app.use(cors({ origin: '*' }));
-app.use('/static', express.static(path.join(__dirname, 'static')));
-app.use(express.static(path.join(__dirname, 'client')));
-
-// ══════════════════════════════════════════════════════════
-// 🧠 LÓGICA DE IA Y GENERACIÓN
-// ══════════════════════════════════════════════════════════
-
-const CONFIG_IA_DEFAULT = {
-    enabled: true,
-    instruccion_principal: 'Eres el Director Estratégico de El Farol al Día. Redacta noticias profesionales dominicanas que atraigan anunciantes de alto valor (Bancos, Inmobiliarias, Seguros). Enfócate en inversión, plusvalía y crecimiento económico local.',
-    tono: 'profesional y empresarial',
-    enfasis: 'Prioriza Santo Domingo Este, impacto en préstamos hipotecarios y estabilidad del peso RD.',
-    evitar: 'Chismes, contenido de baja calidad o sensacionalismo barato.'
-};
-
-async function llamarGemini(prompt) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+/* ── GUARDAR INSTRUCCIONES ── */
+async function guardarInstrucciones() {
+  try {
+    const r = await fetch(`${API}/api/admin/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: PIN,
+        enabled:               document.getElementById('iaToggle').checked,
+        instruccion_principal: document.getElementById('instruccionPrincipal').value,
+        enfasis:               document.getElementById('enfasis').value,
+        tono:                  document.getElementById('tono').value,
+        extension:             document.getElementById('extension').value,
+        evitar:                document.getElementById('evitar').value
+      })
     });
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const d = await r.json();
+    showMsg('msgConfig', d.success ? '✅ Instrucciones guardadas' : '❌ Error al guardar', d.success);
+  } catch(e) { showMsg('msgConfig', '❌ ' + e.message, false); }
 }
 
-async function generarNoticia(categoria, comunicadoExterno = null) {
-    try {
-        const prompt = `${CONFIG_IA_DEFAULT.instruccion_principal} Escribe sobre ${categoria}. Estructura: TITULO, DESCRIPCION, PALABRAS, CONTENIDO.`;
-        const textoIA = await llamarGemini(prompt);
-        
-        // Parseo básico de la respuesta
-        let [tituloRaw, descRaw, palsRaw, ...resto] = textoIA.split('\n');
-        let contenidoRaw = resto.join('\n\n');
+/* ── CATEGORÍA ── */
+function selCat(el) {
+  document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  catActual = el.dataset.val;
+}
 
-        // ── APLICAR MONETIZACIÓN CPC ──
-        const monetizada = monetizarNoticia({
-            titulo: tituloRaw.replace('TITULO:', '').trim(),
-            descripcion: descRaw.replace('DESCRIPCION:', '').trim(),
-            contenido: contenidoRaw.replace('CONTENIDO:', '').trim(),
-            seccion: categoria
-        });
+/* ── GENERAR NOTICIA ── */
+async function generarNoticia() {
+  if (!document.getElementById('iaToggle').checked) {
+    showMsg('msgGenerar', '❌ Active la IA primero con el interruptor de arriba', false); return;
+  }
+  const spin = document.getElementById('bpSpin');
+  const icon = document.getElementById('bpIcon');
+  const txt  = document.getElementById('bpText');
+  const sub  = document.getElementById('bpSub');
+  spin.style.display = 'block'; icon.style.display = 'none';
+  txt.textContent = 'GENERANDO...';
+  sub.textContent = 'Memoria → Wikipedia → Gemini → Pexels → CPC MONETIZADO → Redes';
 
-        const slug = slugify(monetizada.titulo);
-        
-        await pool.query(
-            `INSERT INTO noticias(titulo, slug, seccion, contenido, seo_description, seo_keywords, estado, imagen) 
-             VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [monetizada.titulo, slug, categoria, monetizada.contenido, monetizada.descripcion, palsRaw, 'publicada', 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800']
-        );
-
-        console.log(`✅ Noticia Monetizada: ${monetizada.titulo}`);
-        return { success: true, slug };
-    } catch (e) {
-        console.error('❌ Error Generación:', e.message);
-        return { success: false };
+  try {
+    const r = await fetch(`${API}/api/generar-noticia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: catActual })
+    });
+    const d = await r.json();
+    if (d.success) {
+      showMsg('msgGenerar', `✅ Publicada (MONETIZADA): "${d.titulo}"`, true);
+      cargarEstadisticas();
+      cargarListaNoticias();
+      setTimeout(cargarMemoria, 3000);
+    } else {
+      showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
     }
+  } catch(e) { showMsg('msgGenerar', '❌ ' + e.message, false); }
+  finally {
+    spin.style.display = 'none'; icon.style.display = 'block';
+    txt.textContent = 'GENERAR NOTICIA AHORA';
+    sub.textContent = 'Gemini · Wikipedia · Memoria · Pexels · Redes · CPC';
+  }
 }
 
-// ══════════════════════════════════════════════════════════
-// 🌐 RUTAS PÚBLICAS Y ADMIN
-// ══════════════════════════════════════════════════════════
+/* ── ESTADÍSTICAS ── */
+async function cargarEstadisticas() {
+  try {
+    const r = await fetch(`${API}/api/estadisticas`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
+    document.getElementById('statVistas').textContent   = d.totalVistas   || 0;
+  } catch(e) { console.error('Stats:', e); }
+}
 
-app.get('/api/noticias', async (req, res) => {
-    const r = await pool.query('SELECT * FROM noticias ORDER BY fecha DESC LIMIT 20');
-    res.json({ success: true, noticias: r.rows });
+/* ── MEMORIA IA ── */
+async function cargarMemoria() {
+  try {
+    const r = await fetch(`${API}/api/memoria?pin=${PIN}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const lista = document.getElementById('memoriaLista');
+
+    if (!d.registros?.length) {
+      lista.innerHTML = '<div class="mem-empty">Sin datos aún — se llena con cada publicación</div>';
+      return;
+    }
+
+    lista.innerHTML = d.registros.slice(0, 20).map(m => {
+      const pct     = parseInt(m.pct_exito) || 0;
+      const clase   = pct >= 70 ? 'alta' : pct >= 40 ? 'media' : 'baja';
+      const emoji   = pct >= 70 ? '✅' : pct >= 40 ? '⚠️' : '❌';
+      const tipo    = m.tipo === 'pexels_query' ? 'query' : 'error';
+      const label   = m.tipo === 'pexels_query' ? 'IMG' : 'ERR';
+      const valor   = m.valor.length > 35 ? m.valor.substring(0, 35) + '...' : m.valor;
+      const cat     = m.categoria ? ` · ${m.categoria}` : '';
+      return `
+      <div class="mem-row">
+        <span class="mem-tipo ${tipo}">${label}</span>
+        <div class="mem-valor" title="${m.valor}">${valor}<span style="color:var(--muted);font-size:9px">${cat}</span></div>
+        <span class="mem-tasa ${clase}">${emoji}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Memoria:', e); }
+}
+
+/* ── STATUS ── */
+async function verStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('sysVer').textContent = d.version ? `${d.version} MONETIZADO ✅` : 'V34 MONETIZADO ✅';
+    alert(`🏮 EL FAROL AL DÍA — MONETIZADO\n\nVersión: ${d.version || 'V34'}\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\n💸 Monetización: CPC V1.0 ACTIVA\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ${d.wikipedia || '✅ Activa'}\n\n${d.sistema}`);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+/* ── IA STATUS ── */
+function actualizarIA() {
+  const on  = document.getElementById('iaToggle').checked;
+  const s   = document.getElementById('iaStatus');
+  const row = document.getElementById('iaRow');
+  s.textContent = on ? '● ACTIVADO' : '● DESACTIVADO';
+  s.className   = 'ia-status ' + (on ? 'on' : 'off');
+  row.className = 'ia-row ' + (on ? 'on' : '');
+}
+document.getElementById('iaToggle').addEventListener('change', () => { actualizarIA(); guardarInstrucciones(); });
+
+/* ── MSG ── */
+function showMsg(id, txt, ok) {
+  const el = document.getElementById(id);
+  el.textContent = txt;
+  el.className   = 'msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'msg'; }, 6000);
+}
+
+/* ── LISTA DE NOTICIAS ── */
+let todasNoticias = [], idAEliminar = null;
+
+async function cargarListaNoticias() {
+  try {
+    const r = await fetch(`${API}/api/noticias`);
+    if (!r.ok) return;
+    const d = await r.json();
+    todasNoticias = d.noticias || [];
+    renderizarLista(todasNoticias);
+  } catch(e) {
+    document.getElementById('noticiasLista').innerHTML =
+      '<div style="text-align:center;padding:20px;color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error cargando noticias</div>';
+  }
+}
+
+function renderizarLista(noticias) {
+  const lista = document.getElementById('noticiasLista');
+  const count = document.getElementById('noticiasCount');
+  count.textContent = `${noticias.length} NOTICIAS PUBLICADAS`;
+  if (!noticias.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:11px">Sin noticias aún</div>';
+    return;
+  }
+  lista.innerHTML = noticias.map(n => {
+    const fecha  = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+    const imgSrc = n.imagen?.startsWith('http') ? n.imagen
+      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
+    const titulo = n.titulo.length > 46 ? n.titulo.substring(0, 46) + '…' : n.titulo;
+    return `
+    <div class="noticia-row" data-titulo="${n.titulo.toLowerCase()}" data-id="${n.id}">
+      <img class="nr-thumb" src="${imgSrc}" alt=""
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'"
+        loading="lazy">
+      <div class="nr-info">
+        <div class="nr-titulo">${titulo}</div>
+        <div class="nr-meta">📅 ${fecha} · 👁 ${n.vistas||0}</div>
+      </div>
+      <span class="nr-seccion">${n.seccion}</span>
+      <button class="btn-edit-img" title="Cambiar imagen"
+        onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g,"\\'")}','${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button>
+      <button class="btn-del" title="Eliminar noticia"
+        onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+function filtrarLista() {
+  const q = document.getElementById('searchNoticias').value.toLowerCase().trim();
+  if (!q) { renderizarLista(todasNoticias); return; }
+  renderizarLista(todasNoticias.filter(n =>
+    n.titulo.toLowerCase().includes(q) || n.seccion.toLowerCase().includes(q)
+  ));
+}
+
+/* ── ELIMINAR ── */
+function pedirEliminar(id, titulo) {
+  idAEliminar = id;
+  document.getElementById('modalDelTxt').textContent =
+    `¿Eliminar "${titulo}"? Esta acción es permanente e irreversible.`;
+  document.getElementById('modalDel').classList.add('open');
+}
+
+function cerrarModal() {
+  idAEliminar = null;
+  document.getElementById('modalDel').classList.remove('open');
+}
+
+async function confirmarEliminar() {
+  if (!idAEliminar) return;
+  const btn = document.querySelector('.btn-confirm-del');
+  btn.textContent = 'Eliminando...'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    cerrarModal();
+    if (d.success !== false) {
+      todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
+      renderizarLista(todasNoticias);
+      cargarEstadisticas();
+      showMsg('msgGenerar', '🗑️ Noticia eliminada correctamente', true);
+    } else {
+      showMsg('msgGenerar', '❌ Error: ' + (d.error||''), false);
+    }
+  } catch(e) {
+    cerrarModal();
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  } finally {
+    btn.textContent = '🗑️ ELIMINAR'; btn.disabled = false;
+  }
+}
+
+/* ── EDITAR IMAGEN ── */
+let idAEditar = null;
+
+function pedirEditarImagen(id, titulo, imgActual) {
+  idAEditar = id;
+  document.getElementById('modalEditTitulo').textContent = titulo;
+  document.getElementById('modalImgUrl').value = '';
+  document.getElementById('modalImgPreview').src = imgActual ||
+    'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600';
+  document.getElementById('msgEditImg').className = 'msg';
+  document.getElementById('modalEditImg').classList.add('open');
+}
+
+function previewImagen(url) {
+  if (url.startsWith('http'))
+    document.getElementById('modalImgPreview').src = url;
+}
+
+function cerrarModalEdit() {
+  idAEditar = null;
+  document.getElementById('modalEditImg').classList.remove('open');
+}
+
+async function guardarImagen() {
+  if (!idAEditar) return;
+  const url = document.getElementById('modalImgUrl').value.trim();
+  if (!url || !url.startsWith('http')) {
+    document.getElementById('msgEditImg').textContent = '❌ Pega una URL válida que empiece con https://';
+    document.getElementById('msgEditImg').className = 'msg err'; return;
+  }
+  const btn = document.querySelector('.btn-confirm-edit');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN, imagen: url })
+    });
+    const d = await r.json();
+    if (d.success) {
+      const row = document.querySelector(`.noticia-row[data-id="${idAEditar}"]`);
+      if (row) row.querySelector('.nr-thumb').src = url;
+      const n = todasNoticias.find(x => x.id === idAEditar);
+      if (n) n.imagen = url;
+      cerrarModalEdit();
+      showMsg('msgGenerar', '✅ Imagen actualizada correctamente', true);
+    } else {
+      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error');
+      document.getElementById('msgEditImg').className = 'msg err';
+    }
+  } catch(e) {
+    document.getElementById('msgEditImg').textContent = '❌ ' + e.message;
+    document.getElementById('msgEditImg').className = 'msg err';
+  } finally {
+    btn.textContent = '✅ GUARDAR IMAGEN'; btn.disabled = false;
+  }
+}
+
+/* Cerrar modales al click fuera */
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
 });
 
-app.get('/noticia/:slug', async (req, res) => {
-    const r = await pool.query('SELECT * FROM noticias WHERE slug=$1', [req.params.slug]);
-    if (!r.rows.length) return res.status(404).send('Noticia no encontrada');
-    res.send(`<h1>${r.rows[0].titulo}</h1><p>${r.rows[0].contenido}</p>`);
+/* ── COACH DE REDACCIÓN ── */
+let coachDiasActual = 7;
+
+async function cargarCoach(dias = coachDiasActual) {
+  coachDiasActual = dias;
+  document.querySelectorAll('.btn-periodo').forEach(b => {
+    const activo = parseInt(b.dataset.dias) === dias;
+    b.style.background = activo ? 'rgba(255,85,0,.14)' : 'transparent';
+    b.style.color       = activo ? 'var(--fuego)'       : 'var(--muted)';
+  });
+
+  const lista = document.getElementById('coachLista');
+  try {
+    const r = await fetch(`${API}/api/coach?dias=${dias}&pin=${PIN}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.success) { lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Sin datos</div>'; return; }
+
+    const cats = d.categorias ? Object.entries(d.categorias) : [];
+
+    lista.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--fuego)">${d.total_noticias||0}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">NOTICIAS</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--azul)">${d.total_vistas||0}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">VISTAS</div>
+        </div>
+      </div>
+      ${cats.map(([nombre, data]) => {
+        const pct   = data.rendimiento || 0;
+        const color = pct >= 100 ? 'var(--verde)' : pct >= 60 ? '#ffc107' : 'var(--rojo)';
+        const emoji = pct >= 100 ? '🔥' : pct >= 60 ? '📈' : '📉';
+        return `
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:8px 10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--crema)">${emoji} ${nombre}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${color}">${pct}%</span>
+          </div>
+          <div style="background:var(--borde);border-radius:2px;height:4px">
+            <div style="height:4px;border-radius:2px;background:${color};width:${Math.min(pct,100)}%;transition:width .4s"></div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px">${data.total||0} noticias · ${data.vistas_promedio||0} vistas prom.</div>
+        </div>`;
+      }).join('')}`;
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ ' + e.message + '</div>';
+  }
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', () => {
+  cargarConfig();
+  cargarEstadisticas();
+  cargarListaNoticias();
+  cargarMemoria();
+  cargarCoach();
+  setInterval(cargarEstadisticas, 30000);
+  setInterval(cargarMemoria, 60000);
+  setInterval(cargarCoach, 120000);
 });
-
-app.get('/ads.txt', (req, res) => {
-    res.header('Content-Type', 'text/plain');
-    res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0');
-});
-
-app.get('/health', (req, res) => res.json({ status: 'OK', monetizacion: 'V1.0-CPC' }));
-
-// ══════════════════════════════════════════════════════════
-// 🚀 ARRANQUE Y CRON
-// ══════════════════════════════════════════════════════════
-
-function slugify(t) { return t.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').substring(0, 60); }
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🏮 Farol al Día Activo en puerto ${PORT} con Monetización Inyectada.`);
-});
-
-// Generar una noticia de alto valor cada 4 horas
-cron.schedule('0 */4 * * *', () => {
-    const cats = ['Economía', 'Nacionales', 'Tecnología'];
-    generarNoticia(cats[Math.floor(Math.random() * cats.length)]);
-});
+</script>
+</body>
+</html>
