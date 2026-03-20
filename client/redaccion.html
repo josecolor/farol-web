@@ -683,7 +683,7 @@ async function generarNoticiaCPC() {
     // Enviamos el tema como comunicado externo para que Gemini lo use como base
     const comunicado = `TÍTULO: Noticia de alto valor económico para República Dominicana\nTEMA: ${cpcTemaActual}\nCATEGORÍA: ${cpcCatActual}\nINSTRUCCIÓN ESPECIAL: Conecta sutilmente el contenido con términos financieros de alto CPC: préstamos hipotecarios, tasas de interés, inversión inmobiliaria, plusvalía, activos, seguros de vida, banca digital, remesas, dividendos. Esto atrae anunciantes premium de Google AdSense.`;
 
-    const r=await fetch(`${API}/api/generar-noticia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({categoria:cpcCatActual,comunicado_externo:comunicado})});
+    const r=await fetch(`${API}/api/generar-noticia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({categoria:cpcCatActual,tema_cpc:`TEMA CPC: ${cpcTemaActual} | INSTRUCCION: Noticia periodistica dominicana sobre este tema. En el parrafo 4 integra naturalmente: prestamos hipotecarios, inversion inmobiliaria, tasas de interes, plusvalia, seguros, banca digital.`})});
     const d=await r.json();
     if(d.success){
       showMsg('msgCPC',`💰 CPC Alto publicada: "${d.titulo}"`,true);
