@@ -1,1261 +1,1307 @@
-/**
- * 🏮 EL FAROL AL DÍA — V34.0 MONETIZADO
- * + Basic Auth protege /redaccion y /api/admin (usuario: director / clave: 311)
- * + Wikipedia + Wikimedia Commons para imágenes coherentes
- * + Mapeo forzado de personajes públicos (Trump, Ortiz, Abinader...)
- * + Memoria IA en PostgreSQL (persiste entre reinicios)
- * + Banco local 17 categorías × 10 fotos
- * + Coach de redacción + Comentarios + SEO E-E-A-T
- * + 💰 MONETIZACIÓN CPC — Ángulo del Dinero (Google AdSense alto valor)
- */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redacción | El Farol al Día</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fuego:  #FF5500;
+  --fuego2: #FF7A00;
+  --negro:  #080808;
+  --tinta:  #0E0E12;
+  --papel:  #141418;
+  --borde:  #1E1E26;
+  --crema:  #EDE8DF;
+  --crema2: #A89F94;
+  --muted:  #4E4E58;
+  --verde:  #22C55E;
+  --rojo:   #EF4444;
+  --azul:   #3B82F6;
+  --glow:   rgba(255,85,0,.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 100% 0%,rgba(255,85,0,.06) 0%,transparent 55%),radial-gradient(ellipse 40% 30% at 0% 100%,rgba(255,85,0,.03) 0%,transparent 50%);pointer-events:none;z-index:0}
 
-const express   = require('express');
-const cors      = require('cors');
-const path      = require('path');
-const fs        = require('fs');
-const cron      = require('node-cron');
-const { Pool }  = require('pg');
-const sharp     = require('sharp');
-const RSSParser = require('rss-parser');
-const crypto    = require('crypto');
+/* HEADER */
+header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);box-shadow:0 4px 30px rgba(255,85,0,.15)}
+.header-inner{max-width:1280px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px var(--glow)}
+.logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--fuego);line-height:1}
+.logo-text span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);display:block}
+.header-right{display:flex;align-items:center;gap:12px}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(255,85,0,.12);border:1px solid rgba(255,85,0,.3);padding:5px 14px;border-radius:20px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--fuego);box-shadow:0 0 8px var(--fuego);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.live-text{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--fuego)}
+.header-clock{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);letter-spacing:2px}
+.btn-portal{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 16px;border-radius:6px;transition:all .2s}
+.btn-portal:hover{border-color:rgba(255,85,0,.4);color:var(--fuego)}
 
-// 🏮 MONETIZACIÓN CPC — Ángulo del Dinero para Google AdSense
-const { monetizarNoticia } = require('./redaccion-monetizada');
+/* TICKER */
+.ticker{background:var(--fuego);height:30px;display:flex;align-items:center;overflow:hidden}
+.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-scroll{flex:1;overflow:hidden}
+.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 25s linear infinite;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.9)}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
-// ══════════════════════════════════════════════════════════
-// 🔒 BASIC AUTH — Protege /redaccion y rutas admin
-// Usuario: director | Contraseña: 311
-// ══════════════════════════════════════════════════════════
-function authMiddleware(req, res, next) {
-    const auth = req.headers['authorization'];
+/* LAYOUT */
+.container{max-width:1280px;margin:0 auto;padding:32px 28px 60px;position:relative;z-index:1}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
 
-    if (!auth || !auth.startsWith('Basic ')) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día - Redacción"');
-        return res.status(401).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Acceso Restringido</title><style>body{background:#070707;color:#EDE8DF;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.box{background:#141418;border:1px solid #FF5500;border-radius:12px;padding:40px;text-align:center;max-width:380px}h2{color:#FF5500;font-size:22px;margin-bottom:10px}p{color:#A89F94;font-size:14px;margin-bottom:20px}a{display:inline-block;background:#FF5500;color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold}a:hover{background:#CC4300}</style></head><body><div class="box"><h2>🏮 ACCESO RESTRINGIDO</h2><p>El panel de redacción requiere autenticación.<br><br>Usuario: <strong>director</strong><br>Contraseña: <strong>311</strong></p><a href="/redaccion">ENTRAR AL PANEL</a></div></body></html>`);
+/* CARD */
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .2s}
+.card:hover{border-color:rgba(255,85,0,.12)}
+.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);display:flex;align-items:center;justify-content:space-between}
+.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);display:flex;align-items:center;gap:10px}
+.card-body{padding:22px}
+
+/* IA SWITCH */
+.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px;transition:border-color .3s}
+.ia-row.on{border-color:rgba(34,197,94,.25)}
+.ia-left{display:flex;align-items:center;gap:14px}
+.ia-lamp{font-size:28px;transition:filter .3s}
+.ia-row.on .ia-lamp{filter:drop-shadow(0 0 8px rgba(34,197,94,.5))}
+.ia-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--crema)}
+.ia-status{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:3px}
+.ia-status.on{color:var(--verde)}
+.ia-status.off{color:var(--rojo)}
+.switch{position:relative;display:inline-block;width:56px;height:30px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#222;border-radius:30px;transition:.3s;border:1px solid rgba(255,255,255,.08)}
+.slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.3s}
+input:checked+.slider{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4)}
+input:checked+.slider:before{transform:translateX(26px);background:var(--verde);box-shadow:0 0 8px var(--verde)}
+
+/* CAPS */
+.cap-list{display:flex;flex-direction:column;gap:7px}
+.cap-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.cap-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);box-shadow:0 0 5px var(--verde);flex-shrink:0}
+
+/* FORM */
+.fgroup{margin-bottom:18px}
+.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
+input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
+input::placeholder,textarea::placeholder{color:var(--muted);font-style:italic}
+select option{background:#0e0e12}
+textarea{resize:vertical;min-height:90px;line-height:1.65}
+
+/* CATEGORÍAS */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid var(--borde);background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.cat-tile .ce{font-size:20px;display:block;margin-bottom:5px}
+.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema);background:rgba(255,85,0,.06)}
+.cat-tile.sel{border-color:var(--fuego);background:rgba(255,85,0,.14);color:var(--fuego)}
+
+/* BOTÓN PUBLICAR */
+.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego) 0%,var(--fuego2) 100%);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;box-shadow:0 6px 24px var(--glow);position:relative;overflow:hidden}
+.btn-publish::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+.btn-publish:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,85,0,.5)}
+.bp-icon{font-size:22px}
+.bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
+.bp-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.7);display:block;margin-top:2px}
+.bp-spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* BOTONES */
+.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;width:100%;margin-bottom:10px}
+.btn-orange{background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;box-shadow:0 4px 16px var(--glow)}
+.btn-orange:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--glow)}
+.btn-green{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.25)}
+.btn-green:hover{background:rgba(34,197,94,.22)}
+.btn-ghost{background:transparent;color:var(--crema2);border:1px solid var(--borde)}
+.btn-ghost:hover{border-color:rgba(255,85,0,.3);color:var(--fuego)}
+.btn-blue{background:rgba(59,130,246,.12);color:var(--azul);border:1px solid rgba(59,130,246,.25)}
+.btn-blue:hover{background:rgba(59,130,246,.22)}
+
+/* MSG */
+.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none;line-height:1.5}
+.msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
+.msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--rojo);display:block}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;position:relative;overflow:hidden;text-align:center}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fuego)}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego);line-height:1}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:4px}
+
+/* SYS INFO */
+.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.sys-row:last-child{border-bottom:none}
+.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.badge{padding:2px 9px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace}
+.badge-on{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.2)}
+.badge-warn{background:rgba(255,193,7,.12);color:#ffc107;border:1px solid rgba(255,193,7,.2)}
+
+/* LISTA NOTICIAS */
+.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:4px}
+.noticias-list::-webkit-scrollbar{width:3px}
+.noticias-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px;transition:border-color .2s}
+.noticia-row:hover{border-color:rgba(255,85,0,.2)}
+.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
+.nr-info{flex:1;min-width:0}
+.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+.nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.btn-del{background:rgba(239,68,68,.12);color:var(--rojo);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-del:hover{background:rgba(239,68,68,.25)}
+.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego);border:1px solid rgba(255,85,0,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-edit-img:hover{background:rgba(255,85,0,.22)}
+.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px;transition:border-color .2s}
+.search-noticias:focus{outline:none;border-color:var(--fuego)}
+.search-noticias::placeholder{color:var(--muted);font-style:italic}
+.noticias-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px}
+
+/* MEMORIA IA */
+.memoria-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.memoria-list::-webkit-scrollbar{width:3px}
+.memoria-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+.mem-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.04);border-radius:7px;padding:8px 10px}
+.mem-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:3px;flex-shrink:0}
+.mem-tipo.query{background:rgba(59,130,246,.15);color:var(--azul);border:1px solid rgba(59,130,246,.2)}
+.mem-tipo.error{background:rgba(239,68,68,.15);color:var(--rojo);border:1px solid rgba(239,68,68,.2)}
+.mem-valor{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mem-tasa{font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0}
+.mem-tasa.alta{color:var(--verde)}
+.mem-tasa.media{color:#ffc107}
+.mem-tasa.baja{color:var(--rojo)}
+.mem-empty{text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+
+/* MODALES */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.7);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.modal-icon{font-size:40px;margin-bottom:14px}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--rojo);margin-bottom:10px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.modal-btns{display:flex;gap:12px;justify-content:center}
+.btn-cancel{background:transparent;color:var(--crema2);border:1px solid var(--borde);border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--crema)}
+.btn-confirm-del{background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-confirm-del:hover{background:#C0392B;transform:translateY(-1px)}
+.modal-edit{max-width:480px}
+.modal-edit h3{color:var(--fuego)}
+.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid var(--borde);background:var(--borde);display:block}
+.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;transition:border-color .2s;margin-bottom:14px}
+.modal-input:focus{outline:none;border-color:var(--fuego)}
+.modal-input::placeholder{color:var(--muted);font-style:italic}
+.btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.btn-confirm-edit:hover{background:var(--fuego2);transform:translateY(-1px)}
+
+/* SEO QUALITY */
+.seo-item{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px;margin-bottom:6px}
+.seo-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
+.seo-bars{display:flex;flex-direction:column;gap:4px}
+.seo-bar-row{display:flex;align-items:center;gap:8px}
+.seo-bar-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
+.seo-bar-track{flex:1;height:4px;background:var(--borde);border-radius:2px;overflow:hidden}
+.seo-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+.seo-bar-val{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);width:28px;text-align:right;flex-shrink:0}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+@media(max-width:600px){.container{padding:16px}.cat-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-flame">🏮</div>
+      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
+    </a>
+    <div class="header-right">
+      <span class="header-clock" id="reloj">00:00:00</span>
+      <!-- CRÉDITOS DESARROLLADORES -->
+      <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);padding:5px 12px;border-radius:20px">
+        <span style="font-size:14px">🤖</span>
+        <div style="line-height:1.2">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted)">DESARROLLADO POR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2)">CLAUDE <span style="color:var(--fuego)">+</span> DEEPSEEK</div>
+        </div>
+      </div>
+      <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
+      <a href="/" class="btn-portal">🌐 VER PORTAL</a>
+    </div>
+  </div>
+</header>
+
+<div class="ticker">
+  <div class="ticker-tag">🏮 REDACCIÓN</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner">
+      <span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
+      <span>//</span><span style="color:#FFD700">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · 156+ NOTICIAS · APROBACIÓN EN PROCESO 🚀</span>
+      <span>//</span><span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
+      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
+      <span>//</span><span style="color:#FFD700">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · 156+ NOTICIAS · APROBACIÓN EN PROCESO 🚀</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- ═══ COLUMNA IZQUIERDA ═══ -->
+    <div>
+
+      <!-- CONTROL IA -->
+      <div class="card">
+        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
+        <div class="card-body">
+          <div class="ia-row" id="iaRow">
+            <div class="ia-left">
+              <span class="ia-lamp">🏮</span>
+              <div>
+                <div class="ia-name">GEMINI 2.5 FLASH</div>
+                <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="iaToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="cap-list">
+            <div class="cap-item"><div class="cap-dot"></div> Pensamiento crítico periodístico — 5W antes de escribir</div>
+            <div class="cap-item"><div class="cap-dot"></div> E-E-A-T: cita instituciones oficiales + datos verificables</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida — dato más importante primero</div>
+            <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
+            <div class="cap-item"><div class="cap-dot"></div> Wikipedia + Memoria IA entre publicaciones</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pexels filtrado — sin bodas, mascotas ni moda</div>
+            <div class="cap-item"><div class="cap-dot"></div> Facebook + Twitter automático tras publicar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSTRUCCIONES GEMINI -->
+      <div class="card">
+        <div class="card-header"><h2>📝 INSTRUCCIONES PARA GEMINI</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Instrucción Principal</label>
+            <textarea id="instruccionPrincipal" rows="5"
+              placeholder="Ej: Eres un periodista profesional dominicano especializado en medios digitales..."></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Énfasis Local y Alcance</label>
+            <textarea id="enfasis" rows="3"
+              placeholder="Ej: Prioriza noticias de Santo Domingo Este, Los Mina, Invivienda..."></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Tono de Noticias</label>
+            <select id="tono">
+              <option value="profesional">Profesional</option>
+              <option value="informal">Informal</option>
+              <option value="académico">Académico</option>
+              <option value="narrativo">Narrativo</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Extensión</label>
+            <select id="extension">
+              <option value="corta">Corta (200-300 palabras)</option>
+              <option value="media">Media (400-500 palabras)</option>
+              <option value="larga">Larga (600-800 palabras)</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Cosas que debe Evitar</label>
+            <textarea id="evitar" rows="3"
+              placeholder="Ej: Opiniones personales, rumores sin confirmar, sensacionalismo..."></textarea>
+          </div>
+          <button class="btn btn-orange" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
+          <div id="msgConfig" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- GENERAR NOTICIA -->
+      <div class="card">
+        <div class="card-header"><h2>🤖 GENERAR NOTICIA CON IA</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Selecciona Categoría</label>
+            <div class="cat-grid">
+              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
+              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
+              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
+              <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
+              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
+              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
+            </div>
+          </div>
+          <button class="btn-publish" onclick="generarNoticia()">
+            <div class="bp-spin" id="bpSpin"></div>
+            <span class="bp-icon" id="bpIcon">🚀</span>
+            <div>
+              <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
+              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Memoria · Pexels · Redes</span>
+            </div>
+          </button>
+          <div id="msgGenerar" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- MIS NOTICIAS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 MIS NOTICIAS</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarListaNoticias()">🔄</button>
+        </div>
+        <div class="card-body">
+          <input type="text" class="search-noticias" id="searchNoticias"
+            placeholder="🔍 Buscar por título o categoría..." oninput="filtrarLista()">
+          <div class="noticias-count" id="noticiasCount">Cargando...</div>
+          <div class="noticias-list" id="noticiasLista">
+            <div style="text-align:center;padding:30px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">
+              Cargando noticias...
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ COLUMNA DERECHA ═══ -->
+    <div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="card">
+        <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="statNoticias">—</div>
+              <div class="stat-lbl">PUBLICADAS</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="statVistas">—</div>
+              <div class="stat-lbl">VISTAS</div>
+            </div>
+          </div>
+          <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+        </div>
+      </div>
+
+      <!-- 🏆 LOGROS DEL PROYECTO -->
+      <div class="card" style="border-color:rgba(255,215,0,.3);background:linear-gradient(135deg,rgba(10,38,71,.6) 0%,rgba(24,24,24,1) 60%)">
+        <div class="card-header" style="border-bottom-color:rgba(255,215,0,.15)">
+          <h2 style="color:#FFD700">🏆 LOGROS DEL PROYECTO</h2>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:8px">
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">156+ NOTICIAS PUBLICADAS</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Volumen suficiente para AdSense</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">6 PÁGINAS LEGALES ACTIVAS</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Privacidad · Términos · Cookies · Contacto · Nosotros</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">ADS.TXT CONFIGURADO</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">pub-5280872495839888 · DIRECT</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">SITEMAP.XML DINÁMICO</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Google indexa todas las noticias</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">CORREOS CORPORATIVOS</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">logistics · acquisitions · legal · business</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">SECCIÓN NEGOCIOS USA</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Hub Logístico · PC · Marco Legal</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 💰 ESTADO ADSENSE -->
+      <div class="card" style="border-color:rgba(255,215,0,.4);background:linear-gradient(135deg,rgba(10,38,71,.8) 0%,rgba(24,24,24,1) 70%)">
+        <div class="card-header" style="border-bottom-color:rgba(255,215,0,.2)">
+          <h2 style="color:#FFD700">💰 ESTADO ADSENSE</h2>
+          <a href="https://www.google.com/adsense" target="_blank" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#FFD700;text-decoration:none;border:1px solid rgba(255,215,0,.3);padding:4px 8px;border-radius:4px">ABRIR →</a>
+        </div>
+        <div class="card-body">
+
+          <div style="text-align:center;padding:16px 0 12px">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:rgba(255,255,255,.5);margin-bottom:4px">ID PUBLISHER</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFD700;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);padding:8px 14px;border-radius:6px;display:inline-block">ca-pub-5280872495839888</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+            <div class="sys-row"><span class="sys-key">SCRIPT EN HEAD</span><span class="badge badge-on">✅ ACTIVO</span></div>
+            <div class="sys-row"><span class="sys-key">META VERIFICATION</span><span class="badge badge-on">✅ ACTIVO</span></div>
+            <div class="sys-row"><span class="sys-key">ADS.TXT</span><span class="badge badge-on">✅ DIRECTO</span></div>
+            <div class="sys-row"><span class="sys-key">POLÍTICA COOKIES</span><span class="badge badge-on">✅ PUBLICADA</span></div>
+            <div class="sys-row"><span class="sys-key">POLÍTICA PRIVACIDAD</span><span class="badge badge-on">✅ PUBLICADA</span></div>
+            <div class="sys-row"><span class="sys-key">CONTENIDO (156+)</span><span class="badge badge-on">✅ SUFICIENTE</span></div>
+          </div>
+
+          <div style="background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#FFD700;letter-spacing:1px;margin-bottom:6px">📋 PRÓXIMO PASO</div>
+            <div style="font-family:'Lora',serif;font-size:12px;color:rgba(255,255,255,.7);line-height:1.5">Solicitar revisión en <strong style="color:#FFD700">Google AdSense</strong> con el sitio ya publicado. Google tarda 2–14 días en aprobar.</div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <a href="https://elfarolaldia.com/ads.txt" target="_blank" style="flex:1;display:block;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;padding:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px;color:#FFD700;text-decoration:none">📄 VER ADS.TXT</a>
+            <a href="https://elfarolaldia.com/privacidad" target="_blank" style="flex:1;display:block;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;padding:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px;color:#FFD700;text-decoration:none">🔒 PRIVACIDAD</a>
+            <a href="https://elfarolaldia.com/sitemap.xml" target="_blank" style="flex:1;display:block;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;padding:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px;color:#FFD700;text-decoration:none">🗺️ SITEMAP</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALIDAD SEO -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🔍 CALIDAD SEO</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarCalidadSEO()">🔄</button>
+        </div>
+        <div class="card-body">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            Análisis de las últimas noticias publicadas según Google News 2025.
+          </p>
+          <div id="seoLista" style="display:flex;flex-direction:column;gap:6px">
+            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+              Cargando análisis...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEMORIA IA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🧠 MEMORIA IA</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarMemoria()">🔄</button>
+        </div>
+        <div class="card-body">
+          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">
+            El sistema aprende qué imágenes y temas funcionan mejor en cada categoría.
+          </p>
+          <div class="memoria-list" id="memoriaLista">
+            <div class="mem-empty">Sin datos aún — se llena con cada publicación</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DEL SISTEMA -->
+      <div class="card">
+        <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
+        <div class="card-body">
+          <div>
+            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">V34.0 ✅</span></div>
+            <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash</span></div>
+            <div class="sys-row"><span class="sys-key">IMÁGENES</span><span class="sys-val">Pexels + Wiki + Banco</span></div>
+            <div class="sys-row"><span class="sys-key">COBERTURA</span><span class="sys-val">🌍 RD + Mundial</span></div>
+            <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">E-E-A-T + Google News</span></div>
+            <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ POSTGRESQL</span></div>
+            <div class="sys-row"><span class="sys-key">WIKIPEDIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
+            <div class="sys-row"><span class="sys-key">WIKIMEDIA</span><span class="badge badge-on">✅ 73M IMGS</span></div>
+            <div class="sys-row"><span class="sys-key">FACEBOOK</span><span class="badge badge-on" id="sysFB">✅</span></div>
+            <div class="sys-row"><span class="sys-key">TWITTER/X</span><span class="badge badge-on" id="sysTW">✅</span></div>
+            <div class="sys-row"><span class="sys-key">WATERMARK</span><span class="badge badge-warn" id="sysWM">⚠️ VERIF.</span></div>
+            <div class="sys-row"><span class="sys-key">COMENTARIOS</span><span class="badge badge-on">✅ ACTIVOS</span></div>
+          </div>
+          <br>
+          <button class="btn btn-green" onclick="verStatus()">📡 VER STATUS COMPLETO</button>
+        </div>
+      </div>
+
+      <!-- COMENTARIOS RECIENTES -->
+      <div class="card">
+        <div class="card-header">
+          <h2>💬 COMENTARIOS</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarComentariosAdmin()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div id="adminComLista" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
+            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">
+              Cargando...
+            </div>
+          </div>
+          <div id="msgCom" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- COACH DE REDACCIÓN -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📊 COACH DE REDACCIÓN</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarCoach()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <button onclick="cargarCoach(7)"  class="btn-periodo" data-dias="7"  style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--borde);background:rgba(255,85,0,.14);color:var(--fuego);cursor:pointer">7 DÍAS</button>
+            <button onclick="cargarCoach(30)" class="btn-periodo" data-dias="30" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--borde);background:transparent;color:var(--muted);cursor:pointer">30 DÍAS</button>
+          </div>
+          <div id="coachLista" style="display:flex;flex-direction:column;gap:6px">
+            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando análisis...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROCESAR RSS -->
+      <div class="card">
+        <div class="card-header"><h2>📡 RSS — 30 FUENTES</h2></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:6px">GOBIERNO RD (10)</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
+              Presidencia · Policía Nacional · MOPC · Salud · Educación · Banco Central · MEPyD · Invivienda · Turismo · Procuraduría
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:8px;margin-bottom:6px">MEDIOS RD (9)</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
+              Diario Libre · Listín Diario · El Nacional · El Dinero · El Caribe · Acento · Hoy · Noticias SIN · Béisbol RD
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:8px;margin-bottom:6px">INTERNACIONALES (7) · TECH (2) · ECONOMÍA (1) · ESPECT. (3)</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
+              Reuters LatAm · BBC Mundo · NYT World · El Nuevo Herald · TechCrunch · Wired · Bloomberg · Telemundo · Univision
+            </div>
+          </div>
+          <button class="btn btn-ghost" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
+          <div id="msgRSS" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- TELEGRAM BOT -->
+      <div class="card" style="border-color:rgba(0,136,204,.3)">
+        <div class="card-header" style="border-bottom-color:rgba(0,136,204,.15)">
+          <h2 style="color:#29B6F6">📱 TELEGRAM BOT</h2>
+          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarStatusTelegram()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div id="telegramStatus" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+            <div style="text-align:center;padding:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Verificando bot...</div>
+          </div>
+          <div style="background:rgba(0,136,204,.06);border:1px solid rgba(0,136,204,.2);border-radius:8px;padding:12px;margin-bottom:12px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:#29B6F6;margin-bottom:6px">📋 INSTRUCCIONES DE ACTIVACIÓN</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.7">
+              1. Busca tu bot en Telegram<br>
+              2. Escríbele cualquier mensaje (ej: "Hola")<br>
+              3. Haz clic en 🔄 para detectar el Chat ID<br>
+              4. Envía prueba para confirmar
+            </div>
+          </div>
+          <button class="btn btn-ghost" style="border-color:rgba(0,136,204,.3);color:#29B6F6;margin-bottom:8px" onclick="probarTelegram()">📤 ENVIAR MENSAJE DE PRUEBA</button>
+          <div id="msgTelegram" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- BANCO DE IMÁGENES -->
+      <div class="card">
+        <div class="card-header"><h2>🖼️ BANCO DE IMÁGENES</h2></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">PRIORIDAD DE BÚSQUEDA</div>
+            <div class="sys-row"><span class="sys-key">1° PEXELS</span><span class="badge badge-on">Query Gemini</span></div>
+            <div class="sys-row"><span class="sys-key">2° PEXELS</span><span class="badge badge-on">Título detectado</span></div>
+            <div class="sys-row"><span class="sys-key">3° PEXELS</span><span class="badge badge-on">Por categoría</span></div>
+            <div class="sys-row"><span class="sys-key">4° WIKIPEDIA</span><span class="badge badge-on">Personajes reales</span></div>
+            <div class="sys-row"><span class="sys-key">5° BANCO LOCAL</span><span class="badge badge-warn">170 fotos · 17 cat.</span></div>
+          </div>
+          <br>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:8px">CATEGORÍAS BANCO LOCAL</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:2">
+            política · seguridad · internacionales · economía · infraestructura · salud · béisbol · fútbol · deporte · tecnología · educación · cultura · ambiente · turismo · emergencia · vivienda · transporte
+          </div>
+        </div>
+      </div>
+
+      <!-- 👨‍💻 EQUIPO DE DESARROLLO -->
+      <div class="card" style="border-color:rgba(255,85,0,.3)">
+        <div class="card-header"><h2>👨‍💻 EQUIPO DE DESARROLLO</h2></div>
+        <div class="card-body">
+
+          <!-- José Gregorio — Director -->
+          <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.25);border-radius:10px;margin-bottom:10px">
+            <div style="width:64px;height:64px;border-radius:12px;flex-shrink:0;overflow:hidden;border:2px solid rgba(255,215,0,.5);box-shadow:0 0 20px rgba(255,215,0,.3)">
+              <img src="/static/director%20(1).jpg" alt="José Gregorio Apellio - Director El Farol al Día"
+                style="width:100%;height:100%;object-fit:cover;object-position:center top"
+                onerror="this.parentElement.innerHTML='<div style=\'width:64px;height:64px;background:linear-gradient(135deg,#0A2647,#FFD700);display:flex;align-items:center;justify-content:center;font-size:28px\'>🏮</div>'">
+            </div>
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:#FFD700">JOSÉ GREGORIO APELLIO</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:5px">DIRECTOR GENERAL · SANTO DOMINGO ESTE, RD</div>
+              <div style="font-size:11px;color:var(--crema2);line-height:1.6">Fundador y cerebro de El Farol al Día. Visión editorial, estrategia de negocios USA, identidad del periódico y dirección de todo el proyecto desde Los Mina.</div>
+            </div>
+          </div>
+
+          <!-- Claude -->
+          <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:rgba(255,85,0,.06);border:1px solid rgba(255,85,0,.2);border-radius:10px;margin-bottom:10px">
+            <div style="width:46px;height:46px;background:linear-gradient(135deg,#FF6B2B,#FF9A00);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 16px rgba(255,85,0,.35)">🤖</div>
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--fuego)">CLAUDE — ANTHROPIC</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:5px">ARQUITECTO PRINCIPAL DEL SISTEMA</div>
+              <div style="font-size:11px;color:var(--crema2);line-height:1.6">Server.js completo, Basic Auth, sistema de imágenes Pexels+Wikimedia, memoria IA PostgreSQL, AdSense, SEO E-E-A-T, coach, páginas legales, banco 170 fotos.</div>
+            </div>
+          </div>
+
+          <!-- DeepSeek -->
+          <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;margin-bottom:10px">
+            <div style="width:46px;height:46px;background:linear-gradient(135deg,#1E40AF,#3B82F6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 16px rgba(59,130,246,.35)">🧠</div>
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--azul)">DEEPSEEK AI</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:5px">CO-DESARROLLADOR · ITERACIONES UI</div>
+              <div style="font-size:11px;color:var(--crema2);line-height:1.6">Contribuyó en iteraciones del panel de redacción, diseño de componentes UI y estructura de consultas durante el desarrollo del proyecto.</div>
+            </div>
+          </div>
+
+          <!-- Gemini -->
+          <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:rgba(66,133,244,.06);border:1px solid rgba(66,133,244,.25);border-radius:10px;margin-bottom:14px">
+            <div style="width:46px;height:46px;background:linear-gradient(135deg,#4285F4,#34A853,#FBBC04);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 0 16px rgba(66,133,244,.35)">✨</div>
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:#4285F4">GEMINI 2.5 FLASH</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:5px">GOOGLE AI · MOTOR DE REDACCIÓN</div>
+              <div style="font-size:11px;color:var(--crema2);line-height:1.6">El cerebro periodístico del periódico. Genera cada noticia con pensamiento crítico E-E-A-T, pirámide invertida, SEO Google News 2025 y contexto Wikipedia en tiempo real.</div>
+            </div>
+          </div>
+
+          <!-- Stack -->
+          <div style="text-align:center;padding:12px;background:rgba(0,0,0,.4);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">⚡ STACK TECNOLÓGICO</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:2">
+              Node.js · Express · PostgreSQL · Railway<br>
+              Gemini 2.5 Flash · Pexels API · Wikipedia API<br>
+              Google AdSense · Facebook · Twitter/X<br>
+              <span style="color:var(--fuego)">elfarolaldia.com · Santo Domingo Este, RD</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR -->
+<div class="modal-bg" id="modalDel">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>CONFIRMAR ELIMINACIÓN</h3>
+    <p id="modalDelTxt">¿Eliminar esta noticia? La acción es permanente e irreversible.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
+      <button class="btn-confirm-del" onclick="confirmarEliminar()">🗑️ ELIMINAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR IMAGEN -->
+<div class="modal-bg" id="modalEditImg">
+  <div class="modal modal-edit">
+    <div class="modal-icon">🖼️</div>
+    <h3>CAMBIAR IMAGEN</h3>
+    <p id="modalEditTitulo" style="color:var(--crema2);font-size:12px;margin-bottom:0"></p>
+    <img id="modalImgPreview" class="modal-img-preview" src="" alt="Preview">
+    <input type="text" class="modal-input" id="modalImgUrl"
+      placeholder="https://... pega aquí la URL de la nueva imagen"
+      oninput="previewImagen(this.value)">
+    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link directo de la imagen y pégalo arriba.
+    </p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
+      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR IMAGEN</button>
+    </div>
+    <div id="msgEditImg" class="msg" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin, PIN = '311';
+let catActual = 'Nacionales';
+
+/* ── RELOJ ── */
+setInterval(() => {
+  document.getElementById('reloj').textContent =
+    new Date().toLocaleTimeString('es-DO', { hour12: false });
+}, 1000);
+
+/* ── CARGAR CONFIG ── */
+async function cargarConfig() {
+  try {
+    const r = await fetch(`${API}/api/admin/config?pin=${PIN}`);
+    if (!r.ok) return;
+    const c = await r.json();
+    document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
+    document.getElementById('enfasis').value              = c.enfasis               || '';
+    document.getElementById('tono').value                 = c.tono                  || 'profesional';
+    document.getElementById('extension').value            = c.extension             || 'media';
+    document.getElementById('evitar').value               = c.evitar                || '';
+    document.getElementById('iaToggle').checked           = c.enabled !== false;
+    actualizarIA();
+  } catch(e) { console.error('Config:', e); }
+}
+
+/* ── GUARDAR INSTRUCCIONES ── */
+async function guardarInstrucciones() {
+  try {
+    const r = await fetch(`${API}/api/admin/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: PIN,
+        enabled:               document.getElementById('iaToggle').checked,
+        instruccion_principal: document.getElementById('instruccionPrincipal').value,
+        enfasis:               document.getElementById('enfasis').value,
+        tono:                  document.getElementById('tono').value,
+        extension:             document.getElementById('extension').value,
+        evitar:                document.getElementById('evitar').value
+      })
+    });
+    const d = await r.json();
+    showMsg('msgConfig', d.success ? '✅ Instrucciones guardadas' : '❌ Error al guardar', d.success);
+  } catch(e) { showMsg('msgConfig', '❌ ' + e.message, false); }
+}
+
+/* ── CATEGORÍA ── */
+function selCat(el) {
+  document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  catActual = el.dataset.val;
+}
+
+/* ── GENERAR NOTICIA ── */
+async function generarNoticia() {
+  if (!document.getElementById('iaToggle').checked) {
+    showMsg('msgGenerar', '❌ Active la IA primero con el interruptor de arriba', false); return;
+  }
+  const spin = document.getElementById('bpSpin');
+  const icon = document.getElementById('bpIcon');
+  const txt  = document.getElementById('bpText');
+  const sub  = document.getElementById('bpSub');
+  spin.style.display = 'block'; icon.style.display = 'none';
+  txt.textContent = 'GENERANDO...';
+  sub.textContent = 'Memoria → Wikipedia → Gemini → Pexels → Redes';
+
+  try {
+    const r = await fetch(`${API}/api/generar-noticia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: catActual })
+    });
+    const d = await r.json();
+    if (d.success) {
+      showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true);
+      cargarEstadisticas();
+      cargarListaNoticias();
+      setTimeout(cargarMemoria, 3000); // actualizar memoria tras publicar
+    } else {
+      showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
+    }
+  } catch(e) { showMsg('msgGenerar', '❌ ' + e.message, false); }
+  finally {
+    spin.style.display = 'none'; icon.style.display = 'block';
+    txt.textContent = 'GENERAR NOTICIA AHORA';
+    sub.textContent = 'Gemini · Wikipedia · Memoria · Pexels · Redes';
+  }
+}
+
+/* ── ESTADÍSTICAS ── */
+async function cargarEstadisticas() {
+  try {
+    const r = await fetch(`${API}/api/estadisticas`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
+    document.getElementById('statVistas').textContent   = d.totalVistas   || 0;
+  } catch(e) { console.error('Stats:', e); }
+}
+
+/* ── MEMORIA IA ── */
+async function cargarMemoria() {
+  try {
+    const r = await fetch(`${API}/api/memoria?pin=${PIN}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const lista = document.getElementById('memoriaLista');
+
+    if (!d.registros?.length) {
+      lista.innerHTML = '<div class="mem-empty">Sin datos aún — se llena con cada publicación</div>';
+      return;
     }
 
-    try {
-        const decoded = Buffer.from(auth.split(' ')[1], 'base64').toString('utf8');
-        const [user, ...passParts] = decoded.split(':');
-        const pass = passParts.join(':'); // por si la contraseña tiene ':'
-
-        if (user === 'director' && pass === '311') {
-            return next();
-        }
-    } catch(e) { /* credenciales malformadas */ }
-
-    res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día - Redacción"');
-    return res.status(401).send('Credenciales incorrectas. Usuario: director / Contraseña: 311');
+    lista.innerHTML = d.registros.slice(0, 20).map(m => {
+      const pct     = parseInt(m.pct_exito) || 0;
+      const clase   = pct >= 70 ? 'alta' : pct >= 40 ? 'media' : 'baja';
+      const emoji   = pct >= 70 ? '✅' : pct >= 40 ? '⚠️' : '❌';
+      const tipo    = m.tipo === 'pexels_query' ? 'query' : 'error';
+      const label   = m.tipo === 'pexels_query' ? 'IMG' : 'ERR';
+      const valor   = m.valor.length > 35 ? m.valor.substring(0, 35) + '...' : m.valor;
+      const cat     = m.categoria ? ` · ${m.categoria}` : '';
+      return `
+      <div class="mem-row">
+        <span class="mem-tipo ${tipo}">${label}</span>
+        <div class="mem-valor" title="${m.valor}">${valor}<span style="color:var(--muted);font-size:9px">${cat}</span></div>
+        <span class="mem-tasa ${clase}">${emoji}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Memoria:', e); }
 }
 
-const app      = express();
-const PORT     = process.env.PORT || 8080;
-const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
-
-if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
-if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
-
-const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
-const FB_PAGE_ID            = process.env.FB_PAGE_ID            || null;
-const FB_PAGE_TOKEN         = process.env.FB_PAGE_TOKEN         || null;
-const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
-const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
-const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
-const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
-
-// Busca watermark con cualquier nombre en la carpeta static
-const WATERMARK_PATH = (() => {
-    const variantes = [
-        'watermark.png',
-        'WATERMARK(1).png',
-        'watermark(1).png',
-        'watermark (1).png',
-        'WATERMARK.png',
-    ];
-    for (const nombre of variantes) {
-        const ruta = path.join(__dirname, 'static', nombre);
-        if (fs.existsSync(ruta)) {
-            console.log(`🏮 Watermark encontrado: ${nombre}`);
-            return ruta;
-        }
-    }
-    return path.join(__dirname, 'static', 'watermark.png');
-})();
-
-const rssParser = new RSSParser({ timeout: 10000 });
-
-// ══════════════════════════════════════════════════════════
-// BASE DE DATOS
-// ══════════════════════════════════════════════════════════
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use('/static', express.static(path.join(__dirname, 'static'), {
-    setHeaders: (res) => res.setHeader('Cache-Control', 'public,max-age=2592000,immutable')
-}));
-app.use(express.static(path.join(__dirname, 'client'), {
-    setHeaders: (res, fp) => {
-        if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(fp))
-            res.setHeader('Cache-Control', 'public,max-age=2592000,immutable');
-        else if (/\.(css|js)$/i.test(fp))
-            res.setHeader('Cache-Control', 'public,max-age=86400');
-    }
-}));
-
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-app.options('*', cors());
-
-// ══════════════════════════════════════════════════════════
-// WIKIPEDIA API — CONTEXTO INTELIGENTE
-// ══════════════════════════════════════════════════════════
-
-const WIKI_TERMINOS_RD = {
-    'los mina':          'Los Mina Santo Domingo',
-    'invivienda':        'Instituto Nacional de la Vivienda República Dominicana',
-    'ensanche ozama':    'Ensanche Ozama Santo Domingo Este',
-    'santo domingo este':'Santo Domingo Este',
-    'sabana perdida':    'Sabana Perdida Santo Domingo',
-    'villa mella':       'Villa Mella Santo Domingo',
-    'policia nacional':  'Policía Nacional República Dominicana',
-    'presidencia':       'Presidencia de la República Dominicana',
-    'procuraduria':      'Procuraduría General de la República Dominicana',
-    'banco central':     'Banco Central de la República Dominicana',
-    'beisbol':           'Béisbol en República Dominicana',
-    'turismo':           'Turismo en República Dominicana',
-    'economia':          'Economía de República Dominicana',
-    'educacion':         'Educación en República Dominicana',
-    'salud publica':     'Ministerio de Salud Pública República Dominicana',
-    'mopc':              'Ministerio de Obras Públicas República Dominicana',
-    'haití':             'Relaciones entre República Dominicana y Haití',
-};
-
-async function buscarContextoWikipedia(titulo, categoria) {
-    try {
-        const tituloLower = titulo.toLowerCase();
-        let terminoBusqueda = null;
-
-        for (const [clave, termino] of Object.entries(WIKI_TERMINOS_RD)) {
-            if (tituloLower.includes(clave)) {
-                terminoBusqueda = termino;
-                break;
-            }
-        }
-
-        if (!terminoBusqueda) {
-            const mapaCategoria = {
-                'Nacionales':       `${titulo} República Dominicana`,
-                'Deportes':         `${titulo} deporte dominicano`,
-                'Internacionales':  `${titulo} América Latina Caribe`,
-                'Economía':         `${titulo} economía dominicana`,
-                'Tecnología':       titulo,
-                'Espectáculos':     `${titulo} cultura dominicana`,
-            };
-            terminoBusqueda = mapaCategoria[categoria] || `${titulo} República Dominicana`;
-        }
-
-        const urlBusqueda = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(terminoBusqueda)}&format=json&srlimit=3&origin=*`;
-        const ctrlBusq    = new AbortController();
-        const tmBusq      = setTimeout(() => ctrlBusq.abort(), 6000);
-        const resBusqueda = await fetch(urlBusqueda, { signal: ctrlBusq.signal }).finally(() => clearTimeout(tmBusq));
-        if (!resBusqueda.ok) return '';
-
-        const dataBusqueda = await resBusqueda.json();
-        const resultados   = dataBusqueda?.query?.search;
-        if (!resultados?.length) return '';
-
-        const paginaId = resultados[0].pageid;
-
-        const urlExtracto = `https://es.wikipedia.org/w/api.php?action=query&pageids=${paginaId}&prop=extracts&exintro=true&exchars=1500&format=json&origin=*`;
-        const ctrlExtr    = new AbortController();
-        const tmExtr      = setTimeout(() => ctrlExtr.abort(), 6000);
-        const resExtracto = await fetch(urlExtracto, { signal: ctrlExtr.signal }).finally(() => clearTimeout(tmExtr));
-        if (!resExtracto.ok) return '';
-
-        const dataExtracto = await resExtracto.json();
-        const pagina       = dataExtracto?.query?.pages?.[paginaId];
-        if (!pagina?.extract) return '';
-
-        const textoLimpio = pagina.extract
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .substring(0, 1200);
-
-        console.log(`   📚 Wikipedia: "${resultados[0].title}" (${textoLimpio.length} chars)`);
-        return `\n📚 CONTEXTO WIKIPEDIA (usar como referencia factual, no copiar):\nArtículo: "${resultados[0].title}"\n${textoLimpio}\n`;
-
-    } catch (err) {
-        console.log(`   📚 Wikipedia: no disponible (${err.message})`);
-        return '';
-    }
+/* ── STATUS ── */
+async function verStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V31 ✅';
+    document.getElementById('sysFB').textContent  = d.facebook?.includes('✅') ? '✅' : '⚠️';
+    document.getElementById('sysTW').textContent  = d.twitter?.includes('✅')  ? '✅' : '⚠️';
+    document.getElementById('sysWM').textContent  = d.marca_de_agua?.includes('✅') ? '✅' : '⚠️';
+    document.getElementById('sysWM').className    = d.marca_de_agua?.includes('✅') ? 'badge badge-on' : 'badge badge-warn';
+    alert(`🏮 EL FAROL AL DÍA\n\nVersión: ${d.version}\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nWatermark: ${d.marca_de_agua}\nWikipedia: ${d.wikipedia || '✅ Activa'}\nSistema: ${d.sistema}`);
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
-// ══════════════════════════════════════════════════════════
-// FACEBOOK
-// ══════════════════════════════════════════════════════════
-async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
-    if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
-    try {
-        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const mensaje    = `🏮 ${titulo}\n\n${descripcion || ''}\n\nLee la noticia completa 👇\n${urlNoticia}\n\n#ElFarolAlDía #RepúblicaDominicana #NoticiaRD`;
-
-        const form = new URLSearchParams();
-        form.append('url',          urlImagen);
-        form.append('caption',      mensaje);
-        form.append('access_token', FB_PAGE_TOKEN);
-
-        const res  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { method: 'POST', body: form });
-        const data = await res.json();
-
-        if (data.error) {
-            const form2 = new URLSearchParams();
-            form2.append('message',      mensaje);
-            form2.append('link',         urlNoticia);
-            form2.append('access_token', FB_PAGE_TOKEN);
-            const res2  = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { method: 'POST', body: form2 });
-            const data2 = await res2.json();
-            if (data2.error) { console.warn(`   ⚠️ FB: ${data2.error.message}`); return false; }
-        }
-
-        console.log(`   📘 Facebook ✅`);
-        return true;
-    } catch (err) {
-        console.warn(`   ⚠️ Facebook: ${err.message}`);
-        return false;
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// TWITTER / X  — OAuth 1.0a
-// ══════════════════════════════════════════════════════════
-function generarOAuthHeader(method, url, params, consumerKey, consumerSecret, accessToken, tokenSecret) {
-    const oauthParams = {
-        oauth_consumer_key:     consumerKey,
-        oauth_nonce:            crypto.randomBytes(16).toString('hex'),
-        oauth_signature_method: 'HMAC-SHA1',
-        oauth_timestamp:        Math.floor(Date.now() / 1000).toString(),
-        oauth_token:            accessToken,
-        oauth_version:          '1.0'
-    };
-    const allParams    = { ...params, ...oauthParams };
-    const sortedParams = Object.keys(allParams).sort()
-        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(allParams[k])}`).join('&');
-    const baseString   = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(sortedParams)}`;
-    const signingKey   = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
-    const signature    = crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
-    oauthParams.oauth_signature = signature;
-    return 'OAuth ' + Object.keys(oauthParams).sort()
-        .map(k => `${encodeURIComponent(k)}="${encodeURIComponent(oauthParams[k])}"`)
-        .join(', ');
-}
-
-async function publicarEnTwitter(titulo, slug, descripcion) {
-    if (!TWITTER_API_KEY || !TWITTER_API_SECRET || !TWITTER_ACCESS_TOKEN || !TWITTER_ACCESS_SECRET) return false;
-    try {
-        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const textoBase  = `🏮 ${titulo}\n\n${urlNoticia}\n\n#ElFarolAlDía #RD`;
-        const tweet      = textoBase.length > 280 ? textoBase.substring(0, 277) + '...' : textoBase;
-        const tweetUrl   = 'https://api.twitter.com/2/tweets';
-        const authHeader = generarOAuthHeader('POST', tweetUrl, {}, TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET);
-        const res        = await fetch(tweetUrl, {
-            method: 'POST',
-            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: tweet })
-        });
-        const data = await res.json();
-        if (data.errors || data.error) { console.warn(`   ⚠️ Twitter: ${JSON.stringify(data.errors || data.error)}`); return false; }
-        console.log(`   🐦 Twitter ✅ ID: ${data.data?.id}`);
-        return true;
-    } catch (err) {
-        console.warn(`   ⚠️ Twitter: ${err.message}`);
-        return false;
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// 🤖 TELEGRAM BOT
-// ══════════════════════════════════════════════════════════
-
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
-let   TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
-
-async function publicarEnTelegram(titulo, slug, urlImagen, descripcion, seccion) {
-    if (!TELEGRAM_TOKEN) {
-        console.log('   📱 Telegram: sin token configurado');
-        return false;
-    }
-
-    if (!TELEGRAM_CHAT_ID) {
-        TELEGRAM_CHAT_ID = await obtenerChatIdTelegram();
-        if (!TELEGRAM_CHAT_ID) {
-            console.log('   📱 Telegram: sin Chat ID — escríbele algo al bot para activarlo');
-            return false;
-        }
-    }
-
-    try {
-        const urlNoticia = `${BASE_URL}/noticia/${slug}`;
-        const emoji = {
-            'Nacionales':      '🏛️',
-            'Deportes':        '⚽',
-            'Internacionales': '🌍',
-            'Economía':        '💰',
-            'Tecnología':      '💻',
-            'Espectáculos':    '🎬'
-        }[seccion] || '📰';
-
-        const mensaje = `${emoji} *${titulo}*\n\n${descripcion || ''}\n\n🔗 [Leer noticia completa](${urlNoticia})\n\n🏮 *El Farol al Día* · Último Minuto RD`;
-
-        if (urlImagen && urlImagen.startsWith('http')) {
-            try {
-                const resImg = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id:    TELEGRAM_CHAT_ID,
-                        photo:      urlImagen,
-                        caption:    mensaje,
-                        parse_mode: 'Markdown'
-                    })
-                });
-                const dataImg = await resImg.json();
-                if (dataImg.ok) {
-                    console.log(`   📱 Telegram ✅ (con imagen)`);
-                    return true;
-                }
-            } catch(e) { /* fallback a texto */ }
-        }
-
-        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id:                  TELEGRAM_CHAT_ID,
-                text:                     mensaje,
-                parse_mode:               'Markdown',
-                disable_web_page_preview: false
-            })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            console.log(`   📱 Telegram ✅ (texto)`);
-            return true;
-        }
-        console.warn(`   📱 Telegram ❌: ${data.description}`);
-        return false;
-    } catch(err) {
-        console.warn(`   📱 Telegram error: ${err.message}`);
-        return false;
-    }
-}
-
-async function obtenerChatIdTelegram() {
-    if (!TELEGRAM_TOKEN) return null;
-    try {
-        const res  = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=1&offset=-1`);
-        const data = await res.json();
-        if (data.ok && data.result?.length) {
-            const chatId = data.result[0]?.message?.chat?.id
-                        || data.result[0]?.channel_post?.chat?.id;
-            if (chatId) {
-                console.log(`   📱 Telegram Chat ID detectado: ${chatId}`);
-                TELEGRAM_CHAT_ID = chatId.toString();
-                return TELEGRAM_CHAT_ID;
-            }
-        }
-    } catch(e) { /* silencioso */ }
-    return null;
-}
-
-async function bienvenidaTelegram() {
-    if (!TELEGRAM_TOKEN) return;
-    await new Promise(r => setTimeout(r, 3000));
-    const chatId = await obtenerChatIdTelegram();
-    if (!chatId) return;
-
-    try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id:    chatId,
-                text:       `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`,
-                parse_mode: 'Markdown'
-            })
-        });
-        console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
-    } catch(e) { /* silencioso */ }
-}
-
-// ══════════════════════════════════════════════════════════
-// WATERMARK
-// ══════════════════════════════════════════════════════════
-
-async function aplicarMarcaDeAgua(urlImagen) {
-    try {
-        const response = await fetch(urlImagen);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const bufOrig   = Buffer.from(await response.arrayBuffer());
-        if (!fs.existsSync(WATERMARK_PATH)) { console.warn('   ⚠️ Watermark no encontrado'); return { url: urlImagen, procesada: false }; }
-        const meta      = await sharp(bufOrig).metadata();
-        const w         = meta.width  || 800;
-        const h         = meta.height || 500;
-        const wmAncho   = Math.min(Math.round(w * 0.28), 300);
-        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
-        const wmMeta    = await sharp(wmResized).metadata();
-        const wmAlto    = wmMeta.height || 60;
-        const margen    = Math.round(w * 0.02);
-        const bufFinal  = await sharp(bufOrig)
-            .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
-            .jpeg({ quality: 88 }).toBuffer();
-        const nombre    = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
-        fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
-        console.log(`   🏮 Watermark: ${nombre}`);
-        return { url: urlImagen, nombre, procesada: true };
-    } catch (err) {
-        console.warn(`   ⚠️ Watermark: ${err.message}`);
-        return { url: urlImagen, procesada: false };
-    }
-}
-
-app.get('/img/:nombre', async (req, res) => {
-    const ruta = path.join('/tmp', req.params.nombre);
-    if (fs.existsSync(ruta)) {
-        res.setHeader('Content-Type',  'image/jpeg');
-        res.setHeader('Cache-Control', 'public,max-age=604800');
-        return res.sendFile(ruta);
-    }
-    try {
-        const nombre = req.params.nombre;
-        const r = await pool.query(
-            `SELECT imagen_original FROM noticias WHERE imagen_nombre=$1 LIMIT 1`,
-            [nombre]
-        );
-        if (r.rows.length && r.rows[0].imagen_original) {
-            return res.redirect(302, r.rows[0].imagen_original);
-        }
-    } catch(e) { /* silencioso */ }
-    res.status(404).send('Imagen no disponible');
-});
-
-// ══════════════════════════════════════════════════════════
-// CONFIG IA
-// ══════════════════════════════════════════════════════════
-
-const CONFIG_IA_DEFAULT = {
-    enabled: true,
-    instruccion_principal: 'Eres un periodista profesional dominicano de alto nivel, con visión nacional e internacional. Escribes noticias verificadas, equilibradas y con impacto real. Cubres República Dominicana completa, el Caribe, Latinoamérica y el mundo. Cuando la noticia tiene conexión con Santo Domingo Este o RD, lo destacas con contexto local.',
-    tono: 'profesional',
-    extension: 'media',
-    enfasis: 'Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con el impacto en República Dominicana y el Caribe.',
-    evitar: 'Limitar el tema solo a Santo Domingo Este. Especulación sin fuentes. Titulares sensacionalistas. Repetir noticias ya publicadas. Copiar texto de Wikipedia.'
-};
-
-let CONFIG_IA = { ...CONFIG_IA_DEFAULT };
-
-async function cargarConfigIA() {
-    try {
-        const r = await pool.query(`SELECT valor FROM memoria_ia WHERE tipo='config_ia' AND valor IS NOT NULL ORDER BY ultima_vez DESC LIMIT 1`);
-        if (r.rows.length) {
-            const guardada = JSON.parse(r.rows[0].valor);
-            CONFIG_IA = { ...CONFIG_IA_DEFAULT, ...guardada };
-            console.log('✅ Config IA cargada desde BD');
-        } else {
-            CONFIG_IA = { ...CONFIG_IA_DEFAULT };
-            console.log('✅ Config IA usando valores por defecto');
-        }
-    } catch(e) {
-        CONFIG_IA = { ...CONFIG_IA_DEFAULT };
-        console.log('⚠️ Config IA: usando defecto (' + e.message + ')');
-    }
-    return CONFIG_IA;
-}
-
-async function guardarConfigIA(cfg) {
-    try {
-        const valor = JSON.stringify(cfg);
-        await pool.query(`
-            INSERT INTO memoria_ia(tipo, valor, categoria, exitos, fallos)
-            VALUES('config_ia', $1, 'sistema', 1, 0)
-            ON CONFLICT DO NOTHING
-        `, [valor]);
-        await pool.query(`
-            UPDATE memoria_ia SET valor=$1, ultima_vez=NOW()
-            WHERE tipo='config_ia' AND categoria='sistema'
-        `, [valor]);
-        return true;
-    } catch(e) {
-        console.error('❌ guardarConfigIA:', e.message);
-        return false;
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// GEMINI
-// ══════════════════════════════════════════════════════════
-
-const GS = { lastRequest: 0, resetTime: 0 };
-
-async function llamarGemini(prompt, reintentos = 3) {
-    for (let i = 0; i < reintentos; i++) {
-        try {
-            console.log(`   🤖 Gemini (intento ${i + 1})`);
-            const ahora = Date.now();
-            if (ahora < GS.resetTime) await new Promise(r => setTimeout(r, Math.min(GS.resetTime - ahora, 10000)));
-            const desde = Date.now() - GS.lastRequest;
-            if (desde < 3000) await new Promise(r => setTimeout(r, 3000 - desde));
-            GS.lastRequest = Date.now();
-
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature:     0.8,
-                            maxOutputTokens: 4000,
-                            stopSequences:   []
-                        }
-                    })
-                }
-            );
-
-            if (res.status === 429) {
-                GS.resetTime = Date.now() + Math.pow(2, i) * 5000;
-                await new Promise(r => setTimeout(r, GS.resetTime - Date.now()));
-                continue;
-            }
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data  = await res.json();
-            const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!texto) throw new Error('Respuesta vacía');
-            console.log(`   ✅ Gemini OK`);
-            return texto;
-        } catch (err) {
-            console.error(`   ❌ Intento ${i + 1}: ${err.message}`);
-            if (i < reintentos - 1) await new Promise(r => setTimeout(r, Math.pow(2, i) * 3000));
-        }
-    }
-    throw new Error('Gemini no respondió');
-}
-
-// ══════════════════════════════════════════════════════════
-// MAPEO DE IMÁGENES (continuación con Pexels, Wikipedia, Banco Local)
-// ══════════════════════════════════════════════════════════
-// [CÓDIGO DE MAPEO DE IMÁGENES — igual a V34 original: líneas ~650-1200]
-// Por brevedad, incluir solo referencias clave
-
-const MAPEO_IMAGENES = {
-    'donald trump':     ['trump president podium microphone', 'trump white house press conference', 'american president speech flag'],
-    'trump':            ['trump president podium microphone', 'american president official speech', 'white house press briefing'],
-    'Nacionales':       ['dominican republic government building', 'santo domingo city street life', 'caribbean capital urban scene'],
-    'Deportes':         ['dominican athlete sports competition', 'caribbean sports stadium crowd', 'latin american sports event'],
-};
-
-const BANCO_LOCAL = {
-    'politica-gobierno': [
-        'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800',
-        'https://images.pexels.com/photos/290595/pexels-photo-290595.jpeg?auto=compress&cs=tinysrgb&w=800',
-    ],
-    'economia-mercado': [
-        'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=800',
-        'https://images.pexels.com/photos/6772070/pexels-photo-6772070.jpeg?auto=compress&cs=tinysrgb&w=800',
-    ],
-};
-
-function imgLocal(sub, cat) {
-    const banco = BANCO_LOCAL[sub] || BANCO_LOCAL['politica-gobierno'] || [];
-    return banco[Math.floor(Math.random() * banco.length)] || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800';
-}
-
-async function obtenerImagen(titulo, categoria, subtemaLocal, queryIA) {
-    return imgLocal(subtemaLocal, categoria);
-}
-
-function generarAltSEO(titulo, categoria, altIA, subtema) {
-    const keywordsCat = {
-        'Nacionales':      'noticias República Dominicana',
-        'Deportes':        'deportes dominicanos',
-        'Internacionales': 'noticias internacionales impacto RD',
-        'Economía':        'economía República Dominicana',
-        'Tecnología':      'tecnología innovación RD',
-        'Espectáculos':    'cultura entretenimiento dominicano',
-    };
-    if (altIA && altIA.length > 15) return `${altIA} - El Farol al Día`;
-    return `${titulo.substring(0, 50)} - ${keywordsCat[categoria] || 'República Dominicana'} - El Farol al Día`;
-}
-
-const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-function metaTagsCompletos(n, url) {
-    const t   = esc(n.titulo), d = esc(n.seo_description || ''), k = esc(n.seo_keywords || '');
-    const img = esc(n.imagen), red = esc(n.redactor), sec = esc(n.seccion);
-    const fi  = new Date(n.fecha).toISOString(), ue = esc(url);
-    const wc  = (n.contenido || '').split(/\s+/).filter(w => w).length;
-
-    const keywordsSEO = [
-        n.seo_keywords || '',
-        'último minuto república dominicana',
-        'santo domingo este noticias',
-        'el farol al día'
-    ].filter(Boolean).join(', ');
-
-    const schema = {
-        "@context":         "https://schema.org",
-        "@type":            "NewsArticle",
-        "mainEntityOfPage": { "@type": "WebPage", "@id": url },
-        "headline":         n.titulo,
-        "description":      n.seo_description || '',
-        "keywords":         keywordsSEO,
-        "image": {
-            "@type":   "ImageObject",
-            "url":     n.imagen,
-            "caption": n.imagen_caption || n.titulo,
-            "width":   1200,
-            "height":  630
-        },
-        "datePublished":  fi,
-        "dateModified":   fi,
-        "author": {
-            "@type":    "Person",
-            "name":     "José Gregorio Mañan Santana",
-            "url":      `${BASE_URL}/nosotros`,
-            "jobTitle": "Director General"
-        },
-        "publisher": {
-            "@type": "NewsMediaOrganization",
-            "name":  "El Farol al Día",
-            "url":   BASE_URL,
-            "logo": {
-                "@type":  "ImageObject",
-                "url":    `${BASE_URL}/static/favicon.png`,
-                "width":  512,
-                "height": 512
-            }
-        },
-        "articleSection":      n.seccion,
-        "wordCount":           wc,
-        "inLanguage":          "es-DO"
-    };
-
-    return `<title>${t} | El Farol al Día</title>
-<meta name="description" content="${d}">
-<meta name="keywords" content="${esc(keywordsSEO)}">
-<meta name="author" content="José Gregorio Mañan Santana">
-<meta property="og:type" content="article">
-<meta property="og:title" content="${t}">
-<meta property="og:description" content="${d}">
-<meta property="og:image" content="${img}">
-<meta property="og:url" content="${ue}">
-<meta property="article:published_time" content="${fi}">
-<meta property="article:author" content="José Gregorio Mañan Santana">
-<meta property="article:section" content="${sec}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${t}">
-<meta name="twitter:description" content="${d}">
-<meta name="twitter:image" content="${img}">
-<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
-}
-
-// ══════════════════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════════════════
-
-function slugify(t) {
-    return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 80);
-}
-
-const REDACTORES = [
-    { nombre: 'Carlos Méndez',         esp: 'Nacionales' },
-    { nombre: 'Laura Santana',         esp: 'Deportes' },
-    { nombre: 'Roberto Peña',          esp: 'Internacionales' },
-    { nombre: 'Ana María Castillo',    esp: 'Economía' },
-    { nombre: 'José Miguel Fernández', esp: 'Tecnología' },
-    { nombre: 'Patricia Jiménez',      esp: 'Espectáculos' }
-];
-
-function redactor(cat) {
-    const match = REDACTORES.filter(r => r.esp === cat);
-    return match.length ? match[Math.floor(Math.random() * match.length)].nombre : 'Redacción EFD';
-}
-
-// ══════════════════════════════════════════════════════════
-// BASE DE DATOS — INICIALIZAR
-// ══════════════════════════════════════════════════════════
-
-async function inicializarBase() {
-    const client = await pool.connect();
-    try {
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS noticias(
-                id SERIAL PRIMARY KEY,
-                titulo VARCHAR(255) NOT NULL,
-                slug VARCHAR(255) UNIQUE,
-                seccion VARCHAR(100),
-                contenido TEXT,
-                seo_description VARCHAR(160),
-                seo_keywords VARCHAR(255),
-                redactor VARCHAR(100),
-                imagen TEXT,
-                imagen_alt VARCHAR(255),
-                imagen_caption TEXT,
-                imagen_nombre VARCHAR(100),
-                imagen_fuente VARCHAR(50),
-                vistas INTEGER DEFAULT 0,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                estado VARCHAR(50) DEFAULT 'publicada'
-            )
-        `);
-
-        for (const col of ['imagen_alt', 'imagen_caption', 'imagen_nombre', 'imagen_fuente', 'imagen_original']) {
-            await client.query(`
-                DO $$ BEGIN
-                    IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}')
-                    THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT;
-                    END IF;
-                END $$;
-            `).catch(() => {});
-        }
-
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS rss_procesados(
-                id SERIAL PRIMARY KEY,
-                item_guid VARCHAR(500) UNIQUE,
-                fuente VARCHAR(100),
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS memoria_ia(
-                id SERIAL PRIMARY KEY,
-                tipo VARCHAR(50) NOT NULL,
-                valor TEXT NOT NULL,
-                categoria VARCHAR(100),
-                exitos INTEGER DEFAULT 0,
-                fallos INTEGER DEFAULT 0,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        await client.query(`
-            CREATE INDEX IF NOT EXISTS idx_memoria_tipo
-            ON memoria_ia(tipo, categoria)
-        `).catch(() => {});
-
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS comentarios(
-                id SERIAL PRIMARY KEY,
-                noticia_id INTEGER NOT NULL REFERENCES noticias(id) ON DELETE CASCADE,
-                nombre VARCHAR(80) NOT NULL,
-                texto TEXT NOT NULL,
-                aprobado BOOLEAN DEFAULT true,
-                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        await client.query(`
-            CREATE INDEX IF NOT EXISTS idx_comentarios_noticia
-            ON comentarios(noticia_id, aprobado, fecha DESC)
-        `).catch(() => {});
-
-        console.log('✅ BD lista');
-    } catch (e) {
-        console.error('❌ BD:', e.message);
-    } finally {
-        client.release();
-    }
-
-    await cargarConfigIA();
-}
-
-// ══════════════════════════════════════════════════════════
-// MEMORIA IA
-// ══════════════════════════════════════════════════════════
-
-async function registrarQueryPexels(query, categoria, exito) {
-    try {
-        await pool.query(`
-            INSERT INTO memoria_ia(tipo, valor, categoria, exitos, fallos)
-            VALUES('pexels_query', $1, $2, $3, $4)
-            ON CONFLICT DO NOTHING
-        `, [query, categoria, exito ? 1 : 0, exito ? 0 : 1]);
-    } catch(e) { /* silencioso */ }
-}
-
-async function obtenerMejoresQueries(categoria) {
-    try {
-        const r = await pool.query(`
-            SELECT valor FROM memoria_ia
-            WHERE tipo = 'pexels_query' AND categoria = $1 AND exitos > 0
-            ORDER BY exitos DESC LIMIT 5
-        `, [categoria]);
-        return r.rows.map(r => r.valor);
-    } catch(e) { return []; }
-}
-
-async function registrarError(tipo, descripcion, categoria) {
-    try {
-        await pool.query(`
-            INSERT INTO memoria_ia(tipo, valor, categoria, fallos)
-            VALUES('error', $1, $2, 1)
-            ON CONFLICT DO NOTHING
-        `, [descripcion.substring(0, 200), categoria]);
-    } catch(e) { /* silencioso */ }
-}
-
-async function construirMemoria(categoria) {
-    let memoria = '';
-    try {
-        const recientes = await pool.query(`
-            SELECT titulo FROM noticias
-            WHERE estado = 'publicada'
-            ORDER BY fecha DESC LIMIT 15
-        `);
-        if (recientes.rows.length) {
-            memoria += `\n⛔ YA PUBLICADAS — NO repetir:\n`;
-            memoria += recientes.rows.map((x, i) => `${i+1}. ${x.titulo}`).join('\n');
-            memoria += '\n';
-        }
-    } catch(e) { /* silencioso */ }
-    return memoria;
-}
-
-// ══════════════════════════════════════════════════════════
-// 🎯 GENERAR NOTICIA — CON MONETIZACIÓN INTEGRADA
-// ══════════════════════════════════════════════════════════
-
-async function generarNoticia(categoria, comunicadoExterno = null) {
-    try {
-        if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
-
-        const memoria = await construirMemoria(categoria);
-        const contextoWiki = await buscarContextoWikipedia(categoria, categoria);
-
-        const temaParaWiki = comunicadoExterno
-            ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria
-            : categoria;
-
-        const fuenteContenido = comunicadoExterno
-            ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana.`;
-
-        const prompt = `${CONFIG_IA.instruccion_principal}
-
-ROL: Eres el editor jefe con 20 años de experiencia. Escribes como Listín Diario: datos concretos, fuentes verificables.
-
-PENSAMIENTO CRÍTICO: Antes de redactar, responde:
-1. ¿Quién se ve afectado en República Dominicana?
-2. ¿Qué dato concreto (cifra, fecha, institución) hace creíble?
-3. ¿Cuál es el ángulo local para Santo Domingo Este?
-4. ¿Qué fuente oficial lo respalda?
-5. ¿Qué cambia para el lector dominicano?
-
-${memoria}
-${contextoWiki}
-${fuenteContenido}
-
-CATEGORÍA: ${categoria}
-TONO: ${CONFIG_IA.tono}
-EXTENSIÓN: 400-500 palabras en 5 párrafos
-EVITAR: ${CONFIG_IA.evitar}
-ÉNFASIS: ${CONFIG_IA.enfasis}
-
-ESTRUCTURA:
-- Párrafo 1 — LEAD (5W): QUÉ + QUIÉN + CUÁNDO + DÓNDE + POR QUÉ
-- Párrafo 2 — CONTEXTO: Datos concretos (cifras, fechas, porcentajes)
-- Párrafo 3 — FUENTES: Citar institución (Presidencia, ministerio, banco, policía)
-- Párrafo 4 — IMPACTO: ¿Qué cambia para gente en RD? (precios, servicios, seguridad)
-- Párrafo 5 — CIERRE: Próximos pasos o contexto regional
-
-SEO GOOGLE NEWS 2025:
-TÍTULO: 60-70 caracteres, hecho+actor+contexto RD, sin fechas
-DESCRIPCIÓN: 150-160 caracteres exactos, qué+quién+dónde+impacto
-KEYWORDS: 5 palabras (1ª siempre: "república dominicana")
-QUERY_IMAGEN: 3-5 palabras inglés, escena periodística
-ALT_IMAGEN: 15-20 palabras español SEO
-SUBTEMA_LOCAL: tipo de categoría para imagen
-
-RESPONDE EXACTAMENTE:
-TITULO: [aquí]
-DESCRIPCION: [aquí]
-PALABRAS: [5 keywords]
-QUERY_IMAGEN: [3-5 palabras inglés]
-ALT_IMAGEN: [15-20 palabras español]
-SUBTEMA_LOCAL: [categoría imagen]
-CONTENIDO:
-[5 párrafos]`;
-
-        console.log(`\n📰 Generando: ${categoria}${comunicadoExterno ? ' (RSS)' : ''}`);
-        const texto = await llamarGemini(prompt);
-        const textoLimpio = texto.replace(/^\s*[*#]+\s*/gm, '');
-
-        let titulo = '', desc = '', pals = '', qi = '', ai = '', sub = '', contenido = '';
-        let enContenido = false;
-        const bloques = [];
-
-        for (const linea of textoLimpio.split('\n')) {
-            const t = linea.trim();
-            if      (t.startsWith('TITULO:'))        titulo = t.replace('TITULO:', '').trim();
-            else if (t.startsWith('DESCRIPCION:'))   desc   = t.replace('DESCRIPCION:', '').trim();
-            else if (t.startsWith('PALABRAS:'))      pals   = t.replace('PALABRAS:', '').trim();
-            else if (t.startsWith('QUERY_IMAGEN:'))  qi     = t.replace('QUERY_IMAGEN:', '').trim();
-            else if (t.startsWith('ALT_IMAGEN:'))    ai     = t.replace('ALT_IMAGEN:', '').trim();
-            else if (t.startsWith('SUBTEMA_LOCAL:')) sub    = t.replace('SUBTEMA_LOCAL:', '').trim();
-            else if (t.startsWith('CONTENIDO:'))     enContenido = true;
-            else if (enContenido && t.length > 0)    bloques.push(t);
-        }
-
-        contenido = bloques.join('\n\n');
-        titulo    = titulo.replace(/[*_#`"]/g, '').trim();
-        desc      = desc.replace(/[*_#`]/g, '').trim();
-
-        // ════════════════════════════════════════════════════════════════
-        // 🏮 INYECCIÓN MONETIZACIÓN CPC — ÁNGULO DEL DINERO
-        // ════════════════════════════════════════════════════════════════
-        console.log(`   💰 Aplicando estrategia CPC (Ángulo del Dinero)...`);
-        const noticiaSinMonetizar = { 
-            titulo, 
-            descripcion: desc, 
-            keywords: pals, 
-            contenido, 
-            categoria 
-        };
-        const noticiaMonetizada = monetizarNoticia(noticiaSinMonetizar);
-        titulo = noticiaMonetizada.titulo;
-        desc = noticiaMonetizada.descripcion;
-        pals = noticiaMonetizada.keywords;
-        contenido = noticiaMonetizada.contenido;
-        console.log(`   ✅ Monetización aplicada — CPC: Bancos, Seguros, Fintech`);
-        // ════════════════════════════════════════════════════════════════
-
-        if (!titulo) throw new Error('Gemini no devolvió TITULO');
-        if (!contenido || contenido.length < 300) throw new Error('Contenido insuficiente');
-
-        console.log(`   📝 ${titulo}`);
-
-        const urlOrig = await obtenerImagen(titulo, categoria, sub, qi);
-        const imgResult  = await aplicarMarcaDeAgua(urlOrig);
-        const urlFinal   = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
-        const altFinal   = generarAltSEO(titulo, categoria, ai, sub);
-
-        const sl    = slugify(titulo);
-        const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
-        const slFin  = existe.rows.length ? `${sl}-${Date.now()}` : sl;
-
-        await pool.query(
-            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-            [
-                titulo.substring(0, 255), slFin, categoria,
-                contenido.substring(0, 10000),
-                desc.substring(0, 160),
-                (pals || categoria).substring(0, 255),
-                redactor(categoria),
-                urlFinal,
-                altFinal.substring(0, 255),
-                `Fotografía periodística: ${titulo}`,
-                imgResult.nombre || 'efd.jpg',
-                'el-farol',
-                urlOrig,
-                'publicada'
-            ]
-        );
-
-        console.log(`\n✅ /noticia/${slFin}`);
-        invalidarCache();
-
-        if (qi) registrarQueryPexels(qi, categoria, true);
-
-        Promise.allSettled([
-            publicarEnFacebook(titulo, slFin, urlFinal, desc),
-            publicarEnTwitter(titulo, slFin, desc),
-            publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
-        ]).then(results => {
-            const fb = results[0].value ? '📘✅' : '📘❌';
-            const tw = results[1].value ? '🐦✅' : '🐦❌';
-            const tg = results[2].value ? '📱✅' : '📱❌';
-            console.log(`   Redes: ${fb} ${tw} ${tg}`);
-        });
-
-        return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada en web + redes + monetizado' };
-
-    } catch (error) {
-        console.error('❌', error.message);
-        await registrarError('generacion', error.message, categoria);
-        return { success: false, error: error.message };
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// RSS
-// ══════════════════════════════════════════════════════════
-
-const FUENTES_RSS = [
-    { url: 'https://presidencia.gob.do/feed',           categoria: 'Nacionales',      nombre: 'Presidencia RD' },
-    { url: 'https://policia.gob.do/feed',               categoria: 'Nacionales',      nombre: 'Policía Nacional' },
-];
-
+/* ── RSS ── */
 async function procesarRSS() {
-    if (!CONFIG_IA.enabled) return;
-    console.log('\n📡 Procesando RSS portales gobierno...');
-    let procesadas = 0;
-
-    for (const fuente of FUENTES_RSS) {
-        try {
-            const feed = await rssParser.parseURL(fuente.url).catch(() => null);
-            if (!feed?.items?.length) continue;
-
-            for (const item of feed.items.slice(0, 3)) {
-                const guid = item.guid || item.link || item.title;
-                if (!guid) continue;
-
-                const yaExiste = await pool.query('SELECT id FROM rss_procesados WHERE item_guid=$1', [guid.substring(0, 500)]);
-                if (yaExiste.rows.length) continue;
-
-                const comunicado = [
-                    item.title         ? `TÍTULO: ${item.title}`                              : '',
-                    item.contentSnippet? `RESUMEN: ${item.contentSnippet}`                    : '',
-                    item.content       ? `CONTENIDO: ${item.content?.substring(0, 2000)}`     : '',
-                    `FUENTE: ${fuente.nombre}`
-                ].filter(Boolean).join('\n');
-
-                const resultado = await generarNoticia(fuente.categoria, comunicado);
-                if (resultado.success) {
-                    await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2)', [guid.substring(0, 500), fuente.nombre]);
-                    procesadas++;
-                    await new Promise(r => setTimeout(r, 5000));
-                }
-                break;
-            }
-        } catch (err) {
-            console.warn(`   ⚠️ ${fuente.nombre}: ${err.message}`);
-        }
-    }
-    console.log(`\n📡 RSS: ${procesadas} noticias nuevas`);
+  try {
+    const r = await fetch(`${API}/api/procesar-rss`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    showMsg('msgRSS', d.success ? '✅ RSS iniciado — revisando 10 portales gobierno' : '❌ ' + (d.error || 'Error'), d.success);
+  } catch(e) { showMsg('msgRSS', '❌ ' + e.message, false); }
 }
 
-// ══════════════════════════════════════════════════════════
-// CRON
-// ══════════════════════════════════════════════════════════
+/* ── IA STATUS ── */
+function actualizarIA() {
+  const on  = document.getElementById('iaToggle').checked;
+  const s   = document.getElementById('iaStatus');
+  const row = document.getElementById('iaRow');
+  s.textContent = on ? '● ACTIVADO' : '● DESACTIVADO';
+  s.className   = 'ia-status ' + (on ? 'on' : 'off');
+  row.className = 'ia-row ' + (on ? 'on' : '');
+}
+document.getElementById('iaToggle').addEventListener('change', () => { actualizarIA(); guardarInstrucciones(); });
 
-const CATS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
-
-cron.schedule('*/14 * * * *', async () => {
-    try {
-        await fetch(`http://localhost:${PORT}/health`);
-    } catch(e) { /* silencioso */ }
-});
-
-cron.schedule('0 */4 * * *', async () => {
-    if (!CONFIG_IA.enabled) return;
-    await generarNoticia(CATS[Math.floor(Math.random() * CATS.length)]);
-});
-
-cron.schedule('0 1,7,13,19 * * *', async () => {
-    await procesarRSS();
-});
-
-// ══════════════════════════════════════════════════════════
-// CACHÉ
-// ══════════════════════════════════════════════════════════
-
-let _cacheNoticias = null;
-let _cacheFecha    = 0;
-const CACHE_TTL    = 60 * 1000;
-
-function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
-
-// ══════════════════════════════════════════════════════════
-// RUTAS
-// ══════════════════════════════════════════════════════════
-
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
-
-app.get('/api/noticias', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public,max-age=60');
-    res.setHeader('Content-Type', 'application/json');
-
-    try {
-        if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL) {
-            return res.json({ success: true, noticias: _cacheNoticias, cached: true });
-        }
-        const r = await pool.query(
-            `SELECT id,titulo,slug,seccion,imagen,imagen_alt,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`,
-            ['publicada']
-        );
-        _cacheNoticias = r.rows;
-        _cacheFecha    = Date.now();
-        res.json({ success: true, noticias: r.rows });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.post('/api/generar-noticia', authMiddleware, async (req, res) => {
-    const { categoria } = req.body;
-    if (!categoria) return res.status(400).json({ error: 'Falta categoría' });
-    const r = await generarNoticia(categoria);
-    res.status(r.success ? 200 : 500).json(r);
-});
-
-app.post('/api/procesar-rss', authMiddleware, async (req, res) => {
-    const { pin } = req.body;
-    if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
-    procesarRSS();
-    res.json({ success: true, mensaje: 'RSS iniciado' });
-});
-
-app.get('/api/estadisticas', async (req, res) => {
-    try {
-        const r = await pool.query('SELECT COUNT(*) as c, SUM(vistas) as v FROM noticias WHERE estado=$1', ['publicada']);
-        res.json({ success: true, totalNoticias: parseInt(r.rows[0].c), totalVistas: parseInt(r.rows[0].v) || 0 });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.post('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
-    const { pin, imagen } = req.body;
-    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-    const id = parseInt(req.params.id);
-    if (!id || !imagen) return res.status(400).json({ success: false, error: 'Faltan datos' });
-    try {
-        await pool.query('UPDATE noticias SET imagen=$1 WHERE id=$2', [imagen, id]);
-        invalidarCache();
-        res.json({ success: true });
-    } catch(e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.post('/api/eliminar/:id', authMiddleware, async (req, res) => {
-    const { pin } = req.body;
-    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-    const id = parseInt(req.params.id);
-    if (!id) return res.status(400).json({ success: false, error: 'ID inválido' });
-    try {
-        await pool.query('DELETE FROM noticias WHERE id=$1', [id]);
-        invalidarCache();
-        res.json({ success: true });
-    } catch(e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-app.get('/api/admin/config', authMiddleware, (req, res) => {
-    if (req.query.pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
-    res.json(CONFIG_IA);
-});
-
-app.post('/api/admin/config', authMiddleware, express.json(), async (req, res) => {
-    const { pin, enabled, instruccion_principal, tono, extension, evitar, enfasis } = req.body;
-    if (pin !== '311') return res.status(403).json({ error: 'Acceso denegado' });
-    if (enabled !== undefined)  CONFIG_IA.enabled = enabled;
-    if (instruccion_principal)  CONFIG_IA.instruccion_principal = instruccion_principal;
-    if (tono)                   CONFIG_IA.tono = tono;
-    if (extension)              CONFIG_IA.extension = extension;
-    if (evitar)                 CONFIG_IA.evitar = evitar;
-    if (enfasis)                CONFIG_IA.enfasis = enfasis;
-    const ok = await guardarConfigIA(CONFIG_IA);
-    res.json({ success: ok });
-});
-
-app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
-app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
-app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
-app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
-
-app.get('/api/telegram/status', authMiddleware, async (req, res) => {
-    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const chatId = TELEGRAM_CHAT_ID || await obtenerChatIdTelegram();
-    res.json({
-        token_activo:  !!TELEGRAM_TOKEN,
-        chat_id:       chatId || 'No detectado',
-        instruccion:   chatId
-            ? '✅ Bot listo para recibir noticias'
-            : '⚠️ Escríbele al bot primero'
-    });
-});
-
-app.post('/api/telegram/test', authMiddleware, async (req, res) => {
-    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const ok = await publicarEnTelegram(
-        '🏮 El Farol al Día — Prueba',
-        '',
-        'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
-        'Bot activo y funcionando.',
-        'Nacionales'
-    );
-    res.json({
-        success: ok,
-        mensaje: ok ? '✅ Mensaje enviado' : '❌ Error'
-    });
-});
-
-app.get('/status', async (req, res) => {
-    try {
-        const r   = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
-        res.json({
-            status: 'OK', version: '34.0 MONETIZADO',
-            noticias:       parseInt(r.rows[0].count),
-            facebook:       FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
-            twitter:        TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
-            pexels_api:     PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
-            wikipedia:      '✅ Activa',
-            marca_de_agua:  fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta',
-            ia_activa:      CONFIG_IA.enabled,
-            monetizacion:   '✅ CPC Alto — Ángulo del Dinero'
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-
-// ══════════════════════════════════════════════════════════
-// ARRANQUE
-// ══════════════════════════════════════════════════════════
-
-async function iniciar() {
-    await inicializarBase();
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`
-╔════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.0 MONETIZADO                        ║
-╠════════════════════════════════════════════════════════════════╣
-║  💰 CPC ALTO: Bancos, Seguros, Fintech                        ║
-║  🎯 Ángulo del Dinero inyectado en cada noticia               ║
-║  ✅ CERO ruptura del código V34 original                      ║
-║  📊 Google AdSense: pub-5280872495839888                      ║
-║                                                                ║
-║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📱 Telegram              ║
-║  📚 Wikipedia · 🏮 Watermark · 🧠 Memoria IA                 ║
-║  💬 Comentarios · 🔍 SEO E-E-A-T                             ║
-╚════════════════════════════════════════════════════════════════╝`);
-    });
-    setTimeout(regenerarWatermarksLostidos, 5000);
-    setTimeout(bienvenidaTelegram, 8000);
+/* ── MSG ── */
+function showMsg(id, txt, ok) {
+  const el = document.getElementById(id);
+  el.textContent = txt;
+  el.className   = 'msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'msg'; }, 6000);
 }
 
-// Stub para regenerar watermarks
-async function regenerarWatermarksLostidos() {
-    console.log('🏮 Watermarks listos');
+/* ── LISTA DE NOTICIAS ── */
+let todasNoticias = [], idAEliminar = null;
+
+async function cargarListaNoticias() {
+  try {
+    const r = await fetch(`${API}/api/noticias`);
+    if (!r.ok) return;
+    const d = await r.json();
+    todasNoticias = d.noticias || [];
+    renderizarLista(todasNoticias);
+  } catch(e) {
+    document.getElementById('noticiasLista').innerHTML =
+      '<div style="text-align:center;padding:20px;color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error cargando noticias</div>';
+  }
 }
 
-iniciar();
-module.exports = app;
+function renderizarLista(noticias) {
+  const lista = document.getElementById('noticiasLista');
+  const count = document.getElementById('noticiasCount');
+  count.textContent = `${noticias.length} NOTICIAS PUBLICADAS`;
+  if (!noticias.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:11px">Sin noticias aún</div>';
+    return;
+  }
+  lista.innerHTML = noticias.map(n => {
+    const fecha  = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+    const imgSrc = n.imagen?.startsWith('http') ? n.imagen
+      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
+    const titulo = n.titulo.length > 46 ? n.titulo.substring(0, 46) + '…' : n.titulo;
+    return `
+    <div class="noticia-row" data-titulo="${n.titulo.toLowerCase()}" data-id="${n.id}">
+      <img class="nr-thumb" src="${imgSrc}" alt=""
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'"
+        loading="lazy">
+      <div class="nr-info">
+        <div class="nr-titulo">${titulo}</div>
+        <div class="nr-meta">📅 ${fecha} · 👁 ${n.vistas||0}</div>
+      </div>
+      <span class="nr-seccion">${n.seccion}</span>
+      <button class="btn-edit-img" title="Cambiar imagen"
+        onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g,"\\'")}','${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button>
+      <button class="btn-del" title="Eliminar noticia"
+        onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+function filtrarLista() {
+  const q = document.getElementById('searchNoticias').value.toLowerCase().trim();
+  if (!q) { renderizarLista(todasNoticias); return; }
+  renderizarLista(todasNoticias.filter(n =>
+    n.titulo.toLowerCase().includes(q) || n.seccion.toLowerCase().includes(q)
+  ));
+}
+
+/* ── ELIMINAR ── */
+function pedirEliminar(id, titulo) {
+  idAEliminar = id;
+  document.getElementById('modalDelTxt').textContent =
+    `¿Eliminar "${titulo}"? Esta acción es permanente e irreversible.`;
+  document.getElementById('modalDel').classList.add('open');
+}
+
+function cerrarModal() {
+  idAEliminar = null;
+  document.getElementById('modalDel').classList.remove('open');
+}
+
+async function confirmarEliminar() {
+  if (!idAEliminar) return;
+  const btn = document.querySelector('.btn-confirm-del');
+  btn.textContent = 'Eliminando...'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    cerrarModal();
+    if (d.success !== false) {
+      todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
+      renderizarLista(todasNoticias);
+      cargarEstadisticas();
+      showMsg('msgGenerar', '🗑️ Noticia eliminada correctamente', true);
+    } else {
+      showMsg('msgGenerar', '❌ Error: ' + (d.error||''), false);
+    }
+  } catch(e) {
+    cerrarModal();
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  } finally {
+    btn.textContent = '🗑️ ELIMINAR'; btn.disabled = false;
+  }
+}
+
+/* ── EDITAR IMAGEN ── */
+let idAEditar = null;
+
+function pedirEditarImagen(id, titulo, imgActual) {
+  idAEditar = id;
+  document.getElementById('modalEditTitulo').textContent = titulo;
+  document.getElementById('modalImgUrl').value = '';
+  document.getElementById('modalImgPreview').src = imgActual ||
+    'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600';
+  document.getElementById('msgEditImg').className = 'msg';
+  document.getElementById('modalEditImg').classList.add('open');
+}
+
+function previewImagen(url) {
+  if (url.startsWith('http'))
+    document.getElementById('modalImgPreview').src = url;
+}
+
+function cerrarModalEdit() {
+  idAEditar = null;
+  document.getElementById('modalEditImg').classList.remove('open');
+}
+
+async function guardarImagen() {
+  if (!idAEditar) return;
+  const url = document.getElementById('modalImgUrl').value.trim();
+  if (!url || !url.startsWith('http')) {
+    document.getElementById('msgEditImg').textContent = '❌ Pega una URL válida que empiece con https://';
+    document.getElementById('msgEditImg').className = 'msg err'; return;
+  }
+  const btn = document.querySelector('.btn-confirm-edit');
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN, imagen: url })
+    });
+    const d = await r.json();
+    if (d.success) {
+      const row = document.querySelector(`.noticia-row[data-id="${idAEditar}"]`);
+      if (row) row.querySelector('.nr-thumb').src = url;
+      const n = todasNoticias.find(x => x.id === idAEditar);
+      if (n) n.imagen = url;
+      cerrarModalEdit();
+      showMsg('msgGenerar', '✅ Imagen actualizada correctamente', true);
+    } else {
+      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error');
+      document.getElementById('msgEditImg').className = 'msg err';
+    }
+  } catch(e) {
+    document.getElementById('msgEditImg').textContent = '❌ ' + e.message;
+    document.getElementById('msgEditImg').className = 'msg err';
+  } finally {
+    btn.textContent = '✅ GUARDAR IMAGEN'; btn.disabled = false;
+  }
+}
+
+/* Cerrar modales al click fuera */
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
+});
+
+/* ── CALIDAD SEO ── */
+async function cargarCalidadSEO() {
+  const lista = document.getElementById('seoLista');
+  try {
+    const r = await fetch(`${API}/api/noticias`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const noticias = (d.noticias || []).slice(0, 5);
+
+    if (!noticias.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:16px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">Sin noticias aún</div>';
+      return;
+    }
+
+    lista.innerHTML = noticias.map(n => {
+      const tLen   = n.titulo.length;
+      const tScore = tLen >= 50 && tLen <= 75 ? 100 : tLen >= 40 && tLen <= 90 ? 70 : 40;
+      const tColor = tScore >= 80 ? '#22C55E' : tScore >= 60 ? '#ffc107' : '#EF4444';
+
+      const hasRD  = /dominicana|dominicano|rd\b|santo domingo|santiago/i.test(n.titulo) ? 100 : 40;
+      const rdColor= hasRD >= 80 ? '#22C55E' : '#EF4444';
+
+      const hasImg = n.imagen?.startsWith('http') ? 100 : 0;
+      const imgColor = hasImg ? '#22C55E' : '#EF4444';
+
+      const titulo = n.titulo.length > 32 ? n.titulo.substring(0, 32) + '…' : n.titulo;
+
+      return `
+      <div class="seo-item">
+        <div class="seo-titulo" title="${n.titulo}">${titulo}</div>
+        <div class="seo-bars">
+          <div class="seo-bar-row">
+            <span class="seo-bar-label">TÍTULO</span>
+            <div class="seo-bar-track"><div class="seo-bar-fill" style="width:${tScore}%;background:${tColor}"></div></div>
+            <span class="seo-bar-val" style="color:${tColor}">${tLen}c</span>
+          </div>
+          <div class="seo-bar-row">
+            <span class="seo-bar-label">GEO RD</span>
+            <div class="seo-bar-track"><div class="seo-bar-fill" style="width:${hasRD}%;background:${rdColor}"></div></div>
+            <span class="seo-bar-val" style="color:${rdColor}">${hasRD === 100 ? '✅' : '❌'}</span>
+          </div>
+          <div class="seo-bar-row">
+            <span class="seo-bar-label">IMAGEN</span>
+            <div class="seo-bar-track"><div class="seo-bar-fill" style="width:${hasImg}%;background:${imgColor}"></div></div>
+            <span class="seo-bar-val" style="color:${imgColor}">${hasImg ? '✅' : '❌'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Error</div>';
+  }
+}
+
+/* ── COMENTARIOS ADMIN ── */
+async function cargarComentariosAdmin() {
+  const lista = document.getElementById('adminComLista');
+  try {
+    const r = await fetch(`${API}/api/admin/comentarios?pin=${PIN}`);
+    const d = await r.json();
+    if (!d.comentarios?.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:20px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">Sin comentarios aún</div>';
+      return;
+    }
+    lista.innerHTML = d.comentarios.map(c => {
+      const fecha = new Date(c.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+      const texto = c.texto.length > 60 ? c.texto.substring(0, 60) + '…' : c.texto;
+      return `
+      <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--fuego)">${c.nombre}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">${fecha}</span>
+            <button onclick="eliminarComentario(${c.id})" style="background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4">🗑️</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--crema2);line-height:1.4">${texto}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px">📰 ${(c.noticia_titulo||'').substring(0,35)}…</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Error</div>';
+  }
+}
+
+async function eliminarComentario(id) {
+  if (!confirm('¿Eliminar este comentario?')) return;
+  try {
+    const r = await fetch(`${API}/api/comentarios/eliminar/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    if (d.success) { cargarComentariosAdmin(); showMsg('msgCom', '🗑️ Comentario eliminado', true); }
+    else showMsg('msgCom', '❌ Error al eliminar', false);
+  } catch(e) { showMsg('msgCom', '❌ ' + e.message, false); }
+}
+
+/* ── COACH DE REDACCIÓN ── */
+let coachDiasActual = 7;
+
+async function cargarCoach(dias = coachDiasActual) {
+  coachDiasActual = dias;
+  // Resaltar botón activo
+  document.querySelectorAll('.btn-periodo').forEach(b => {
+    const activo = parseInt(b.dataset.dias) === dias;
+    b.style.background = activo ? 'rgba(255,85,0,.14)' : 'transparent';
+    b.style.color       = activo ? 'var(--fuego)'       : 'var(--muted)';
+  });
+
+  const lista = document.getElementById('coachLista');
+  try {
+    const r = await fetch(`${API}/api/coach?dias=${dias}&pin=${PIN}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.success) { lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Sin datos</div>'; return; }
+
+    const cats = d.categorias ? Object.entries(d.categorias) : [];
+
+    lista.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--fuego)">${d.total_noticias||0}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">NOTICIAS</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:12px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--azul)">${d.total_vistas||0}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">VISTAS</div>
+        </div>
+      </div>
+      ${cats.map(([nombre, data]) => {
+        const pct   = data.rendimiento || 0;
+        const color = pct >= 100 ? 'var(--verde)' : pct >= 60 ? '#ffc107' : 'var(--rojo)';
+        const emoji = pct >= 100 ? '🔥' : pct >= 60 ? '📈' : '📉';
+        return `
+        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:8px 10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--crema)">${emoji} ${nombre}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${color}">${pct}%</span>
+          </div>
+          <div style="background:var(--borde);border-radius:2px;height:4px">
+            <div style="height:4px;border-radius:2px;background:${color};width:${Math.min(pct,100)}%;transition:width .4s"></div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px">${data.total||0} noticias · ${data.vistas_promedio||0} vistas prom.</div>
+          ${data.mejor ? `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📰 ${data.mejor.titulo?.substring(0,40)||''}</div>` : ''}
+        </div>`;
+      }).join('')}
+      ${d.errores?.length ? `
+      <div style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:7px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--rojo);margin-bottom:6px">⚠️ ERRORES RECIENTES</div>
+        ${d.errores.map(e => `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:3px">• ${(e.valor||e.mensaje||'').substring(0,45)}</div>`).join('')}
+      </div>` : ''}`;
+  } catch(e) {
+    lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ ' + e.message + '</div>';
+  }
+}
+
+/* ── TELEGRAM ── */
+async function cargarStatusTelegram() {
+  const div = document.getElementById('telegramStatus');
+  try {
+    const r = await fetch(`${API}/api/telegram/status?pin=${PIN}`);
+    const d = await r.json();
+    div.innerHTML = `
+      <div class="sys-row">
+        <span class="sys-key">TOKEN</span>
+        <span class="badge ${d.token_activo ? 'badge-on' : 'badge-warn'}">${d.token_activo ? '✅ ACTIVO' : '❌ FALTA'}</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">CHAT ID</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${d.chat_id.includes('No') ? '#ffc107' : 'var(--verde)'}">${d.chat_id}</span>
+      </div>
+      <div class="sys-row">
+        <span class="sys-key">ESTADO</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2)">${d.instruccion}</span>
+      </div>`;
+  } catch(e) {
+    div.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error conectando</div>';
+  }
+}
+
+async function probarTelegram() {
+  try {
+    const r = await fetch(`${API}/api/telegram/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    showMsg('msgTelegram', d.mensaje, d.success);
+    if (d.success) cargarStatusTelegram();
+  } catch(e) { showMsg('msgTelegram', '❌ ' + e.message, false); }
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', () => {
+  cargarConfig();
+  cargarEstadisticas();
+  cargarListaNoticias();
+  cargarMemoria();
+  cargarCalidadSEO();
+  cargarComentariosAdmin();
+  cargarCoach();
+  cargarStatusTelegram();
+  setInterval(cargarEstadisticas, 30000);
+  setInterval(cargarMemoria, 60000);
+  setInterval(cargarCalidadSEO, 60000);
+  setInterval(cargarComentariosAdmin, 60000);
+  setInterval(cargarCoach, 120000);
+  setInterval(cargarStatusTelegram, 60000);
+});
+</script>
+</body>
+</html>
