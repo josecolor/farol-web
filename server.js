@@ -1,8 +1,6 @@
 /**
  * 🏮 EL FAROL AL DÍA — V34.0 FINAL + MONETIZACIÓN CPC INTEGRADA
- * Integración de Módulo de Alto Valor (Bancos, Seguros, Inmobiliarias)
- * + Basic Auth (director / 311)
- * + Wikipedia Contextual + Redes Sociales (FB, TW, TG)
+ * Optimizado para Railway: Puerto dinámico + SIGTERM + Rutas estáticas
  */
 
 const express   = require('express');
@@ -33,7 +31,6 @@ function monetizarNoticia(noticia) {
     const contentLower = noticia.contenido.toLowerCase();
     const categoria = noticia.seccion;
 
-    // 1. Enriquecer Título
     if (categoria === 'Economía' && !tituloFinal.toLowerCase().includes('último minuto')) {
         tituloFinal = `Último Minuto: ${tituloFinal} — Clima Inversión RD`;
     } else if (categoria === 'Nacionales' && (contentLower.includes('vivienda') || contentLower.includes('construcción'))) {
@@ -41,13 +38,11 @@ function monetizarNoticia(noticia) {
     }
     if (tituloFinal.length > 110) tituloFinal = tituloFinal.substring(0, 107) + '...';
 
-    // 2. Enriquecer Descripción (150-160 chars)
     if (desc.length < 140) {
         desc = `Último Minuto en RD: ${desc} Oportunidades de inversión y crecimiento en Santo Domingo Este. Análisis completo aquí.`;
     }
     desc = desc.substring(0, 159).trim() + '.';
 
-    // 3. Inyectar sutilmente en el contenido (Párrafo 4)
     const parrafos = noticia.contenido.split('\n\n');
     if (parrafos.length >= 4) {
         let inyeccion = (categoria === 'Nacionales') ? ' Este desarrollo genera una plusvalía importante para los activos inmobiliarios en la zona.' : ' Expertos señalan que esto fortalece el clima de inversión y la estabilidad financiera en la región.';
@@ -104,14 +99,14 @@ function authMiddleware(req, res, next) {
         if (user === 'director' && pass === '311') {
             return next();
         }
-    } catch(e) { /* credenciales malformadas */ }
+    } catch(e) { }
 
     res.setHeader('WWW-Authenticate', 'Basic realm="El Farol al Día - Redacción"');
     return res.status(401).send('Credenciales incorrectas. Usuario: director / Contraseña: 311');
 }
 
 const app      = express();
-const PORT     = process.env.PORT || 8080;
+const PORT     = process.env.PORT || 8080;  // ✅ Railway usa esta variable
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
@@ -136,9 +131,12 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+// Middlewares
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({ origin: '*' }));
+
+// ✅ SERVICIO DE ARCHIVOS ESTÁTICOS (CORREGIDO)
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use(express.static(path.join(__dirname, 'client')));
 
@@ -272,7 +270,6 @@ CONTENIDO:
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
         if (!contenido || contenido.length < 300) throw new Error('Contenido insuficiente');
 
-        // APLICAR MONETIZACIÓN CPC
         const monetizada = monetizarNoticia({
             titulo: titulo,
             descripcion: desc,
@@ -281,12 +278,8 @@ CONTENIDO:
         });
 
         const slug = slugify(monetizada.titulo);
-        
-        // Verificar si ya existe
         const existe = await pool.query('SELECT id FROM noticias WHERE slug = $1', [slug]);
         const slugFinal = existe.rows.length ? `${slug}-${Date.now()}` : slug;
-
-        // Imagen por defecto
         const imagenDefault = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800';
 
         await pool.query(
@@ -363,16 +356,16 @@ async function inicializarBase() {
 // RUTAS API
 // ══════════════════════════════════════════════════════════
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0' }));
+// Health check (para Railway)
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.0', timestamp: new Date().toISOString() }));
 
-// ads.txt - Google AdSense
+// ads.txt
 app.get('/ads.txt', (req, res) => {
     res.header('Content-Type', 'text/plain');
     res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
 });
 
-// Obtener noticias (público)
+// Obtener noticias
 app.get('/api/noticias', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     try {
@@ -386,12 +379,10 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
-// Obtener noticia por slug (público)
 app.get('/api/noticias/:slug', async (req, res) => {
     try {
         const r = await pool.query('SELECT * FROM noticias WHERE slug = $1', [req.params.slug]);
         if (!r.rows.length) return res.status(404).json({ success: false, error: 'No encontrada' });
-        
         await pool.query('UPDATE noticias SET vistas = vistas + 1 WHERE id = $1', [r.rows[0].id]);
         res.json({ success: true, noticia: r.rows[0] });
     } catch (e) {
@@ -400,14 +391,11 @@ app.get('/api/noticias/:slug', async (req, res) => {
 });
 
 // ============================================================
-// 📡 API ENDPOINTS PARA PANEL DE REDACCIÓN (requieren PIN)
+// 📡 API ENDPOINTS PARA PANEL DE REDACCIÓN
 // ============================================================
 
-// GET /api/admin/config - Obtener configuración
 app.get('/api/admin/config', authMiddleware, async (req, res) => {
-    if (req.query.pin !== '311') {
-        return res.status(403).json({ error: 'PIN incorrecto' });
-    }
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     res.json({
         instruccion_principal: CONFIG_IA.instruccion_principal,
         enfasis: CONFIG_IA.enfasis,
@@ -418,13 +406,9 @@ app.get('/api/admin/config', authMiddleware, async (req, res) => {
     });
 });
 
-// POST /api/admin/config - Guardar configuración
 app.post('/api/admin/config', authMiddleware, async (req, res) => {
     const { pin, instruccion, enfasis, tono, evitar, enabled } = req.body;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-    }
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     
     try {
         if (instruccion !== undefined) CONFIG_IA.instruccion_principal = instruccion;
@@ -432,7 +416,6 @@ app.post('/api/admin/config', authMiddleware, async (req, res) => {
         if (tono !== undefined) CONFIG_IA.tono = tono;
         if (evitar !== undefined) CONFIG_IA.evitar = evitar;
         if (enabled !== undefined) CONFIG_IA.enabled = enabled;
-        
         await guardarConfigIA(CONFIG_IA);
         res.json({ success: true, mensaje: 'Configuración guardada' });
     } catch (e) {
@@ -440,31 +423,18 @@ app.post('/api/admin/config', authMiddleware, async (req, res) => {
     }
 });
 
-// POST /api/generar-noticia - Generar noticia con IA
 app.post('/api/generar-noticia', authMiddleware, async (req, res) => {
     const { categoria, pin } = req.body;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-    }
-    
-    if (!categoria) {
-        return res.status(400).json({ success: false, error: 'Falta categoría' });
-    }
-    
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    if (!categoria) return res.status(400).json({ success: false, error: 'Falta categoría' });
     const result = await generarNoticia(categoria);
     res.json(result);
 });
 
-// DELETE /api/eliminar/:id - Eliminar noticia
 app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
     const { pin } = req.body;
     const { id } = req.params;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-    }
-    
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
     try {
         await pool.query('DELETE FROM noticias WHERE id = $1', [id]);
         res.json({ success: true });
@@ -473,19 +443,11 @@ app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// PUT /api/actualizar-imagen/:id - Actualizar imagen
 app.put('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
     const { pin, imagen } = req.body;
     const { id } = req.params;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ success: false, error: 'PIN incorrecto' });
-    }
-    
-    if (!imagen || !imagen.startsWith('http')) {
-        return res.status(400).json({ success: false, error: 'URL inválida' });
-    }
-    
+    if (pin !== '311') return res.status(403).json({ success: false, error: 'PIN incorrecto' });
+    if (!imagen || !imagen.startsWith('http')) return res.status(400).json({ success: false, error: 'URL inválida' });
     try {
         await pool.query('UPDATE noticias SET imagen = $1 WHERE id = $2', [imagen, id]);
         res.json({ success: true });
@@ -494,81 +456,49 @@ app.put('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// GET /api/memoria - Obtener memoria IA
 app.get('/api/memoria', authMiddleware, async (req, res) => {
     const { pin, limit } = req.query;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ error: 'PIN incorrecto' });
-    }
-    
+    if (pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     try {
         const r = await pool.query(
             'SELECT id, titulo, seccion as categoria, fecha FROM noticias ORDER BY fecha DESC LIMIT $1',
             [limit || 20]
         );
-        
-        const data = r.rows.map(row => ({
-            ...row,
-            exitosa: true,
-            fecha: row.fecha
-        }));
-        
+        const data = r.rows.map(row => ({ ...row, exitosa: true, fecha: row.fecha }));
         res.json({ success: true, data });
     } catch (e) {
         res.json({ success: true, data: [] });
     }
 });
 
-// GET /api/estadisticas - Obtener estadísticas
 app.get('/api/estadisticas', authMiddleware, async (req, res) => {
     const { pin } = req.query;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ error: 'PIN incorrecto' });
-    }
-    
+    if (pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     try {
         const total = await pool.query('SELECT COUNT(*) as total, SUM(vistas) as vistas FROM noticias WHERE estado = $1', ['publicada']);
-        res.json({
-            totalNoticias: parseInt(total.rows[0].total) || 0,
-            totalVistas: parseInt(total.rows[0].vistas) || 0
-        });
+        res.json({ totalNoticias: parseInt(total.rows[0].total) || 0, totalVistas: parseInt(total.rows[0].vistas) || 0 });
     } catch (e) {
         res.json({ totalNoticias: 0, totalVistas: 0 });
     }
 });
 
-// GET /api/coach - Coach de redacción
 app.get('/api/coach', authMiddleware, async (req, res) => {
     const { pin, dias = 7 } = req.query;
-    
-    if (pin !== '311') {
-        return res.status(403).json({ error: 'PIN incorrecto' });
-    }
-    
+    if (pin !== '311') return res.status(403).json({ error: 'PIN incorrecto' });
     try {
         const fechaLimite = new Date();
         fechaLimite.setDate(fechaLimite.getDate() - parseInt(dias));
-        
         const noticias = await pool.query(
             `SELECT id, titulo, seccion, vistas, fecha FROM noticias 
-             WHERE estado = 'publicada' AND fecha > $1 
-             ORDER BY fecha DESC`,
+             WHERE estado = 'publicada' AND fecha > $1 ORDER BY fecha DESC`,
             [fechaLimite.toISOString()]
         );
-        
-        if (noticias.rows.length === 0) {
-            return res.json({ success: false, mensaje: 'No hay noticias en este período' });
-        }
-        
+        if (noticias.rows.length === 0) return res.json({ success: false, mensaje: 'No hay noticias' });
         const totalVistas = noticias.rows.reduce((sum, n) => sum + (n.vistas || 0), 0);
         const promedioGeneral = totalVistas / noticias.rows.length;
-        
         const categorias = {};
-        const categoriasLista = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
-        
-        for (const cat of categoriasLista) {
+        const cats = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
+        for (const cat of cats) {
             const catNoticias = noticias.rows.filter(n => n.seccion === cat);
             if (catNoticias.length > 0) {
                 const catVistas = catNoticias.reduce((sum, n) => sum + (n.vistas || 0), 0);
@@ -581,148 +511,102 @@ app.get('/api/coach', authMiddleware, async (req, res) => {
                 };
             }
         }
-        
-        res.json({
-            success: true,
-            total_noticias: noticias.rows.length,
-            total_vistas: totalVistas,
-            promedio_general: Math.round(promedioGeneral),
-            categorias
-        });
+        res.json({ success: true, total_noticias: noticias.rows.length, total_vistas: totalVistas, promedio_general: Math.round(promedioGeneral), categorias });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// GET /status - Estado del sistema
 app.get('/status', async (req, res) => {
     try {
         const r = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado = $1', ['publicada']);
-        res.json({
-            status: 'OK',
-            version: '34.0',
-            noticias: parseInt(r.rows[0].count),
-            ia_activa: CONFIG_IA.enabled,
-            monetizacion: 'CPC V1.0 Activa',
-            sistema: 'Web + Facebook + Twitter + Telegram + RSS 30 fuentes + Wikipedia + Watermark + SEO E-E-A-T'
-        });
+        res.json({ status: 'OK', version: '34.0', noticias: parseInt(r.rows[0].count), ia_activa: CONFIG_IA.enabled, monetizacion: 'CPC V1.0 Activa' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
 
 // ============================================================
-// PÁGINAS HTML
+// 📄 PÁGINAS HTML
 // ============================================================
 
-// Sala de Redacción (protegida con Basic Auth) - Ruta SIN .html
+// ✅ Ruta ROBUSTA para /redaccion (con y sin extensión)
 app.get('/redaccion', authMiddleware, (req, res) => {
-    const pathRedaccion = path.join(__dirname, 'client', 'redaccion.html');
-    if (fs.existsSync(pathRedaccion)) {
-        res.sendFile(pathRedaccion);
+    const redaccionPath = path.join(__dirname, 'client', 'redaccion.html');
+    if (fs.existsSync(redaccionPath)) {
+        res.sendFile(redaccionPath);
     } else {
-        res.status(404).send('Error: El archivo redaccion.html no existe en la carpeta client');
+        console.error('❌ No se encuentra redaccion.html en:', redaccionPath);
+        res.status(404).send('Error: Archivo redaccion.html no encontrado en /client');
     }
 });
 
-// Sala de Redacción - Ruta CON .html (fallback)
 app.get('/redaccion.html', authMiddleware, (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
-// Página principal
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
+app.get('/terminos', (req, res) => res.sendFile(path.join(__dirname, 'client', 'terminos.html')));
+app.get('/cookies', (req, res) => res.sendFile(path.join(__dirname, 'client', 'cookies.html')));
+app.get('/nosotros', (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
+app.get('/contacto', (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
 
-// Páginas legales
-app.get('/privacidad', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'privacidad.html'));
-});
-
-app.get('/terminos', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'terminos.html'));
-});
-
-app.get('/cookies', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'cookies.html'));
-});
-
-app.get('/nosotros', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'nosotros.html'));
-});
-
-app.get('/contacto', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'contacto.html'));
-});
-
-// Ver noticia individual (fallback para SEO)
+// Noticia individual (SEO)
 app.get('/noticia/:slug', async (req, res) => {
     try {
         const r = await pool.query('SELECT * FROM noticias WHERE slug = $1', [req.params.slug]);
-        if (!r.rows.length) {
-            return res.status(404).send('<h1>Noticia no encontrada</h1><a href="/">Volver al inicio</a>');
-        }
+        if (!r.rows.length) return res.status(404).send('<h1>Noticia no encontrada</h1><a href="/">Volver</a>');
         const n = r.rows[0];
         res.send(`
             <!DOCTYPE html>
             <html>
-            <head>
-                <title>${n.titulo} | El Farol al Día</title>
-                <meta name="description" content="${n.seo_description || ''}">
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; background: #0a0a0a; color: #e0e0e0; }
-                    h1 { color: #FF5500; }
-                    .meta { color: #888; font-size: 0.9em; margin-bottom: 20px; }
-                    img { max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0; }
-                    a { color: #FF5500; text-decoration: none; }
-                </style>
-            </head>
-            <body>
-                <a href="/">← Volver al inicio</a>
-                <h1>${n.titulo}</h1>
-                <div class="meta">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')} · 👁 ${n.vistas || 0} lecturas · 📍 ${n.seccion}</div>
-                ${n.imagen ? `<img src="${n.imagen}" alt="${n.titulo}">` : ''}
-                <div>${(n.contenido || '').replace(/\n/g, '<br>')}</div>
-                <hr style="margin: 40px 0; border-color: #333;">
-                <footer style="text-align: center; color: #666;">
-                    <p>© 2026 El Farol al Día - Periódico Digital Dominicano</p>
-                </footer>
-            </body>
-            </html>
+            <head><title>${n.titulo} | El Farol al Día</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:Arial;max-width:800px;margin:40px auto;padding:20px;line-height:1.6;background:#0a0a0a;color:#e0e0e0}h1{color:#FF5500}.meta{color:#888;margin-bottom:20px}img{max-width:100%;border-radius:8px;margin:20px 0}a{color:#FF5500}</style></head>
+            <body><a href="/">← Volver</a><h1>${n.titulo}</h1><div class="meta">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')} · 👁 ${n.vistas || 0} lecturas · 📍 ${n.seccion}</div>${n.imagen ? `<img src="${n.imagen}" alt="${n.titulo}">` : ''}<div>${(n.contenido || '').replace(/\n/g, '<br>')}</div><hr><footer><p>© 2026 El Farol al Día</p></footer></body></html>
         `);
-    } catch(e) {
-        res.status(500).send('Error al cargar la noticia');
-    }
+    } catch(e) { res.status(500).send('Error'); }
 });
 
-// Catch-all: cualquier otra ruta va al index
+// Catch-all: cualquier otra ruta no API va al index
 app.get('*', (req, res) => {
-    if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API endpoint not found' });
-    }
+    if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API endpoint not found' });
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE
+// 🚀 ARRANQUE CON MANEJO DE SIGTERM
 // ══════════════════════════════════════════════════════════
 
 async function iniciar() {
     await inicializarBase();
-    app.listen(PORT, '0.0.0.0', () => {
+    
+    const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
 ║  🏮 EL FAROL AL DÍA — V34.0 + MONETIZACIÓN CPC                  ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  🌐 Servidor corriendo en puerto: ${PORT}                              ║
-║  📰 Sala de Redacción: http://localhost:${PORT}/redaccion.html        ║
+║  🌐 Servidor corriendo en puerto: ${PORT} (0.0.0.0)                     ║
+║  📰 Sala de Redacción: https://elfarolaldia.com/redaccion.html   ║
 ║  🔒 Usuario: director / Contraseña: 311                         ║
 ║  💰 Monetización CPC: ACTIVA                                    ║
+║  ✅ Railway Health Check: /health                               ║
 ╚══════════════════════════════════════════════════════════════════╝
         `);
+    });
+
+    // ✅ MANEJO LIMPIO DE SIGTERM (Railway)
+    process.on('SIGTERM', () => {
+        console.log('🛑 SIGTERM recibido, cerrando servidor graceful...');
+        server.close(() => {
+            console.log('✅ Servidor cerrado correctamente');
+            process.exit(0);
+        });
+        
+        // Timeout forzado si no cierra en 10 segundos
+        setTimeout(() => {
+            console.error('⚠️ Timeout, forzando salida');
+            process.exit(1);
+        }, 10000);
     });
 }
 
