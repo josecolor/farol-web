@@ -549,7 +549,7 @@ function renderizarLista(noticias) {
       <img class="nr-thumb" src="${n.imagen || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'}" 
            onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
       <div class="nr-info">
-        <div class="nr-titulo">${n.titulo?.substring(0, 50) || 'Sin título'}${n.titulo?.length > 50 ? '…' : ''}</div>
+        <div class="nr-titulo">${(n.titulo || 'Sin título').substring(0, 50)}${(n.titulo || '').length > 50 ? '…' : ''}</div>
         <div class="nr-meta">📅 ${new Date(n.fecha).toLocaleDateString()} · 👁 ${n.vistas || 0}</div>
       </div>
       <span class="nr-seccion">${n.seccion || 'General'}</span>
@@ -681,7 +681,7 @@ async function cargarMemoria() {
     lista.innerHTML = d.data.slice(0, 15).map(m => `
       <div class="mem-row">
         <span class="mem-tipo ${m.exitosa ? 'exito' : 'error'}">${m.exitosa ? '✓' : '✗'}</span>
-        <div class="mem-valor">${m.titulo?.substring(0, 35) || 'Sin título'}</div>
+        <div class="mem-valor">${(m.titulo || 'Sin título').substring(0, 35)}</div>
       </div>
     `).join('');
   } catch(e) {
