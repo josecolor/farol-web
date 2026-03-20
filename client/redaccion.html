@@ -9,19 +9,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --fuego:  #FF5500;
-  --fuego2: #FF7A00;
-  --negro:  #080808;
-  --tinta:  #0E0E12;
-  --papel:  #141418;
-  --borde:  #1E1E26;
-  --crema:  #EDE8DF;
-  --crema2: #A89F94;
-  --muted:  #4E4E58;
-  --verde:  #22C55E;
-  --rojo:   #EF4444;
-  --azul:   #3B82F6;
-  --glow:   rgba(255,85,0,.35);
+  --fuego: #FF5500;
+  --fuego2: #FF7A00;
+  --negro: #080808;
+  --tinta: #0E0E12;
+  --papel: #141418;
+  --borde: #1E1E26;
+  --crema: #EDE8DF;
+  --crema2: #A89F94;
+  --muted: #4E4E58;
+  --verde: #22C55E;
+  --rojo: #EF4444;
+  --azul: #3B82F6;
+  --glow: rgba(255,85,0,.35);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
@@ -43,33 +43,29 @@ header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:
 .btn-portal{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 16px;border-radius:6px;transition:all .2s}
 .btn-portal:hover{border-color:rgba(255,85,0,.4);color:var(--fuego)}
 
-/* TICKER MONETIZADO */
+/* TICKER */
 .ticker{background:var(--fuego);height:48px;display:flex;align-items:center;overflow:hidden;position:relative}
 .ticker::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 10px,rgba(0,0,0,.08) 10px,rgba(0,0,0,.08) 11px);pointer-events:none}
 .ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0;position:relative;z-index:1}
 .ticker-scroll{flex:1;overflow:hidden;position:relative;z-index:1}
 .ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 35s linear infinite;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.9)}
 @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.ticker-monetizado{color:#00FF00;font-weight:bold;text-shadow:0 0 8px rgba(0,255,0,.5)}
-.ticker-adsense{color:#FFD700;font-weight:bold;text-shadow:0 0 8px rgba(255,215,0,.5)}
+.ticker-monetizado{color:#00FF00;font-weight:bold}
 
 /* LAYOUT */
 .container{max-width:1280px;margin:0 auto;padding:32px 28px 60px;position:relative;z-index:1}
 .layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
 
 /* CARD */
-.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .2s}
-.card:hover{border-color:rgba(255,85,0,.12)}
-.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);display:flex;align-items:center;justify-content:space-between}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px)}
+.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between}
 .card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);display:flex;align-items:center;gap:10px}
 .card-body{padding:22px}
 
 /* IA SWITCH */
-.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px;transition:border-color .3s}
-.ia-row.on{border-color:rgba(34,197,94,.25)}
+.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px}
 .ia-left{display:flex;align-items:center;gap:14px}
-.ia-lamp{font-size:28px;transition:filter .3s}
-.ia-row.on .ia-lamp{filter:drop-shadow(0 0 8px rgba(34,197,94,.5))}
+.ia-lamp{font-size:28px}
 .ia-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--crema)}
 .ia-status{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:3px}
 .ia-status.on{color:var(--verde)}
@@ -79,37 +75,33 @@ header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:
 .slider{position:absolute;cursor:pointer;inset:0;background:#222;border-radius:30px;transition:.3s;border:1px solid rgba(255,255,255,.08)}
 .slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.3s}
 input:checked+.slider{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4)}
-input:checked+.slider:before{transform:translateX(26px);background:var(--verde);box-shadow:0 0 8px var(--verde)}
+input:checked+.slider:before{transform:translateX(26px);background:var(--verde)}
 
 /* MONETIZACIÓN CARD */
 .card-monetizado{border-color:rgba(0,255,0,.3) !important;background:linear-gradient(135deg,rgba(0,50,30,.4) 0%,rgba(24,24,24,1) 70%) !important}
-.card-monetizado .card-header{border-bottom-color:rgba(0,255,0,.15) !important}
 .card-monetizado .card-header h2{color:#00FF00 !important}
 
 /* CAPS */
 .cap-list{display:flex;flex-direction:column;gap:7px}
 .cap-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
-.cap-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);box-shadow:0 0 5px var(--verde);flex-shrink:0}
+.cap-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);flex-shrink:0}
 
 /* FORM */
 .fgroup{margin-bottom:18px}
 .fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
-input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s,box-shadow .2s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
-input::placeholder,textarea::placeholder{color:var(--muted);font-style:italic}
-select option{background:#0e0e12}
-textarea{resize:vertical;min-height:90px;line-height:1.65}
+input,select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego)}
+textarea{resize:vertical;min-height:90px}
 
 /* CATEGORÍAS */
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid var(--borde);background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid var(--borde);background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
 .cat-tile .ce{font-size:20px;display:block;margin-bottom:5px}
-.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema);background:rgba(255,85,0,.06)}
+.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema)}
 .cat-tile.sel{border-color:var(--fuego);background:rgba(255,85,0,.14);color:var(--fuego)}
 
 /* BOTÓN PUBLICAR */
-.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego) 0%,var(--fuego2) 100%);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;box-shadow:0 6px 24px var(--glow);position:relative;overflow:hidden}
-.btn-publish::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;box-shadow:0 6px 24px var(--glow)}
 .btn-publish:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,85,0,.5)}
 .bp-icon{font-size:22px}
 .bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
@@ -119,348 +111,294 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
 
 /* BOTONES */
 .btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;width:100%;margin-bottom:10px}
-.btn-orange{background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;box-shadow:0 4px 16px var(--glow)}
-.btn-orange:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--glow)}
+.btn-orange{background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff}
+.btn-orange:hover{transform:translateY(-1px)}
 .btn-green{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.25)}
-.btn-green:hover{background:rgba(34,197,94,.22)}
 .btn-ghost{background:transparent;color:var(--crema2);border:1px solid var(--borde)}
 .btn-ghost:hover{border-color:rgba(255,85,0,.3);color:var(--fuego)}
-.btn-blue{background:rgba(59,130,246,.12);color:var(--azul);border:1px solid rgba(59,130,246,.25)}
-.btn-blue:hover{background:rgba(59,130,246,.22)}
 
 /* MSG */
-.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none;line-height:1.5}
+.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none}
 .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
 .msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--rojo);display:block}
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;position:relative;overflow:hidden;text-align:center}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fuego)}
+.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;text-align:center}
+.stat-card::before{content:'';display:block;height:2px;background:var(--fuego);margin-bottom:12px}
 .stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego);line-height:1}
-.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:4px}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px}
 
 /* SYS INFO */
-.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
-.sys-row:last-child{border-bottom:none}
-.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.sys-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
 .sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
 .badge{padding:2px 9px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace}
 .badge-on{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.2)}
-.badge-warn{background:rgba(255,193,7,.12);color:#ffc107;border:1px solid rgba(255,193,7,.2)}
 
 /* LISTA NOTICIAS */
-.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:4px}
+.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto}
 .noticias-list::-webkit-scrollbar{width:3px}
-.noticias-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
-.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px;transition:border-color .2s}
-.noticia-row:hover{border-color:rgba(255,85,0,.2)}
-.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
-.nr-info{flex:1;min-width:0}
-.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:1px}
+.noticias-list::-webkit-scrollbar-thumb{background:var(--borde)}
+.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px}
+.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0}
+.nr-info{flex:1}
+.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px}
 .nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:2px 8px;border-radius:3px;flex-shrink:0}
-.btn-del{background:rgba(239,68,68,.12);color:var(--rojo);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
+.btn-del{background:rgba(239,68,68,.12);color:var(--rojo);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px}
 .btn-del:hover{background:rgba(239,68,68,.25)}
-.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego);border:1px solid rgba(255,85,0,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
-.btn-edit-img:hover{background:rgba(255,85,0,.22)}
-.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px;transition:border-color .2s}
-.search-noticias:focus{outline:none;border-color:var(--fuego)}
-.search-noticias::placeholder{color:var(--muted);font-style:italic}
-.noticias-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px}
+.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego);border:1px solid rgba(255,85,0,.2);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px}
+.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);border-radius:7px;margin-bottom:12px}
+.noticias-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px}
 
 /* MEMORIA IA */
 .memoria-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
-.memoria-list::-webkit-scrollbar{width:3px}
-.memoria-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
 .mem-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.04);border-radius:7px;padding:8px 10px}
-.mem-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:3px;flex-shrink:0}
-.mem-tipo.query{background:rgba(59,130,246,.15);color:var(--azul);border:1px solid rgba(59,130,246,.2)}
-.mem-tipo.error{background:rgba(239,68,68,.15);color:var(--rojo);border:1px solid rgba(239,68,68,.2)}
+.mem-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px}
+.mem-tipo.exito{background:rgba(34,197,94,.15);color:var(--verde)}
+.mem-tipo.error{background:rgba(239,68,68,.15);color:var(--rojo)}
 .mem-valor{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mem-tasa{font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0}
-.mem-tasa.alta{color:var(--verde)}
-.mem-tasa.media{color:#ffc107}
-.mem-tasa.baja{color:var(--rojo)}
-.mem-empty{text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.mem-empty{text-align:center;padding:24px;color:var(--muted)}
 
 /* MODALES */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
-.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.7);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
-@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center}
 .modal-icon{font-size:40px;margin-bottom:14px}
-.modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--rojo);margin-bottom:10px}
-.modal p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--rojo);margin-bottom:10px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:24px}
 .modal-btns{display:flex;gap:12px;justify-content:center}
-.btn-cancel{background:transparent;color:var(--crema2);border:1px solid var(--borde);border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
-.btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--crema)}
-.btn-confirm-del{background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
-.btn-confirm-del:hover{background:#C0392B;transform:translateY(-1px)}
+.btn-cancel{background:transparent;color:var(--crema2);border:1px solid var(--borde);border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;cursor:pointer}
+.btn-confirm-del{background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;cursor:pointer}
 .modal-edit{max-width:480px}
 .modal-edit h3{color:var(--fuego)}
-.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid var(--borde);background:var(--borde);display:block}
-.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;transition:border-color .2s;margin-bottom:14px}
-.modal-input:focus{outline:none;border-color:var(--fuego)}
-.modal-input::placeholder{color:var(--muted);font-style:italic}
-.btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
-.btn-confirm-edit:hover{background:var(--fuego2);transform:translateY(-1px)}
-
-/* SEO QUALITY */
-.seo-item{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px;margin-bottom:6px}
-.seo-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
-.seo-bars{display:flex;flex-direction:column;gap:4px}
-.seo-bar-row{display:flex;align-items:center;gap:8px}
-.seo-bar-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
-.seo-bar-track{flex:1;height:4px;background:var(--borde);border-radius:2px;overflow:hidden}
-.seo-bar-fill{height:100%;border-radius:2px;transition:width .4s}
-.seo-bar-val{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);width:28px;text-align:right;flex-shrink:0}
+.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0}
+.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);border-radius:7px;margin-bottom:14px}
+.btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;cursor:pointer}
 
 @media(max-width:900px){.layout{grid-template-columns:1fr}}
-@media(max-width:600px){.container{padding:16px}.cat-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-flame">🏮</div>
-      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
-    </a>
-    <div class="header-right">
-      <span class="header-clock" id="reloj">00:00:00</span>
-      <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);padding:5px 12px;border-radius:20px">
-        <span style="font-size:14px">🤖</span>
-        <div style="line-height:1.2">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted)">DESARROLLADO POR</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2)">CLAUDE <span style="color:var(--fuego)">+</span> DEEPSEEK</div>
-        </div>
-      </div>
-      <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
-      <a href="/" class="btn-portal">🌐 VER PORTAL</a>
-    </div>
-  </div>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-flame">🏮</div>
+      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
+    </a>
+    <div class="header-right">
+      <span class="header-clock" id="reloj">00:00:00</span>
+      <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
+      <a href="/" class="btn-portal">🌐 VER PORTAL</a>
+    </div>
+  </div>
 </header>
 
-<!-- TICKER MONETIZADO -->
 <div class="ticker">
-  <div class="ticker-tag">🏮 REDACCIÓN</div>
-  <div class="ticker-scroll">
-    <div class="ticker-inner">
-      <span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · Pirámide Invertida · SEO Google News 2025</span>
-      <span>//</span><span>Wikipedia + Memoria IA + 30 Fuentes RSS · Cobertura RD · SDE · Los Mina · Mundo</span>
-      <span class="ticker-adsense">//</span><span class="ticker-adsense">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · APROBACIÓN EN PROCESO 🚀</span>
-      <span class="ticker-monetizado">//</span><span class="ticker-monetizado">💸 MONETIZACIÓN CPC V1.0 ACTIVA: Plusvalía · Inversión · Banco Central · Fintech · Estabilidad Financiera</span>
-    </div>
-  </div>
+  <div class="ticker-tag">🏮 REDACCIÓN</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner">
+      <span>El Farol al Día · Periódico Digital Dominicano</span>
+      <span>//</span><span>Gemini 2.5 Flash · E-E-A-T · SEO Google News</span>
+      <span class="ticker-monetizado">//</span><span class="ticker-monetizado">💸 MONETIZACIÓN CPC V1.0 ACTIVA</span>
+    </div>
+  </div>
 </div>
 
 <div class="container">
-  <div class="layout">
+  <div class="layout">
 
-    <!-- COLUMNA IZQUIERDA -->
-    <div>
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
 
-      <!-- MONETIZACIÓN CPC CARD -->
-      <div class="card card-monetizado">
-        <div class="card-header"><h2>💸 MONETIZACIÓN CPC V1.0</h2></div>
-        <div class="card-body">
-          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px">
-              <span style="font-size:14px">✅</span>
-              <div style="flex:1">
-                <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00;letter-spacing:1px">PALABRAS MÁGICAS CPC</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:2px">Plusvalía · Inversión · Clima de Inversión</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px">
-              <span style="font-size:14px">💰</span>
-              <div style="flex:1">
-                <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00;letter-spacing:1px">VALOR PROMEDIO</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:2px">RD$50-200 USD por clic</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- MONETIZACIÓN CPC -->
+      <div class="card card-monetizado">
+        <div class="card-header"><h2>💸 MONETIZACIÓN CPC V1.0</h2></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="background:rgba(0,255,0,.08);border:1px solid rgba(0,255,0,.25);border-radius:6px;padding:8px 10px">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:#00FF00">PALABRAS MÁGICAS CPC</div>
+              <div style="font-size:9px;color:var(--crema2)">Plusvalía · Inversión · Banco Central · Fintech</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <!-- CONTROL IA -->
-      <div class="card">
-        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
-        <div class="card-body">
-          <div class="ia-row" id="iaRow">
-            <div class="ia-left">
-              <span class="ia-lamp">🏮</span>
-              <div>
-                <div class="ia-name">GEMINI 2.5 FLASH</div>
-                <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
-              </div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="iaToggle">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="cap-list">
-            <div class="cap-item"><div class="cap-dot"></div> Pensamiento crítico periodístico — 5W antes de escribir</div>
-            <div class="cap-item"><div class="cap-dot"></div> E-E-A-T: cita instituciones oficiales + datos verificables</div>
-            <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida — dato más importante primero</div>
-            <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
-            <div class="cap-item"><div class="cap-dot"></div> Wikipedia + Memoria IA entre publicaciones</div>
-            <div class="cap-item"><div class="cap-dot"></div> 💸 MONETIZACIÓN CPC automática en cada noticia</div>
-          </div>
-        </div>
-      </div>
+      <!-- CONTROL IA -->
+      <div class="card">
+        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
+        <div class="card-body">
+          <div class="ia-row" id="iaRow">
+            <div class="ia-left">
+              <span class="ia-lamp">🏮</span>
+              <div>
+                <div class="ia-name">GEMINI 2.5 FLASH</div>
+                <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="iaToggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="cap-list">
+            <div class="cap-item"><div class="cap-dot"></div> Pensamiento crítico periodístico</div>
+            <div class="cap-item"><div class="cap-dot"></div> E-E-A-T + datos verificables</div>
+            <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida</div>
+            <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025</div>
+            <div class="cap-item"><div class="cap-dot"></div> 💸 MONETIZACIÓN CPC automática</div>
+          </div>
+        </div>
+      </div>
 
-      <!-- INSTRUCCIONES GEMINI -->
-      <div class="card">
-        <div class="card-header"><h2>📝 INSTRUCCIONES PARA GEMINI</h2></div>
-        <div class="card-body">
-          <div class="fgroup">
-            <label>Instrucción Principal</label>
-            <textarea id="instruccionPrincipal" rows="5"></textarea>
-          </div>
-          <div class="fgroup">
-            <label>Énfasis Local y Alcance</label>
-            <textarea id="enfasis" rows="3"></textarea>
-          </div>
-          <div class="fgroup">
-            <label>Tono de Noticias</label>
-            <select id="tono">
-              <option value="profesional">Profesional</option>
-              <option value="directo">Directo</option>
-              <option value="analítico">Analítico</option>
-              <option value="juvenil">Juvenil</option>
-            </select>
-          </div>
-          <div class="fgroup">
-            <label>Cosas que debe Evitar</label>
-            <textarea id="evitar" rows="3"></textarea>
-          </div>
-          <button class="btn btn-orange" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
-          <div id="msgConfig" class="msg"></div>
-        </div>
-      </div>
+      <!-- INSTRUCCIONES -->
+      <div class="card">
+        <div class="card-header"><h2>📝 INSTRUCCIONES PARA GEMINI</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Instrucción Principal</label>
+            <textarea id="instruccionPrincipal" rows="4"></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Énfasis Local</label>
+            <textarea id="enfasis" rows="2"></textarea>
+          </div>
+          <div class="fgroup">
+            <label>Tono de Noticias</label>
+            <select id="tono">
+              <option value="profesional">Profesional</option>
+              <option value="directo">Directo</option>
+              <option value="analítico">Analítico</option>
+            </select>
+          </div>
+          <div class="fgroup">
+            <label>Evitar</label>
+            <textarea id="evitar" rows="2"></textarea>
+          </div>
+          <button class="btn btn-orange" onclick="guardarInstrucciones()">💾 GUARDAR</button>
+          <div id="msgConfig" class="msg"></div>
+        </div>
+      </div>
 
-      <!-- GENERAR NOTICIA -->
-      <div class="card">
-        <div class="card-header"><h2>🤖 GENERAR NOTICIA CON IA</h2></div>
-        <div class="card-body">
-          <div class="fgroup">
-            <label>Selecciona Categoría</label>
-            <div class="cat-grid">
-              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
-              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
-              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
-              <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
-              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
-              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
-            </div>
-          </div>
-          <button class="btn-publish" onclick="generarNoticia()">
-            <div class="bp-spin" id="bpSpin"></div>
-            <span class="bp-icon" id="bpIcon">🚀</span>
-            <div>
-              <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
-              <span class="bp-sub" id="bpSub">Gemini · Wikipedia · Memoria · Pexels · CPC</span>
-            </div>
-          </button>
-          <div id="msgGenerar" class="msg"></div>
-        </div>
-      </div>
+      <!-- GENERAR NOTICIA -->
+      <div class="card">
+        <div class="card-header"><h2>🤖 GENERAR NOTICIA</h2></div>
+        <div class="card-body">
+          <div class="fgroup">
+            <label>Categoría</label>
+            <div class="cat-grid">
+              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
+              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
+              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
+              <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
+              <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
+              <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
+            </div>
+          </div>
+          <button class="btn-publish" onclick="generarNoticia()">
+            <div class="bp-spin" id="bpSpin"></div>
+            <span class="bp-icon" id="bpIcon">🚀</span>
+            <div>
+              <div class="bp-main" id="bpText">GENERAR NOTICIA</div>
+              <span class="bp-sub">Gemini · Memoria · CPC</span>
+            </div>
+          </button>
+          <div id="msgGenerar" class="msg"></div>
+        </div>
+      </div>
 
-      <!-- MIS NOTICIAS -->
-      <div class="card">
-        <div class="card-header">
-          <h2>📋 MIS NOTICIAS</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarListaNoticias()">🔄</button>
-        </div>
-        <div class="card-body">
-          <input type="text" class="search-noticias" id="searchNoticias" placeholder="🔍 Buscar..." oninput="filtrarLista()">
-          <div class="noticias-count" id="noticiasCount">Cargando...</div>
-          <div class="noticias-list" id="noticiasLista">
-            <div style="text-align:center;padding:30px;color:var(--muted);">Cargando...</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <!-- MIS NOTICIAS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 MIS NOTICIAS</h2>
+          <button class="btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarListaNoticias()">🔄</button>
+        </div>
+        <div class="card-body">
+          <input type="text" class="search-noticias" id="searchNoticias" placeholder="🔍 Buscar..." oninput="filtrarLista()">
+          <div class="noticias-count" id="noticiasCount">Cargando...</div>
+          <div class="noticias-list" id="noticiasLista">
+            <div style="text-align:center;padding:30px;color:var(--muted)">Cargando...</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <!-- COLUMNA DERECHA -->
-    <div>
+    <!-- COLUMNA DERECHA -->
+    <div>
 
-      <!-- ESTADÍSTICAS -->
-      <div class="card">
-        <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
-        <div class="card-body">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-val" id="statNoticias">—</div>
-              <div class="stat-lbl">PUBLICADAS</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-val" id="statVistas">—</div>
-              <div class="stat-lbl">VISTAS</div>
-            </div>
-          </div>
-          <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
-        </div>
-      </div>
+      <!-- ESTADÍSTICAS -->
+      <div class="card">
+        <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="statNoticias">0</div>
+              <div class="stat-lbl">PUBLICADAS</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="statVistas">0</div>
+              <div class="stat-lbl">VISTAS</div>
+            </div>
+          </div>
+          <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+        </div>
+      </div>
 
-      <!-- INFORMACIÓN DEL SISTEMA -->
-      <div class="card">
-        <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
-        <div class="card-body">
-          <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on">V34 MONETIZADO ✅</span></div>
-          <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash</span></div>
-          <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ POSTGRESQL</span></div>
-          <div class="sys-row"><span class="sys-key">CPC MONETIZACIÓN</span><span class="badge badge-on">✅ V1.0 ACTIVA</span></div>
-        </div>
-      </div>
+      <!-- INFORMACIÓN -->
+      <div class="card">
+        <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
+        <div class="card-body">
+          <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on">V34 MONETIZADO</span></div>
+          <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash</span></div>
+          <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ ACTIVA</span></div>
+          <div class="sys-row"><span class="sys-key">CPC</span><span class="badge badge-on">✅ V1.0</span></div>
+        </div>
+      </div>
 
-      <!-- MEMORIA IA -->
-      <div class="card">
-        <div class="card-header">
-          <h2>🧠 MEMORIA IA</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarMemoria()">🔄</button>
-        </div>
-        <div class="card-body">
-          <div class="memoria-list" id="memoriaLista">
-            <div class="mem-empty">Sin datos aún</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+      <!-- MEMORIA IA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🧠 MEMORIA IA</h2>
+          <button class="btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarMemoria()">🔄</button>
+        </div>
+        <div class="card-body">
+          <div class="memoria-list" id="memoriaLista">
+            <div class="mem-empty">Cargando memoria...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MODALES -->
 <div class="modal-bg" id="modalDel">
-  <div class="modal">
-    <div class="modal-icon">🗑️</div>
-    <h3>CONFIRMAR ELIMINACIÓN</h3>
-    <p id="modalDelTxt">¿Eliminar esta noticia?</p>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
-      <button class="btn-confirm-del" onclick="confirmarEliminar()">🗑️ ELIMINAR</button>
-    </div>
-  </div>
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <h3>CONFIRMAR ELIMINACIÓN</h3>
+    <p id="modalDelTxt">¿Eliminar esta noticia?</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
+      <button class="btn-confirm-del" onclick="confirmarEliminar()">ELIMINAR</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="modalEditImg">
-  <div class="modal modal-edit">
-    <div class="modal-icon">🖼️</div>
-    <h3>CAMBIAR IMAGEN</h3>
-    <p id="modalEditTitulo"></p>
-    <img id="modalImgPreview" class="modal-img-preview" src="">
-    <input type="text" class="modal-input" id="modalImgUrl" placeholder="https://... pega URL de imagen" oninput="previewImagen(this.value)">
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
-      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR</button>
-    </div>
-    <div id="msgEditImg" class="msg"></div>
-  </div>
+  <div class="modal modal-edit">
+    <div class="modal-icon">🖼️</div>
+    <h3>CAMBIAR IMAGEN</h3>
+    <p id="modalEditTitulo"></p>
+    <img id="modalImgPreview" class="modal-img-preview" src="">
+    <input type="text" class="modal-input" id="modalImgUrl" placeholder="https://... URL de imagen" oninput="previewImagen(this.value)">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
+      <button class="btn-confirm-edit" onclick="guardarImagen()">GUARDAR</button>
+    </div>
+    <div id="msgEditImg" class="msg"></div>
+  </div>
 </div>
 
 <script>
@@ -473,272 +411,309 @@ let idAEditar = null;
 
 // Reloj
 setInterval(() => {
-  document.getElementById('reloj').textContent = new Date().toLocaleTimeString('es-DO', { hour12: false });
+  document.getElementById('reloj').textContent = new Date().toLocaleTimeString('es-DO', { hour12: false });
 }, 1000);
 
 // Cargar configuración desde Supabase
 async function cargarConfig() {
-  try {
-    const res = await fetch(`${API}/api/admin/config?pin=${PIN}`);
-    if (!res.ok) return;
-    const c = await res.json();
-    document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
-    document.getElementById('enfasis').value = c.enfasis || '';
-    document.getElementById('tono').value = c.tono || 'profesional';
-    document.getElementById('evitar').value = c.evitar || '';
-    document.getElementById('iaToggle').checked = true;
-    actualizarIA();
-  } catch(e) { console.error('Config:', e); }
+  try {
+    const res = await fetch(`${API}/api/admin/config?pin=${PIN}`);
+    if (!res.ok) throw new Error('Error HTTP: ' + res.status);
+    const c = await res.json();
+    document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
+    document.getElementById('enfasis').value = c.enfasis || '';
+    document.getElementById('tono').value = c.tono || 'profesional';
+    document.getElementById('evitar').value = c.evitar || '';
+    actualizarIA();
+  } catch(e) {
+    console.error('Config:', e);
+    showMsg('msgConfig', '⚠️ Usando valores por defecto', false);
+  }
 }
 
 // Guardar instrucciones
 async function guardarInstrucciones() {
-  try {
-    const res = await fetch(`${API}/api/admin/config`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        instruccion: document.getElementById('instruccionPrincipal').value,
-        enfasis: document.getElementById('enfasis').value,
-        tono: document.getElementById('tono').value,
-        evitar: document.getElementById('evitar').value,
-        pin: PIN
-      })
-    });
-    const d = await res.json();
-    showMsg('msgConfig', d.success ? '✅ Guardado' : '❌ Error', d.success);
-  } catch(e) { showMsg('msgConfig', '❌ ' + e.message, false); }
+  const btn = event.target;
+  btn.textContent = 'GUARDANDO...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/api/admin/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instruccion: document.getElementById('instruccionPrincipal').value,
+        enfasis: document.getElementById('enfasis').value,
+        tono: document.getElementById('tono').value,
+        evitar: document.getElementById('evitar').value,
+        pin: PIN
+      })
+    });
+    const d = await res.json();
+    showMsg('msgConfig', d.success ? '✅ Guardado en Supabase' : '❌ Error', d.success);
+    if (d.success) setTimeout(cargarConfig, 1000);
+  } catch(e) {
+    showMsg('msgConfig', '❌ ' + e.message, false);
+  } finally {
+    btn.textContent = '💾 GUARDAR';
+    btn.disabled = false;
+  }
 }
 
 // IA Toggle
 function actualizarIA() {
-  const on = document.getElementById('iaToggle').checked;
-  const s = document.getElementById('iaStatus');
-  const row = document.getElementById('iaRow');
-  s.textContent = on ? '● ACTIVADO' : '● DESACTIVADO';
-  s.className = 'ia-status ' + (on ? 'on' : 'off');
-  row.className = 'ia-row ' + (on ? 'on' : '');
+  const on = document.getElementById('iaToggle').checked;
+  const s = document.getElementById('iaStatus');
+  s.textContent = on ? '● ACTIVADO' : '● DESACTIVADO';
+  s.className = 'ia-status ' + (on ? 'on' : 'off');
 }
-document.getElementById('iaToggle').addEventListener('change', () => { actualizarIA(); guardarInstrucciones(); });
+document.getElementById('iaToggle').addEventListener('change', actualizarIA);
 
 // Categoría
 function selCat(el) {
-  document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
-  el.classList.add('sel');
-  catActual = el.dataset.val;
+  document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  catActual = el.dataset.val;
 }
 
 // Generar noticia
 async function generarNoticia() {
-  if (!document.getElementById('iaToggle').checked) {
-    showMsg('msgGenerar', '❌ Active la IA primero', false);
-    return;
-  }
-  const spin = document.getElementById('bpSpin');
-  const icon = document.getElementById('bpIcon');
-  const txt = document.getElementById('bpText');
-  spin.style.display = 'block';
-  icon.style.display = 'none';
-  txt.textContent = 'GENERANDO...';
+  if (!document.getElementById('iaToggle').checked) {
+    showMsg('msgGenerar', '❌ Active la IA primero', false);
+    return;
+  }
+  const spin = document.getElementById('bpSpin');
+  const icon = document.getElementById('bpIcon');
+  const txt = document.getElementById('bpText');
+  spin.style.display = 'block';
+  icon.style.display = 'none';
+  txt.textContent = 'GENERANDO...';
 
-  try {
-    const res = await fetch(`${API}/api/generar-noticia`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoria: catActual, pin: PIN })
-    });
-    const d = await res.json();
-    if (d.success) {
-      showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true);
-      cargarEstadisticas();
-      cargarListaNoticias();
-      setTimeout(cargarMemoria, 2000);
-    } else {
-      showMsg('msgGenerar', `❌ ${d.error || 'Error'}`, false);
-    }
-  } catch(e) {
-    showMsg('msgGenerar', '❌ ' + e.message, false);
-  } finally {
-    spin.style.display = 'none';
-    icon.style.display = 'block';
-    txt.textContent = 'GENERAR NOTICIA AHORA';
-  }
+  try {
+    const res = await fetch(`${API}/api/generar-noticia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: catActual, pin: PIN })
+    });
+    const d = await res.json();
+    if (d.success) {
+      showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true);
+      cargarEstadisticas();
+      cargarListaNoticias();
+      setTimeout(cargarMemoria, 2000);
+    } else {
+      showMsg('msgGenerar', `❌ ${d.error || 'Error al generar'}`, false);
+    }
+  } catch(e) {
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  } finally {
+    spin.style.display = 'none';
+    icon.style.display = 'block';
+    txt.textContent = 'GENERAR NOTICIA';
+  }
 }
 
 // Estadísticas
 async function cargarEstadisticas() {
-  try {
-    const res = await fetch(`${API}/api/estadisticas?pin=${PIN}`);
-    if (!res.ok) return;
-    const d = await res.json();
-    document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
-    document.getElementById('statVistas').textContent = d.totalVistas || 0;
-  } catch(e) { console.error('Stats:', e); }
+  try {
+    const res = await fetch(`${API}/api/estadisticas?pin=${PIN}`);
+    if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
+    document.getElementById('statVistas').textContent = d.totalVistas || 0;
+  } catch(e) { console.error('Stats:', e); }
 }
 
 // Lista de noticias
 async function cargarListaNoticias() {
-  try {
-    const res = await fetch(`${API}/api/noticias?pin=${PIN}`);
-    if (!res.ok) return;
-    const d = await res.json();
-    todasNoticias = d.noticias || [];
-    renderizarLista(todasNoticias);
-  } catch(e) {
-    document.getElementById('noticiasLista').innerHTML = '<div style="padding:20px;color:var(--rojo)">❌ Error</div>';
-  }
+  try {
+    const res = await fetch(`${API}/api/noticias?pin=${PIN}`);
+    if (!res.ok) throw new Error('Error HTTP');
+    const d = await res.json();
+    todasNoticias = d.noticias || [];
+    renderizarLista(todasNoticias);
+  } catch(e) {
+    document.getElementById('noticiasLista').innerHTML = '<div style="padding:20px;color:var(--rojo)">❌ Error cargando</div>';
+  }
 }
 
 function renderizarLista(noticias) {
-  const lista = document.getElementById('noticiasLista');
-  const count = document.getElementById('noticiasCount');
-  count.textContent = `${noticias.length} NOTICIAS`;
-  if (!noticias.length) {
-    lista.innerHTML = '<div style="padding:30px;color:var(--muted)">Sin noticias</div>';
-    return;
-  }
-  lista.innerHTML = noticias.map(n => `
-    <div class="noticia-row" data-id="${n.id}">
-      <img class="nr-thumb" src="${n.imagen || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
-      <div class="nr-info">
-        <div class="nr-titulo">${n.titulo.substring(0, 50)}${n.titulo.length > 50 ? '…' : ''}</div>
-        <div class="nr-meta">📅 ${new Date(n.fecha).toLocaleDateString()} · 👁 ${n.vistas || 0}</div>
-      </div>
-      <span class="nr-seccion">${n.seccion}</span>
-      <button class="btn-edit-img" onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g, "\\'")}','${n.imagen || ''}')">🖼️</button>
-      <button class="btn-del" onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g, "\\'")}')">🗑️</button>
-    </div>
-  `).join('');
+  const lista = document.getElementById('noticiasLista');
+  const count = document.getElementById('noticiasCount');
+  count.textContent = `${noticias.length} NOTICIAS`;
+  if (!noticias.length) {
+    lista.innerHTML = '<div style="padding:30px;color:var(--muted)">Sin noticias aún</div>';
+    return;
+  }
+  lista.innerHTML = noticias.map(n => `
+    <div class="noticia-row" data-id="${n.id}">
+      <img class="nr-thumb" src="${n.imagen || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'}" 
+           onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
+      <div class="nr-info">
+        <div class="nr-titulo">${n.titulo?.substring(0, 50) || 'Sin título'}${n.titulo?.length > 50 ? '…' : ''}</div>
+        <div class="nr-meta">📅 ${new Date(n.fecha).toLocaleDateString()} · 👁 ${n.vistas || 0}</div>
+      </div>
+      <span class="nr-seccion">${n.seccion || 'General'}</span>
+      <button class="btn-edit-img" onclick="pedirEditarImagen(${n.id},'${(n.titulo || '').replace(/'/g, "\\'")}','${(n.imagen || '').replace(/'/g, "\\'")}')">🖼️</button>
+      <button class="btn-del" onclick="pedirEliminar(${n.id},'${(n.titulo || '').replace(/'/g, "\\'")}')">🗑️</button>
+    </div>
+  `).join('');
 }
 
 function filtrarLista() {
-  const q = document.getElementById('searchNoticias').value.toLowerCase();
-  if (!q) { renderizarLista(todasNoticias); return; }
-  renderizarLista(todasNoticias.filter(n => n.titulo.toLowerCase().includes(q) || n.seccion.toLowerCase().includes(q)));
+  const q = document.getElementById('searchNoticias').value.toLowerCase();
+  if (!q) { renderizarLista(todasNoticias); return; }
+  renderizarLista(todasNoticias.filter(n => 
+    (n.titulo?.toLowerCase().includes(q) || n.seccion?.toLowerCase().includes(q))
+  ));
 }
 
 // Eliminar
 function pedirEliminar(id, titulo) {
-  idAEliminar = id;
-  document.getElementById('modalDelTxt').textContent = `¿Eliminar "${titulo}"?`;
-  document.getElementById('modalDel').classList.add('open');
+  idAEliminar = id;
+  document.getElementById('modalDelTxt').textContent = `¿Eliminar "${titulo}"? Esta acción es irreversible.`;
+  document.getElementById('modalDel').classList.add('open');
 }
 
 function cerrarModal() {
-  idAEliminar = null;
-  document.getElementById('modalDel').classList.remove('open');
+  idAEliminar = null;
+  document.getElementById('modalDel').classList.remove('open');
 }
 
 async function confirmarEliminar() {
-  if (!idAEliminar) return;
-  try {
-    const res = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: PIN })
-    });
-    const d = await res.json();
-    cerrarModal();
-    if (d.success) {
-      todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
-      renderizarLista(todasNoticias);
-      cargarEstadisticas();
-      showMsg('msgGenerar', '✅ Noticia eliminada', true);
-    } else {
-      showMsg('msgGenerar', '❌ Error al eliminar', false);
-    }
-  } catch(e) {
-    cerrarModal();
-    showMsg('msgGenerar', '❌ ' + e.message, false);
-  }
+  if (!idAEliminar) return;
+  const btn = document.querySelector('.btn-confirm-del');
+  btn.textContent = 'ELIMINANDO...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await res.json();
+    cerrarModal();
+    if (d.success) {
+      todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
+      renderizarLista(todasNoticias);
+      cargarEstadisticas();
+      showMsg('msgGenerar', '✅ Noticia eliminada', true);
+    } else {
+      showMsg('msgGenerar', '❌ Error: ' + (d.error || 'No se pudo eliminar'), false);
+    }
+  } catch(e) {
+    cerrarModal();
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  } finally {
+    btn.textContent = 'ELIMINAR';
+    btn.disabled = false;
+  }
 }
 
 // Editar imagen
 function pedirEditarImagen(id, titulo, imgActual) {
-  idAEditar = id;
-  document.getElementById('modalEditTitulo').textContent = titulo;
-  document.getElementById('modalImgUrl').value = '';
-  document.getElementById('modalImgPreview').src = imgActual || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600';
-  document.getElementById('modalEditImg').classList.add('open');
+  idAEditar = id;
+  document.getElementById('modalEditTitulo').textContent = titulo;
+  document.getElementById('modalImgUrl').value = '';
+  document.getElementById('modalImgPreview').src = imgActual || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600';
+  document.getElementById('modalEditImg').classList.add('open');
 }
 
 function previewImagen(url) {
-  if (url.startsWith('http')) document.getElementById('modalImgPreview').src = url;
+  if (url && url.startsWith('http')) {
+    document.getElementById('modalImgPreview').src = url;
+  }
 }
 
 function cerrarModalEdit() {
-  idAEditar = null;
-  document.getElementById('modalEditImg').classList.remove('open');
+  idAEditar = null;
+  document.getElementById('modalEditImg').classList.remove('open');
+  document.getElementById('msgEditImg').className = 'msg';
 }
 
 async function guardarImagen() {
-  if (!idAEditar) return;
-  const url = document.getElementById('modalImgUrl').value.trim();
-  if (!url.startsWith('http')) {
-    document.getElementById('msgEditImg').textContent = '❌ URL inválida';
-    document.getElementById('msgEditImg').className = 'msg err';
-    return;
-  }
-  try {
-    const res = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: PIN, imagen: url })
-    });
-    const d = await res.json();
-    if (d.success) {
-      const noticia = todasNoticias.find(n => n.id === idAEditar);
-      if (noticia) noticia.imagen = url;
-      renderizarLista(todasNoticias);
-      cerrarModalEdit();
-      showMsg('msgGenerar', '✅ Imagen actualizada', true);
-    } else {
-      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error');
-      document.getElementById('msgEditImg').className = 'msg err';
-    }
-  } catch(e) {
-    document.getElementById('msgEditImg').textContent = '❌ ' + e.message;
-    document.getElementById('msgEditImg').className = 'msg err';
-  }
+  if (!idAEditar) return;
+  const url = document.getElementById('modalImgUrl').value.trim();
+  if (!url || !url.startsWith('http')) {
+    document.getElementById('msgEditImg').textContent = '❌ URL inválida (debe empezar con https://)';
+    document.getElementById('msgEditImg').className = 'msg err';
+    return;
+  }
+  const btn = document.querySelector('.btn-confirm-edit');
+  btn.textContent = 'GUARDANDO...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN, imagen: url })
+    });
+    const d = await res.json();
+    if (d.success) {
+      const noticia = todasNoticias.find(n => n.id === idAEditar);
+      if (noticia) noticia.imagen = url;
+      renderizarLista(todasNoticias);
+      cerrarModalEdit();
+      showMsg('msgGenerar', '✅ Imagen actualizada', true);
+    } else {
+      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error');
+      document.getElementById('msgEditImg').className = 'msg err';
+    }
+  } catch(e) {
+    document.getElementById('msgEditImg').textContent = '❌ ' + e.message;
+    document.getElementById('msgEditImg').className = 'msg err';
+  } finally {
+    btn.textContent = 'GUARDAR';
+    btn.disabled = false;
+  }
 }
 
 // Memoria IA
 async function cargarMemoria() {
-  try {
-    const res = await fetch(`${API}/api/memoria?pin=${PIN}&limit=20`);
-    if (!res.ok) return;
-    const d = await res.json();
-    const lista = document.getElementById('memoriaLista');
-    if (!d.data || d.data.length === 0) {
-      lista.innerHTML = '<div class="mem-empty">Sin memoria aún</div>';
-      return;
-    }
-    lista.innerHTML = d.data.slice(0, 15).map(m => `
-      <div class="mem-row">
-        <span class="mem-tipo ${m.exitosa ? 'query' : 'error'}">${m.exitosa ? '✅' : '❌'}</span>
-        <div class="mem-valor">${m.titulo?.substring(0, 35) || 'Sin título'}</div>
-        <span class="mem-tasa ${m.exitosa ? 'alta' : 'baja'}">${m.exitosa ? '✓' : '✗'}</span>
-      </div>
-    `).join('');
-  } catch(e) { console.error('Memoria:', e); }
+  try {
+    const res = await fetch(`${API}/api/memoria?pin=${PIN}&limit=20`);
+    if (!res.ok) throw new Error('Error HTTP');
+    const d = await res.json();
+    const lista = document.getElementById('memoriaLista');
+    if (!d.data || d.data.length === 0) {
+      lista.innerHTML = '<div class="mem-empty">Sin memoria aún</div>';
+      return;
+    }
+    lista.innerHTML = d.data.slice(0, 15).map(m => `
+      <div class="mem-row">
+        <span class="mem-tipo ${m.exitosa ? 'exito' : 'error'}">${m.exitosa ? '✓' : '✗'}</span>
+        <div class="mem-valor">${m.titulo?.substring(0, 35) || 'Sin título'}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    console.error('Memoria:', e);
+    document.getElementById('memoriaLista').innerHTML = '<div class="mem-empty">Error cargando memoria</div>';
+  }
 }
 
 // Mensajes
 function showMsg(id, txt, ok) {
-  const el = document.getElementById(id);
-  el.textContent = txt;
-  el.className = 'msg ' + (ok ? 'ok' : 'err');
-  setTimeout(() => { el.className = 'msg'; }, 5000);
+  const el = document.getElementById(id);
+  el.textContent = txt;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'msg'; }, 5000);
 }
+
+// Cerrar modales al hacer clic fuera
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
+});
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', () => {
-  cargarConfig();
-  cargarEstadisticas();
-  cargarListaNoticias();
-  cargarMemoria();
-  setInterval(cargarEstadisticas, 30000);
-  setInterval(cargarMemoria, 60000);
+  cargarConfig();
+  cargarEstadisticas();
+  cargarListaNoticias();
+  cargarMemoria();
+  setInterval(cargarEstadisticas, 30000);
+  setInterval(cargarMemoria, 60000);
 });
 </script>
 </body>
