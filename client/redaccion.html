@@ -429,7 +429,7 @@ setInterval(() => {
   document.getElementById('reloj').textContent = new Date().toLocaleTimeString('es-DO', { hour12: false });
 }, 1000);
 
-// Cargar configuración desde Supabase
+// Cargar configuración
 async function cargarConfig() {
   try {
     const res = await fetch(`${API}/api/admin/config?pin=${PIN}`);
@@ -465,7 +465,7 @@ async function guardarInstrucciones() {
       })
     });
     const d = await res.json();
-    showMsg('msgConfig', d.success ? '✅ Guardado en Supabase' : '❌ Error', d.success);
+    showMsg('msgConfig', d.success ? '✅ Guardado' : '❌ Error', d.success);
   } catch(e) {
     showMsg('msgConfig', '❌ ' + e.message, false);
   } finally {
