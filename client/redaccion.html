@@ -1,382 +1,347 @@
-/**
- * 🏮 MÓDULO DE REDACCIÓN MONETIZADA V1.0
- * 
- * INYECCIÓN SUTIL en generarNoticia() de V34
- * Sin romper código existente
- * Solo enriquece Título + Descripción + Keywords + Contenido
- * 
- * ESTRATEGIA: Alto Valor CPC (Bancos, Seguros, Inmobiliarias, Fintech)
- * TARGET: Google AdSense monetización efectiva
- * 
- * USO:
- *   const { monetizarNoticia } = require('./redaccion-monetizada');
- *   const noticiaMonetizada = monetizarNoticia(noticia);
- */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redacción | El Farol al Día</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root { --fuego: #FF5500; --negro: #080808; --papel: #141418; --crema: #EDE8DF; --muted: #4E4E58; --verde: #22C55E; --rojo: #EF4444; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
+header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),#FF7A00);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--fuego);line-height:1}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(255,85,0,.12);border:1px solid rgba(255,85,0,.3);padding:5px 14px;border-radius:20px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--fuego);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.ticker{background:var(--fuego);height:30px;display:flex;overflow:hidden}
+.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-scroll{flex:1;overflow:hidden}
+.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 25s linear infinite;font-size:11px;color:rgba(255,255,255,.9)}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.container{max-width:1280px;margin:0 auto;padding:32px 28px;display:grid;grid-template-columns:1fr 340px;gap:24px}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;padding:20px}
+.card-header{padding:16px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;margin:-20px -20px 16px -20px;padding:16px 20px}
+.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego)}
+.fgroup{margin-bottom:18px}
+.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego)}
+textarea{resize:vertical;min-height:90px}
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid #1E1E26;background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+.cat-tile .ce{font-size:20px;display:block;margin-bottom:5px}
+.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema)}
+.cat-tile.sel{border-color:var(--fuego);background:rgba(255,85,0,.14);color:var(--fuego)}
+.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego),#FF7A00);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s}
+.btn-publish:hover{transform:translateY(-2px)}
+.bp-spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bp-icon{font-size:22px;color:#fff}
+.bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
+.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;width:100%;margin-bottom:10px;color:#fff}
+.btn-orange{background:linear-gradient(135deg,var(--fuego),#FF7A00)}
+.btn-green{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.25)}
+.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none}
+.msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
+.msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--rojo);display:block}
+.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;text-align:center}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego)}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px}
+.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto}
+.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px}
+.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0}
+.nr-info{flex:1;min-width:0}
+.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px}
+.nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.btn-del,.btn-edit-img{border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px;border:none;flex-shrink:0;line-height:1}
+.btn-del{background:rgba(239,68,68,.12);color:var(--rojo)}
+.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego)}
+.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px}
+.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+.sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema)}
+.badge{padding:2px 9px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace}
+.badge-on{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.2)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--rojo);margin-bottom:10px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.modal-btns{display:flex;gap:12px;justify-content:center}
+.btn-cancel{background:transparent;color:var(--crema);border:1px solid #1E1E26;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;cursor:pointer}
+.btn-confirm-del,.btn-confirm-edit{border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;cursor:pointer;color:#fff}
+.btn-confirm-del{background:var(--rojo)}
+.btn-confirm-edit{background:var(--fuego)}
+.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid #1E1E26;display:block}
+.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:14px}
+@media(max-width:900px){.container{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
 
-// ══════════════════════════════════════════════════════════
-// PALABRAS MÁGICAS CPC — GENERAN ANUNCIOS DE ALTO VALOR
-// ══════════════════════════════════════════════════════════
+<header>
+  <a href="/" class="logo"><div class="logo-flame">🏮</div><div class="logo-text"><h1>EL FAROL</h1></div></a>
+  <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
+</header>
 
-const PALABRAS_CPC_DINERO = [
-    'plusvalía', 'inversión', 'clima de inversión', 'estabilidad financiera',
-    'facilidades de préstamos', 'ahorro operativo', 'rentabilidad', 'dividendos',
-    'activos', 'portafolio', 'mercado bursátil', 'valores', 'capital', 'liquidez',
-    'ingresos', 'ganancias', 'patrimonio', 'riqueza', 'especulación', 'apalancamiento',
-    'crédito', 'financiamiento', 'deuda', 'hipoteca', 'préstamo', 'tasa de interés',
-    'inflación', 'dólar', 'moneda', 'cambio', 'reservas', 'piratería financiera'
-];
+<div class="ticker">
+  <div class="ticker-tag">🏮 REDACCIÓN</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner">
+      <span>Periódico Digital Dominicano · Gemini 2.5 · Wikipedia · SEO E-E-A-T</span>
+      <span>//</span><span>Redes: Facebook · Twitter · Telegram</span>
+    </div>
+  </div>
+</div>
 
-const PALABRAS_CPC_INSTITUCIONES = [
-    'Banco Popular', 'Banreservas', 'Scotiabank', 'BDI', 'Banco de Ahorro y Crédito',
-    'Ministerio de Hacienda', 'Superintendencia de Bancos', 'Junta Monetaria',
-    'Bolsa de Valores de Santo Domingo', 'INDOTEL', 'Seguros Generales',
-    'ARL', 'Seguros ACE', 'Mapfre', 'Seguros Monterrey', 'PUCMM Seguros',
-    'Banco Central', 'OPRET', 'SIDEF', 'AIRD', 'CESCO'
-];
+<div class="container">
+  <div>
+    <div class="card">
+      <div class="card-header"><h2>🤖 GENERAR NOTICIA</h2></div>
+      <div class="fgroup">
+        <label>Categoría</label>
+        <div class="cat-grid">
+          <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
+          <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
+          <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
+          <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
+          <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
+          <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
+        </div>
+      </div>
+      <button class="btn-publish" onclick="generarNoticia()">
+        <div class="bp-spin" id="bpSpin"></div>
+        <span class="bp-icon">🚀</span>
+        <div><div class="bp-main">GENERAR NOTICIA</div></div>
+      </button>
+      <div id="msgGenerar" class="msg"></div>
+    </div>
 
-const PALABRAS_CPC_TEMAS = {
-    'Economía': [
-        'banco central', 'tasa de interés', 'inflación', 'dólar',
-        'reservas internacionales', 'deuda pública', 'PIB', 'crecimiento económico',
-        'petróleo', 'oro', 'criptomonedas', 'bolsa', 'dividendos', 'activos',
-        'fondos de inversión', 'bonos', 'valores', 'mercado bursátil'
-    ],
-    'Nacionales': [
-        'inversión extranjera', 'zonas francas', 'incentivos fiscales',
-        'infraestructura vial', 'energía', 'agua potable', 'telecomunicaciones',
-        'hipotecas', 'créditos', 'financiamiento', 'préstamos', 'plusvalía',
-        'desarrollo inmobiliario', 'construcción', 'proyectos'
-    ],
-    'Internacionales': [
-        'comercio internacional', 'aranceles', 'tratados', 'FMI', 'Banco Mundial',
-        'mercados emergentes', 'volatilidad', 'sanciones económicas', 'deuda externa',
-        'remesas', 'exportaciones', 'importaciones'
-    ],
-    'Tecnología': [
-        'fintech', 'ciberseguridad financiera', 'blockchain', 'pagos digitales',
-        'billetera digital', 'transferencias', 'banca digital', 'inversión tech',
-        'startups', 'capital de riesgo', 'valuación', 'IPO'
-    ],
-    'Deportes': [
-        'patrocinios', 'inversión deportiva', 'derechos de transmisión',
-        'apuestas legales', 'seguros de atletas', 'premios', 'contrataciones',
-        'mercado de jugadores'
-    ],
-    'Internacionales': [
-        'crisis económica', 'recesión', 'mercados financieros', 'bonos soberanos'
-    ]
-};
+    <div class="card">
+      <div class="card-header"><h2>📋 MIS NOTICIAS</h2></div>
+      <input type="text" class="search-noticias" id="searchNoticias" placeholder="🔍 Buscar..." oninput="filtrarLista()">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px" id="noticiasCount">Cargando...</div>
+      <div class="noticias-list" id="noticiasLista">
+        <div style="text-align:center;padding:30px;color:var(--muted)">Cargando...</div>
+      </div>
+    </div>
+  </div>
 
-// ══════════════════════════════════════════════════════════
-// FUNCIÓN: ENRIQUECER TÍTULO CON PALABRAS DE ORO CPC
-// ══════════════════════════════════════════════════════════
+  <div>
+    <div class="card">
+      <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div class="stat-card">
+          <div class="stat-val" id="statNoticias">—</div>
+          <div class="stat-lbl">PUBLICADAS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statVistas">—</div>
+          <div class="stat-lbl">VISTAS</div>
+        </div>
+      </div>
+      <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+    </div>
 
-function enriquecerTituloMonetizado(titulo, categoria, contenido) {
-    /**
-     * LÓGICA:
-     * 1. Preservar estructura original (60-70 chars para Google News)
-     * 2. Detectar tema del contenido
-     * 3. Inyectar SUTILMENTE palabra CPC sin sonar forzado
-     * 4. Mantener "Último Minuto" o "Santo Domingo Este" siempre
-     * 5. Nunca reemplazar — SIEMPRE SUMAR
-     */
+    <div class="card">
+      <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
+      <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on">V34.0 ✅</span></div>
+      <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5</span></div>
+      <div class="sys-row"><span class="sys-key">BD</span><span class="sys-val">PostgreSQL</span></div>
+      <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">E-E-A-T</span></div>
+      <br>
+      <button class="btn btn-green" onclick="verStatus()">📡 VER STATUS</button>
+    </div>
+  </div>
+</div>
 
-    let tituloFinal = titulo;
-    const contentLower = contenido.toLowerCase();
-    const tieneUltimoMinuto = titulo.toLowerCase().includes('último minuto') || titulo.toLowerCase().includes('ultimo minuto');
-    const tieneSDE = titulo.toLowerCase().includes('santo domingo este') || 
-                     titulo.toLowerCase().includes('sde') ||
-                     titulo.toLowerCase().includes('santo domingo');
+<div class="modal-bg" id="modalDel">
+  <div class="modal">
+    <div style="font-size:40px;margin-bottom:14px">🗑️</div>
+    <h3>CONFIRMAR</h3>
+    <p id="modalDelTxt">¿Eliminar?</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
+      <button class="btn-confirm-del" onclick="confirmarEliminar()">🗑️ ELIMINAR</button>
+    </div>
+  </div>
+</div>
 
-    // Detectar si el tema tiene conexión financiera/inversora
-    const wordsCPC = PALABRAS_CPC_TEMAS[categoria] || [];
-    const temaFinanciero = wordsCPC.some(p => contentLower.includes(p));
+<div class="modal-bg" id="modalEditImg">
+  <div class="modal" style="max-width:480px">
+    <div style="font-size:40px;margin-bottom:14px">🖼️</div>
+    <h3>CAMBIAR IMAGEN</h3>
+    <img id="modalImgPreview" class="modal-img-preview" src="" alt="">
+    <input type="text" class="modal-input" id="modalImgUrl" placeholder="Pega URL de imagen">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
+      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR</button>
+    </div>
+  </div>
+</div>
 
-    // Inyección sutil según categoría y contexto
-    if (categoria === 'Economía') {
-        if (!tieneUltimoMinuto) {
-            if (contentLower.includes('banco') || contentLower.includes('préstamo') || contentLower.includes('crédito')) {
-                tituloFinal = `${titulo} — Estabilidad Financiera RD`;
-            } else if (contentLower.includes('dólar') || contentLower.includes('inflación') || contentLower.includes('tasa')) {
-                tituloFinal = `Último Minuto: ${titulo}`;
-            } else if (contentLower.includes('inversión') || contentLower.includes('empresa') || contentLower.includes('mercado')) {
-                tituloFinal = `${titulo} | Clima Inversión RD`;
-            }
-        }
-    } else if (categoria === 'Nacionales') {
-        if (!tieneUltimoMinuto && !tieneSDE) {
-            if (contentLower.includes('construcción') || contentLower.includes('vivienda') || contentLower.includes('inmueble')) {
-                tituloFinal = `Santo Domingo Este: ${titulo} — Plusvalía Inmobiliaria`;
-            } else if (contentLower.includes('inversión') || contentLower.includes('proyecto') || contentLower.includes('desarrollo')) {
-                tituloFinal = `${titulo} | Oportunidad Inversión SDE`;
-            } else if (contentLower.includes('banco') || contentLower.includes('crédito') || contentLower.includes('financiamiento')) {
-                tituloFinal = `Último Minuto SDE: ${titulo}`;
-            } else {
-                tituloFinal = `Último Minuto SDE: ${titulo}`;
-            }
-        }
-    } else if (categoria === 'Internacionales' && temaFinanciero) {
-        if (!tieneUltimoMinuto) {
-            tituloFinal = `${titulo} — Impacto Económico RD`;
-        }
-    } else if (categoria === 'Tecnología') {
-        if ((contentLower.includes('cripto') || contentLower.includes('blockchain') || contentLower.includes('fintech')) && !tieneUltimoMinuto) {
-            tituloFinal = `${titulo} | Fintech República Dominicana`;
-        }
-    } else if (categoria === 'Deportes') {
-        if ((contentLower.includes('patrocini') || contentLower.includes('inversión') || contentLower.includes('contrat')) && !tieneUltimoMinuto) {
-            tituloFinal = `${titulo} — Mercado Deportivo`;
-        }
-    }
+<script>
+const API = window.location.origin, PIN = '311';
+let catActual = 'Nacionales', todasNoticias = [], idAEliminar = null, idAEditar = null;
 
-    // Limitar a 110 caracteres (límite Google News)
-    if (tituloFinal.length > 110) {
-        tituloFinal = tituloFinal.substring(0, 107) + '...';
-    }
-
-    return tituloFinal;
+function selCat(el) {
+  document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  catActual = el.dataset.val;
 }
 
-// ══════════════════════════════════════════════════════════
-// FUNCIÓN: ENRIQUECER DESCRIPCIÓN SEO (150-160 chars exactos)
-// ══════════════════════════════════════════════════════════
-
-function enriquecerDescripcionMonetizada(descripcion, categoria, contenido) {
-    /**
-     * REGLA: 150-160 caracteres EXACTOS
-     * INCLUIR: palabra CPC + conexión RD + impacto directo
-     * NUNCA: sonar publicitario o artificial
-     */
-
-    let desc = descripcion.trim();
-    const contentLower = contenido.toLowerCase();
-    const wordsCPC = PALABRAS_CPC_TEMAS[categoria] || [];
-
-    // Si descripción ya existe y es buena, solo refinar
-    if (desc.length > 80) {
-        // Agregar contexto de oportunidad/impacto financiero sutilmente
-        if (categoria === 'Economía') {
-            if (!desc.toLowerCase().includes('república dominicana')) {
-                desc = desc.substring(0, 100) + ' en RD.';
-            }
-            if (!desc.toLowerCase().includes('inversión') && (contentLower.includes('empresa') || contentLower.includes('banco'))) {
-                desc = desc.substring(0, 95) + ' Impacto financiero clave.';
-            }
-        } else if (categoria === 'Nacionales') {
-            if (contentLower.includes('construcción') || contentLower.includes('inmueble')) {
-                desc = desc.substring(0, 95) + ' Plusvalía garantizada.';
-            }
-            if (contentLower.includes('inversión') || contentLower.includes('desarrollo')) {
-                desc = desc.substring(0, 100) + ' SDE en crecimiento.';
-            }
-        } else if (categoria === 'Tecnología') {
-            if (contentLower.includes('fintech') || contentLower.includes('cripto')) {
-                desc = desc.substring(0, 95) + ' Oportunidad inversión.';
-            }
-        }
-    } else {
-        // Descripción muy corta — reconstruir CON palabras CPC
-        if (categoria === 'Economía') {
-            desc = `Últimas noticias sobre ${categoria.toLowerCase()} en República Dominicana. ${desc} Impacto directo en clima de inversión.`;
-        } else if (categoria === 'Nacionales') {
-            desc = `Santo Domingo Este y RD: ${desc} Oportunidades para inversores y ciudadanos.`;
-        } else if (categoria === 'Tecnología') {
-            desc = `Noticias de ${categoria.toLowerCase()} en República Dominicana. ${desc} Impacto en mercado digital.`;
-        } else {
-            desc = `Noticias de ${categoria.toLowerCase()} en República Dominicana. ${desc} Análisis del impacto directo.`;
-        }
-    }
-
-    // Ajustar a 150-160 caracteres EXACTOS
-    desc = desc.trim();
-    while (desc.length < 150) {
-        desc += '.';
-    }
-    while (desc.length > 160) {
-        desc = desc.substring(0, 159).trim();
-        if (!desc.endsWith('.')) desc += '.';
-    }
-
-    // Asegurar que está entre 150-160
-    while (desc.length < 150) desc += ' ';
-    while (desc.length > 160) desc = desc.substring(0, desc.length - 1);
-
-    return desc;
+async function generarNoticia() {
+  const spin = document.getElementById('bpSpin');
+  spin.style.display = 'block';
+  try {
+    const r = await fetch(`${API}/api/generar-noticia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: catActual })
+    });
+    const d = await r.json();
+    showMsg('msgGenerar', d.success ? `✅ "${d.titulo}"` : `❌ ${d.error}`, d.success);
+    if (d.success) { cargarEstadisticas(); cargarListaNoticias(); }
+  } catch(e) {
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  } finally {
+    spin.style.display = 'none';
+  }
 }
 
-// ══════════════════════════════════════════════════════════
-// FUNCIÓN: ENRIQUECER KEYWORDS CON CPC
-// ══════════════════════════════════════════════════════════
-
-function enriquecerKeywordsMonetizada(keywords, categoria, titulo, contenido) {
-    /**
-     * Formato: 5 palabras clave
-     * 1ª siempre: "república dominicana"
-     * 2ª: "último minuto república dominicana" O "santo domingo este noticias"
-     * 3-5: palabras CPC relevantes
-     */
-
-    const keyArray = keywords
-        .split(',')
-        .map(k => k.trim())
-        .filter(Boolean);
-
-    // Asegurar que primera es "república dominicana"
-    if (!keyArray[0] || !keyArray[0].toLowerCase().includes('república dominicana')) {
-        keyArray.unshift('república dominicana');
-    }
-
-    // Segunda: últimoминuto o santo domingo este
-    if (!keyArray[1] || (!keyArray[1].toLowerCase().includes('último minuto') && !keyArray[1].toLowerCase().includes('santo domingo'))) {
-        if (titulo.toLowerCase().includes('último minuto') || titulo.toLowerCase().includes('ultimo minuto')) {
-            keyArray[1] = 'último minuto república dominicana';
-        } else {
-            keyArray[1] = 'santo domingo este noticias';
-        }
-    }
-
-    // Agregar palabras CPC según categoría
-    const wordsCPC = PALABRAS_CPC_TEMAS[categoria] || [];
-    const contentLower = contenido.toLowerCase();
-
-    for (const word of wordsCPC) {
-        if (contentLower.includes(word) && !keyArray.join(',').toLowerCase().includes(word)) {
-            keyArray.push(word);
-            if (keyArray.length >= 5) break;
-        }
-    }
-
-    // Llenar hasta 5 con palabras genéricas
-    while (keyArray.length < 5) {
-        const genéricas = [
-            `noticias ${categoria.toLowerCase()} dominicana`,
-            'últimas noticias república dominicana',
-            'noticias en vivo santo domingo',
-            'news república dominicana',
-            'actualidad dominicana hoy'
-        ];
-        keyArray.push(genéricas[keyArray.length - 3] || genéricas[0]);
-    }
-
-    // Retornar primeras 5
-    return keyArray.slice(0, 5).join(', ');
+async function cargarEstadisticas() {
+  try {
+    const r = await fetch(`${API}/api/estadisticas`);
+    const d = await r.json();
+    document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
+    document.getElementById('statVistas').textContent = d.totalVistas || 0;
+  } catch(e) { }
 }
 
-// ══════════════════════════════════════════════════════════
-// FUNCIÓN: INYECTAR CONTEXTO CPC EN CONTENIDO (SUTIL)
-// ══════════════════════════════════════════════════════════
-
-function inyectarContextoCPC(contenido, categoria, titulo) {
-    /**
-     * Agregamos 1-2 frases sutiles al contenido
-     * NUNCA sonarán publicitarias — solo contextualizan impacto financiero
-     * Se insertan en párrafo 4 (IMPACTO CIUDADANO)
-     */
-
-    const parrafos = contenido.split('\n\n');
-    if (parrafos.length < 4) return contenido; // No modificar si estructura está incompleta
-
-    // Párrafo 4: impacto ciudadano
-    const p4 = parrafos[3] || '';
-    let inyeccion = '';
-
-    const tituloLower = titulo.toLowerCase();
-    const contentLower = contenido.toLowerCase();
-
-    if (categoria === 'Economía') {
-        if (contentLower.includes('banco') || contentLower.includes('tasa de interés')) {
-            inyeccion = ' Para inversores y ahorristas, esta noticia refleja el clima de inversión en el país.';
-        } else if (contentLower.includes('inflación') || contentLower.includes('dólar')) {
-            inyeccion = ' Esta medida afecta directamente el poder adquisitivo y las decisiones de inversión.';
-        } else {
-            inyeccion = ' Los analistas proyectan impacto positivo en el crecimiento económico del país.';
-        }
-    } else if (categoria === 'Nacionales') {
-        if (tituloLower.includes('construcción') || tituloLower.includes('vivienda') || contentLower.includes('inmueble')) {
-            inyeccion = ' Los proyectos de infraestructura generan plusvalía en zonas de desarrollo como Santo Domingo Este.';
-        } else if (tituloLower.includes('banco') || tituloLower.includes('crédito') || contentLower.includes('financiamiento')) {
-            inyeccion = ' Esta medida afecta directamente las facilidades de financiamiento para ciudadanos y empresas.';
-        } else if (contentLower.includes('inversión') || contentLower.includes('proyecto')) {
-            inyeccion = ' La iniciativa abre oportunidades para inversores y desarrollo local en Santo Domingo Este.';
-        }
-    } else if (categoria === 'Tecnología') {
-        if (contentLower.includes('cripto') || contentLower.includes('blockchain') || contentLower.includes('fintech')) {
-            inyeccion = ' La adopción de fintech en RD abre oportunidades de inversión y ahorro digital para ciudadanos.';
-        } else {
-            inyeccion = ' Esta innovación posiciona a República Dominicana como hub tecnológico regional.';
-        }
-    } else if (categoria === 'Deportes') {
-        if (contentLower.includes('contrat') || contentLower.includes('patrocini') || contentLower.includes('mercado')) {
-            inyeccion = ' El movimiento refleja la profesionalización y crecimiento del mercado deportivo dominicano.';
-        }
-    } else if (categoria === 'Internacionales') {
-        if (contentLower.includes('economic') || contentLower.includes('mercado') || contentLower.includes('comercio')) {
-            inyeccion = ' El impacto económico global puede influir en oportunidades de inversión en la región.';
-        }
-    }
-
-    if (inyeccion && p4.length > 0) {
-        parrafos[3] = p4 + inyeccion;
-    }
-
-    return parrafos.join('\n\n');
+async function cargarListaNoticias() {
+  try {
+    const r = await fetch(`${API}/api/noticias`);
+    const d = await r.json();
+    todasNoticias = d.noticias || [];
+    renderizarLista(todasNoticias);
+  } catch(e) {
+    document.getElementById('noticiasLista').innerHTML = '<div style="color:var(--rojo)">❌ Error</div>';
+  }
 }
 
-// ══════════════════════════════════════════════════════════
-// FUNCIÓN MAESTRA: MONETIZAR NOTICIA COMPLETA
-// ══════════════════════════════════════════════════════════
-
-function monetizarNoticia(noticia) {
-    /**
-     * INPUT: objeto noticia {titulo, descripcion, keywords, contenido, categoria}
-     * OUTPUT: mismo objeto ENRIQUECIDO sin perder originalidad
-     * 
-     * Uso en generarNoticia():
-     * 
-     * const noticia = {
-     *     titulo, descripcion: desc, keywords: pals, contenido, categoria
-     * };
-     * 
-     * const monetizada = monetizarNoticia(noticia);
-     * titulo = monetizada.titulo;
-     * desc = monetizada.descripcion;
-     * pals = monetizada.keywords;
-     * contenido = monetizada.contenido;
-     */
-
-    return {
-        titulo: enriquecerTituloMonetizado(
-            noticia.titulo,
-            noticia.categoria,
-            noticia.contenido
-        ),
-        descripcion: enriquecerDescripcionMonetizada(
-            noticia.descripcion,
-            noticia.categoria,
-            noticia.contenido
-        ),
-        keywords: enriquecerKeywordsMonetizada(
-            noticia.keywords,
-            noticia.categoria,
-            noticia.titulo,
-            noticia.contenido
-        ),
-        contenido: inyectarContextoCPC(
-            noticia.contenido,
-            noticia.categoria,
-            noticia.titulo
-        )
-    };
+function renderizarLista(noticias) {
+  const lista = document.getElementById('noticiasLista');
+  document.getElementById('noticiasCount').textContent = `${noticias.length} NOTICIAS`;
+  if (!noticias.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Sin noticias</div>';
+    return;
+  }
+  lista.innerHTML = noticias.map(n => {
+    const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+    const imgSrc = n.imagen?.startsWith('http') ? n.imagen : 'https://via.placeholder.com/100';
+    const titulo = n.titulo.substring(0, 46);
+    return `<div class="noticia-row"><img class="nr-thumb" src="${imgSrc}" alt="" onerror="this.src='https://via.placeholder.com/100'"><div class="nr-info"><div class="nr-titulo">${titulo}</div><div class="nr-meta">📅 ${fecha}</div></div><span class="nr-seccion">${n.seccion}</span><button class="btn-edit-img" onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g,"\\'")}','${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button><button class="btn-del" onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g,"\\'")}')">🗑️</button></div>`;
+  }).join('');
 }
 
-// ══════════════════════════════════════════════════════════
-// EXPORTAR PARA INYECTAR EN V34
-// ══════════════════════════════════════════════════════════
+function filtrarLista() {
+  const q = document.getElementById('searchNoticias').value.toLowerCase();
+  if (!q) { renderizarLista(todasNoticias); return; }
+  renderizarLista(todasNoticias.filter(n => n.titulo.toLowerCase().includes(q)));
+}
 
-module.exports = {
-    monetizarNoticia,
-    enriquecerTituloMonetizado,
-    enriquecerDescripcionMonetizada,
-    enriquecerKeywordsMonetizada,
-    inyectarContextoCPC
-};
+function showMsg(id, txt, ok) {
+  const el = document.getElementById(id);
+  el.textContent = txt;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'msg'; }, 5000);
+}
+
+function pedirEliminar(id, titulo) {
+  idAEliminar = id;
+  document.getElementById('modalDelTxt').textContent = `¿Eliminar "${titulo}"?`;
+  document.getElementById('modalDel').classList.add('open');
+}
+
+function cerrarModal() {
+  document.getElementById('modalDel').classList.remove('open');
+}
+
+async function confirmarEliminar() {
+  try {
+    const r = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN })
+    });
+    const d = await r.json();
+    cerrarModal();
+    if (d.success) {
+      todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
+      renderizarLista(todasNoticias);
+      showMsg('msgGenerar', '🗑️ Eliminada', true);
+    }
+  } catch(e) {
+    cerrarModal();
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  }
+}
+
+function pedirEditarImagen(id, titulo, imgActual) {
+  idAEditar = id;
+  document.getElementById('modalImgPreview').src = imgActual || 'https://via.placeholder.com/300';
+  document.getElementById('modalImgUrl').value = '';
+  document.getElementById('modalEditImg').classList.add('open');
+}
+
+function cerrarModalEdit() {
+  document.getElementById('modalEditImg').classList.remove('open');
+}
+
+async function guardarImagen() {
+  const url = document.getElementById('modalImgUrl').value.trim();
+  if (!url || !url.startsWith('http')) { alert('Pega una URL válida'); return; }
+  try {
+    const r = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: PIN, imagen: url })
+    });
+    const d = await r.json();
+    if (d.success) {
+      const n = todasNoticias.find(x => x.id === idAEditar);
+      if (n) n.imagen = url;
+      cerrarModalEdit();
+      showMsg('msgGenerar', '✅ Actualizada', true);
+    }
+  } catch(e) { alert('❌ ' + e.message); }
+}
+
+async function verStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    const d = await r.json();
+    alert(`🏮 V${d.version}\n📰 ${d.noticias} noticias\n✅ Activo`);
+  } catch(e) { alert('Error'); }
+}
+
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarEstadisticas();
+  cargarListaNoticias();
+  setInterval(cargarEstadisticas, 30000);
+  setInterval(cargarListaNoticias, 60000);
+});
+</script>
+</body>
+</html>
