@@ -717,9 +717,11 @@ app.get('/api/noticias',async(req,res)=>{
 });
 
 app.post('/api/generar-noticia',authMiddleware,async(req,res)=>{
-    const{categoria}=req.body;
+    const{categoria,tema_cpc}=req.body;
     if(!categoria) return res.status(400).json({error:'Falta categoría'});
-    const r=await generarNoticia(categoria);
+    // tema_cpc viene del Generador CPC Alto del panel de redacción
+    const comunicadoCPC = tema_cpc ? tema_cpc : null;
+    const r=await generarNoticia(categoria, comunicadoCPC);
     res.status(r.success?200:500).json(r);
 });
 
