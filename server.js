@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.16
- * Base: V34.16
+ * 🏮 EL FAROL AL DÍA — V34.17
+ * Base: V34.17
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -260,12 +260,27 @@ async function bienvenidaTelegram() {
 // ─── WATERMARK (aplicación) ───────────────────────────────────────────────────
 async function aplicarMarcaDeAgua(urlImagen) {
     if (!WATERMARK_PATH) {
-        // Sin archivo -> no lanzar error, continuar con imagen original
         return { url: urlImagen, procesada: false };
     }
+    // Reintentar hasta 3 veces — algunos servidores bloquean el primer intento
+    let response, lastErr;
+    for (let intento = 0; intento < 3; intento++) {
+        try {
+            const ctrl = new AbortController();
+            const tm   = setTimeout(() => ctrl.abort(), 15000);
+            response   = await fetch(urlImagen, {
+                headers: { ...BROWSER_HEADERS, 'Cache-Control': 'no-cache' },
+                signal: ctrl.signal,
+            }).finally(() => clearTimeout(tm));
+            if (response.ok) break;
+            lastErr = 'HTTP ' + response.status;
+        } catch (e) {
+            lastErr = e.message;
+            await new Promise(r => setTimeout(r, 1500 * (intento + 1)));
+        }
+    }
     try {
-        const response = await fetch(urlImagen, { headers: BROWSER_HEADERS });
-        if (!response.ok) throw new Error('HTTP ' + response.status);
+        if (!response?.ok) throw new Error(lastErr || 'Sin respuesta');
         const bufOrig = Buffer.from(await response.arrayBuffer());
 
         const meta    = await sharp(bufOrig).metadata();
@@ -1469,6 +1484,19 @@ app.get('/api/memoria', authMiddleware, async (req, res) => {
             ORDER  BY ultima_vez DESC
             LIMIT  50`);
         res.json({ success: true, registros: r.rows });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ─── RESETEAR TODO — empezar de cero ─────────────────────────────────────────
+app.post('/api/resetear-todo', authMiddleware, async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN' });
+    try {
+        await pool.query('DELETE FROM noticias');
+        await pool.query('DELETE FROM rss_procesados');
+        await pool.query('DELETE FROM comentarios');
+        invalidarCache();
+        console.log('[RESET] Base de datos limpiada — empezando de cero');
+        res.json({ success: true, mensaje: 'Todo borrado. El servidor publicará noticias nuevas en el próximo ciclo RSS.' });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
