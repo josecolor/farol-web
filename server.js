@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.17
- * Base: V34.17
+ * 🏮 EL FAROL AL DÍA — V34.19
+ * Base: V34.19
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -283,23 +283,38 @@ async function aplicarMarcaDeAgua(urlImagen) {
         if (!response?.ok) throw new Error(lastErr || 'Sin respuesta');
         const bufOrig = Buffer.from(await response.arrayBuffer());
 
-        const meta    = await sharp(bufOrig).metadata();
-        const w       = meta.width  || 800;
-        const h       = meta.height || 500;
-        const wmAncho = Math.min(Math.round(w * 0.28), 300);
-        const wmRes   = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
-        const wmMeta  = await sharp(wmRes).metadata();
-        const wmAlto  = wmMeta.height || 60;
-        const margen  = Math.round(w * 0.02);
+        // Escalar a 1200x630 (formato estándar prensa digital / og:image)
+        // Si la foto viene pequeña del periódico, sube a calidad óptima
+        const bufEscalado = await sharp(bufOrig)
+            .resize(1200, 630, {
+                fit:      'cover',       // recorta centrado — no deforma
+                position: 'attention',   // sharp detecta el punto de interés
+                withoutEnlargement: false, // escalar hacia arriba si viene pequeña
+            })
+            .sharpen({ sigma: 0.8 })     // nitidez extra para pantallas HD
+            .toBuffer();
 
-        const bufFin = await sharp(bufOrig)
+        const meta    = await sharp(bufEscalado).metadata();
+        const w       = meta.width  || 1200;
+        const h       = meta.height || 630;
+
+        // Watermark proporcional — 22% del ancho
+        const wmAncho = Math.min(Math.round(w * 0.22), 260);
+        const wmRes   = await sharp(WATERMARK_PATH)
+            .resize(wmAncho, null, { fit: 'inside' })
+            .toBuffer();
+        const wmMeta  = await sharp(wmRes).metadata();
+        const wmAlto  = wmMeta.height || 50;
+        const margen  = Math.round(w * 0.025);
+
+        const bufFin = await sharp(bufEscalado)
             .composite([{
                 input: wmRes,
                 left:  Math.max(0, w - wmAncho - margen),
                 top:   Math.max(0, h - wmAlto  - margen),
                 blend: 'over',
             }])
-            .jpeg({ quality: 78, progressive: true })
+            .jpeg({ quality: 92, progressive: true, mozjpeg: true })
             .toBuffer();
 
         const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
@@ -315,8 +330,9 @@ async function aplicarMarcaDeAgua(urlImagen) {
 app.get('/img/:nombre', (req, res) => {
     const ruta = path.join('/tmp', path.basename(req.params.nombre));
     if (fs.existsSync(ruta)) {
-        res.setHeader('Content-Type',  'image/jpeg');
-        res.setHeader('Cache-Control', 'public,max-age=604800');
+        res.setHeader('Content-Type',   'image/jpeg');
+        res.setHeader('Cache-Control',  'public,max-age=604800,immutable');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
         return res.sendFile(ruta);
     }
     res.status(404).send('No disponible');
@@ -1399,13 +1415,59 @@ cron.schedule('*/30 * * * *', async () => {
 });
 
 // ─── IA GENERA NOTICIA PROPIA cada 2 horas ───────────────────────────────────
-// Complementa el RSS con noticias propias de análisis y contexto local
-// 12 noticias/día de producción propia — sostenible con gemini-2.5-flash
 cron.schedule('0 */2 * * *', async () => {
     if (!CONFIG_IA.enabled || rssEnProceso) return;
     const cat = CATS[Math.floor(Math.random() * CATS.length)];
     console.log(`[Cron-IA] 🏮 Noticia propia: ${cat}`);
     await generarNoticia(cat);
+});
+
+// ─── LIMPIEZA AUTOMÁTICA — todos los días a las 3:00 AM ──────────────────────
+// Mantiene la BD ligera y el sitio siempre con contenido fresco
+// Reglas:
+//   - Noticias de más de 7 días → borrar (ya no generan tráfico)
+//   - rss_procesados de más de 3 días → borrar (para que pueda reprocesar si es relevante)
+//   - Archivos /tmp de imágenes de más de 7 días → borrar (liberar espacio Railway)
+cron.schedule('0 3 * * *', async () => {
+    try {
+        console.log('[Limpieza] 🧹 Iniciando limpieza automática...');
+
+        // 1. Borrar noticias de más de 7 días
+        const r1 = await pool.query(`
+            DELETE FROM noticias
+            WHERE fecha < NOW() - INTERVAL '7 days'
+            RETURNING id`);
+        console.log(`[Limpieza] Noticias viejas borradas: ${r1.rowCount}`);
+
+        // 2. Borrar registro RSS de más de 3 días
+        // (permite reprocesar noticias relevantes si vuelven a aparecer)
+        const r2 = await pool.query(`
+            DELETE FROM rss_procesados
+            WHERE fecha < NOW() - INTERVAL '3 days'`);
+        console.log(`[Limpieza] RSS procesados limpios: ${r2.rowCount}`);
+
+        // 3. Borrar imágenes viejas de /tmp
+        const archivos = fs.readdirSync('/tmp').filter(f => f.startsWith('efd-') && f.endsWith('.jpg'));
+        let imgBorradas = 0;
+        const ahora = Date.now();
+        for (const archivo of archivos) {
+            try {
+                const ruta  = path.join('/tmp', archivo);
+                const stats = fs.statSync(ruta);
+                const dias  = (ahora - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+                if (dias > 7) {
+                    fs.unlinkSync(ruta);
+                    imgBorradas++;
+                }
+            } catch (_) {}
+        }
+        console.log(`[Limpieza] Imágenes /tmp borradas: ${imgBorradas}`);
+
+        invalidarCache();
+        console.log('[Limpieza] ✅ Limpieza completada — BD y servidor ligeros');
+    } catch (e) {
+        console.error('[Limpieza] Error: ' + e.message);
+    }
 });
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
