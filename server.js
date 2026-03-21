@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.32
- * Base: V34.32
+ * 🏮 EL FAROL AL DÍA — V34.33
+ * Base: V34.33
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -1452,42 +1452,109 @@ async function procesarRSS() {
 // ─── REGENERAR WATERMARKS — FIX 3 (secuencial, respeta Railway) ──────────────
 let wmRegenEnProceso = false;
 
+// ─── DETECTOR DE FOTOS FEAS ─────────────────────────────────────────────────
+// Una foto es "fea" si:
+//   1. Es del banco local (pexels.com) — genérica, no corresponde a la noticia
+//   2. No tiene watermark propio (no es /img/efd-...)
+//   3. Viene de Wikimedia (retratos irrelevantes)
+//   4. El archivo /tmp ya no existe (roto)
+function esFotoFea(imagen) {
+    if (!imagen) return true;
+    if (imagen.includes('pexels.com'))     return true;  // banco local genérico
+    if (imagen.includes('wikimedia.org'))  return true;  // Wikimedia irrelevante
+    if (imagen.includes('pixabay.com'))    return true;  // stock genérico
+    if (imagen.includes('unsplash.com'))   return true;  // stock genérico
+    return false;
+}
+
+function fotoRotaEnDisco(imagen) {
+    if (!imagen || !imagen.includes('/img/efd-')) return false;
+    const nombre = imagen.split('/img/')[1];
+    if (!nombre) return false;
+    return !fs.existsSync(path.join('/tmp', nombre));
+}
+
+// ─── REGENERAR FOTOS FEAS ────────────────────────────────────────────────────
+// Corre al arrancar y cada 2 horas
+// Detecta fotos feas → busca la foto real del artículo original → aplica watermark
 async function regenerarWatermarksLostidos() {
     if (!WATERMARK_PATH)  { console.log('[WM-Regen] Sin watermark, omitido'); return; }
     if (wmRegenEnProceso) { console.log('[WM-Regen] Ya en proceso');          return; }
 
     wmRegenEnProceso = true;
     try {
+        // Buscar noticias con foto fea O foto rota en disco
         const r = await pool.query(`
-            SELECT id, imagen, imagen_nombre, imagen_original
+            SELECT id, titulo, seccion, imagen, imagen_nombre, imagen_original, imagen_fuente
             FROM   noticias
-            WHERE  imagen LIKE '%/img/%'
-              AND  imagen_original IS NOT NULL
-              AND  imagen_original != ''
+            WHERE  estado = 'publicada'
             ORDER  BY fecha DESC
-            LIMIT  20`);
+            LIMIT  50`);
 
         if (!r.rows.length) { wmRegenEnProceso = false; return; }
 
-        let regenerados = 0;
-        for (const n of r.rows) {
-            const nombre = n.imagen_nombre || n.imagen.split('/img/')[1];
-            if (!nombre) continue;
-            if (fs.existsSync(path.join('/tmp', nombre))) continue;
+        // Filtrar las que necesitan regeneración
+        const necesitan = r.rows.filter(n =>
+            esFotoFea(n.imagen) || fotoRotaEnDisco(n.imagen)
+        );
 
-            const res = await aplicarMarcaDeAgua(n.imagen_original);
-            if (res.procesada && res.nombre) {
-                await pool.query(
-                    'UPDATE noticias SET imagen=$1, imagen_nombre=$2 WHERE id=$3',
-                    [`${BASE_URL}/img/${res.nombre}`, res.nombre, n.id]
-                );
-                regenerados++;
-            }
-            // Pausa de 2s entre imágenes — evita HTTP 429 de Pexels
-            await new Promise(r => setTimeout(r, 2000));
+        if (!necesitan.length) {
+            console.log('[WM-Regen] Todas las fotos están bien ✅');
+            wmRegenEnProceso = false;
+            return;
         }
 
-        if (regenerados > 0) { console.log(`[WM-Regen] Regenerados: ${regenerados}`); invalidarCache(); }
+        console.log(`[WM-Regen] 🔄 ${necesitan.length} fotos para regenerar...`);
+        let regenerados = 0;
+
+        for (const n of necesitan) {
+            try {
+                let urlFuente = null;
+
+                // Estrategia 1: imagen_original si existe y no es fea
+                if (n.imagen_original && !esFotoFea(n.imagen_original)) {
+                    urlFuente = n.imagen_original;
+                }
+
+                // Estrategia 2: scraping del artículo RSS si hay link guardado
+                // (imagen_original a veces tiene la URL del artículo, no de la foto)
+                if (!urlFuente && n.imagen_original && n.imagen_original.startsWith('http') && !n.imagen_original.match(/\.(jpg|jpeg|png|webp)/i)) {
+                    const imgScraped = await scrapearImagenArticulo(n.imagen_original);
+                    if (imgScraped) urlFuente = imgScraped;
+                }
+
+                // Estrategia 3: buscar en Google si hay Google CSE
+                if (!urlFuente && n.titulo) {
+                    urlFuente = await buscarEnGoogle(n.titulo, n.seccion);
+                }
+
+                // Estrategia 4: banco local por categoría — mejor que pexels genérico
+                if (!urlFuente) {
+                    const sub = FALLBACK_CAT[n.seccion] || 'politica-gobierno';
+                    urlFuente = imgLocal(sub, n.seccion);
+                    console.log(`   [WM-Regen] ${n.id} usando banco local (${n.seccion})`);
+                }
+
+                // Aplicar watermark a la nueva foto
+                const res = await aplicarMarcaDeAgua(urlFuente);
+                if (res.procesada && res.nombre) {
+                    await pool.query(
+                        'UPDATE noticias SET imagen=$1, imagen_nombre=$2, imagen_original=$3 WHERE id=$4',
+                        [`${BASE_URL}/img/${res.nombre}`, res.nombre, urlFuente, n.id]
+                    );
+                    console.log(`   [WM-Regen] ✅ ID ${n.id} — ${n.titulo.substring(0,40)}`);
+                    regenerados++;
+                }
+            } catch (e) {
+                console.warn(`   [WM-Regen] ⚠️ ID ${n.id} falló: ${e.message}`);
+            }
+            await new Promise(r => setTimeout(r, 3000)); // pausa entre fotos
+        }
+
+        if (regenerados > 0) {
+            console.log(`[WM-Regen] ✅ Regeneradas: ${regenerados}/${necesitan.length}`);
+            invalidarCache();
+        }
     } catch (e) {
         console.error('[WM-Regen] Error: ' + e.message);
     }
@@ -1639,6 +1706,13 @@ cron.schedule('0 3 * * *', async () => {
     }
 });
 
+// ─── REGENERAR FOTOS FEAS — cada 2 horas ─────────────────────────────────────
+// Detecta fotos del banco local (pexels genérico) y las reemplaza con fotos reales
+cron.schedule('0 */2 * * *', async () => {
+    console.log('[Cron-Fotos] 🖼️ Revisando fotos que necesitan actualización...');
+    regenerarWatermarksLostidos();
+});
+
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
 app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.4', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
@@ -1744,6 +1818,14 @@ app.post('/api/generar-noticia', authMiddleware, async (req, res) => {
     if (!categoria) return res.status(400).json({ error: 'Falta categoria' });
     const r = await generarNoticia(categoria, tema_cpc || null);
     res.status(r.success ? 200 : 500).json(r);
+});
+
+// ─── ENDPOINT MANUAL — regenerar fotos feas ─────────────────────────────────
+app.post('/api/regenerar-fotos', authMiddleware, async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN' });
+    if (wmRegenEnProceso) return res.json({ success: false, mensaje: 'Ya en proceso' });
+    regenerarWatermarksLostidos();
+    res.json({ success: true, mensaje: 'Regeneración iniciada en background' });
 });
 
 app.post('/api/procesar-rss', authMiddleware, async (req, res) => {
