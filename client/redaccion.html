@@ -301,7 +301,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             <div class="ia-left">
               <span class="ia-lamp">🏮</span>
               <div>
-                <div class="ia-name">GEMINI 2.0 FLASH</div>
+                <div class="ia-name" id="iaModelName">GEMINI 2.5 FLASH ⚡</div>
                 <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
               </div>
             </div>
@@ -317,6 +317,8 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
             <div class="cap-item"><div class="cap-dot"></div> Memoria IA · Aprende qué funciona por categoría</div>
             <div class="cap-item"><div class="cap-dot"></div> Pexels + Pixabay · Filtro E-E-A-T · Fotos de prensa real</div>
+            <div class="cap-item"><div class="cap-dot"></div> Plan C · Imagen real extraída del RSS (Listín, Reuters, BBC)</div>
+            <div class="cap-item"><div class="cap-dot"></div> Headers Chrome · Descarga imágenes de cualquier servidor</div>
             <div class="cap-item"><div class="cap-dot"></div> Facebook + Twitter + Telegram automático tras publicar</div>
           </div>
         </div>
@@ -624,7 +626,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
         <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
         <div class="card-body">
           <div>
-            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">V34.8 ✅</span></div>
+            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">cargando...</span></div>
             <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash ⚡</span></div>
             <div class="sys-row"><span class="sys-key">PUBLICACIÓN</span><span class="badge badge-on">IA + MANUAL ✅</span></div>
             <div class="sys-row"><span class="sys-key">MULTIMEDIA</span><span class="badge badge-on">URL + ARCHIVO ✅</span></div>
@@ -634,6 +636,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             <div class="sys-row"><span class="sys-key">FACEBOOK</span><span class="badge badge-on" id="sysFB">✅</span></div>
             <div class="sys-row"><span class="sys-key">TWITTER/X</span><span class="badge badge-on" id="sysTW">✅</span></div>
             <div class="sys-row"><span class="sys-key">WATERMARK</span><span class="badge badge-warn" id="sysWM">⚠️ VERIF.</span></div>
+            <div class="sys-row"><span class="sys-key">PIXABAY</span><span class="badge badge-warn" id="sysPixabay">⚠️ VERIF.</span></div>
             <div class="sys-row"><span class="sys-key">COMENTARIOS</span><span class="badge badge-on">✅ ACTIVOS</span></div>
           </div>
           <br>
@@ -682,6 +685,10 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
             <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:8px;margin-bottom:6px">INTERNACIONALES (7) · TECH (2) · ECONOMÍA (1) · ESPECT. (3)</div>
             <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">Reuters LatAm · BBC Mundo · NYT World · El Nuevo Herald · TechCrunch · Wired · Bloomberg · Telemundo · Univision</div>
           </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--verde);background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15);border-radius:6px;padding:7px 10px;margin-bottom:10px;line-height:1.7">
+            ✅ <strong>Plan C activo</strong> — extrae imagen real del RSS antes de buscar en Pexels<br>
+            ✅ <strong>Browser Headers</strong> — descarga imágenes de cualquier servidor
+          </div>
           <button class="btn btn-ghost" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
           <div id="msgRSS" class="msg"></div>
         </div>
@@ -718,7 +725,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
           </div>
           <div style="text-align:center;padding:12px;background:rgba(0,0,0,.4);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
             <div style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">⚡ STACK TECNOLÓGICO</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:2">Node.js · Express · PostgreSQL · Railway<br>Gemini 2.5 Flash · Pexels API · Pixabay API<br>Google AdSense · Facebook · Twitter/X · Telegram<br><span style="color:var(--fuego)">elfarolaldia.com · Santo Domingo Este, RD</span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:2">Node.js · Express · PostgreSQL · Railway<br>Gemini 2.5 Flash · Pexels + Pixabay · RSS Image Extraction<br>Google AdSense · Facebook · Twitter/X · Telegram<br><span style="color:var(--fuego)">elfarolaldia.com · Santo Domingo Este, RD</span></div>
           </div>
         </div>
       </div>
@@ -1073,18 +1080,37 @@ async function cargarMemoria() {
 }
 
 /* ── STATUS ── */
-async function verStatus() {
+async function actualizarInfoServidor(silencioso = true) {
   try {
     const r = await fetch(`${API}/status`);
     const d = await r.json();
-    document.getElementById('sysVer').textContent = d.version ? `${d.version} ✅` : 'V34.8 ✅';
-    document.getElementById('sysFB').textContent  = d.facebook?.includes('Activo') ? '✅' : '⚠️';
-    document.getElementById('sysTW').textContent  = d.twitter?.includes('Activo')  ? '✅' : '⚠️';
-    const wmOk = d.marca_de_agua && !d.marca_de_agua.includes('No encontrado') && !d.marca_de_agua.includes('No configurada');
+    // Versión — automática desde el servidor
+    const ver = d.version || '?';
+    document.getElementById('sysVer').textContent = `V${ver} ✅`;
+    // Modelo IA — automático
+    const modelo = (d.modelo_gemini || 'gemini-2.5-flash').replace('gemini-','').toUpperCase();
+    const iaEl = document.getElementById('iaModelName');
+    if (iaEl) iaEl.textContent = `GEMINI ${modelo} ⚡`;
+    // Redes
+    document.getElementById('sysFB').textContent = d.facebook?.includes('Activo') ? '✅' : '⚠️';
+    document.getElementById('sysTW').textContent = d.twitter?.includes('Activo')  ? '✅' : '⚠️';
+    const wmOk = d.marca_de_agua && !d.marca_de_agua.includes('No encontrada') && !d.marca_de_agua.includes('No configurada');
     document.getElementById('sysWM').textContent = wmOk ? '✅ ACTIVA' : '⚠️ SIN MARCA';
     document.getElementById('sysWM').className   = wmOk ? 'badge badge-on' : 'badge badge-warn';
-    alert(`🏮 EL FAROL AL DÍA — ${d.version}\n\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nModelo: ${d.modelo_gemini||'gemini-2.5-flash'}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nTelegram: ${d.telegram}\nWatermark: ${d.marca_de_agua}\nSistema: ${d.sistema}`);
-  } catch(e) { alert('Error: ' + e.message); }
+    // Pixabay badge
+    const pxEl = document.getElementById('sysPixabay');
+    if (pxEl) {
+      pxEl.textContent = d.pixabay_api === 'Activa' ? '✅ ACTIVA' : '⚠️ SIN KEY';
+      pxEl.className   = d.pixabay_api === 'Activa' ? 'badge badge-on' : 'badge badge-warn';
+    }
+    return d;
+  } catch(e) { return null; }
+}
+
+async function verStatus() {
+  const d = await actualizarInfoServidor(false);
+  if (!d) { alert('Error conectando con el servidor'); return; }
+  alert(`🏮 EL FAROL AL DÍA — V${d.version}\n\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nModelo: ${d.modelo_gemini}\nPixabay: ${d.pixabay_api||'Sin key'}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nTelegram: ${d.telegram}\nWatermark: ${d.marca_de_agua}`);
 }
 
 /* ── RSS ── */
@@ -1396,6 +1422,7 @@ async function probarTelegram() {
 
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
+  actualizarInfoServidor();
   cargarConfig();
   cargarEstadisticas();
   cargarListaNoticias();
@@ -1410,6 +1437,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(cargarComentariosAdmin,  60000);
   setInterval(cargarCoach,            120000);
   setInterval(cargarStatusTelegram,    60000);
+  // Auto-actualiza versión y modelo desde el servidor cada 5 minutos
+  setInterval(actualizarInfoServidor,  300000);
 });
 </script>
 </body>
