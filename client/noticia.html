@@ -55,7 +55,7 @@ h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,50px);letter-spa
 .contenido p:first-child{font-size:18px;color:var(--crema);font-weight:600;line-height:1.65}
 .contenido a{color:var(--fuego);text-decoration:underline}
 
-/* ── ANTERIOR / SIGUIENTE ── */
+/* NAV ANTERIOR/SIGUIENTE */
 .nav-noticias{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:40px;margin-bottom:40px}
 .nav-btn{display:flex;align-items:center;gap:10px;background:var(--papel);border:1px solid var(--borde);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;transition:all .2s;min-width:0}
 .nav-btn:hover{border-color:rgba(255,85,0,.4);background:rgba(255,85,0,.05)}
@@ -89,30 +89,23 @@ h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,50px);letter-spa
 .rel-card:hover .rel-titulo{color:var(--fuego)}
 .rel-fecha{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
 
-/* ── SIDEBAR ── */
+/* SIDEBAR */
 .sidebar{position:sticky;top:80px;display:flex;flex-direction:column;gap:18px}
 .sidebar-card{background:var(--papel);border:1px solid var(--borde);border-radius:10px;overflow:hidden}
 .sidebar-header{padding:12px 16px;border-bottom:1px solid var(--borde);background:rgba(255,85,0,.05)}
 .sidebar-header h4{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:3px;color:var(--fuego)}
 .sidebar-body{padding:14px 16px}
-
-/* Categorías sidebar */
 .cat-links{display:flex;flex-direction:column;gap:4px}
 .cat-link-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--crema2);border:1px solid transparent;transition:all .2s}
 .cat-link-item:hover{color:var(--fuego);border-color:rgba(255,85,0,.2);background:rgba(255,85,0,.06)}
 .cat-link-item span{font-size:14px}
-
-/* Últimas noticias sidebar */
 .sidebar-news{display:flex;flex-direction:column;gap:10px}
 .sidebar-noticia{display:flex;gap:10px;align-items:flex-start;text-decoration:none;color:inherit;padding:8px;border-radius:7px;transition:background .2s;border:1px solid transparent}
 .sidebar-noticia:hover{background:rgba(255,85,0,.05);border-color:rgba(255,85,0,.15)}
 .sidebar-thumb{width:52px;height:40px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
-.sidebar-info{}
 .sidebar-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);line-height:1.2;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sidebar-noticia:hover .sidebar-titulo{color:var(--fuego)}
 .sidebar-fecha{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)}
-
-/* Tendencias / tags */
 .tags-cloud{display:flex;flex-wrap:wrap;gap:6px}
 .tag-item{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--crema2);background:rgba(255,255,255,.04);border:1px solid var(--borde);padding:5px 10px;border-radius:20px;text-decoration:none;transition:all .2s}
 .tag-item:hover{color:var(--fuego);border-color:rgba(255,85,0,.3);background:rgba(255,85,0,.08)}
@@ -151,7 +144,7 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 .footer-links a:hover{color:var(--fuego)}
 .footer-copy{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--borde)}
 
-/* MOBILE SIDEBAR toggle */
+/* MOBILE SIDEBAR */
 .sidebar-toggle{display:none;width:100%;padding:12px;background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.25);border-radius:8px;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;margin-bottom:12px;text-align:center}
 @media(max-width:960px){
   .sidebar-toggle{display:block}
@@ -178,7 +171,6 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
   </div>
 </header>
 
-<!-- BREADCRUMB CON SCHEMA -->
 <div class="breadcrumb-wrap">
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a href="/"><span>🏠</span> Inicio</a>
@@ -191,7 +183,6 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 
 <div class="page-layout">
 
-  <!-- ═══ ARTÍCULO PRINCIPAL ═══ -->
   <main>
     <article>
       <a href="/#{{SECCION}}" class="seccion-tag">{{SECCION}}</a>
@@ -211,7 +202,6 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 
       <div class="contenido">{{CONTENIDO}}</div>
 
-      <!-- COMPARTIR -->
       <div class="compartir">
         <h3>📢 COMPARTIR ESTA NOTICIA</h3>
         <div class="compartir-btns">
@@ -223,7 +213,6 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
       </div>
     </article>
 
-    <!-- ── NAVEGACIÓN ANTERIOR / SIGUIENTE ── -->
     <nav class="nav-noticias" id="navNoticias" aria-label="Navegación entre noticias">
       <a class="nav-btn prev" id="btnAnterior" href="#" style="visibility:hidden">
         <span class="nav-arrow">←</span>
@@ -241,7 +230,6 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
       </a>
     </nav>
 
-    <!-- ── NOTICIAS RELACIONADAS ── -->
     <aside class="relacionadas">
       <h3>📰 OTRAS NOTICIAS QUE TE PUEDEN INTERESAR</h3>
       <div class="rel-grid" id="relacionadas">
@@ -249,7 +237,6 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
       </div>
     </aside>
 
-    <!-- ── COMENTARIOS ── -->
     <section class="comentarios">
       <h3>💬 COMENTARIOS</h3>
       <div class="comentario-form">
@@ -269,16 +256,14 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
     </section>
   </main>
 
-  <!-- ═══ SIDEBAR ═══ -->
   <aside class="sidebar">
     <button class="sidebar-toggle" onclick="toggleSidebar()">📊 VER TENDENCIAS Y CATEGORÍAS ↓</button>
     <div class="sidebar-inner" id="sidebarInner">
 
-      <!-- CATEGORÍAS -->
       <div class="sidebar-card">
         <div class="sidebar-header"><h4>📂 CATEGORÍAS</h4></div>
         <div class="sidebar-body">
-          <nav class="cat-links" aria-label="Categorías">
+          <nav class="cat-links">
             <a href="/#Nacionales"      class="cat-link-item"><span>🏛️</span> NACIONALES</a>
             <a href="/#Deportes"        class="cat-link-item"><span>⚽</span> DEPORTES</a>
             <a href="/#Internacionales" class="cat-link-item"><span>🌍</span> INTERNACIONALES</a>
@@ -290,17 +275,15 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
         </div>
       </div>
 
-      <!-- ÚLTIMAS 10 NOTICIAS -->
       <div class="sidebar-card">
         <div class="sidebar-header"><h4>🔥 ÚLTIMAS NOTICIAS</h4></div>
         <div class="sidebar-body">
-          <nav class="sidebar-news" id="sidebarNoticias" aria-label="Últimas noticias">
+          <nav class="sidebar-news" id="sidebarNoticias">
             <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando...</div>
           </nav>
         </div>
       </div>
 
-      <!-- TEMAS TENDENCIA -->
       <div class="sidebar-card">
         <div class="sidebar-header"><h4>🏷️ TEMAS</h4></div>
         <div class="sidebar-body">
@@ -325,25 +308,24 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
         </div>
       </div>
 
-      <!-- PÁGINAS LEGALES -->
       <div class="sidebar-card">
         <div class="sidebar-header"><h4>📋 PÁGINAS</h4></div>
         <div class="sidebar-body">
           <nav class="cat-links">
-            <a href="/nosotros"  class="cat-link-item"><span>👥</span> NOSOTROS</a>
-            <a href="/contacto"  class="cat-link-item"><span>📧</span> CONTACTO</a>
+            <a href="/nosotros"   class="cat-link-item"><span>👥</span> NOSOTROS</a>
+            <a href="/contacto"   class="cat-link-item"><span>📧</span> CONTACTO</a>
             <a href="/privacidad" class="cat-link-item"><span>🔒</span> PRIVACIDAD</a>
-            <a href="/terminos"  class="cat-link-item"><span>📄</span> TÉRMINOS</a>
-            <a href="/cookies"   class="cat-link-item"><span>🍪</span> COOKIES</a>
+            <a href="/terminos"   class="cat-link-item"><span>📄</span> TÉRMINOS</a>
+            <a href="/cookies"    class="cat-link-item"><span>🍪</span> COOKIES</a>
             <a href="/sitemap.xml" class="cat-link-item" target="_blank"><span>🗺️</span> SITEMAP</a>
           </nav>
         </div>
       </div>
 
-    </div><!-- /sidebar-inner -->
+    </div>
   </aside>
 
-</div><!-- /page-layout -->
+</div>
 
 <footer>
   <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
@@ -360,7 +342,7 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
     <a href="/cookies">COOKIES</a>
     <a href="/sitemap.xml">SITEMAP</a>
   </div>
-  <div class="footer-copy">© 2026 El Farol al Día · <a href="/" style="color:var(--muted);text-decoration:none">Noticias Último Minuto</a> · <a href="/#Nacionales" style="color:var(--muted);text-decoration:none">Santo Domingo Este</a> · República Dominicana</div>
+  <div class="footer-copy">© 2026 El Farol al Día · <a href="/" style="color:var(--muted);text-decoration:none">Noticias Último Minuto</a> · Santo Domingo Este · República Dominicana</div>
 </footer>
 
 <script>
@@ -368,123 +350,86 @@ const SLUG = window.location.pathname.split('/noticia/')[1] || '';
 let NOTICIA_ID = null;
 let todasNoticias = [];
 
-/* ── SIDEBAR MOBILE ── */
 function toggleSidebar() {
-  const inner = document.getElementById('sidebarInner');
-  inner.classList.toggle('open');
+  document.getElementById('sidebarInner').classList.toggle('open');
 }
 
-/* ── CARGAR TODO ── */
 async function iniciar() {
   try {
     const r = await fetch('/api/noticias');
     const d = await r.json();
     todasNoticias = d.noticias || [];
-
     const actual = todasNoticias.find(n => n.slug === SLUG);
     if (actual) {
       NOTICIA_ID = actual.id;
       cargarComentarios();
       navegacionAnteriorSiguiente(actual);
     }
-
     cargarRelacionadas(actual);
     cargarSidebar();
     actualizarBreadcrumb(actual);
   } catch(e) { console.error(e); }
 }
 
-/* ── BREADCRUMB dinámico ── */
 function actualizarBreadcrumb(noticia) {
   if (!noticia) return;
   const tit = document.getElementById('breadTitulo');
   const sec = document.getElementById('breadSeccionLink');
-  if (tit) tit.textContent = noticia.titulo.length > 50
-    ? noticia.titulo.substring(0, 50) + '...' : noticia.titulo;
-  if (sec) {
-    sec.textContent = noticia.seccion;
-    sec.href = `/#${noticia.seccion}`;
-  }
+  if (tit) tit.textContent = noticia.titulo.length > 50 ? noticia.titulo.substring(0,50)+'...' : noticia.titulo;
+  if (sec) { sec.textContent = noticia.seccion; sec.href = `/#${noticia.seccion}`; }
 }
 
-/* ── ANTERIOR / SIGUIENTE ── */
 function navegacionAnteriorSiguiente(actual) {
   const idx = todasNoticias.findIndex(n => n.id === actual.id);
-
   const btnAnt = document.getElementById('btnAnterior');
   const btnSig = document.getElementById('btnSiguiente');
-
-  // "Siguiente" = más reciente (idx - 1), "Anterior" = más antigua (idx + 1)
   if (idx > 0) {
     const sig = todasNoticias[idx - 1];
     btnSig.href = `/noticia/${sig.slug}`;
-    document.getElementById('titSiguiente').textContent =
-      sig.titulo.length > 55 ? sig.titulo.substring(0, 55) + '…' : sig.titulo;
+    document.getElementById('titSiguiente').textContent = sig.titulo.length > 55 ? sig.titulo.substring(0,55)+'…' : sig.titulo;
     btnSig.style.visibility = 'visible';
   }
-
   if (idx < todasNoticias.length - 1) {
     const ant = todasNoticias[idx + 1];
     btnAnt.href = `/noticia/${ant.slug}`;
-    document.getElementById('titAnterior').textContent =
-      ant.titulo.length > 55 ? ant.titulo.substring(0, 55) + '…' : ant.titulo;
+    document.getElementById('titAnterior').textContent = ant.titulo.length > 55 ? ant.titulo.substring(0,55)+'…' : ant.titulo;
     btnAnt.style.visibility = 'visible';
   }
 }
 
-/* ── RELACIONADAS — misma sección + aleatorias ── */
 function cargarRelacionadas(actual) {
   const c = document.getElementById('relacionadas');
   if (!todasNoticias.length) { c.innerHTML = ''; return; }
-
   const seccion = actual?.seccion || '';
   const idActual = actual?.id;
-
-  // Primero misma sección, luego cualquier otra, excluir la actual
-  let mismaSec = todasNoticias.filter(n => n.seccion === seccion && n.id !== idActual);
-  let otras    = todasNoticias.filter(n => n.seccion !== seccion && n.id !== idActual);
-
-  // Mezclar aleatoriamente
-  mismaSec = mismaSec.sort(() => Math.random() - 0.5);
-  otras    = otras.sort(() => Math.random() - 0.5);
-
-  // Tomar 2 de la misma sección + 2 de otras = 4 total
-  const rel = [...mismaSec.slice(0, 2), ...otras.slice(0, 2)];
-
-  if (!rel.length) { c.innerHTML = '<p style="color:var(--muted);font-size:13px;font-family:JetBrains Mono,monospace">Sin noticias relacionadas aún</p>'; return; }
-
+  let mismaSec = todasNoticias.filter(n => n.seccion === seccion && n.id !== idActual).sort(() => Math.random()-.5);
+  let otras    = todasNoticias.filter(n => n.seccion !== seccion && n.id !== idActual).sort(() => Math.random()-.5);
+  const rel = [...mismaSec.slice(0,2), ...otras.slice(0,2)];
+  if (!rel.length) { c.innerHTML = '<p style="color:var(--muted);font-size:13px;font-family:JetBrains Mono,monospace">Sin noticias relacionadas</p>'; return; }
   c.innerHTML = rel.map(n => {
-    const f = new Date(n.fecha).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' });
-    const img = n.imagen?.startsWith('http') ? n.imagen
-      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400';
-    return `
-    <a class="rel-card" href="/noticia/${n.slug}">
-      <img src="${img}" alt="${n.titulo}"
-        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
+    const f = new Date(n.fecha).toLocaleDateString('es-DO', {day:'2-digit',month:'short',year:'numeric'});
+    const img = n.imagen?.startsWith('http') ? n.imagen : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400';
+    return `<a class="rel-card" href="/noticia/${n.slug}">
+      <img src="${img}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
       <div class="rel-body">
         <div class="rel-seccion">${n.seccion}</div>
-        <div class="rel-titulo">${n.titulo.length > 60 ? n.titulo.substring(0,60)+'…' : n.titulo}</div>
+        <div class="rel-titulo">${n.titulo.length>60?n.titulo.substring(0,60)+'…':n.titulo}</div>
         <div class="rel-fecha">📅 ${f}</div>
       </div>
     </a>`;
   }).join('');
 }
 
-/* ── SIDEBAR — últimas 10 noticias ── */
 function cargarSidebar() {
   const nav = document.getElementById('sidebarNoticias');
   const ultimas = todasNoticias.slice(0, 10);
   if (!ultimas.length) { nav.innerHTML = ''; return; }
-
   nav.innerHTML = ultimas.map(n => {
-    const f = new Date(n.fecha).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' });
-    const img = n.imagen?.startsWith('http') ? n.imagen
-      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
-    return `
-    <a class="sidebar-noticia" href="/noticia/${n.slug}">
-      <img class="sidebar-thumb" src="${img}" alt="${n.titulo}"
-        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'"
-        loading="lazy">
+    const f = new Date(n.fecha).toLocaleDateString('es-DO', {day:'2-digit',month:'short'});
+    const img = n.imagen?.startsWith('http') ? n.imagen : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
+    return `<a class="sidebar-noticia" href="/noticia/${n.slug}">
+      <img class="sidebar-thumb" src="${img}" alt="${n.titulo}" loading="lazy"
+        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
       <div class="sidebar-info">
         <div class="sidebar-titulo">${n.titulo}</div>
         <div class="sidebar-fecha">📅 ${f} · ${n.seccion}</div>
@@ -493,25 +438,23 @@ function cargarSidebar() {
   }).join('');
 }
 
-/* ── COMENTARIOS ── */
 async function cargarComentarios() {
   if (!NOTICIA_ID) return;
   try {
-    const r   = await fetch(`/api/comentarios/${NOTICIA_ID}`);
-    const d   = await r.json();
+    const r = await fetch(`/api/comentarios/${NOTICIA_ID}`);
+    const d = await r.json();
     const lista = document.getElementById('comLista');
     const count = document.getElementById('comCount');
     if (!d.comentarios?.length) {
-      lista.innerHTML  = '<div class="com-empty">Sé el primero en comentar 🏮</div>';
+      lista.innerHTML = '<div class="com-empty">Sé el primero en comentar 🏮</div>';
       count.textContent = '';
       return;
     }
-    count.textContent = `${d.comentarios.length} COMENTARIO${d.comentarios.length !== 1 ? 'S' : ''}`;
+    count.textContent = `${d.comentarios.length} COMENTARIO${d.comentarios.length!==1?'S':''}`;
     lista.innerHTML = d.comentarios.map(c => {
       const inicial = c.nombre.charAt(0).toUpperCase();
-      const fecha = new Date(c.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-      return `
-      <div class="comentario-item">
+      const fecha = new Date(c.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="comentario-item">
         <div class="com-header">
           <div class="com-avatar">${inicial}</div>
           <span class="com-nombre">${c.nombre}</span>
@@ -535,8 +478,8 @@ async function publicarComentario() {
   btn.disabled = true; btn.textContent = 'Publicando...';
   try {
     const r = await fetch(`/api/comentarios/${NOTICIA_ID}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, texto })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nombre, texto})
     });
     const d = await r.json();
     if (d.success) {
@@ -545,7 +488,7 @@ async function publicarComentario() {
       document.getElementById('comChars').textContent = '0/1000';
       showComMsg('✅ Comentario publicado', true);
       await cargarComentarios();
-    } else { showComMsg('❌ ' + (d.error || 'Error'), false); }
+    } else { showComMsg('❌ ' + (d.error||'Error'), false); }
   } catch(e) { showComMsg('❌ Error de conexión', false); }
   finally { btn.disabled = false; btn.textContent = '💬 PUBLICAR COMENTARIO'; }
 }
