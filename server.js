@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.8
- * Base: V34.7
+ * 🏮 EL FAROL AL DÍA — V34.9
+ * Base: V34.9
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -470,7 +470,7 @@ async function llamarGemini(prompt, reintentos = 3) {
 
 // ─── FILTRO REALISMO E-E-A-T ─────────────────────────────────────────────────
 // Concatenamos términos de prensa real a cada query para evitar ilustraciones AI
-const REALISMO = 'press photo news real -illustration -render -3d -cartoon -vector';
+const REALISMO = 'people news editorial press journalism';
 
 function queryRealista(q) {
     return `${q} ${REALISMO}`.trim();
@@ -518,7 +518,28 @@ const MAPEO_IMAGENES = {
 };
 
 // ─── PEXELS ───────────────────────────────────────────────────────────────────
-const PEXELS_BLOQ = ['wedding','bride','groom','couple','romance','flowers','fashion','pet','dog','cat','birthday','party','baby','yoga','meditation'];
+const PEXELS_BLOQ = [
+    // Mascotas y animales
+    'cat','dog','pet','kitten','puppy','animal','bird','horse','fish',
+    // Bodas y romance
+    'wedding','bride','groom','couple','romance','valentine','love',
+    // Moda y lifestyle
+    'fashion','model','beauty','makeup','hair','yoga','meditation','spa',
+    // Comida y cocina
+    'food','cooking','recipe','coffee','drink','restaurant','cafe','cake',
+    // Naturaleza genérica
+    'flower','sunset','landscape','nature','forest','mountain','sky',
+    // Oficina genérica
+    'notebook','pencil','pen','desk','office','laptop','computer abstract',
+    // Comercio
+    'sale','shopping','gift','toy','black friday','discount','store',
+    // Celebraciones
+    'birthday','party','celebration','christmas','holiday',
+    // Bebés y familia
+    'baby','toddler','child playing','family portrait',
+    // Viajes genéricos
+    'travel','vacation','beach umbrella','tourist',
+];
 
 async function buscarEnPexels(queries) {
     if (!PEXELS_API_KEY) return null;
@@ -530,16 +551,21 @@ async function buscarEnPexels(queries) {
             const ctrl  = new AbortController();
             const tm    = setTimeout(() => ctrl.abort(), 6000);
             const res   = await fetch(
-                `https://api.pexels.com/v1/search?query=${encodeURIComponent(qReal)}&per_page=15&orientation=landscape`,
+                `https://api.pexels.com/v1/search?query=${encodeURIComponent(qReal)}&per_page=20&orientation=landscape&size=large`,
                 { headers: { Authorization: PEXELS_API_KEY }, signal: ctrl.signal }
             ).finally(() => clearTimeout(tm));
             if (!res.ok) { console.log(`   [Pexels] HTTP ${res.status} para "${q}"`); continue; }
             const data = await res.json();
             if (!data.photos?.length) continue;
-            // Preferir fotos con alta resolución (width > 1200)
-            const buenas = data.photos.filter(p => p.width >= 1200);
-            const pool2  = buenas.length >= 3 ? buenas : data.photos;
-            const foto   = pool2[Math.floor(Math.random() * Math.min(5, pool2.length))];
+            // Filtrar fotos que parezcan stock genérico por el alt text
+            const stockWords = ['cat','dog','pet','flower','food','coffee','laptop','desk','sale','gift','toy','baby','sunset','nature','beach'];
+            const filtradas = data.photos.filter(p => {
+                const alt = (p.alt || '').toLowerCase();
+                return !stockWords.some(w => alt.includes(w)) && p.width >= 1200;
+            });
+            const pool2 = filtradas.length >= 2 ? filtradas : data.photos.filter(p => p.width >= 1200);
+            if (!pool2.length) continue;
+            const foto = pool2[Math.floor(Math.random() * Math.min(5, pool2.length))];
             console.log(`   [Pexels ✓] "${q}"`);
             await registrarQueryPexels(q, 'auto', true);
             return foto.src.large2x || foto.src.large || foto.src.original;
@@ -639,16 +665,31 @@ async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
         if (u2) return u2;
     }
 
-    // 4. Query genérico de categoría → Pexels
-    const qGenerico = `${categoria} dominican republic news`;
-    const u3 = await buscarEnPexels([qGenerico]);
-    if (u3) return u3;
+    // 4. Query genérico de categoría → solo si es periodístico
+    // Si el queryIA falló, NO intentar con query genérico (sale gato/lápiz)
+    // Ir directo al banco local que tiene fotos reales curadas
+    if (queryIA && queryIA.length > 8) {
+        // El queryIA ya falló en Pexels y Pixabay — banco local es más seguro
+        console.log(`   [Imagen] queryIA falló, usando banco local para "${subtema || categoria}"`);
+        return imgLocal(subtema, categoria);
+    }
 
-    // 5. Query genérico → Pixabay
-    const u4 = await buscarEnPixabay(qGenerico);
+    // Sin queryIA — intentar con query periodístico de categoría
+    const MAP_CAT_QUERY = {
+        Nacionales:      'Dominican Republic government official press',
+        Economia:        'Dominican Republic economy finance bank official',
+        Deportes:        'baseball stadium sport game action',
+        Internacionales: 'world news press conference official',
+        Tecnologia:      'technology cybersecurity data center server',
+        Espectaculos:    'concert stage performance live show',
+    };
+    const qCat = MAP_CAT_QUERY[categoria] || `${categoria} news press`;
+    const u3 = await buscarEnPexels([qCat]);
+    if (u3) return u3;
+    const u4 = await buscarEnPixabay(qCat);
     if (u4) return u4;
 
-    // 6. Banco local garantizado
+    // Banco local garantizado
     console.log(`   [Imagen] Usando banco local para "${subtema || categoria}"`);
     return imgLocal(subtema, categoria);
 }
