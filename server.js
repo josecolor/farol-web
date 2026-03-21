@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.13
- * Base: V34.13
+ * 🏮 EL FAROL AL DÍA — V34.15
+ * Base: V34.15
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -353,7 +353,7 @@ async function aplicarMarcaDeAgua(urlImagen) {
                 top:   Math.max(0, h - wmAlto  - margen),
                 blend: 'over',
             }])
-            .jpeg({ quality: 88 })
+            .jpeg({ quality: 78, progressive: true })
             .toBuffer();
 
         const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
@@ -618,7 +618,7 @@ async function buscarEnPixabay(query) {
 // ─── BANCO LOCAL — Fotos de prensa real verificadas ─────────────────────────────
 // Fotos reales de personas, edificios, eventos — sin muñecos ni ilustraciones
 const PB  = 'https://images.pexels.com/photos';
-const OPT = '?auto=compress&cs=tinysrgb&w=1200&fit=crop';
+const OPT = '?auto=compress&cs=tinysrgb&w=900&fit=crop&q=75';
 const BANCO_LOCAL = {
     'politica-gobierno': [
         // Edificios gubernamentales, discursos, ceremonias reales
@@ -952,7 +952,7 @@ function elegirRedactor(cat) {
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 60000;
+const CACHE_TTL = 300000; // 5 minutos
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
@@ -1357,75 +1357,163 @@ function extraerImagenRSS(item) {
     return null;
 }
 
+// ─── DETECTOR DE RELEVANCIA Y TENDENCIAS ─────────────────────────────────────
+// Palabras de alto tráfico en RD — si aparecen en el título, la noticia es prioritaria
+const PALABRAS_TRENDING = [
+    // Política y gobierno RD
+    'abinader','leonel','luis','presidente','gobierno','congreso','senado','diputados',
+    'jce','elecciones','reforma','ley','decreto','ministerio','procuraduria',
+    // Economía impacto directo
+    'precio','gasolina','combustible','dolar','inflacion','salario','aumento','baja',
+    'luz','agua','apagón','invivienda','vivienda','prestamo','tasa','banco',
+    // Seguridad — alto tráfico en RD
+    'muerto','matan','asesinato','tiroteo','policia','arresto','detenido','preso',
+    'crimen','robo','secuestro','operativo','narcotráfico','drogas',
+    // Deportes trending
+    'béisbol','beisbol','pelotero','liga','playoff','campeón','gana','pierde',
+    'juan soto','vladimir','manny','david ortiz','marlins','yankees','dodgers',
+    // Internacional con impacto en RD
+    'trump','estados unidos','eeuu','remesas','deportacion','migrante','haiti',
+    'venezuela','cuba','aranceles','visa','embargo',
+    // Salud y emergencias
+    'muertos','heridos','accidente','incendio','huracan','terremoto','alerta',
+    'hospital','epidemia','virus','vacuna',
+    // Tecnología trending
+    'inteligencia artificial','ia','chatgpt','meta','google','apple','elon musk',
+];
+
+// Temas que YA publicamos hoy — evitar saturación del mismo tema
+const temasPublicadosHoy = new Set();
+setInterval(() => temasPublicadosHoy.clear(), 12 * 60 * 60 * 1000); // limpiar cada 12h
+
+function puntuarRelevancia(titulo, contenido = '') {
+    if (!titulo) return 0;
+    const texto = (titulo + ' ' + contenido).toLowerCase();
+    let score = 0;
+
+    // +3 por cada palabra trending encontrada
+    for (const palabra of PALABRAS_TRENDING) {
+        if (texto.includes(palabra)) score += 3;
+    }
+
+    // +5 si tiene cifras concretas (indica noticia con datos reales)
+    if (/\d+%|\$\d+|rd\$|millones|miles de|\d+ (personas|muertos|heridos|casos)/.test(texto)) score += 5;
+
+    // +3 si menciona lugares de RD
+    if (/santo domingo|santiago|la romana|san pedro|puerto plata|barahona|sde|los mina/.test(texto)) score += 3;
+
+    // -10 si ya cubrimos este tema hoy (anti-repetición)
+    const palabrasClave = titulo.toLowerCase().split(' ').filter(w => w.length > 5).slice(0, 3).join('-');
+    if (temasPublicadosHoy.has(palabrasClave)) score -= 10;
+
+    return score;
+}
+
 async function procesarRSS() {
     if (!CONFIG_IA.enabled) return;
     if (rssEnProceso) { console.log('[RSS] Ya en proceso, ciclo omitido'); return; }
 
     rssEnProceso = true;
-    console.log(`\n[RSS] Ciclo iniciado (${FUENTES_RSS.length} fuentes)`);
+    console.log(`\n[RSS] ⚡ Ciclo iniciado — buscando noticias relevantes...`);
     let procesadas = 0;
+    let omitidas   = 0;
+
+    // Recolectar TODOS los items de TODAS las fuentes primero
+    // Luego ordenar por relevancia y publicar las mejores
+    const candidatos = [];
 
     for (const fuente of FUENTES_RSS) {
         try {
             const feed = await rssParser.parseURL(fuente.url).catch(() => null);
             if (!feed?.items?.length) continue;
 
-            for (const item of feed.items.slice(0, 3)) {
+            for (const item of feed.items.slice(0, 5)) {
                 const guid = item.guid || item.link || item.title;
                 if (!guid) continue;
 
+                // Ya procesada — saltar
                 const ya = await pool.query(
                     'SELECT id FROM rss_procesados WHERE item_guid=$1',
                     [guid.substring(0, 500)]
                 );
                 if (ya.rows.length) continue;
 
-                // PLAN C: extraer imagen real del periódico
-                // 1. Del RSS directo
-                let imagenRSS = extraerImagenRSS(item);
-
-                // 2. Si el RSS no trae imagen, hacer scraping del artículo
-                if (!imagenRSS && item.link) {
-                    imagenRSS = await scrapearImagenArticulo(item.link);
-                }
-
-                if (imagenRSS) {
-                    console.log(`   [RSS-IMG ✓] ${imagenRSS.substring(0, 70)}`);
-                } else {
-                    console.log(`   [RSS-IMG] Sin imagen — usará banco local`);
-                }
-
-                // Construir comunicado para Gemini con TODO el contenido disponible
-                const com = [
-                    item.title          ? `TITULO ORIGINAL: ${item.title}`                         : '',
-                    item.contentSnippet ? `RESUMEN: ${item.contentSnippet}`                        : '',
-                    item.content        ? `CONTENIDO: ${item.content.substring(0, 2000)}`          : '',
-                    item['content:encoded'] ? `HTML: ${item['content:encoded'].replace(/<[^>]+>/g,'').substring(0, 1000)}` : '',
-                    `FUENTE: ${fuente.nombre}`,
-                    `INSTRUCCION: Reescribe esta noticia completamente con tu voz periodística élite. NO copies frases del original. SEO máximo para RD.`,
-                ].filter(Boolean).join('\n');
-
-                const res = await generarNoticia(fuente.categoria, com, imagenRSS);
-
-                if (res.success) {
-                    await pool.query(
-                        'INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',
-                        [guid.substring(0, 500), fuente.nombre]
-                    );
-                    procesadas++;
-                    // Pausa de 6 s entre noticias para no saturar Gemini ni Railway
-                    await new Promise(r => setTimeout(r, 6000));
-                }
-                break; // Solo 1 ítem por fuente por ciclo
+                const score = puntuarRelevancia(item.title, item.contentSnippet);
+                candidatos.push({ item, fuente, guid, score });
             }
-        } catch (err) {
-            console.warn(`[RSS] ${fuente.nombre}: ${err.message}`);
-        }
-        // Pausa de 1 s entre fuentes
-        await new Promise(r => setTimeout(r, 1000));
+        } catch (_) {}
+        await new Promise(r => setTimeout(r, 500));
     }
 
-    console.log(`[RSS] Ciclo terminado: ${procesadas} noticias nuevas`);
+    if (!candidatos.length) {
+        console.log('[RSS] Sin noticias nuevas en este ciclo');
+        rssEnProceso = false;
+        return;
+    }
+
+    // Ordenar por relevancia — las más importantes primero
+    candidatos.sort((a, b) => b.score - a.score);
+
+    console.log(`[RSS] ${candidatos.length} candidatas — Top 3 scores: ${candidatos.slice(0,3).map(c => c.score + ' "' + (c.item.title||'').substring(0,30) + '"').join(' | ')}`);
+
+    // Publicar máximo 5 por ciclo — las más relevantes
+    // Si score < 3 = noticia sin valor trending → esperar al próximo ciclo
+    const SCORE_MINIMO  = 3;
+    const MAX_POR_CICLO = 5;
+
+    for (const candidato of candidatos.slice(0, MAX_POR_CICLO)) {
+        const { item, fuente, guid, score } = candidato;
+
+        if (score < SCORE_MINIMO) {
+            console.log(`[RSS] ⏭ Omitida (score ${score}): "${(item.title||'').substring(0,50)}"`);
+            omitidas++;
+
+            // Marcar como procesada igual — no volver a evaluar
+            await pool.query(
+                'INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',
+                [guid.substring(0, 500), fuente.nombre + '-omitida']
+            );
+            continue;
+        }
+
+        console.log(`[RSS] ✅ Publicando (score ${score}): "${(item.title||'').substring(0,50)}"`);
+
+        // PLAN C: imagen real del artículo
+        let imagenRSS = extraerImagenRSS(item);
+        if (!imagenRSS && item.link) {
+            imagenRSS = await scrapearImagenArticulo(item.link);
+        }
+        if (imagenRSS) {
+            console.log(`   [IMG ✓] ${imagenRSS.substring(0, 70)}`);
+        }
+
+        // Construir comunicado para Gemini
+        const com = [
+            item.title          ? `TITULO ORIGINAL: ${item.title}`                                      : '',
+            item.contentSnippet ? `RESUMEN: ${item.contentSnippet}`                                     : '',
+            item.content        ? `CONTENIDO: ${item.content.substring(0, 2000)}`                       : '',
+            item['content:encoded'] ? `TEXTO: ${item['content:encoded'].replace(/<[^>]+>/g,'').substring(0,1000)}` : '',
+            `FUENTE: ${fuente.nombre}`,
+            `SCORE TENDENCIA: ${score} — Esta noticia tiene alto potencial de tráfico en RD.`,
+            `INSTRUCCION: Reescribe con voz propia y periodismo élite. SEO máximo. NO copies el original.`,
+        ].filter(Boolean).join('\n');
+
+        const res = await generarNoticia(fuente.categoria, com, imagenRSS);
+
+        if (res.success) {
+            await pool.query(
+                'INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',
+                [guid.substring(0, 500), fuente.nombre]
+            );
+            // Registrar tema para evitar repetición en las próximas 12h
+            const palabrasClave = (item.title||'').toLowerCase().split(' ').filter(w=>w.length>5).slice(0,3).join('-');
+            temasPublicadosHoy.add(palabrasClave);
+            procesadas++;
+            await new Promise(r => setTimeout(r, 6000)); // pausa Gemini
+        }
+    }
+
+    console.log(`[RSS] Ciclo terminado — Publicadas: ${procesadas} | Omitidas: ${omitidas} | Score mínimo: ${SCORE_MINIMO}`);
     rssEnProceso = false;
 }
 
@@ -1531,17 +1619,33 @@ async function analizarRendimiento(dias = 7) {
 }
 
 // ─── CRON ─────────────────────────────────────────────────────────────────────
+// Pulso de vida — evita que Railway duerma el servidor
+// ─── KEEP-ALIVE cada 14 min (Railway no duerme el proceso) ──────────────────
 cron.schedule('*/14 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch (_) {}
 });
 
-cron.schedule('0 */4 * * *', async () => {
-    if (!CONFIG_IA.enabled) return;
-    await generarNoticia(CATS[Math.floor(Math.random() * CATS.length)]);
+// ─── RSS CADA 30 MINUTOS — velocidad de periódico real ────────────────────────
+// Listín · Diario Libre · N Digital publican 24/7 — nosotros también
+// La bandera rssEnProceso evita solapamiento si un ciclo tarda más de 30 min
+// item_guid ya procesado → se salta → no hay duplicados
+cron.schedule('*/30 * * * *', async () => {
+    if (rssEnProceso) {
+        console.log('[Cron-RSS] Ciclo anterior aún en proceso — omitido');
+        return;
+    }
+    console.log('[Cron-RSS] ⚡ Escaneando Listín · Diario Libre · N Digital...');
+    procesarRSS(); // sin await — no bloquea el proceso
 });
 
-cron.schedule('0 1,7,13,19 * * *', async () => {
-    await procesarRSS();
+// ─── IA GENERA NOTICIA PROPIA cada 2 horas ───────────────────────────────────
+// Complementa el RSS con noticias propias de análisis y contexto local
+// 12 noticias/día de producción propia — sostenible con gemini-2.5-flash
+cron.schedule('0 */2 * * *', async () => {
+    if (!CONFIG_IA.enabled || rssEnProceso) return;
+    const cat = CATS[Math.floor(Math.random() * CATS.length)];
+    console.log(`[Cron-IA] 🏮 Noticia propia: ${cat}`);
+    await generarNoticia(cat);
 });
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
@@ -1564,7 +1668,7 @@ app.options('/api/noticias', (req, res) => {
 
 app.get('/api/noticias', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public,max-age=60');
+    res.setHeader('Cache-Control', 'public,max-age=300,stale-while-revalidate=600');
     res.setHeader('Content-Type',  'application/json');
     try {
         if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL)
@@ -1574,6 +1678,13 @@ app.get('/api/noticias', async (req, res) => {
              FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`,
             ['publicada']
         );
+        // Optimizar URLs de Pexels para carga rápida en lista
+        r.rows = r.rows.map(n => ({
+            ...n,
+            imagen: n.imagen?.includes('pexels.com/photos/')
+                ? n.imagen.replace(/\?.*$/, '') + '?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop&q=70'
+                : n.imagen
+        }));
         _cacheNoticias = r.rows; _cacheFecha = Date.now();
         res.json({ success: true, noticias: r.rows });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -1807,7 +1918,7 @@ app.get('/noticia/:slug', async (req, res) => {
                 .replace(/{{SECCION}}/g,   esc(n.seccion))
                 .replace(/{{URL}}/g,       encodeURIComponent(urlN));
             res.setHeader('Content-Type',  'text/html;charset=utf-8');
-            res.setHeader('Cache-Control', 'public,max-age=300');
+            res.setHeader('Cache-Control', 'public,max-age=1800,stale-while-revalidate=3600');
             res.send(html);
         } catch (_) { res.json({ success: true, noticia: n }); }
     } catch (e) { res.status(500).send('Error interno'); }
@@ -1828,7 +1939,7 @@ app.get('/sitemap.xml', async (req, res) => {
         }
         xml += '</urlset>';
         res.header('Content-Type',  'application/xml');
-        res.header('Cache-Control', 'public,max-age=3600');
+        res.header('Cache-Control', 'public,max-age=7200');
         res.send(xml);
     } catch (e) { res.status(500).send('Error'); }
 });
