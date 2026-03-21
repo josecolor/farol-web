@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.21
- * Base: V34.21
+ * 🏮 EL FAROL AL DÍA — V34.23
+ * Base: V34.23
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -265,12 +265,36 @@ async function aplicarMarcaDeAgua(urlImagen) {
     let response, lastErr;
     for (let intento = 0; intento < 3; intento++) {
         try {
-            const ctrl = new AbortController();
+            // Intentar conseguir la versión de mayor resolución disponible
+        // Diario Libre y Listín a veces tienen sufijo de tamaño en la URL
+        let urlDescarga = urlImagen;
+        if (urlImagen.includes('diariolibre.com') || urlImagen.includes('listindiario.com')) {
+            // Reemplazar sufijos de thumbnail por versión grande
+            urlDescarga = urlImagen
+                .replace(/-\d+x\d+(\.\w+)$/, '$1')          // elimina -300x200.jpg
+                .replace(/[?&](w|width|size)=\d+/g, '')      // elimina ?w=300
+                .replace(/[?&](h|height)=\d+/g, '')          // elimina &h=200
+                .replace('thumbnail', 'full')                  // thumbnail → full
+                .replace('-thumb', '')                         // -thumb eliminado
+                .replace('-small', '')                         // -small eliminado
+                .replace('-medium', '-large');                 // medium → large
+            if (urlDescarga !== urlImagen) {
+                console.log(`   [IMG-URL] Versión grande: ${urlDescarga.substring(0,70)}`);
+            }
+        }
+
+        const ctrl = new AbortController();
             const tm   = setTimeout(() => ctrl.abort(), 15000);
-            response   = await fetch(urlImagen, {
+            response   = await fetch(urlDescarga, {
                 headers: { ...BROWSER_HEADERS, 'Cache-Control': 'no-cache' },
                 signal: ctrl.signal,
             }).finally(() => clearTimeout(tm));
+            // Si falla la versión grande, intentar con la URL original
+            if (!response.ok && urlDescarga !== urlImagen) {
+                response = await fetch(urlImagen, {
+                    headers: BROWSER_HEADERS,
+                }).catch(() => null);
+            }
             if (response.ok) break;
             lastErr = 'HTTP ' + response.status;
         } catch (e) {
@@ -282,16 +306,51 @@ async function aplicarMarcaDeAgua(urlImagen) {
         if (!response?.ok) throw new Error(lastErr || 'Sin respuesta');
         const bufOrig = Buffer.from(await response.arrayBuffer());
 
-        // Escalar a 1200x630 (formato estándar prensa digital / og:image)
-        // Si la foto viene pequeña del periódico, sube a calidad óptima
-        const bufEscalado = await sharp(bufOrig)
-            .resize(1200, 630, {
-                fit:      'cover',       // recorta centrado — no deforma
-                position: 'attention',   // sharp detecta el punto de interés
-                withoutEnlargement: false, // escalar hacia arriba si viene pequeña
-            })
-            .sharpen({ sigma: 0.8 })     // nitidez extra para pantallas HD
-            .toBuffer();
+        // Adaptar procesamiento SEGÚN el tamaño real de la foto
+        const metaOrig  = await sharp(bufOrig).metadata();
+        const anchoOrig = metaOrig.width  || 0;
+        const altoOrig  = metaOrig.height || 0;
+        console.log(`   [IMG-SIZE] Original: ${anchoOrig}x${altoOrig}px`);
+
+        let bufEscalado;
+
+        if (anchoOrig >= 900) {
+            // ✅ Foto GRANDE — solo optimizar, no tocar el tamaño
+            // Recortar a proporción 16:9 sin agrandar
+            bufEscalado = await sharp(bufOrig)
+                .resize(1200, 630, {
+                    fit:                'cover',
+                    position:           'attention',
+                    withoutEnlargement: true,   // NO agrandar si ya es grande
+                    kernel:             'lanczos2',
+                })
+                .modulate({ saturation: 1.08 })
+                .sharpen({ sigma: 0.6 })
+                .toBuffer();
+            console.log(`   [IMG-PROC] Foto grande → optimizada sin agrandar`);
+
+        } else if (anchoOrig >= 500) {
+            // ⚠️ Foto MEDIANA — escalar con cuidado hasta máx 900px
+            bufEscalado = await sharp(bufOrig)
+                .resize(900, null, {
+                    fit:                'inside',
+                    withoutEnlargement: true,
+                    kernel:             'lanczos3',
+                })
+                .modulate({ saturation: 1.1 })
+                .sharpen({ sigma: 0.8 })
+                .toBuffer();
+            console.log(`   [IMG-PROC] Foto mediana → escalada a 900px máx`);
+
+        } else {
+            // ❌ Foto MUY PEQUEÑA — usar tal cual, solo optimizar
+            // NO agrandar — pixelaría. Solo mejorar lo que hay.
+            bufEscalado = await sharp(bufOrig)
+                .modulate({ saturation: 1.1, brightness: 1.02 })
+                .sharpen({ sigma: 0.5 })
+                .toBuffer();
+            console.log(`   [IMG-PROC] Foto pequeña (${anchoOrig}px) → sin redimensionar`);
+        }
 
         const meta    = await sharp(bufEscalado).metadata();
         const w       = meta.width  || 1200;
