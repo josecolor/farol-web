@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.33
- * Base: V34.33
+ * 🏮 EL FAROL AL DÍA — V34.34
+ * Base: V34.34
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -706,7 +706,12 @@ const FALLBACK_CAT = {
 
 function imgLocal(sub, cat) {
     const b = BANCO_LOCAL[sub] || BANCO_LOCAL[FALLBACK_CAT[cat]] || BANCO_LOCAL['politica-gobierno'];
-    return b[Math.floor(Math.random() * b.length)];
+    // Anti-duplicado: evitar usar la misma foto que ya está en portada
+    const disponibles = b.filter(url => !fotosUsadasReciente.has(url));
+    const lista = disponibles.length ? disponibles : b; // si todas usadas, resetear
+    const url = lista[Math.floor(Math.random() * lista.length)];
+    fotosUsadasReciente.add(url);
+    return url;
 }
 
 // ─── GOOGLE IMÁGENES — busca la foto exacta en alta resolución ───────────────
@@ -830,17 +835,58 @@ function slugify(t) {
     return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').substring(0, 80);
 }
 
-const REDS = [
-    { nombre: 'Carlos Mendez',         esp: 'Nacionales' },
-    { nombre: 'Laura Santana',         esp: 'Deportes' },
-    { nombre: 'Roberto Pena',          esp: 'Internacionales' },
-    { nombre: 'Ana Maria Castillo',    esp: 'Economia' },
-    { nombre: 'Jose Miguel Fernandez', esp: 'Tecnologia' },
-    { nombre: 'Patricia Jimenez',      esp: 'Espectaculos' },
-];
+// ─── PERIODISTAS — cada uno tiene voz, estilo y fuentes distintas ────────────
+const PERIODISTAS = {
+    'Carlos Mendez': {
+        esp:    'Nacionales',
+        estilo: 'Cronista político. Frío, directo, datos duros. Cita instituciones oficiales: Presidencia, Procuraduría, Congreso, JCE. Nunca especula. Voz de autoridad.',
+        fuentes:'Presidencia de la República, Congreso Nacional, Procuraduría General, Ministerio del Interior, JCE, Policía Nacional, Fuerzas Armadas.',
+        tono:   'Formal y contundente. Titulares de declaración: "Abinader ordena...", "Congreso aprueba...", "Procuraduría imputa..."',
+    },
+    'Laura Santana': {
+        esp:    'Deportes',
+        estilo: 'Fanática del béisbol y el fútbol dominicano. Pasión controlada. Conecta el deporte con el orgullo nacional. Sabe de estadísticas MLB y Liga Dominicana.',
+        fuentes:'MLB.com, Liga Dominicana de Béisbol, Federación Dominicana de Fútbol, ESPN Caribe, récords y estadísticas oficiales.',
+        tono:   'Energético y emotivo. Titulares de acción: "Guerrero Jr. rompe récord...", "Tigres del Licey campeones...", "RD clasifica al Mundial..."',
+    },
+    'Roberto Pena': {
+        esp:    'Internacionales',
+        estilo: 'Corresponsal internacional. Siempre conecta el hecho global con el impacto en RD y el Caribe. Explica geopolítica en lenguaje simple.',
+        fuentes:'Reuters, AP, BBC Mundo, Bloomberg, ONU, OEA, Banco Mundial, FMI. Siempre incluye ángulo caribeño.',
+        tono:   'Analítico y contextualizado. Titulares de impacto: "Trump anuncia aranceles que afectan a RD...", "Crisis en Haití amenaza la frontera..."',
+    },
+    'Ana Maria Castillo': {
+        esp:    'Economia',
+        estilo: 'Economista de campo. Habla de dinero en términos que entiende el ciudadano. Siempre incluye cuánto le cuesta al dominicano promedio.',
+        fuentes:'Banco Central RD (BCRD), MEPyD, DGII, Bolsa de Valores RD, bancos comerciales, Ministerio de Hacienda, FMI para RD.',
+        tono:   'Preciso y ciudadano. Titulares de cifra: "Combustibles suben RD$15 esta semana...", "Inflación baja a 3.2% según BCRD...", "Dólar cierra en..."',
+    },
+    'Jose Miguel Fernandez': {
+        esp:    'Tecnologia',
+        estilo: 'Geek dominicano. Explica la tecnología pensando en el pequeño empresario de SDE, el estudiante de INFOTEP, el emprendedor de Los Mina.',
+        fuentes:'INDOTEL, MICM, INFOTEP, startups RD, ITLA, MIT Tech Review en español, TechCrunch para Latinoamérica.',
+        tono:   'Cercano y práctico. Titulares útiles: "INFOTEP abre 3,000 becas en IA para SDE...", "App dominicana gana premio regional...", "Internet llega al campo..."',
+    },
+    'Patricia Jimenez': {
+        esp:    'Espectaculos',
+        estilo: 'Conocedora de la cultura dominicana: merengue, bachata, cine nacional, farándula del Caribe. Orgullosa de lo nuestro pero sin ser amarillista.',
+        fuentes:'Ministerio de Cultura, Billboard Tropical, Premios Soberano, EGEDA RD, cines nacionales, artistas dominicanos reconocidos.',
+        tono:   'Cálido y orgulloso. Titulares de celebración: "Romeo Santos llena el Estadio Olímpico...", "Película dominicana llega a Netflix...", "Juan Luis Guerra gana Grammy..."',
+    },
+};
+
 function elegirRedactor(cat) {
-    const m = REDS.filter(r => r.esp === cat);
-    return m.length ? m[Math.floor(Math.random() * m.length)].nombre : 'Redaccion EFD';
+    const match = Object.entries(PERIODISTAS).find(([_, p]) => p.esp === cat);
+    if (match) return match[0];
+    return 'Redaccion EFD';
+}
+
+function obtenerPerfilPeriodista(nombre) {
+    return PERIODISTAS[nombre] || {
+        estilo: 'Periodista generalista. Cubre todas las categorías con rigor.',
+        fuentes: 'Fuentes oficiales dominicanas e internacionales.',
+        tono: 'Neutro y profesional.',
+    };
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
@@ -859,9 +905,15 @@ async function registrarError(tipo, descripcion, categoria) {
 
 async function construirMemoria() {
     try {
-        const r = await pool.query("SELECT titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 12");
-        if (r.rows.length)
-            return '\nYA PUBLICADAS - NO repetir:\n' + r.rows.map((x, i) => `${i + 1}. ${x.titulo}`).join('\n') + '\n';
+        const r = await pool.query("SELECT titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 20");
+        if (r.rows.length) {
+            // También actualizar temasPublicadosHoy con lo que ya está en BD
+            r.rows.forEach(x => {
+                const palabrasClave = x.titulo.toLowerCase().split(' ').filter(w=>w.length>5).slice(0,3).join('-');
+                temasPublicadosHoy.add(palabrasClave);
+            });
+            return '\nYA PUBLICADAS - NO repetir ningún tema similar:\n' + r.rows.map((x, i) => `${i + 1}. ${x.titulo}`).join('\n') + '\n';
+        }
     } catch (_) {}
     return '';
 }
@@ -964,14 +1016,26 @@ async function generarNoticia(categoria, comunicadoExterno = null, imagenRSSOver
 
         const termCPC = ADSENSE_CPC[categoria] || 'prestamos, inversion inmobiliaria, seguros, banca digital';
 
-        const prompt = `Eres el MEJOR periodista digital de la República Dominicana. Superas en SEO, claridad y engagement a Listín Diario, Diario Libre y N Digital juntos. Tu medio es El Farol al Día — voz del pueblo dominicano, especialmente de Santo Domingo Este, Los Mina y el Gran Santo Domingo.
+        const redactor = elegirRedactor(categoria);
+        const perfil   = obtenerPerfilPeriodista(redactor);
 
-IDENTIDAD EDITORIAL:
-- Escribes con autoridad, precisión y urgencia. Cada noticia importa.
-- Usas datos reales: porcentajes, fechas, nombres de instituciones, cifras del Banco Central, BCRD, MEPyD, ADP, DGII, MOPC, SNS.
-- Conectas cada hecho con su impacto en la vida diaria del dominicano de a pie.
-- Tu titular es tan bueno que la gente no puede no hacer clic.
+        const prompt = `Eres ${redactor}, periodista de El Farol al Día — periódico digital dominicano líder en Santo Domingo Este, Los Mina y el Gran Santo Domingo.
+
+TU PERFIL COMO PERIODISTA:
+${perfil.estilo}
+
+TUS FUENTES HABITUALES:
+${perfil.fuentes}
+
+TU VOZ Y TITULARES:
+${perfil.tono}
+
+REGLAS ABSOLUTAS:
+- Usas datos reales: porcentajes, fechas, cifras del BCRD, MEPyD, DGII, MOPC, SNS.
+- Conectas cada hecho con el impacto en el dominicano de a pie.
+- Tu titular es imposible de ignorar.
 - Nunca rellenas. Cada oración aporta valor.
+- Nunca suenas igual a otro periodista de este equipo.
 ${memoria}
 ${fuenteContenido}
 
@@ -1094,7 +1158,7 @@ CONTENIDO:
                 contenido.substring(0, 10000),
                 desc.substring(0, 160),
                 (pals || categoria).substring(0, 255),
-                elegirRedactor(categoria),
+                redactor,
                 urlFinal, altFinal.substring(0, 255),
                 `Fotografía: ${titulo}`,
                 imgResult.nombre || 'efd.jpg',
@@ -1103,6 +1167,9 @@ CONTENIDO:
         );
 
         console.log('[Gen] Publicada: /noticia/' + slFin);
+        // Registrar foto usada — evitar duplicados en portada
+        if (urlFinal) fotosUsadasReciente.add(urlFinal);
+        if (urlOrig)  fotosUsadasReciente.add(urlOrig);
         invalidarCache();
 
         // Redes sociales eliminadas — tráfico viene de Google News
@@ -1317,6 +1384,10 @@ const PALABRAS_TRENDING = [
 // Temas que YA publicamos hoy — evitar saturación del mismo tema
 const temasPublicadosHoy = new Set();
 setInterval(() => temasPublicadosHoy.clear(), 12 * 60 * 60 * 1000); // limpiar cada 12h
+
+// Fotos usadas recientemente — evitar imagen duplicada en portada
+const fotosUsadasReciente = new Set();
+setInterval(() => fotosUsadasReciente.clear(), 6 * 60 * 60 * 1000); // limpiar cada 6h
 
 function puntuarRelevancia(titulo, contenido = '') {
     if (!titulo) return 0;
