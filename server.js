@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.25
- * Base: V34.25
+ * 🏮 EL FAROL AL DÍA — V34.27
+ * Base: V34.27
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -71,6 +71,40 @@ const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\
 
 if (!process.env.DATABASE_URL)   { console.error('[FATAL] DATABASE_URL requerido');   process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('[FATAL] GEMINI_API_KEY requerido'); process.exit(1); }
+
+// ─── GEMINI MULTI-KEY — hasta 5 cuentas rotan automáticamente ────────────────
+// Agregar en Railway: GEMINI_API_KEY, GEMINI_API_KEY2, GEMINI_API_KEY3...
+// Cada cuenta Google gratuita da ~15 req/min — 5 cuentas = 75 req/min
+// Si una da 429 → pasa a la siguiente automáticamente
+const GEMINI_KEYS = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY2 || null,
+    process.env.GEMINI_API_KEY3 || null,
+    process.env.GEMINI_API_KEY4 || null,
+    process.env.GEMINI_API_KEY5 || null,
+].filter(Boolean);
+let   GEMINI_KEY_INDEX  = 0; // índice de la key activa
+const GEMINI_KEY_RESET  = {}; // { keyIndex: resetTime }
+console.log(`[Gemini] ${GEMINI_KEYS.length} API key(s) configurada(s)`);
+
+function getGeminiKey() {
+    const ahora = Date.now();
+    // Buscar una key que no esté en cooldown
+    for (let i = 0; i < GEMINI_KEYS.length; i++) {
+        const idx = (GEMINI_KEY_INDEX + i) % GEMINI_KEYS.length;
+        if (!GEMINI_KEY_RESET[idx] || ahora > GEMINI_KEY_RESET[idx]) {
+            GEMINI_KEY_INDEX = idx;
+            return { key: GEMINI_KEYS[idx], idx };
+        }
+    }
+    // Todas en cooldown — usar la que tenga menos tiempo de espera
+    let menorEspera = Infinity, menorIdx = 0;
+    for (let i = 0; i < GEMINI_KEYS.length; i++) {
+        const espera = (GEMINI_KEY_RESET[i] || 0) - ahora;
+        if (espera < menorEspera) { menorEspera = espera; menorIdx = i; }
+    }
+    return { key: GEMINI_KEYS[menorIdx], idx: menorIdx, espera: menorEspera };
+}
 
 // Pexels y Pixabay eliminados — fotos vienen directo del periódico original
 // Facebook y Twitter eliminados — generan errores y no aportan tráfico SEO
@@ -454,25 +488,24 @@ async function llamarGemini(prompt, reintentos = 3) {
     for (let i = 0; i < reintentos; i++) {
         let tm;
         try {
-            console.log(`   [Gemini] intento ${i + 1}/${reintentos}`);
-
-            // Respetar ventana de rate-limit local
-            const ahora = Date.now();
-            if (ahora < GS.resetTime) {
-                const espera = Math.min(GS.resetTime - ahora, 15000);
-                console.log(`   [Gemini] rate-limit local, esperando ${espera} ms`);
-                await new Promise(r => setTimeout(r, espera));
+            // Obtener la key disponible (rota automáticamente si hay 429)
+            const { key, idx, espera: esperaCooldown } = getGeminiKey();
+            if (esperaCooldown > 0) {
+                console.log(`   [Gemini] Key ${idx+1} en cooldown, esperando ${Math.round(esperaCooldown/1000)}s`);
+                await new Promise(r => setTimeout(r, Math.min(esperaCooldown, 20000)));
             }
+            console.log(`   [Gemini] intento ${i + 1}/${reintentos} (key ${idx+1}/${GEMINI_KEYS.length})`);
+
+            // Pausa mínima entre requests de la misma key
             const lag = Date.now() - GS.lastRequest;
-            if (lag < 15000) await new Promise(r => setTimeout(r, 15000 - lag)); // 15s mínimo entre requests
+            if (lag < 15000) await new Promise(r => setTimeout(r, 15000 - lag));
             GS.lastRequest = Date.now();
 
-            // AbortController con cleanup garantizado en .finally()
             const ctrl = new AbortController();
             tm = setTimeout(() => ctrl.abort(), GEMINI_TIMEOUT);
 
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
                 {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -486,9 +519,12 @@ async function llamarGemini(prompt, reintentos = 3) {
 
             if (res.status === 429) {
                 const espera = Math.pow(2, i) * 20000; // 20s, 40s, 80s
-                GS.resetTime = Date.now() + espera;
-                console.warn(`   [Gemini] 429 rate-limit, backoff ${Math.round(espera/1000)}s`);
-                await new Promise(r => setTimeout(r, espera));
+                // Marcar esta key como limitada y cambiar a la otra
+                const { idx: idxActual } = getGeminiKey();
+                GEMINI_KEY_RESET[idxActual] = Date.now() + espera;
+                GEMINI_KEY_INDEX = (idxActual + 1) % GEMINI_KEYS.length;
+                console.warn(`   [Gemini] 429 key ${idxActual+1} → cooldown ${Math.round(espera/1000)}s, cambiando a key ${GEMINI_KEY_INDEX+1}`);
+                await new Promise(r => setTimeout(r, 3000)); // pausa corta antes de intentar con otra key
                 continue;
             }
             if (res.status === 503 || res.status === 502) {
@@ -1469,23 +1505,37 @@ cron.schedule('*/14 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch (_) {}
 });
 
-// ─── RSS CADA HORA — ritmo sostenible con Gemini free tier ──────────────────
-// 2 noticias/ciclo × 24 ciclos = ~48 noticias/día sin saturar Gemini
-// item_guid ya procesado → se salta → no hay duplicados
+// ─── 3 SLOTS ESCALONADOS — una key por turno, sin chocar ────────────────────
+// Slot A → :00 (Key 1)   Slot B → :10 (Key 2)   Slot C → :20 (Key 3)
+// Cada slot espera su turno — 30 min de descanso entre publicaciones
+// Con 3 keys: ~4-5 noticias/hora = 100+ noticias/día sin errores 429
+
+// SLOT A — minuto :00 de cada hora (usa Key 1 preferentemente)
 cron.schedule('0 * * * *', async () => {
-    if (rssEnProceso) {
-        console.log('[Cron-RSS] Ciclo anterior aún en proceso — omitido');
-        return;
-    }
-    console.log('[Cron-RSS] ⚡ Escaneando Listín · Diario Libre · N Digital...');
-    procesarRSS(); // sin await — no bloquea el proceso
+    if (rssEnProceso) { console.log('[Slot-A] En proceso, omitido'); return; }
+    console.log('[Slot-A] ⚡ Key-1 publicando...');
+    procesarRSS();
 });
 
-// ─── IA GENERA NOTICIA PROPIA cada 2 horas ───────────────────────────────────
-cron.schedule('0 */2 * * *', async () => {
+// SLOT B — minuto :10 de cada hora (usa Key 2 preferentemente)
+cron.schedule('10 * * * *', async () => {
+    if (rssEnProceso) { console.log('[Slot-B] En proceso, omitido'); return; }
+    console.log('[Slot-B] ⚡ Key-2 publicando...');
+    procesarRSS();
+});
+
+// SLOT C — minuto :20 de cada hora (usa Key 3 preferentemente)
+cron.schedule('20 * * * *', async () => {
+    if (rssEnProceso) { console.log('[Slot-C] En proceso, omitido'); return; }
+    console.log('[Slot-C] ⚡ Key-3 publicando...');
+    procesarRSS();
+});
+
+// SLOT D — minuto :40 — noticia propia de análisis con IA
+cron.schedule('40 * * * *', async () => {
     if (!CONFIG_IA.enabled || rssEnProceso) return;
     const cat = CATS[Math.floor(Math.random() * CATS.length)];
-    console.log(`[Cron-IA] 🏮 Noticia propia: ${cat}`);
+    console.log(`[Slot-D] 🏮 Noticia propia: ${cat}`);
     await generarNoticia(cat);
 });
 
@@ -1894,6 +1944,7 @@ async function iniciar() {
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
+║  Gemini Keys    : ${String(GEMINI_KEYS.length + ' key(s) activa(s)').padEnd(35)}║
 ║  Imágenes       : Periódico original → Banco local curado   ║
 ║  Timeout IA     : ${(GEMINI_TIMEOUT / 1000 + 's').padEnd(35)}║
 ║  Watermark      : ${wm.substring(0, 35).padEnd(35)}║
