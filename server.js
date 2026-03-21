@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.10
- * Base: V34.10
+ * 🏮 EL FAROL AL DÍA — V34.11
+ * Base: V34.11
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -13,6 +13,20 @@
  */
 
 'use strict';
+
+// ─── HEADERS DE NAVEGADOR — para que cualquier servidor acepte nuestras peticiones
+const BROWSER_HEADERS = {
+    'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept':          'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    'Accept-Language': 'es-DO,es;q=0.9,en;q=0.8',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control':   'no-cache',
+    'Pragma':          'no-cache',
+    'Referer':         'https://www.google.com/',
+    'sec-fetch-dest':  'image',
+    'sec-fetch-mode':  'no-cors',
+    'sec-fetch-site':  'cross-site',
+};
 
 const express   = require('express');
 const cors      = require('cors');
@@ -319,7 +333,7 @@ async function aplicarMarcaDeAgua(urlImagen) {
         return { url: urlImagen, procesada: false };
     }
     try {
-        const response = await fetch(urlImagen);
+        const response = await fetch(urlImagen, { headers: BROWSER_HEADERS });
         if (!response.ok) throw new Error('HTTP ' + response.status);
         const bufOrig = Buffer.from(await response.arrayBuffer());
 
@@ -552,7 +566,7 @@ async function buscarEnPexels(queries) {
             const tm    = setTimeout(() => ctrl.abort(), 6000);
             const res   = await fetch(
                 `https://api.pexels.com/v1/search?query=${encodeURIComponent(qReal)}&per_page=20&orientation=landscape&size=large`,
-                { headers: { Authorization: PEXELS_API_KEY }, signal: ctrl.signal }
+                { headers: { ...BROWSER_HEADERS, Authorization: PEXELS_API_KEY }, signal: ctrl.signal }
             ).finally(() => clearTimeout(tm));
             if (!res.ok) { console.log(`   [Pexels] HTTP ${res.status} para "${q}"`); continue; }
             const data = await res.json();
@@ -586,7 +600,7 @@ async function buscarEnPixabay(query) {
         const tm   = setTimeout(() => ctrl.abort(), 6000);
         const res  = await fetch(
             `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(q)}&image_type=photo&orientation=horizontal&safesearch=true&per_page=10&min_width=1200&editors_choice=false&order=popular`,
-            { signal: ctrl.signal }
+            { headers: BROWSER_HEADERS, signal: ctrl.signal }
         ).finally(() => clearTimeout(tm));
         if (!res.ok) { console.log(`   [Pixabay] HTTP ${res.status}`); return null; }
         const data = await res.json();
@@ -977,7 +991,7 @@ CONTENIDO:
                 const chk  = await fetch(imagenRSSOverride, {
                     method: 'HEAD',
                     signal: ctrl.signal,
-                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ElFarolBot/1.0)' }
+                    headers: BROWSER_HEADERS,
                 }).finally(() => clearTimeout(tm));
 
                 if (chk.ok && chk.headers.get('content-type')?.startsWith('image/')) {
