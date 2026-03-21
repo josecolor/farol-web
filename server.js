@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.15
- * Base: V34.15
+ * 🏮 EL FAROL AL DÍA — V34.16
+ * Base: V34.16
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -73,14 +73,9 @@ const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\
 if (!process.env.DATABASE_URL)   { console.error('[FATAL] DATABASE_URL requerido');   process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('[FATAL] GEMINI_API_KEY requerido'); process.exit(1); }
 
-const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
-const PIXABAY_API_KEY       = process.env.PIXABAY_API_KEY       || null;
-const FB_PAGE_ID            = process.env.FB_PAGE_ID            || null;
-const FB_PAGE_TOKEN         = process.env.FB_PAGE_TOKEN         || null;
-const TWITTER_API_KEY       = process.env.TWITTER_API_KEY       || null;
-const TWITTER_API_SECRET    = process.env.TWITTER_API_SECRET    || null;
-const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
-const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
+// Pexels y Pixabay eliminados — fotos vienen directo del periódico original
+// Facebook y Twitter eliminados — generan errores y no aportan tráfico SEO
+// El tráfico real viene de Google News y búsquedas orgánicas
 const TELEGRAM_TOKEN        = process.env.TELEGRAM_TOKEN        || null;
 let   TELEGRAM_CHAT_ID      = process.env.TELEGRAM_CHAT_ID      || null;
 
@@ -199,70 +194,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
         console.log(`   [Wiki] OK (${txt.length} chars)`);
         return `\nCONTEXTO REFERENCIA (no copiar):\n${txt}\n`;
     } catch (_) { return ''; }
-}
-
-// ─── FACEBOOK ─────────────────────────────────────────────────────────────────
-async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
-    if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
-    try {
-        const urlN = `${BASE_URL}/noticia/${slug}`;
-        const msg  = `${titulo}\n\n${descripcion || ''}\n\nLee la noticia completa:\n${urlN}\n\n#ElFarolAlDia #RepublicaDominicana #NoticiaRD`;
-        const f = new URLSearchParams();
-        f.append('url', urlImagen);
-        f.append('caption', msg);
-        f.append('access_token', FB_PAGE_TOKEN);
-        const res = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/photos`, { method: 'POST', body: f });
-        const data = await res.json();
-        if (data.error) {
-            const f2 = new URLSearchParams();
-            f2.append('message', msg);
-            f2.append('link', urlN);
-            f2.append('access_token', FB_PAGE_TOKEN);
-            const r2   = await fetch(`https://graph.facebook.com/v18.0/${FB_PAGE_ID}/feed`, { method: 'POST', body: f2 });
-            const d2   = await r2.json();
-            if (d2.error) { console.warn('[FB] ' + d2.error.message); return false; }
-        }
-        console.log('   [FB] OK');
-        return true;
-    } catch (err) { console.warn('[FB] ' + err.message); return false; }
-}
-
-// ─── TWITTER ──────────────────────────────────────────────────────────────────
-function generarOAuthHeader(method, url, params, ck, cs, at, ts) {
-    const op = {
-        oauth_consumer_key:     ck,
-        oauth_nonce:            crypto.randomBytes(16).toString('hex'),
-        oauth_signature_method: 'HMAC-SHA1',
-        oauth_timestamp:        Math.floor(Date.now() / 1000).toString(),
-        oauth_token:            at,
-        oauth_version:          '1.0',
-    };
-    const all = { ...params, ...op };
-    const sp  = Object.keys(all).sort().map(k => `${encodeURIComponent(k)}=${encodeURIComponent(all[k])}`).join('&');
-    const bs  = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(sp)}`;
-    const sk  = `${encodeURIComponent(cs)}&${encodeURIComponent(ts)}`;
-    op.oauth_signature = crypto.createHmac('sha1', sk).update(bs).digest('base64');
-    return 'OAuth ' + Object.keys(op).sort().map(k => `${encodeURIComponent(k)}="${encodeURIComponent(op[k])}"`).join(', ');
-}
-
-async function publicarEnTwitter(titulo, slug, descripcion) {
-    if (!TWITTER_API_KEY || !TWITTER_API_SECRET || !TWITTER_ACCESS_TOKEN || !TWITTER_ACCESS_SECRET) return false;
-    try {
-        const urlN  = `${BASE_URL}/noticia/${slug}`;
-        const txt   = `${titulo}\n\n${urlN}\n\n#ElFarolAlDia #RD`;
-        const tweet = txt.length > 280 ? txt.substring(0, 277) + '...' : txt;
-        const tUrl  = 'https://api.twitter.com/2/tweets';
-        const auth  = generarOAuthHeader('POST', tUrl, {}, TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET);
-        const res   = await fetch(tUrl, {
-            method:  'POST',
-            headers: { Authorization: auth, 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ text: tweet }),
-        });
-        const data = await res.json();
-        if (data.errors || data.error) { console.warn('[TW] ' + JSON.stringify(data.errors || data.error)); return false; }
-        console.log('   [TW] OK id=' + data.data?.id);
-        return true;
-    } catch (err) { console.warn('[TW] ' + err.message); return false; }
 }
 
 // ─── TELEGRAM ─────────────────────────────────────────────────────────────────
@@ -482,138 +413,9 @@ async function llamarGemini(prompt, reintentos = 3) {
     throw new Error(`Gemini no respondió tras ${reintentos} intentos`);
 }
 
-// ─── FILTRO REALISMO E-E-A-T ─────────────────────────────────────────────────
-// Concatenamos términos de prensa real a cada query para evitar ilustraciones AI
-const REALISMO = 'real photo press news -illustration -render -3d -cartoon -vector -figurine -toy -plastic -miniature -doll';
-
-function queryRealista(q) {
-    return `${q} ${REALISMO}`.trim();
-}
-
-// ─── MAPEO PERSONAJES → QUERY ESPECÍFICO ─────────────────────────────────────
-// Si Gemini menciona una figura conocida en el título, usamos queries de prensa real
-const MAPEO_IMAGENES = {
-    'trump':              ['Donald Trump press conference podium', 'Trump White House speech official'],
-    'donald trump':       ['Donald Trump press conference podium', 'Trump White House official ceremony'],
-    'biden':              ['Joe Biden White House podium press', 'US president official speech podium'],
-    'abinader':           ['Luis Abinader presidente dominicano discurso', 'presidente dominicano palacio nacional'],
-    'luis abinader':      ['Luis Abinader presidente dominicano discurso', 'Dominican Republic president official ceremony'],
-    'leonel':             ['Leonel Fernandez politico dominicano', 'latin american politician speech podium'],
-    'danilo':             ['Dominican Republic president speech', 'Caribbean government leader official'],
-    'messi':              ['Lionel Messi soccer match stadium', 'Argentina football player game action'],
-    'ronaldo':            ['Cristiano Ronaldo football match action', 'professional soccer player stadium crowd'],
-    'david ortiz':        ['David Ortiz baseball player Red Sox', 'MLB baseball hitter batting stadium'],
-    'pedro martinez':     ['Pedro Martinez baseball pitcher mound', 'MLB pitcher strikeout stadium crowd'],
-    'elon musk':          ['Elon Musk press conference speaking', 'Tesla SpaceX CEO official event'],
-    'putin':              ['Vladimir Putin Kremlin official ceremony', 'Russia president podium speech'],
-    'zelensky':           ['Zelensky Ukraine president war press', 'Ukrainian president official address'],
-    'biden':              ['Joe Biden White House press briefing', 'US president official podium speech'],
-    'harris':             ['Kamala Harris official press conference', 'US vice president ceremony podium'],
-    'netanyahu':          ['Netanyahu Israel prime minister speech', 'Israel prime minister official press'],
-    'beisbol':            ['baseball game stadium crowd fans', 'MLB baseball player batting pitch action'],
-    'futbol':             ['soccer football match stadium action', 'professional football players game crowd'],
-    'policia':            ['police patrol latin america officers', 'law enforcement officer uniform street'],
-    'haiti':              ['Haiti Dominican border officials', 'Haitian Dominican Republic diplomacy news'],
-    'invivienda':         ['social housing construction Caribbean workers', 'residential building construction workers latin'],
-    'turismo':            ['Punta Cana beach resort luxury tourism', 'Dominican Republic Caribbean beach tourist'],
-    'banco central':      ['central bank building financial district', 'bank official building finance news'],
-    'mopc':               ['road construction highway workers equipment', 'infrastructure bridge construction workers'],
-    'wall street':        ['Wall Street New York Stock Exchange floor', 'NYSE traders stock market financial'],
-    'fed ':               ['Federal Reserve building Washington DC', 'central bank interest rates decision press'],
-    'petróleo':           ['oil barrel petroleum refinery production', 'crude oil energy market news'],
-    'petroleo':           ['oil barrel petroleum refinery production', 'crude oil energy market news'],
-    'huracán':            ['hurricane satellite image tropical storm', 'hurricane damage aftermath aerial view'],
-    'huracan':            ['hurricane satellite image tropical storm', 'hurricane damage caribbean news'],
-    'terremoto':          ['earthquake damage buildings rubble news', 'seismic damage rescue workers'],
-    'congreso':           ['US Congress Capitol building Washington', 'lawmakers congress session vote'],
-    'senado':             ['Dominican Republic Senate session', 'Caribbean parliament session lawmakers'],
-    'corte':              ['Supreme Court building judges gavel', 'courthouse justice legal news'],
-    'elecciones':         ['election polling station voters ballots', 'vote counting election officials'],
-};
-
-// ─── PEXELS ───────────────────────────────────────────────────────────────────
-const PEXELS_BLOQ = [
-    // Ilustraciones y renders — LO MÁS IMPORTANTE
-    'illustration','illustrated','render','3d render','cartoon','figurine',
-    'toy','plastic','miniature','doll','puppet','anime','clipart','vector',
-    'comic','drawing','artwork','digital art','concept art','icon',
-    // Mascotas y animales
-    'cat','dog','pet','kitten','puppy','animal','bird','horse','fish',
-    // Bodas y romance
-    'wedding','bride','groom','couple','romance','valentine','love',
-    // Moda y lifestyle
-    'fashion','model','beauty','makeup','hair','yoga','meditation','spa',
-    // Comida y cocina
-    'food','cooking','recipe','coffee','drink','restaurant','cafe','cake',
-    // Naturaleza genérica
-    'flower','sunset','landscape','nature','forest','mountain','sky',
-    // Oficina genérica
-    'notebook','pencil','pen','desk','laptop','computer abstract',
-    // Comercio
-    'sale','shopping','gift','black friday','discount','store',
-    // Celebraciones
-    'birthday','party','celebration','christmas','holiday',
-    // Bebés y familia
-    'baby','toddler','child playing','family portrait',
-    // Viajes genéricos
-    'travel','vacation','beach umbrella','tourist',
-];
-
-async function buscarEnPexels(queries) {
-    if (!PEXELS_API_KEY) return null;
-    const lista = (Array.isArray(queries) ? queries : [queries])
-        .filter(q => !PEXELS_BLOQ.some(b => q.toLowerCase().includes(b)));
-    for (const q of lista) {
-        try {
-            const qReal = queryRealista(q);
-            const ctrl  = new AbortController();
-            const tm    = setTimeout(() => ctrl.abort(), 6000);
-            const res   = await fetch(
-                `https://api.pexels.com/v1/search?query=${encodeURIComponent(qReal)}&per_page=20&orientation=landscape&size=large`,
-                { headers: { ...BROWSER_HEADERS, Authorization: PEXELS_API_KEY }, signal: ctrl.signal }
-            ).finally(() => clearTimeout(tm));
-            if (!res.ok) { console.log(`   [Pexels] HTTP ${res.status} para "${q}"`); continue; }
-            const data = await res.json();
-            if (!data.photos?.length) continue;
-            // Filtrar fotos que parezcan stock genérico por el alt text
-            const stockWords = ['cat','dog','pet','flower','food','coffee','laptop','desk','sale','gift','toy','baby','sunset','nature','beach','figurine','miniature','plastic','doll','cartoon','illustration','render','3d','puppet','reporter figurine','journalist figurine'];
-            const filtradas = data.photos.filter(p => {
-                const alt = (p.alt || '').toLowerCase();
-                return !stockWords.some(w => alt.includes(w)) && p.width >= 1200;
-            });
-            const pool2 = filtradas.length >= 2 ? filtradas : data.photos.filter(p => p.width >= 1200);
-            if (!pool2.length) continue;
-            const foto = pool2[Math.floor(Math.random() * Math.min(5, pool2.length))];
-            console.log(`   [Pexels ✓] "${q}"`);
-            await registrarQueryPexels(q, 'auto', true);
-            return foto.src.large2x || foto.src.large || foto.src.original;
-        } catch (_) { continue; }
-    }
-    return null;
-}
-
-// ─── PIXABAY (banco 2) ────────────────────────────────────────────────────────
-const PIXABAY_BLOQ = ['wedding','bride','romantic','fashion','pet','cartoon','vector','illustration','render','clipart','figurine','miniature','toy','doll','3d','puppet','plastic','anime','comic','drawing'];
-
-async function buscarEnPixabay(query) {
-    if (!PIXABAY_API_KEY) return null;
-    if (PIXABAY_BLOQ.some(b => query.toLowerCase().includes(b))) return null;
-    try {
-        const q    = queryRealista(query);
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 6000);
-        const res  = await fetch(
-            `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(q)}&image_type=photo&orientation=horizontal&safesearch=true&per_page=10&min_width=1200&editors_choice=false&order=popular`,
-            { headers: BROWSER_HEADERS, signal: ctrl.signal }
-        ).finally(() => clearTimeout(tm));
-        if (!res.ok) { console.log(`   [Pixabay] HTTP ${res.status}`); return null; }
-        const data = await res.json();
-        if (!data.hits?.length) return null;
-        const foto = data.hits[Math.floor(Math.random() * Math.min(5, data.hits.length))];
-        console.log(`   [Pixabay ✓] "${query}"`);
-        return foto.largeImageURL || foto.webformatURL;
-    } catch (_) { return null; }
-}
+// ─── IMAGEN: SOLO DEL PERIÓDICO ORIGINAL → BANCO LOCAL ──────────────────────
+// Sin Pexels, sin Pixabay, sin muñecos, sin stock genérico.
+// Flujo: foto del RSS/scraping → si no tiene → banco local curado.
 
 // ─── BANCO LOCAL — Fotos de prensa real verificadas ─────────────────────────────
 // Fotos reales de personas, edificios, eventos — sin muñecos ni ilustraciones
@@ -812,63 +614,10 @@ function imgLocal(sub, cat) {
     return b[Math.floor(Math.random() * b.length)];
 }
 
-// ─── BÚSQUEDA HÍBRIDA: Pexels → Pixabay → Banco Local ────────────────────────
-// Orden: 1) MAPEO exacto por personaje/tema → Pexels
-//        2) QUERY_IMAGEN de Gemini → Pexels
-//        3) QUERY_IMAGEN de Gemini → Pixabay
-//        4) Categoría genérica → Pexels
-//        5) Categoría genérica → Pixabay
-//        6) Banco local (170 fotos garantizadas)
+// Fallback: banco local curado cuando el RSS no trae imagen
 async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
-    const tl = titulo.toLowerCase();
-
-    // 1. Mapeo por personaje/figura conocida → Pexels
-    for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
-        if (tl.includes(clave)) {
-            const u = await buscarEnPexels(queries);
-            if (u) return u;
-            // Si Pexels falla para figura conocida → Pixabay
-            const u2 = await buscarEnPixabay(queries[0]);
-            if (u2) return u2;
-            break;
-        }
-    }
-
-    // 2. QUERY_IMAGEN específico de Gemini → Pexels
-    if (queryIA) {
-        const u = await buscarEnPexels([queryIA]);
-        if (u) return u;
-        // 3. Mismo query → Pixabay
-        const u2 = await buscarEnPixabay(queryIA);
-        if (u2) return u2;
-    }
-
-    // 4. Query genérico de categoría → solo si es periodístico
-    // Si el queryIA falló, NO intentar con query genérico (sale gato/lápiz)
-    // Ir directo al banco local que tiene fotos reales curadas
-    if (queryIA && queryIA.length > 8) {
-        // El queryIA ya falló en Pexels y Pixabay — banco local es más seguro
-        console.log(`   [Imagen] queryIA falló, usando banco local para "${subtema || categoria}"`);
-        return imgLocal(subtema, categoria);
-    }
-
-    // Sin queryIA — intentar con query periodístico de categoría
-    const MAP_CAT_QUERY = {
-        Nacionales:      'Dominican Republic government official press',
-        Economia:        'Dominican Republic economy finance bank official',
-        Deportes:        'baseball stadium sport game action',
-        Internacionales: 'world news press conference official',
-        Tecnologia:      'technology cybersecurity data center server',
-        Espectaculos:    'concert stage performance live show',
-    };
-    const qCat = MAP_CAT_QUERY[categoria] || `${categoria} news press`;
-    const u3 = await buscarEnPexels([qCat]);
-    if (u3) return u3;
-    const u4 = await buscarEnPixabay(qCat);
-    if (u4) return u4;
-
-    // Banco local garantizado
-    console.log(`   [Imagen] Usando banco local para "${subtema || categoria}"`);
+    // Sin Pexels ni Pixabay — directo al banco local
+    console.log(`   [Imagen] Banco local → "${subtema || categoria}"`);
     return imgLocal(subtema, categoria);
 }
 
@@ -956,12 +705,7 @@ const CACHE_TTL = 300000; // 5 minutos
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
-async function registrarQueryPexels(query, categoria, exito) {
-    try {
-        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('pexels_query',$1,$2,$3,$4) ON CONFLICT DO NOTHING", [query, categoria, exito ? 1 : 0, exito ? 0 : 1]);
-        await pool.query("UPDATE memoria_ia SET exitos=exitos+$1,fallos=fallos+$2,ultima_vez=NOW() WHERE tipo='pexels_query' AND valor=$3 AND categoria=$4", [exito ? 1 : 0, exito ? 0 : 1, query, categoria]);
-    } catch (_) {}
-}
+// registrarQueryPexels eliminado — ya no usamos Pexels
 
 async function registrarError(tipo, descripcion, categoria) {
     try {
@@ -1050,7 +794,7 @@ async function inicializarBase() {
 
         const fix = await client.query(`
             UPDATE noticias
-            SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='pexels'
+            SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='banco-local'
             WHERE imagen LIKE '%/images/cache/%' OR imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
         if (fix.rowCount > 0) console.log('[BD] Imágenes reparadas: ' + fix.rowCount);
         console.log('[BD] Lista');
@@ -1211,16 +955,10 @@ CONTENIDO:
         invalidarCache();
         if (qi) registrarQueryPexels(qi, categoria, true);
 
-        // Redes sociales en paralelo — no bloquean el flujo principal
-        Promise.allSettled([
-            publicarEnFacebook(titulo, slFin, urlFinal, desc),
-            publicarEnTwitter(titulo, slFin, desc),
-            publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria),
-        ]).then(results => {
-            const etiquetas = ['FB', 'TW', 'TG'];
-            const log = results.map((r, i) => `${etiquetas[i]}:${r.status === 'fulfilled' && r.value ? 'OK' : 'ERR'}`).join(' ');
-            console.log('   [Redes] ' + log);
-        }).catch(() => {});
+        // Solo Telegram — sin FB ni Twitter que generan errores
+        publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
+            .then(ok => console.log(`   [TG] ${ok ? 'OK' : 'ERR'}`))
+            .catch(() => {});
 
         return { success: true, slug: slFin, titulo, mensaje: 'Publicada en web + redes' };
 
@@ -1281,6 +1019,13 @@ let rssEnProceso = false;
 
 // ─── SCRAPER IMAGEN ARTÍCULO — si el RSS no trae imagen, la buscamos en el HTML ──
 async function scrapearImagenArticulo(url) {
+    // Dominios que sabemos que tienen og:image confiable
+    // Para estos, el scraping es prioritario sobre Pexels
+    const DOMINIOS_CONFIABLES = [
+        'diariolibre.com', 'listindiario.com', 'n.com.do',
+        'reuters.com', 'bbc.com', 'bloomberg.com', 'wired.com'
+    ];
+    const esConfiable = DOMINIOS_CONFIABLES.some(d => url.includes(d));
     if (!url) return null;
     try {
         const ctrl = new AbortController();
@@ -1681,7 +1426,7 @@ app.get('/api/noticias', async (req, res) => {
         // Optimizar URLs de Pexels para carga rápida en lista
         r.rows = r.rows.map(n => ({
             ...n,
-            imagen: n.imagen?.includes('pexels.com/photos/')
+            imagen: false // ya no usamos pexels directo
                 ? n.imagen.replace(/\?.*$/, '') + '?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop&q=70'
                 : n.imagen
         }));
@@ -1965,11 +1710,11 @@ app.get('/status', async (req, res) => {
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
-            facebook:       FB_PAGE_ID && FB_PAGE_TOKEN ? 'Activo' : 'Sin credenciales',
-            twitter:        TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? 'Activo' : 'Sin credenciales',
+            // Facebook eliminado
+            // Twitter eliminado
             telegram:       TELEGRAM_TOKEN ? 'Activo' : 'Sin token',
-            pexels_api:     PEXELS_API_KEY   ? 'Activa' : 'Sin key',
-            pixabay_api:    PIXABAY_API_KEY  ? 'Activa' : 'Sin key',
+            
+            
             marca_de_agua:  WATERMARK_PATH ? `Activa: ${path.basename(WATERMARK_PATH)}` : 'No encontrada — publicando sin marca',
             ia_activa:      CONFIG_IA.enabled,
             rss_en_proceso: rssEnProceso,
@@ -1992,11 +1737,11 @@ async function iniciar() {
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
-║  Pixabay        : ${(PIXABAY_API_KEY ? 'ACTIVO' : 'Sin key (usar Pexels+Local)').padEnd(35)}║
+║  Imágenes       : Periódico original → Banco local curado   ║
 ║  Timeout IA     : ${(GEMINI_TIMEOUT / 1000 + 's').padEnd(35)}║
 ║  Watermark      : ${wm.substring(0, 35).padEnd(35)}║
-║  Facebook       : ${(FB_PAGE_ID && FB_PAGE_TOKEN ? 'ACTIVO' : 'Sin credenciales').padEnd(35)}║
-║  Twitter        : ${(TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? 'ACTIVO' : 'Sin credenciales').padEnd(35)}║
+║  Facebook       : ELIMINADO (usa Google News)                ║
+║  Twitter        : ELIMINADO (usa Google News)                ║
 ║  Telegram       : ${(TELEGRAM_TOKEN ? 'ACTIVO' : 'Sin token').padEnd(35)}║
 ║  RSS            : 30 fuentes / ejecución secuencial   ║
 ╚═══════════════════════════════════════════════════════╝`);
