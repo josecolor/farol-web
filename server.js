@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.29
- * Base: V34.29
+ * 🏮 EL FAROL AL DÍA — V34.30
+ * Base: V34.30
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -810,48 +810,19 @@ async function buscarEnGoogle(titulo, categoria) {
         } catch (_) {}
     }
 
-    // ── Método 2: Wikimedia Commons — fotos libres de alta calidad ───────────
-    // Si no hay Google API, buscar en Wikimedia que siempre acepta peticiones
-    try {
-        const q    = encodeURIComponent(titulo.split(' ').slice(0, 4).join(' '));
-        const url  = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${q}&srnamespace=6&format=json&srlimit=5&origin=*`;
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 6000);
-        const res  = await fetch(url, { signal: ctrl.signal, headers: BROWSER_HEADERS }).finally(() => clearTimeout(tm));
-
-        if (res.ok) {
-            const data  = await res.json();
-            const items = data?.query?.search || [];
-            for (const item of items) {
-                const title = item.title || '';
-                if (!title.match(/\.(jpg|jpeg|png|webp)/i)) continue;
-                const nombre = encodeURIComponent(title.replace('File:', ''));
-                const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=imageinfo&iiprop=url|size&format=json&origin=*`;
-                const res2 = await fetch(infoUrl, { headers: BROWSER_HEADERS }).catch(() => null);
-                if (!res2?.ok) continue;
-                const data2 = await res2.json();
-                const pages = Object.values(data2?.query?.pages || {});
-                const imgUrl = pages[0]?.imageinfo?.[0]?.url;
-                const w      = pages[0]?.imageinfo?.[0]?.width || 0;
-                if (imgUrl && w >= 600) {
-                    console.log(`   [Wikimedia ✓] ${imgUrl.substring(0, 70)}`);
-                    return imgUrl;
-                }
-            }
-        }
-    } catch (_) {}
-
+    // Sin Google CSE → banco local es más confiable que Wikimedia
+    // Wikimedia trae fotos irrelevantes (retratos, paisajes, etc.)
     return null;
 }
 
 // ─── IMAGEN INTELIGENTE — RSS → Google HD → Banco local ──────────────────────
 async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
-    // Intentar Google Images para conseguir la foto en alta calidad
-    if (titulo && titulo.length > 10) {
+    // Solo Google CSE si está configurado — sin Wikimedia que trae fotos irrelevantes
+    if (process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID && titulo?.length > 10) {
         const urlGoogle = await buscarEnGoogle(titulo, categoria);
         if (urlGoogle) return urlGoogle;
     }
-    // Banco local como último respaldo
+    // Banco local curado — fotos reales por categoría
     console.log(`   [Imagen] Banco local → "${subtema || categoria}"`);
     return imgLocal(subtema, categoria);
 }
