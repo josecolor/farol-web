@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.24
- * Base: V34.24
+ * 🏮 EL FAROL AL DÍA — V34.25
+ * Base: V34.25
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -464,7 +464,7 @@ async function llamarGemini(prompt, reintentos = 3) {
                 await new Promise(r => setTimeout(r, espera));
             }
             const lag = Date.now() - GS.lastRequest;
-            if (lag < 5000) await new Promise(r => setTimeout(r, 5000 - lag));
+            if (lag < 15000) await new Promise(r => setTimeout(r, 15000 - lag)); // 15s mínimo entre requests
             GS.lastRequest = Date.now();
 
             // AbortController con cleanup garantizado en .finally()
@@ -485,9 +485,9 @@ async function llamarGemini(prompt, reintentos = 3) {
             ).finally(() => clearTimeout(tm));
 
             if (res.status === 429) {
-                const espera = Math.pow(2, i) * 5000;
+                const espera = Math.pow(2, i) * 20000; // 20s, 40s, 80s
                 GS.resetTime = Date.now() + espera;
-                console.warn(`   [Gemini] 429 rate-limit, backoff ${espera} ms`);
+                console.warn(`   [Gemini] 429 rate-limit, backoff ${Math.round(espera/1000)}s`);
                 await new Promise(r => setTimeout(r, espera));
                 continue;
             }
@@ -1303,7 +1303,7 @@ async function procesarRSS() {
     // Publicar máximo 5 por ciclo — las más relevantes
     // Si score < 3 = noticia sin valor trending → esperar al próximo ciclo
     const SCORE_MINIMO  = 3;
-    const MAX_POR_CICLO = 3; // máx 3 por ciclo — evita 429 de Gemini
+    const MAX_POR_CICLO = 2; // máx 2 por ciclo — evita 429 de Gemini
 
     for (const candidato of candidatos.slice(0, MAX_POR_CICLO)) {
         const { item, fuente, guid, score } = candidato;
@@ -1353,7 +1353,7 @@ async function procesarRSS() {
             const palabrasClave = (item.title||'').toLowerCase().split(' ').filter(w=>w.length>5).slice(0,3).join('-');
             temasPublicadosHoy.add(palabrasClave);
             procesadas++;
-            await new Promise(r => setTimeout(r, 12000)); // pausa 12s — evita 429 de Gemini
+            await new Promise(r => setTimeout(r, 20000)); // pausa 20s — evita 429 de Gemini
         }
     }
 
@@ -1469,11 +1469,10 @@ cron.schedule('*/14 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch (_) {}
 });
 
-// ─── RSS CADA 30 MINUTOS — velocidad de periódico real ────────────────────────
-// Listín · Diario Libre · N Digital publican 24/7 — nosotros también
-// La bandera rssEnProceso evita solapamiento si un ciclo tarda más de 30 min
+// ─── RSS CADA HORA — ritmo sostenible con Gemini free tier ──────────────────
+// 2 noticias/ciclo × 24 ciclos = ~48 noticias/día sin saturar Gemini
 // item_guid ya procesado → se salta → no hay duplicados
-cron.schedule('*/30 * * * *', async () => {
+cron.schedule('0 * * * *', async () => {
     if (rssEnProceso) {
         console.log('[Cron-RSS] Ciclo anterior aún en proceso — omitido');
         return;
