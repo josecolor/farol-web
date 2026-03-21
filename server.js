@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.9
- * Base: V34.9
+ * 🏮 EL FAROL AL DÍA — V34.10
+ * Base: V34.10
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -885,7 +885,7 @@ async function inicializarBase() {
 }
 
 // ─── GENERACIÓN ───────────────────────────────────────────────────────────────
-async function generarNoticia(categoria, comunicadoExterno = null) {
+async function generarNoticia(categoria, comunicadoExterno = null, imagenRSSOverride = null) {
     if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
     try {
         const memoria      = await construirMemoria();
@@ -967,9 +967,41 @@ CONTENIDO:
 
         console.log('[Gen] Título: ' + titulo);
 
-        const urlOrig   = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+        // Plan C: si el RSS trajo imagen real, validarla y usarla
+        let urlOrig;
+        if (imagenRSSOverride) {
+            try {
+                // Verificar que la imagen sea accesible (algunos medios bloquean hotlinking)
+                const ctrl = new AbortController();
+                const tm   = setTimeout(() => ctrl.abort(), 5000);
+                const chk  = await fetch(imagenRSSOverride, {
+                    method: 'HEAD',
+                    signal: ctrl.signal,
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ElFarolBot/1.0)' }
+                }).finally(() => clearTimeout(tm));
+
+                if (chk.ok && chk.headers.get('content-type')?.startsWith('image/')) {
+                    console.log(`   [IMG-RSS] ✓ Imagen válida del RSS`);
+                    urlOrig = imagenRSSOverride;
+                } else {
+                    console.log(`   [IMG-RSS] Imagen bloqueada (${chk.status}), usando búsqueda normal`);
+                    urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+                }
+            } catch (_) {
+                console.log(`   [IMG-RSS] No accesible, usando búsqueda normal`);
+                urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+            }
+        } else {
+            urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+        }
+
+        // Aplicar watermark — convierte URL externa en elfarolaldia.com/img/...
+        // La foto del Listín o Reuters pasa a ser NUESTRA con nuestra marca
         const imgResult = await aplicarMarcaDeAgua(urlOrig);
         const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
+        if (imgResult.procesada) {
+            console.log(`   [IMG] URL propia: ${BASE_URL}/img/${imgResult.nombre}`);
+        }
 
         const altFinal = (ai && ai.length > 15)
             ? (ai.toLowerCase().includes('dominicana') || ai.toLowerCase().includes('republic')
@@ -1058,6 +1090,44 @@ const FUENTES_RSS = [
 // ─── PROCESADOR RSS — FIX 3 (100% secuencial, anti-SIGTERM) ──────────────────
 let rssEnProceso = false;
 
+// ─── EXTRACTOR IMAGEN RSS (Plan C) ───────────────────────────────────────────
+// Extrae la imagen real de la noticia original del RSS
+// Fuentes: enclosure, media:content, og:image en el HTML, itunes:image
+function extraerImagenRSS(item) {
+    try {
+        // 1. enclosure (formato estándar)
+        if (item.enclosure?.url && /\.(jpg|jpeg|png|webp)/i.test(item.enclosure.url))
+            return item.enclosure.url;
+
+        // 2. media:content (usado por NYT, Reuters, BBC)
+        const media = item['media:content'] || item['media:thumbnail'];
+        if (media?.$ ?.url && /\.(jpg|jpeg|png|webp)/i.test(media.$.url))
+            return media.$.url;
+        if (Array.isArray(media)) {
+            for (const m of media) {
+                if (m.$?.url && /\.(jpg|jpeg|png|webp)/i.test(m.$.url)) return m.$.url;
+            }
+        }
+
+        // 3. itunes:image (podcasts y algunos feeds)
+        if (item['itunes:image']?.$ ?.href) return item['itunes:image'].$.href;
+
+        // 4. Buscar <img> dentro del content HTML
+        const html = item.content || item['content:encoded'] || '';
+        if (html) {
+            const match = html.match(/<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp))[^"']*["']/i);
+            if (match?.[1] && match[1].startsWith('http')) return match[1];
+        }
+
+        // 5. Buscar URL de imagen en contentSnippet
+        const snippet = item.contentSnippet || '';
+        const urlMatch = snippet.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i);
+        if (urlMatch) return urlMatch[0];
+
+    } catch (_) {}
+    return null;
+}
+
 async function procesarRSS() {
     if (!CONFIG_IA.enabled) return;
     if (rssEnProceso) { console.log('[RSS] Ya en proceso, ciclo omitido'); return; }
@@ -1081,6 +1151,10 @@ async function procesarRSS() {
                 );
                 if (ya.rows.length) continue;
 
+                // Plan C: extraer imagen real del RSS antes de llamar a Gemini
+                const imagenRSS = extraerImagenRSS(item);
+                if (imagenRSS) console.log(`   [RSS-IMG] Imagen real extraída: ${imagenRSS.substring(0, 60)}...`);
+
                 const com = [
                     item.title          ? `TITULO: ${item.title}`                         : '',
                     item.contentSnippet ? `RESUMEN: ${item.contentSnippet}`               : '',
@@ -1088,7 +1162,7 @@ async function procesarRSS() {
                     `FUENTE: ${fuente.nombre}`,
                 ].filter(Boolean).join('\n');
 
-                const res = await generarNoticia(fuente.categoria, com);
+                const res = await generarNoticia(fuente.categoria, com, imagenRSS);
 
                 if (res.success) {
                     await pool.query(
