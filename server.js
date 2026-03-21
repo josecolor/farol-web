@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.11
- * Base: V34.11
+ * 🏮 EL FAROL AL DÍA — V34.13
+ * Base: V34.13
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -484,7 +484,7 @@ async function llamarGemini(prompt, reintentos = 3) {
 
 // ─── FILTRO REALISMO E-E-A-T ─────────────────────────────────────────────────
 // Concatenamos términos de prensa real a cada query para evitar ilustraciones AI
-const REALISMO = 'people news editorial press journalism';
+const REALISMO = 'real photo press news -illustration -render -3d -cartoon -vector -figurine -toy -plastic -miniature -doll';
 
 function queryRealista(q) {
     return `${q} ${REALISMO}`.trim();
@@ -533,6 +533,10 @@ const MAPEO_IMAGENES = {
 
 // ─── PEXELS ───────────────────────────────────────────────────────────────────
 const PEXELS_BLOQ = [
+    // Ilustraciones y renders — LO MÁS IMPORTANTE
+    'illustration','illustrated','render','3d render','cartoon','figurine',
+    'toy','plastic','miniature','doll','puppet','anime','clipart','vector',
+    'comic','drawing','artwork','digital art','concept art','icon',
     // Mascotas y animales
     'cat','dog','pet','kitten','puppy','animal','bird','horse','fish',
     // Bodas y romance
@@ -544,9 +548,9 @@ const PEXELS_BLOQ = [
     // Naturaleza genérica
     'flower','sunset','landscape','nature','forest','mountain','sky',
     // Oficina genérica
-    'notebook','pencil','pen','desk','office','laptop','computer abstract',
+    'notebook','pencil','pen','desk','laptop','computer abstract',
     // Comercio
-    'sale','shopping','gift','toy','black friday','discount','store',
+    'sale','shopping','gift','black friday','discount','store',
     // Celebraciones
     'birthday','party','celebration','christmas','holiday',
     // Bebés y familia
@@ -572,7 +576,7 @@ async function buscarEnPexels(queries) {
             const data = await res.json();
             if (!data.photos?.length) continue;
             // Filtrar fotos que parezcan stock genérico por el alt text
-            const stockWords = ['cat','dog','pet','flower','food','coffee','laptop','desk','sale','gift','toy','baby','sunset','nature','beach'];
+            const stockWords = ['cat','dog','pet','flower','food','coffee','laptop','desk','sale','gift','toy','baby','sunset','nature','beach','figurine','miniature','plastic','doll','cartoon','illustration','render','3d','puppet','reporter figurine','journalist figurine'];
             const filtradas = data.photos.filter(p => {
                 const alt = (p.alt || '').toLowerCase();
                 return !stockWords.some(w => alt.includes(w)) && p.width >= 1200;
@@ -589,7 +593,7 @@ async function buscarEnPexels(queries) {
 }
 
 // ─── PIXABAY (banco 2) ────────────────────────────────────────────────────────
-const PIXABAY_BLOQ = ['wedding','bride','romantic','fashion','pet','cartoon','vector','illustration','render','clipart'];
+const PIXABAY_BLOQ = ['wedding','bride','romantic','fashion','pet','cartoon','vector','illustration','render','clipart','figurine','miniature','toy','doll','3d','puppet','plastic','anime','comic','drawing'];
 
 async function buscarEnPixabay(query) {
     if (!PIXABAY_API_KEY) return null;
@@ -611,28 +615,188 @@ async function buscarEnPixabay(query) {
     } catch (_) { return null; }
 }
 
-// ─── BANCO LOCAL (170 fotos — último respaldo) ────────────────────────────────
+// ─── BANCO LOCAL — Fotos de prensa real verificadas ─────────────────────────────
+// Fotos reales de personas, edificios, eventos — sin muñecos ni ilustraciones
 const PB  = 'https://images.pexels.com/photos';
-const OPT = '?auto=compress&cs=tinysrgb&w=800';
+const OPT = '?auto=compress&cs=tinysrgb&w=1200&fit=crop';
 const BANCO_LOCAL = {
-    'politica-gobierno':         [`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${PB}/290595/pexels-photo-290595.jpeg${OPT}`,`${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,`${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,`${PB}/2990644/pexels-photo-2990644.jpeg${OPT}`,`${PB}/3184418/pexels-photo-3184418.jpeg${OPT}`,`${PB}/5668481/pexels-photo-5668481.jpeg${OPT}`,`${PB}/3182812/pexels-photo-3182812.jpeg${OPT}`,`${PB}/4427611/pexels-photo-4427611.jpeg${OPT}`],
-    'seguridad-policia':         [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`,`${PB}/5699456/pexels-photo-5699456.jpeg${OPT}`,`${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,`${PB}/6980997/pexels-photo-6980997.jpeg${OPT}`,`${PB}/7491987/pexels-photo-7491987.jpeg${OPT}`,`${PB}/8761572/pexels-photo-8761572.jpeg${OPT}`,`${PB}/5699859/pexels-photo-5699859.jpeg${OPT}`,`${PB}/6289059/pexels-photo-6289059.jpeg${OPT}`,`${PB}/6044266/pexels-photo-6044266.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`],
-    'relaciones-internacionales':[`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`,`${PB}/358319/pexels-photo-358319.jpeg${OPT}`,`${PB}/3407617/pexels-photo-3407617.jpeg${OPT}`,`${PB}/3997992/pexels-photo-3997992.jpeg${OPT}`,`${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,`${PB}/3184339/pexels-photo-3184339.jpeg${OPT}`,`${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,`${PB}/7948035/pexels-photo-7948035.jpeg${OPT}`,`${PB}/3184292/pexels-photo-3184292.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`],
-    'economia-mercado':          [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`,`${PB}/6772070/pexels-photo-6772070.jpeg${OPT}`,`${PB}/3532557/pexels-photo-3532557.jpeg${OPT}`,`${PB}/6801648/pexels-photo-6801648.jpeg${OPT}`,`${PB}/210607/pexels-photo-210607.jpeg${OPT}`,`${PB}/1602726/pexels-photo-1602726.jpeg${OPT}`,`${PB}/3943723/pexels-photo-3943723.jpeg${OPT}`,`${PB}/7567443/pexels-photo-7567443.jpeg${OPT}`,`${PB}/6120214/pexels-photo-6120214.jpeg${OPT}`,`${PB}/5849559/pexels-photo-5849559.jpeg${OPT}`],
-    'infraestructura':           [`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`,`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`,`${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,`${PB}/159306/pexels-photo-159306.jpeg${OPT}`,`${PB}/1463917/pexels-photo-1463917.jpeg${OPT}`,`${PB}/2760241/pexels-photo-2760241.jpeg${OPT}`,`${PB}/247763/pexels-photo-247763.jpeg${OPT}`,`${PB}/1134166/pexels-photo-1134166.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`],
-    'salud-medicina':            [`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`,`${PB}/40568/pexels-photo-40568.jpeg${OPT}`,`${PB}/4386467/pexels-photo-4386467.jpeg${OPT}`,`${PB}/1170979/pexels-photo-1170979.jpeg${OPT}`,`${PB}/5327580/pexels-photo-5327580.jpeg${OPT}`,`${PB}/3993212/pexels-photo-3993212.jpeg${OPT}`,`${PB}/4021775/pexels-photo-4021775.jpeg${OPT}`,`${PB}/3985163/pexels-photo-3985163.jpeg${OPT}`,`${PB}/5214958/pexels-photo-5214958.jpeg${OPT}`,`${PB}/4226219/pexels-photo-4226219.jpeg${OPT}`],
-    'deporte-beisbol':           [`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`,`${PB}/209977/pexels-photo-209977.jpeg${OPT}`,`${PB}/248318/pexels-photo-248318.jpeg${OPT}`,`${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,`${PB}/163452/pexels-photo-163452.jpeg${OPT}`,`${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,`${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,`${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,`${PB}/186077/pexels-photo-186077.jpeg${OPT}`,`${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`],
-    'deporte-futbol':            [`${PB}/46798/pexels-photo-46798.jpeg${OPT}`,`${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,`${PB}/3873098/pexels-photo-3873098.jpeg${OPT}`,`${PB}/274422/pexels-photo-274422.jpeg${OPT}`,`${PB}/1171084/pexels-photo-1171084.jpeg${OPT}`,`${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,`${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,`${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,`${PB}/114296/pexels-photo-114296.jpeg${OPT}`,`${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`],
-    'deporte-general':           [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`,`${PB}/936094/pexels-photo-936094.jpeg${OPT}`,`${PB}/2526878/pexels-photo-2526878.jpeg${OPT}`,`${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,`${PB}/1552252/pexels-photo-1552252.jpeg${OPT}`,`${PB}/3764014/pexels-photo-3764014.jpeg${OPT}`,`${PB}/2294353/pexels-photo-2294353.jpeg${OPT}`,`${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`,`${PB}/4761671/pexels-photo-4761671.jpeg${OPT}`,`${PB}/3621517/pexels-photo-3621517.jpeg${OPT}`],
-    'tecnologia':                [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`,`${PB}/2582937/pexels-photo-2582937.jpeg${OPT}`,`${PB}/5632399/pexels-photo-5632399.jpeg${OPT}`,`${PB}/3932499/pexels-photo-3932499.jpeg${OPT}`,`${PB}/1181244/pexels-photo-1181244.jpeg${OPT}`,`${PB}/574071/pexels-photo-574071.jpeg${OPT}`,`${PB}/3861969/pexels-photo-3861969.jpeg${OPT}`,`${PB}/4050315/pexels-photo-4050315.jpeg${OPT}`,`${PB}/5926382/pexels-photo-5926382.jpeg${OPT}`,`${PB}/7988086/pexels-photo-7988086.jpeg${OPT}`],
-    'educacion':                 [`${PB}/256490/pexels-photo-256490.jpeg${OPT}`,`${PB}/289737/pexels-photo-289737.jpeg${OPT}`,`${PB}/1205651/pexels-photo-1205651.jpeg${OPT}`,`${PB}/4143791/pexels-photo-4143791.jpeg${OPT}`,`${PB}/301926/pexels-photo-301926.jpeg${OPT}`,`${PB}/5905559/pexels-photo-5905559.jpeg${OPT}`,`${PB}/3769021/pexels-photo-3769021.jpeg${OPT}`,`${PB}/4491461/pexels-photo-4491461.jpeg${OPT}`,`${PB}/4145197/pexels-photo-4145197.jpeg${OPT}`,`${PB}/8617816/pexels-photo-8617816.jpeg${OPT}`],
-    'cultura-musica':            [`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`,`${PB}/1540406/pexels-photo-1540406.jpeg${OPT}`,`${PB}/3651308/pexels-photo-3651308.jpeg${OPT}`,`${PB}/2521317/pexels-photo-2521317.jpeg${OPT}`,`${PB}/1047442/pexels-photo-1047442.jpeg${OPT}`,`${PB}/167636/pexels-photo-167636.jpeg${OPT}`,`${PB}/995301/pexels-photo-995301.jpeg${OPT}`,`${PB}/2191013/pexels-photo-2191013.jpeg${OPT}`,`${PB}/1105666/pexels-photo-1105666.jpeg${OPT}`,`${PB}/1769280/pexels-photo-1769280.jpeg${OPT}`],
-    'medio-ambiente':            [`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`,`${PB}/1366919/pexels-photo-1366919.jpeg${OPT}`,`${PB}/2559941/pexels-photo-2559941.jpeg${OPT}`,`${PB}/414612/pexels-photo-414612.jpeg${OPT}`,`${PB}/247599/pexels-photo-247599.jpeg${OPT}`,`${PB}/1666012/pexels-photo-1666012.jpeg${OPT}`,`${PB}/572897/pexels-photo-572897.jpeg${OPT}`,`${PB}/1021142/pexels-photo-1021142.jpeg${OPT}`,`${PB}/3225517/pexels-photo-3225517.jpeg${OPT}`,`${PB}/1423600/pexels-photo-1423600.jpeg${OPT}`],
-    'turismo':                   [`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`,`${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`,`${PB}/3601425/pexels-photo-3601425.jpeg${OPT}`,`${PB}/2104152/pexels-photo-2104152.jpeg${OPT}`,`${PB}/237272/pexels-photo-237272.jpeg${OPT}`,`${PB}/1450360/pexels-photo-1450360.jpeg${OPT}`,`${PB}/3601453/pexels-photo-3601453.jpeg${OPT}`,`${PB}/994605/pexels-photo-994605.jpeg${OPT}`,`${PB}/1268855/pexels-photo-1268855.jpeg${OPT}`,`${PB}/3155666/pexels-photo-3155666.jpeg${OPT}`],
-    'emergencia':                [`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`,`${PB}/263402/pexels-photo-263402.jpeg${OPT}`,`${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,`${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,`${PB}/3259629/pexels-photo-3259629.jpeg${OPT}`,`${PB}/4386396/pexels-photo-4386396.jpeg${OPT}`,`${PB}/6129049/pexels-photo-6129049.jpeg${OPT}`,`${PB}/5726825/pexels-photo-5726825.jpeg${OPT}`,`${PB}/7541956/pexels-photo-7541956.jpeg${OPT}`,`${PB}/6129113/pexels-photo-6129113.jpeg${OPT}`],
-    'vivienda-social':           [`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`,`${PB}/2102587/pexels-photo-2102587.jpeg${OPT}`,`${PB}/1370704/pexels-photo-1370704.jpeg${OPT}`,`${PB}/259588/pexels-photo-259588.jpeg${OPT}`,`${PB}/1029599/pexels-photo-1029599.jpeg${OPT}`,`${PB}/280229/pexels-photo-280229.jpeg${OPT}`,`${PB}/534151/pexels-photo-534151.jpeg${OPT}`,`${PB}/1080721/pexels-photo-1080721.jpeg${OPT}`,`${PB}/2724749/pexels-photo-2724749.jpeg${OPT}`],
-    'transporte-vial':           [`${PB}/93398/pexels-photo-93398.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,`${PB}/1494277/pexels-photo-1494277.jpeg${OPT}`,`${PB}/210182/pexels-photo-210182.jpeg${OPT}`,`${PB}/2199293/pexels-photo-2199293.jpeg${OPT}`,`${PB}/3806978/pexels-photo-3806978.jpeg${OPT}`,`${PB}/1838640/pexels-photo-1838640.jpeg${OPT}`,`${PB}/3802510/pexels-photo-3802510.jpeg${OPT}`,`${PB}/163786/pexels-photo-163786.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`],
+    'politica-gobierno': [
+        // Edificios gubernamentales, discursos, ceremonias reales
+        `${PB}/1550337/pexels-photo-1550337.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // bandera RD
+        `${PB}/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // reunión ejecutiva
+        `${PB}/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // conferencia prensa
+        `${PB}/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // sala gobierno
+        `${PB}/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // edificio oficial
+        `${PB}/1464217/pexels-photo-1464217.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // palacio gobierno
+        `${PB}/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // reunión sala
+        `${PB}/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // discurso podio
+        `${PB}/8849295/pexels-photo-8849295.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // conferencia
+        `${PB}/4427611/pexels-photo-4427611.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // firma documento
+    ],
+    'seguridad-policia': [
+        `${PB}/6049159/pexels-photo-6049159.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // patrulla policial
+        `${PB}/5699456/pexels-photo-5699456.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // oficiales uniforme
+        `${PB}/6289059/pexels-photo-6289059.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // operativo policial
+        `${PB}/7512968/pexels-photo-7512968.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // patrulla calle
+        `${PB}/4252382/pexels-photo-4252382.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // seguridad urbana
+        `${PB}/3807517/pexels-photo-3807517.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // bomberos
+        `${PB}/6980997/pexels-photo-6980997.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // emergencia
+        `${PB}/5726825/pexels-photo-5726825.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // rescate
+    ],
+    'relaciones-internacionales': [
+        `${PB}/2860705/pexels-photo-2860705.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // diplomacia
+        `${PB}/3997992/pexels-photo-3997992.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // reunión internacional
+        `${PB}/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // conferencia
+        `${PB}/1550337/pexels-photo-1550337.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // bandera
+        `${PB}/3407777/pexels-photo-3407777.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // diplomáticos
+        `${PB}/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // cumbre
+        `${PB}/7948035/pexels-photo-7948035.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // sede ONU
+        `${PB}/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // negociación
+    ],
+    'economia-mercado': [
+        `${PB}/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // trading pantallas reales
+        `${PB}/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // banco edificio
+        `${PB}/210607/pexels-photo-210607.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // bolsa valores
+        `${PB}/3943723/pexels-photo-3943723.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // analista económico
+        `${PB}/7567443/pexels-photo-7567443.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // mercado financiero
+        `${PB}/6120214/pexels-photo-6120214.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // economía
+        `${PB}/5849559/pexels-photo-5849559.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // moneda
+        `${PB}/3760067/pexels-photo-3760067.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // puerto comercial
+        `${PB}/1797428/pexels-photo-1797428.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // construcción comercial
+        `${PB}/4386442/pexels-photo-4386442.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // dinero real
+    ],
+    'infraestructura': [
+        `${PB}/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // construcción real
+        `${PB}/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // carretera
+        `${PB}/2219024/pexels-photo-2219024.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // obra vial
+        `${PB}/1463917/pexels-photo-1463917.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // puente
+        `${PB}/2760241/pexels-photo-2760241.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // puerto
+        `${PB}/1134166/pexels-photo-1134166.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // aeropuerto
+        `${PB}/247763/pexels-photo-247763.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // obras
+        `${PB}/159306/pexels-photo-159306.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // autopista
+    ],
+    'salud-medicina': [
+        `${PB}/3786157/pexels-photo-3786157.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // médico real
+        `${PB}/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // hospital
+        `${PB}/1170979/pexels-photo-1170979.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // cirugía
+        `${PB}/5327580/pexels-photo-5327580.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // vacunación
+        `${PB}/3993212/pexels-photo-3993212.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // enfermera
+        `${PB}/4021775/pexels-photo-4021775.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // laboratorio
+        `${PB}/5214958/pexels-photo-5214958.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // emergencia médica
+        `${PB}/4226219/pexels-photo-4226219.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // clínica
+    ],
+    'deporte-beisbol': [
+        `${PB}/1661950/pexels-photo-1661950.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // estadio béisbol real
+        `${PB}/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // pelota guante
+        `${PB}/248318/pexels-photo-248318.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // bateador
+        `${PB}/1884574/pexels-photo-1884574.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // pitcher
+        `${PB}/163452/pexels-photo-163452.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // estadio lleno
+        `${PB}/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // béisbol acción
+        `${PB}/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // home run
+        `${PB}/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // campo béisbol
+    ],
+    'deporte-futbol': [
+        `${PB}/46798/pexels-photo-46798.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,       // partido fútbol real
+        `${PB}/3621943/pexels-photo-3621943.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // estadio fútbol
+        `${PB}/274422/pexels-photo-274422.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // jugador acción
+        `${PB}/1171084/pexels-photo-1171084.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // gol celebración
+        `${PB}/3873098/pexels-photo-3873098.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // balón cancha
+        `${PB}/114296/pexels-photo-114296.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // portero
+        `${PB}/2277981/pexels-photo-2277981.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // dribbling
+        `${PB}/1884574/pexels-photo-1884574.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // multitud
+    ],
+    'deporte-general': [
+        `${PB}/863988/pexels-photo-863988.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // atletismo pista
+        `${PB}/936094/pexels-photo-936094.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // boxeo real
+        `${PB}/2526878/pexels-photo-2526878.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // natación
+        `${PB}/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // deportes
+        `${PB}/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // pista atletismo
+        `${PB}/2294353/pexels-photo-2294353.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // tenis
+        `${PB}/4761671/pexels-photo-4761671.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // baloncesto
+        `${PB}/3621517/pexels-photo-3621517.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // competencia
+    ],
+    'tecnologia': [
+        `${PB}/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // data center real
+        `${PB}/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // programador real
+        `${PB}/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // servidores
+        `${PB}/3932499/pexels-photo-3932499.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // tecnología
+        `${PB}/574071/pexels-photo-574071.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // pantallas
+        `${PB}/3861969/pexels-photo-3861969.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // ciberseguridad
+        `${PB}/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // desarrollo
+        `${PB}/7988086/pexels-photo-7988086.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // red fibra óptica
+    ],
+    'educacion': [
+        `${PB}/256490/pexels-photo-256490.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // aula real
+        `${PB}/1205651/pexels-photo-1205651.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // graduación
+        `${PB}/4143791/pexels-photo-4143791.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // universidad
+        `${PB}/5905559/pexels-photo-5905559.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // estudiantes
+        `${PB}/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // clase
+        `${PB}/4491461/pexels-photo-4491461.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // biblioteca
+        `${PB}/289737/pexels-photo-289737.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // escuela
+        `${PB}/8617816/pexels-photo-8617816.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // educación
+    ],
+    'cultura-musica': [
+        `${PB}/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // concierto real
+        `${PB}/1540406/pexels-photo-1540406.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // músico escenario
+        `${PB}/3651308/pexels-photo-3651308.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // festival
+        `${PB}/2521317/pexels-photo-2521317.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // show artístico
+        `${PB}/1047442/pexels-photo-1047442.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // música vivo
+        `${PB}/995301/pexels-photo-995301.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // escenario
+        `${PB}/2191013/pexels-photo-2191013.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // cultura
+        `${PB}/1769280/pexels-photo-1769280.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // teatro
+    ],
+    'medio-ambiente': [
+        `${PB}/1108572/pexels-photo-1108572.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // energía solar
+        `${PB}/2559941/pexels-photo-2559941.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // reciclaje
+        `${PB}/414612/pexels-photo-414612.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // contaminación
+        `${PB}/1666012/pexels-photo-1666012.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // reforestación
+        `${PB}/1366919/pexels-photo-1366919.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // bosque
+        `${PB}/572897/pexels-photo-572897.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // cambio climático
+        `${PB}/1021142/pexels-photo-1021142.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // mar limpio
+        `${PB}/3225517/pexels-photo-3225517.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // ambiente
+    ],
+    'turismo': [
+        `${PB}/1450353/pexels-photo-1450353.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // playa Punta Cana
+        `${PB}/1174732/pexels-photo-1174732.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // resort caribeño
+        `${PB}/3601425/pexels-photo-3601425.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // hotel lujo
+        `${PB}/2104152/pexels-photo-2104152.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // turismo
+        `${PB}/994605/pexels-photo-994605.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // playa tropical
+        `${PB}/1268855/pexels-photo-1268855.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // caribe
+        `${PB}/3155666/pexels-photo-3155666.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // destino
+        `${PB}/1450360/pexels-photo-1450360.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // arena blanca
+    ],
+    'emergencia': [
+        `${PB}/1437862/pexels-photo-1437862.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // bomberos acción
+        `${PB}/263402/pexels-photo-263402.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // rescate
+        `${PB}/6129049/pexels-photo-6129049.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // ambulancia
+        `${PB}/7541956/pexels-photo-7541956.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // emergencia
+        `${PB}/3259629/pexels-photo-3259629.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // desastre
+        `${PB}/6129113/pexels-photo-6129113.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // primera respuesta
+        `${PB}/4386396/pexels-photo-4386396.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // crisis
+        `${PB}/5726825/pexels-photo-5726825.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // socorro
+    ],
+    'vivienda-social': [
+        `${PB}/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // construcción
+        `${PB}/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // apartamentos
+        `${PB}/2102587/pexels-photo-2102587.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // vivienda
+        `${PB}/1370704/pexels-photo-1370704.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // residencial
+        `${PB}/259588/pexels-photo-259588.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // casas
+        `${PB}/1029599/pexels-photo-1029599.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // urbanización
+        `${PB}/280229/pexels-photo-280229.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // edificio
+        `${PB}/534151/pexels-photo-534151.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // obra
+    ],
+    'transporte-vial': [
+        `${PB}/93398/pexels-photo-93398.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,       // autopista
+        `${PB}/1494277/pexels-photo-1494277.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // metro
+        `${PB}/210182/pexels-photo-210182.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // tránsito urbano
+        `${PB}/2199293/pexels-photo-2199293.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // carretera
+        `${PB}/3806978/pexels-photo-3806978.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // camión carga
+        `${PB}/163786/pexels-photo-163786.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,     // vial
+        `${PB}/3802510/pexels-photo-3802510.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // terminal
+        `${PB}/1004409/pexels-photo-1004409.jpeg?auto=compress&cs=tinysrgb&w=1200&fit=crop`,   // transporte
+    ],
 };
+
 
 const FALLBACK_CAT = {
     Nacionales:      'politica-gobierno',
@@ -1068,41 +1232,92 @@ CONTENIDO:
 }
 
 // ─── RSS — 30 FUENTES ─────────────────────────────────────────────────────────
+// ─── 3 MEJORES PERIÓDICOS RD — FUENTE PRINCIPAL DE NOTICIAS ─────────────────
+// Estrategia: coger la noticia + foto real → Gemini la reescribe élite → watermark
+// Listín Diario, Diario Libre y N Digital son los de mayor tráfico y retención en RD
 const FUENTES_RSS = [
-    { url: 'https://presidencia.gob.do/feed',          categoria: 'Nacionales',      nombre: 'Presidencia RD' },
-    { url: 'https://policia.gob.do/feed',               categoria: 'Nacionales',      nombre: 'Policia Nacional' },
-    { url: 'https://www.mopc.gob.do/feed',              categoria: 'Nacionales',      nombre: 'MOPC' },
-    { url: 'https://www.salud.gob.do/feed',             categoria: 'Nacionales',      nombre: 'Salud Publica' },
-    { url: 'https://www.educacion.gob.do/feed',         categoria: 'Nacionales',      nombre: 'Educacion' },
-    { url: 'https://www.bancentral.gov.do/feed',        categoria: 'Economia',        nombre: 'Banco Central' },
-    { url: 'https://mepyd.gob.do/feed',                 categoria: 'Economia',        nombre: 'MEPyD' },
-    { url: 'https://www.invivienda.gob.do/feed',        categoria: 'Nacionales',      nombre: 'Invivienda' },
-    { url: 'https://mitur.gob.do/feed',                 categoria: 'Nacionales',      nombre: 'Turismo' },
-    { url: 'https://pgr.gob.do/feed',                   categoria: 'Nacionales',      nombre: 'Procuraduria' },
-    { url: 'https://www.diariolibre.com/feed',          categoria: 'Nacionales',      nombre: 'Diario Libre' },
-    { url: 'https://listindiario.com/feed',             categoria: 'Nacionales',      nombre: 'Listin Diario' },
-    { url: 'https://elnacional.com.do/feed/',           categoria: 'Nacionales',      nombre: 'El Nacional' },
-    { url: 'https://www.eldinero.com.do/feed/',         categoria: 'Economia',        nombre: 'El Dinero' },
-    { url: 'https://www.elcaribe.com.do/feed/',         categoria: 'Nacionales',      nombre: 'El Caribe' },
-    { url: 'https://acento.com.do/feed/',               categoria: 'Nacionales',      nombre: 'Acento' },
-    { url: 'https://www.hoy.com.do/feed/',              categoria: 'Nacionales',      nombre: 'Hoy' },
-    { url: 'https://www.noticiassin.com/feed/',         categoria: 'Nacionales',      nombre: 'Noticias SIN' },
-    { url: 'https://www.cdt.com.do/feed/',              categoria: 'Deportes',        nombre: 'CDT Deportes' },
-    { url: 'https://www.beisbolrd.com/feed/',           categoria: 'Deportes',        nombre: 'Beisbol RD' },
-    { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',   categoria: 'Internacionales', nombre: 'BBC Mundo' },
-    { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', categoria: 'Internacionales', nombre: 'NYT World' },
-    { url: 'https://feeds.feedburner.com/TechCrunch',  categoria: 'Tecnologia',      nombre: 'TechCrunch' },
-    { url: 'https://www.wired.com/feed/rss',            categoria: 'Tecnologia',      nombre: 'Wired' },
-    { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economia',    nombre: 'Bloomberg' },
-    { url: 'https://www.primerahora.com/entretenimiento/feed/', categoria: 'Espectaculos', nombre: 'Primera Hora' },
+
+    // ══════════════════════════════════════════════
+    //  🏆 LISTÍN DIARIO — Mayor autoridad en RD
+    // ══════════════════════════════════════════════
+    { url: 'https://listindiario.com/feed',                              categoria: 'Nacionales',      nombre: 'Listin Diario' },
+    { url: 'https://listindiario.com/la-republica/feed',                 categoria: 'Nacionales',      nombre: 'Listin Republica' },
+    { url: 'https://listindiario.com/economia-and-negocios/feed',        categoria: 'Economia',        nombre: 'Listin Economia' },
+    { url: 'https://listindiario.com/deportes/feed',                     categoria: 'Deportes',        nombre: 'Listin Deportes' },
+    { url: 'https://listindiario.com/la-vida/feed',                      categoria: 'Espectaculos',    nombre: 'Listin Vida' },
+    { url: 'https://listindiario.com/tecnologia/feed',                   categoria: 'Tecnologia',      nombre: 'Listin Tecnologia' },
+    { url: 'https://listindiario.com/el-mundo/feed',                     categoria: 'Internacionales', nombre: 'Listin Mundo' },
+
+    // ══════════════════════════════════════════════
+    //  🥈 DIARIO LIBRE — Mayor tráfico digital RD
+    // ══════════════════════════════════════════════
+    { url: 'https://www.diariolibre.com/feed',                           categoria: 'Nacionales',      nombre: 'Diario Libre' },
+    { url: 'https://www.diariolibre.com/economia/feed',                  categoria: 'Economia',        nombre: 'DL Economia' },
+    { url: 'https://www.diariolibre.com/deportes/feed',                  categoria: 'Deportes',        nombre: 'DL Deportes' },
+    { url: 'https://www.diariolibre.com/tecnologia/feed',                categoria: 'Tecnologia',      nombre: 'DL Tecnologia' },
+    { url: 'https://www.diariolibre.com/mundo/feed',                     categoria: 'Internacionales', nombre: 'DL Mundo' },
+    { url: 'https://www.diariolibre.com/entretenimiento/feed',           categoria: 'Espectaculos',    nombre: 'DL Entretenimiento' },
+
+    // ══════════════════════════════════════════════
+    //  🥉 N DIGITAL — Noticias de alto impacto RD
+    // ══════════════════════════════════════════════
+    { url: 'https://n.com.do/feed/',                                     categoria: 'Nacionales',      nombre: 'N Digital' },
+    { url: 'https://n.com.do/economia/feed/',                            categoria: 'Economia',        nombre: 'N Digital Economia' },
+    { url: 'https://n.com.do/deportes/feed/',                            categoria: 'Deportes',        nombre: 'N Digital Deportes' },
+    { url: 'https://n.com.do/internacionales/feed/',                     categoria: 'Internacionales', nombre: 'N Digital Mundo' },
+    { url: 'https://n.com.do/entretenimiento/feed/',                     categoria: 'Espectaculos',    nombre: 'N Digital Entretenimiento' },
+
+    // ══════════════════════════════════════════════
+    //  📡 FUENTES INTERNACIONALES DE RESPALDO
+    // ══════════════════════════════════════════════
+    { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',                    categoria: 'Internacionales', nombre: 'BBC Mundo' },
     { url: 'https://www.reuters.com/arc/outboundfeeds/rss/category/latam/?outputType=xml', categoria: 'Internacionales', nombre: 'Reuters LatAm' },
-    { url: 'https://www.elnuevoherald.com/ultimas-noticias/?widgetName=rssfeed&widgetContentId=725095&getXmlFeed=true', categoria: 'Internacionales', nombre: 'El Nuevo Herald' },
-    { url: 'https://www.telemundo.com/shows/rss',       categoria: 'Espectaculos',    nombre: 'Telemundo' },
-    { url: 'https://www.univision.com/rss',             categoria: 'Espectaculos',    nombre: 'Univision' },
+    { url: 'https://feeds.bloomberg.com/markets/news.rss',               categoria: 'Economia',        nombre: 'Bloomberg' },
+    { url: 'https://www.wired.com/feed/rss',                             categoria: 'Tecnologia',      nombre: 'Wired' },
 ];
 
 // ─── PROCESADOR RSS — FIX 3 (100% secuencial, anti-SIGTERM) ──────────────────
 let rssEnProceso = false;
+
+// ─── SCRAPER IMAGEN ARTÍCULO — si el RSS no trae imagen, la buscamos en el HTML ──
+async function scrapearImagenArticulo(url) {
+    if (!url) return null;
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 8000);
+        const res  = await fetch(url, {
+            headers: { ...BROWSER_HEADERS, Accept: 'text/html' },
+            signal: ctrl.signal,
+        }).finally(() => clearTimeout(tm));
+        if (!res.ok) return null;
+        const html = await res.text();
+
+        // 1. og:image — la más confiable (Listín, Diario Libre usan esto)
+        const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        if (og?.[1] && og[1].startsWith('http') && /\.(jpg|jpeg|png|webp)/i.test(og[1])) {
+            return og[1];
+        }
+
+        // 2. twitter:image
+        const tw = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+        if (tw?.[1] && tw[1].startsWith('http') && /\.(jpg|jpeg|png|webp)/i.test(tw[1])) {
+            return tw[1];
+        }
+
+        // 3. Primera imagen grande del artículo (> 400px si tiene width)
+        const imgs = [...html.matchAll(/<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp))[^"']*["'][^>]*>/gi)];
+        for (const img of imgs) {
+            const src = img[1];
+            if (!src.startsWith('http')) continue;
+            // Evitar logos, iconos, avatares
+            if (/logo|icon|avatar|thumb|sprite|pixel|tracking/i.test(src)) continue;
+            return src;
+        }
+    } catch (_) {}
+    return null;
+}
 
 // ─── EXTRACTOR IMAGEN RSS (Plan C) ───────────────────────────────────────────
 // Extrae la imagen real de la noticia original del RSS
@@ -1165,15 +1380,29 @@ async function procesarRSS() {
                 );
                 if (ya.rows.length) continue;
 
-                // Plan C: extraer imagen real del RSS antes de llamar a Gemini
-                const imagenRSS = extraerImagenRSS(item);
-                if (imagenRSS) console.log(`   [RSS-IMG] Imagen real extraída: ${imagenRSS.substring(0, 60)}...`);
+                // PLAN C: extraer imagen real del periódico
+                // 1. Del RSS directo
+                let imagenRSS = extraerImagenRSS(item);
 
+                // 2. Si el RSS no trae imagen, hacer scraping del artículo
+                if (!imagenRSS && item.link) {
+                    imagenRSS = await scrapearImagenArticulo(item.link);
+                }
+
+                if (imagenRSS) {
+                    console.log(`   [RSS-IMG ✓] ${imagenRSS.substring(0, 70)}`);
+                } else {
+                    console.log(`   [RSS-IMG] Sin imagen — usará banco local`);
+                }
+
+                // Construir comunicado para Gemini con TODO el contenido disponible
                 const com = [
-                    item.title          ? `TITULO: ${item.title}`                         : '',
-                    item.contentSnippet ? `RESUMEN: ${item.contentSnippet}`               : '',
-                    item.content        ? `CONTENIDO: ${item.content.substring(0, 1500)}` : '',
+                    item.title          ? `TITULO ORIGINAL: ${item.title}`                         : '',
+                    item.contentSnippet ? `RESUMEN: ${item.contentSnippet}`                        : '',
+                    item.content        ? `CONTENIDO: ${item.content.substring(0, 2000)}`          : '',
+                    item['content:encoded'] ? `HTML: ${item['content:encoded'].replace(/<[^>]+>/g,'').substring(0, 1000)}` : '',
                     `FUENTE: ${fuente.nombre}`,
+                    `INSTRUCCION: Reescribe esta noticia completamente con tu voz periodística élite. NO copies frases del original. SEO máximo para RD.`,
                 ].filter(Boolean).join('\n');
 
                 const res = await generarNoticia(fuente.categoria, com, imagenRSS);
