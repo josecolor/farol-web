@@ -274,7 +274,7 @@ async function llamarGemini(prompt, reintentos=3) {
             if (desde<3000) await new Promise(r=>setTimeout(r,3000-desde));
             GS.lastRequest=Date.now();
             const res=await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
                 {method:'POST',headers:{'Content-Type':'application/json'},
                  body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.8,maxOutputTokens:3000}})}
             );
