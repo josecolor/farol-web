@@ -1,11 +1,12 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.4
- * Base: V34.3
+ * 🏮 EL FAROL AL DÍA — V34.5
+ * Base: V34.4
  * Cambios:
  *   1. Watermark: busca WATERMARK(1).png como nombre prioritario exacto
  *   2. Gemini: modelo gemini-1.5-flash, URL v1beta, AbortController 60s correcto
  *   3. Railway: regenerarWatermarks y RSS 100% secuenciales, bandera anti-overlap
  *   4. Panel: rutas /api/coach, /api/memoria, /api/estadisticas verificadas y alineadas
+ *   5. FIX 429: pausa 2s entre imágenes en regenerarWatermarks, batch reducido a 20
  */
 
 'use strict';
@@ -990,7 +991,7 @@ async function regenerarWatermarksLostidos() {
               AND  imagen_original IS NOT NULL
               AND  imagen_original != ''
             ORDER  BY fecha DESC
-            LIMIT  50`);
+            LIMIT  20`);
 
         if (!r.rows.length) { wmRegenEnProceso = false; return; }
 
@@ -1008,8 +1009,8 @@ async function regenerarWatermarksLostidos() {
                 );
                 regenerados++;
             }
-            // Pausa entre imágenes para no saturar memoria
-            await new Promise(r => setTimeout(r, 300));
+            // Pausa de 2s entre imágenes — evita HTTP 429 de Pexels
+            await new Promise(r => setTimeout(r, 2000));
         }
 
         if (regenerados > 0) { console.log(`[WM-Regen] Regenerados: ${regenerados}`); invalidarCache(); }
