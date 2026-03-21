@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.20
- * Base: V34.20
+ * 🏮 EL FAROL AL DÍA — V34.21
+ * Base: V34.21
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -8,7 +8,6 @@
  *   4. Panel: /api/coach, /api/memoria, /api/estadisticas alineadas
  *   5. FIX 429: pausa 2s entre imágenes, batch 20
  *   6. IMÁGENES V2: Pixabay como banco 2, filtro realismo -illustration -render -3d
- *   7. QUERY_IMAGEN periodístico específico (Gemini genera query real de prensa)
  *   8. Wikipedia: solo contexto texto, eliminada de búsqueda de imágenes
  */
 
@@ -392,7 +391,7 @@ async function llamarGemini(prompt, reintentos = 3) {
                 await new Promise(r => setTimeout(r, espera));
             }
             const lag = Date.now() - GS.lastRequest;
-            if (lag < 3000) await new Promise(r => setTimeout(r, 3000 - lag));
+            if (lag < 5000) await new Promise(r => setTimeout(r, 5000 - lag));
             GS.lastRequest = Date.now();
 
             // AbortController con cleanup garantizado en .finally()
@@ -736,7 +735,6 @@ const CACHE_TTL = 300000; // 5 minutos
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
-// registrarQueryPexels eliminado — ya no usamos Pexels
 
 async function registrarError(tipo, descripcion, categoria) {
     try {
@@ -879,14 +877,12 @@ SEO DE ÉLITE:
 - TITULO: 55-65 caracteres exactos. Verbo activo al inicio cuando sea posible. Incluir término de búsqueda principal. Ejemplos de estructura ganadora: "Abinader anuncia...", "Sube el precio de...", "RD aprueba ley que...", "Último Minuto: [hecho]"
 - DESCRIPCION: 150-158 chars. Amplía el titular con dato nuevo. Termina con gancho.
 - PALABRAS: 6 keywords. Primera SIEMPRE "republica dominicana". Incluir variante long-tail.
-- QUERY_IMAGEN: Imagen de prensa real. Nombre propio si aplica ("Donald Trump White House podium"), escena real ("Dominican Republic port customs inspection"), nunca conceptual. Piensa: ¿qué foto publicaría Reuters o AP para esta noticia?
 - ALT_IMAGEN: 15-20 palabras en español, descriptivas, con RD y contexto.
 
 RESPONDE EXACTAMENTE EN ESTE FORMATO — SIN asteriscos, SIN markdown, SIN texto extra:
 TITULO: [55-65 chars]
 DESCRIPCION: [150-158 chars]
 PALABRAS: [6 keywords separadas por coma]
-QUERY_IMAGEN: [3-6 palabras inglés, foto de prensa real específica]
 ALT_IMAGEN: [15-20 palabras español con contexto RD]
 SUBTEMA_LOCAL: [uno de: politica-gobierno, seguridad-policia, relaciones-internacionales, economia-mercado, infraestructura, salud-medicina, deporte-beisbol, deporte-futbol, deporte-general, tecnologia, educacion, cultura-musica, medio-ambiente, turismo, emergencia, vivienda-social, transporte-vial]
 CONTENIDO:
@@ -896,7 +892,7 @@ CONTENIDO:
         const texto       = await llamarGemini(prompt);
         const textoLimpio = texto.replace(/^\s*[*#]+\s*/gm, '');
 
-        let titulo = '', desc = '', pals = '', qi = '', ai = '', sub = '', enC = false;
+        let titulo = '', desc = '', pals = '', ai = '', sub = '', enC = false;
         const bl = [];
 
         for (const l of textoLimpio.split('\n')) {
@@ -904,7 +900,7 @@ CONTENIDO:
             if      (t.startsWith('TITULO:'))        titulo = t.replace('TITULO:', '').trim();
             else if (t.startsWith('DESCRIPCION:'))   desc   = t.replace('DESCRIPCION:', '').trim();
             else if (t.startsWith('PALABRAS:'))      pals   = t.replace('PALABRAS:', '').trim();
-            else if (t.startsWith('QUERY_IMAGEN:'))  qi     = t.replace('QUERY_IMAGEN:', '').trim();
+
             else if (t.startsWith('ALT_IMAGEN:'))    ai     = t.replace('ALT_IMAGEN:', '').trim();
             else if (t.startsWith('SUBTEMA_LOCAL:')) sub    = t.replace('SUBTEMA_LOCAL:', '').trim();
             else if (t.startsWith('CONTENIDO:'))     enC    = true;
@@ -938,14 +934,14 @@ CONTENIDO:
                     urlOrig = imagenRSSOverride;
                 } else {
                     console.log(`   [IMG-RSS] Imagen bloqueada (${chk.status}), usando búsqueda normal`);
-                    urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+                    urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, null);
                 }
             } catch (_) {
                 console.log(`   [IMG-RSS] No accesible, usando búsqueda normal`);
-                urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+                urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, null);
             }
         } else {
-            urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+            urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, null);
         }
 
         // Aplicar watermark — convierte URL externa en elfarolaldia.com/img/...
@@ -984,7 +980,6 @@ CONTENIDO:
 
         console.log('[Gen] Publicada: /noticia/' + slFin);
         invalidarCache();
-        // registrarQueryPexels eliminado
 
         // Solo Telegram — sin FB ni Twitter que generan errores
         publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
@@ -1235,7 +1230,7 @@ async function procesarRSS() {
     // Publicar máximo 5 por ciclo — las más relevantes
     // Si score < 3 = noticia sin valor trending → esperar al próximo ciclo
     const SCORE_MINIMO  = 3;
-    const MAX_POR_CICLO = 5;
+    const MAX_POR_CICLO = 3; // máx 3 por ciclo — evita 429 de Gemini
 
     for (const candidato of candidatos.slice(0, MAX_POR_CICLO)) {
         const { item, fuente, guid, score } = candidato;
