@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.19
- * Base: V34.19
+ * 🏮 EL FAROL AL DÍA — V34.20
+ * Base: V34.20
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -984,7 +984,7 @@ CONTENIDO:
 
         console.log('[Gen] Publicada: /noticia/' + slFin);
         invalidarCache();
-        if (qi) registrarQueryPexels(qi, categoria, true);
+        // registrarQueryPexels eliminado
 
         // Solo Telegram — sin FB ni Twitter que generan errores
         publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
@@ -1285,7 +1285,7 @@ async function procesarRSS() {
             const palabrasClave = (item.title||'').toLowerCase().split(' ').filter(w=>w.length>5).slice(0,3).join('-');
             temasPublicadosHoy.add(palabrasClave);
             procesadas++;
-            await new Promise(r => setTimeout(r, 6000)); // pausa Gemini
+            await new Promise(r => setTimeout(r, 12000)); // pausa 12s — evita 429 de Gemini
         }
     }
 
