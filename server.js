@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.23
- * Base: V34.23
+ * 🏮 EL FAROL AL DÍA — V34.24
+ * Base: V34.24
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -352,24 +352,38 @@ async function aplicarMarcaDeAgua(urlImagen) {
             console.log(`   [IMG-PROC] Foto pequeña (${anchoOrig}px) → sin redimensionar`);
         }
 
-        const meta    = await sharp(bufEscalado).metadata();
-        const w       = meta.width  || 1200;
-        const h       = meta.height || 630;
+        const meta = await sharp(bufEscalado).metadata();
+        const w    = meta.width  || 800;
+        const h    = meta.height || 500;
 
-        // Watermark proporcional — 22% del ancho
-        const wmAncho = Math.min(Math.round(w * 0.22), 260);
+        // ── WATERMARK RESPONSIVO ──────────────────────────────────────────────
+        // Se adapta al tamaño real de la foto — nunca muy grande ni muy pequeño
+        let wmPct;
+        if      (w >= 1000) wmPct = 0.20; // foto grande  → marca 20% del ancho
+        else if (w >= 600)  wmPct = 0.25; // foto mediana → marca 25% del ancho
+        else                wmPct = 0.30; // foto pequeña → marca 30% del ancho
+
+        const wmAncho = Math.round(w * wmPct);
         const wmRes   = await sharp(WATERMARK_PATH)
             .resize(wmAncho, null, { fit: 'inside' })
             .toBuffer();
         const wmMeta  = await sharp(wmRes).metadata();
-        const wmAlto  = wmMeta.height || 50;
-        const margen  = Math.round(w * 0.025);
+        const wmAlto  = wmMeta.height || 40;
+
+        // Margen proporcional al tamaño
+        const margen = Math.max(8, Math.round(w * 0.02));
+
+        // Posición — esquina inferior derecha siempre
+        const posLeft = Math.max(0, w - wmAncho - margen);
+        const posTop  = Math.max(0, h - wmAlto  - margen);
+
+        console.log(`   [WM-SIZE] Foto ${w}x${h}px → marca ${wmAncho}px (${Math.round(wmPct*100)}%)`);
 
         const bufFin = await sharp(bufEscalado)
             .composite([{
                 input: wmRes,
-                left:  Math.max(0, w - wmAncho - margen),
-                top:   Math.max(0, h - wmAlto  - margen),
+                left:  posLeft,
+                top:   posTop,
                 blend: 'over',
             }])
             .jpeg({ quality: 92, progressive: true, mozjpeg: true })
