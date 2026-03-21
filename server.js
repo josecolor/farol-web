@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.30
- * Base: V34.30
+ * 🏮 EL FAROL AL DÍA — V34.31
+ * Base: V34.31
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -1230,49 +1230,89 @@ const FUENTES_RSS = [
 // ─── PROCESADOR RSS — FIX 3 (100% secuencial, anti-SIGTERM) ──────────────────
 let rssEnProceso = false;
 
-// ─── SCRAPER IMAGEN ARTÍCULO — si el RSS no trae imagen, la buscamos en el HTML ──
+// ─── SCRAPER DE IMAGEN — adaptado a cada periódico ──────────────────────────
+// Cada periódico tiene su estructura HTML — extraemos la foto exacta de la noticia
+const PATRON_IMAGEN_PERIODICO = {
+    // Diario Libre — usa og:image y resources.diariolibre.com
+    'diariolibre.com': (html) => {
+        const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        if (og?.[1]?.startsWith('http')) return og[1];
+        // Patrón específico Diario Libre
+        const dl = html.match(/resources\.diariolibre\.com\/images\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/i);
+        if (dl) return 'https://' + dl[0].replace(/^https?:\/\//, '');
+        return null;
+    },
+    // Listín Diario — usa og:image y cdn.listindiario.com
+    'listindiario.com': (html) => {
+        const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        if (og?.[1]?.startsWith('http')) return og[1];
+        const ld = html.match(/cdn\.listindiario\.com\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/i);
+        if (ld) return 'https://' + ld[0].replace(/^https?:\/\//, '');
+        return null;
+    },
+    // N Digital — usa og:image y storage.googleapis o cdn propio
+    'n.com.do': (html) => {
+        const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        if (og?.[1]?.startsWith('http')) return og[1];
+        const nd = html.match(/https:\/\/[^"'\s]*n\.com\.do[^"'\s]+\.(?:jpg|jpeg|png|webp)/i);
+        if (nd) return nd[0];
+        return null;
+    },
+    // Reuters
+    'reuters.com': (html) => {
+        const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        return og?.[1]?.startsWith('http') ? og[1] : null;
+    },
+    // BBC
+    'bbc.com': (html) => {
+        const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        return og?.[1]?.startsWith('http') ? og[1] : null;
+    },
+};
+
 async function scrapearImagenArticulo(url) {
-    // Dominios que sabemos que tienen og:image confiable
-    // Para estos, el scraping es prioritario sobre Pexels
-    const DOMINIOS_CONFIABLES = [
-        'diariolibre.com', 'listindiario.com', 'n.com.do',
-        'reuters.com', 'bbc.com', 'bloomberg.com', 'wired.com'
-    ];
-    const esConfiable = DOMINIOS_CONFIABLES.some(d => url.includes(d));
     if (!url) return null;
     try {
         const ctrl = new AbortController();
         const tm   = setTimeout(() => ctrl.abort(), 8000);
         const res  = await fetch(url, {
-            headers: { ...BROWSER_HEADERS, Accept: 'text/html' },
+            headers: { ...BROWSER_HEADERS, Accept: 'text/html,application/xhtml+xml' },
             signal: ctrl.signal,
         }).finally(() => clearTimeout(tm));
         if (!res.ok) return null;
         const html = await res.text();
 
-        // 1. og:image — la más confiable (Listín, Diario Libre usan esto)
-        const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-                || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
-        if (og?.[1] && og[1].startsWith('http') && /\.(jpg|jpeg|png|webp)/i.test(og[1])) {
+        // 1. Usar extractor específico del periódico si existe
+        for (const [dominio, extractor] of Object.entries(PATRON_IMAGEN_PERIODICO)) {
+            if (url.includes(dominio)) {
+                const img = extractor(html);
+                if (img) {
+                    console.log(`   [Scraper-${dominio.split('.')[0]}] ✓ ${img.substring(0, 70)}`);
+                    return img;
+                }
+                break;
+            }
+        }
+
+        // 2. Fallback genérico — og:image funciona en casi todos
+        const og = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+        if (og?.[1]?.startsWith('http') && /\.(jpg|jpeg|png|webp)/i.test(og[1])) {
             return og[1];
         }
 
-        // 2. twitter:image
-        const tw = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
-                || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
-        if (tw?.[1] && tw[1].startsWith('http') && /\.(jpg|jpeg|png|webp)/i.test(tw[1])) {
+        // 3. twitter:image
+        const tw = html.match(/name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+        if (tw?.[1]?.startsWith('http') && /\.(jpg|jpeg|png|webp)/i.test(tw[1])) {
             return tw[1];
         }
 
-        // 3. Primera imagen grande del artículo (> 400px si tiene width)
-        const imgs = [...html.matchAll(/<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp))[^"']*["'][^>]*>/gi)];
-        for (const img of imgs) {
-            const src = img[1];
-            if (!src.startsWith('http')) continue;
-            // Evitar logos, iconos, avatares
-            if (/logo|icon|avatar|thumb|sprite|pixel|tracking/i.test(src)) continue;
-            return src;
-        }
     } catch (_) {}
     return null;
 }
