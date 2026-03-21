@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.31
- * Base: V34.31
+ * 🏮 EL FAROL AL DÍA — V34.32
+ * Base: V34.32
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -127,8 +127,6 @@ function marcarKeyDescansando(idx) {
 // Pexels y Pixabay eliminados — fotos vienen directo del periódico original
 // Facebook y Twitter eliminados — generan errores y no aportan tráfico SEO
 // El tráfico real viene de Google News y búsquedas orgánicas
-const TELEGRAM_TOKEN        = process.env.TELEGRAM_TOKEN        || null;
-let   TELEGRAM_CHAT_ID      = process.env.TELEGRAM_CHAT_ID      || null;
 
 // ─── WATERMARK — FIX 1 ───────────────────────────────────────────────────────
 // Orden de búsqueda: el nombre exacto del repo va PRIMERO.
@@ -245,67 +243,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
         console.log(`   [Wiki] OK (${txt.length} chars)`);
         return `\nCONTEXTO REFERENCIA (no copiar):\n${txt}\n`;
     } catch (_) { return ''; }
-}
-
-// ─── TELEGRAM ─────────────────────────────────────────────────────────────────
-async function obtenerChatIdTelegram() {
-    if (!TELEGRAM_TOKEN) return null;
-    try {
-        const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/getUpdates?limit=1&offset=-1`);
-        const d = await r.json();
-        if (d.ok && d.result?.length) {
-            const id = d.result[0]?.message?.chat?.id || d.result[0]?.channel_post?.chat?.id;
-            if (id) { TELEGRAM_CHAT_ID = id.toString(); return TELEGRAM_CHAT_ID; }
-        }
-    } catch (_) {}
-    return null;
-}
-
-async function publicarEnTelegram(titulo, slug, urlImagen, descripcion, seccion) {
-    if (!TELEGRAM_TOKEN) return false;
-    if (!TELEGRAM_CHAT_ID) TELEGRAM_CHAT_ID = await obtenerChatIdTelegram();
-    if (!TELEGRAM_CHAT_ID) return false;
-    try {
-        const urlN  = `${BASE_URL}/noticia/${slug}`;
-        const emoji = { Nacionales: '🇩🇴', Deportes: '⚾', Internacionales: '🌎', Economia: '💰', Tecnologia: '💻', Espectaculos: '🎭' }[seccion] || '📰';
-        const msg   = `${emoji} *${titulo}*\n\n${descripcion || ''}\n\n[Leer noticia completa](${urlN})\n\n*El Farol al Dia*`;
-
-        if (urlImagen) {
-            const ri = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, photo: urlImagen, caption: msg, parse_mode: 'Markdown' }),
-            });
-            const di = await ri.json();
-            if (di.ok) { console.log('   [TG] OK'); return true; }
-        }
-        const rt = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'Markdown' }),
-        });
-        const dt = await rt.json();
-        if (dt.ok) { console.log('   [TG] OK'); return true; }
-        return false;
-    } catch (err) { console.warn('[TG] ' + err.message); return false; }
-}
-
-async function bienvenidaTelegram() {
-    if (!TELEGRAM_TOKEN) return;
-    await new Promise(r => setTimeout(r, 3000));
-    const id = await obtenerChatIdTelegram();
-    if (!id) return;
-    try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id:    id,
-                text:       `*El Farol al Dia — V34.4 activo*\n\nServidor listo.\n\n[elfarolaldia.com](${BASE_URL})`,
-                parse_mode: 'Markdown',
-            }),
-        });
-    } catch (_) {}
 }
 
 // ─── WATERMARK (aplicación) ───────────────────────────────────────────────────
@@ -1168,10 +1105,7 @@ CONTENIDO:
         console.log('[Gen] Publicada: /noticia/' + slFin);
         invalidarCache();
 
-        // Solo Telegram — sin FB ni Twitter que generan errores
-        publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
-            .then(ok => console.log(`   [TG] ${ok ? 'OK' : 'ERR'}`))
-            .catch(() => {});
+        // Redes sociales eliminadas — tráfico viene de Google News
 
         return { success: true, slug: slFin, titulo, mensaje: 'Publicada en web + redes' };
 
@@ -1888,25 +1822,6 @@ app.post('/api/comentarios/:noticia_id', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
-app.get('/api/telegram/status', authMiddleware, async (req, res) => {
-    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const id = TELEGRAM_CHAT_ID || await obtenerChatIdTelegram();
-    res.json({
-        token_activo: !!TELEGRAM_TOKEN,
-        chat_id:      id || 'No detectado',
-        instruccion:  id ? 'Bot listo' : 'Escríbele al bot para activarlo',
-    });
-});
-
-app.post('/api/telegram/test', authMiddleware, async (req, res) => {
-    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const ok = await publicarEnTelegram(
-        'El Farol al Dia - Prueba', '',
-        `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,
-        'Bot activo y funcionando.', 'Nacionales'
-    );
-    res.json({ success: ok, mensaje: ok ? 'Enviado a Telegram' : 'Error al enviar' });
-});
 
 app.get('/api/configuracion', (req, res) => {
     try {
@@ -2037,7 +1952,7 @@ app.get('/status', async (req, res) => {
             rss_procesados: parseInt(rss.rows[0].count),
             // Facebook eliminado
             // Twitter eliminado
-            telegram:       TELEGRAM_TOKEN ? 'Activo' : 'Sin token',
+
             
             
             marca_de_agua:  WATERMARK_PATH ? `Activa: ${path.basename(WATERMARK_PATH)}` : 'No encontrada — publicando sin marca',
@@ -2068,13 +1983,11 @@ async function iniciar() {
 ║  Watermark      : ${wm.substring(0, 35).padEnd(35)}║
 ║  Facebook       : ELIMINADO (usa Google News)                ║
 ║  Twitter        : ELIMINADO (usa Google News)                ║
-║  Telegram       : ${(TELEGRAM_TOKEN ? 'ACTIVO' : 'Sin token').padEnd(35)}║
 ║  RSS            : 30 fuentes / ejecución secuencial   ║
 ╚═══════════════════════════════════════════════════════╝`);
     });
 
     setTimeout(regenerarWatermarksLostidos, 5000);
-    setTimeout(bienvenidaTelegram,          8000);
 }
 
 iniciar();
