@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.27
- * Base: V34.27
+ * 🏮 EL FAROL AL DÍA — V34.29
+ * Base: V34.29
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -71,6 +71,8 @@ const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\
 
 if (!process.env.DATABASE_URL)   { console.error('[FATAL] DATABASE_URL requerido');   process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('[FATAL] GEMINI_API_KEY requerido'); process.exit(1); }
+// Google Custom Search — opcional, mejora calidad de fotos
+if (!process.env.GOOGLE_CSE_KEY) console.warn('[IMG] GOOGLE_CSE_KEY no configurada — usando Wikimedia para fotos HD');
 
 // ─── GEMINI MULTI-KEY — hasta 5 cuentas rotan automáticamente ────────────────
 // Agregar en Railway: GEMINI_API_KEY, GEMINI_API_KEY2, GEMINI_API_KEY3...
@@ -83,27 +85,43 @@ const GEMINI_KEYS = [
     process.env.GEMINI_API_KEY4 || null,
     process.env.GEMINI_API_KEY5 || null,
 ].filter(Boolean);
-let   GEMINI_KEY_INDEX  = 0; // índice de la key activa
-const GEMINI_KEY_RESET  = {}; // { keyIndex: resetTime }
-console.log(`[Gemini] ${GEMINI_KEYS.length} API key(s) configurada(s)`);
+// ─── ROTACIÓN DE KEYS POR TURNO ──────────────────────────────────────────────
+// Cada noticia usa la siguiente key en orden — turno estricto
+// Key 1 → descansa → Key 2 → descansa → Key 3 → descansa → Key 1...
+// Descando de 60s por key después de cada publicación
+let   GEMINI_KEY_INDEX  = 0;
+const GEMINI_KEY_RESET  = {}; // { keyIndex: tiempoLibre }
+const GEMINI_DESCANSO   = 60000; // 60s de descanso entre usos de la misma key
+
+console.log(`[Gemini] ${GEMINI_KEYS.length} key(s) en rotación por turno`);
+GEMINI_KEYS.forEach((k, i) => console.log(`   Key ${i+1}: ...${k.slice(-6)}`));
 
 function getGeminiKey() {
     const ahora = Date.now();
-    // Buscar una key que no esté en cooldown
+
+    // Buscar la siguiente key en turno que esté descansada
     for (let i = 0; i < GEMINI_KEYS.length; i++) {
-        const idx = (GEMINI_KEY_INDEX + i) % GEMINI_KEYS.length;
-        if (!GEMINI_KEY_RESET[idx] || ahora > GEMINI_KEY_RESET[idx]) {
-            GEMINI_KEY_INDEX = idx;
+        const idx  = (GEMINI_KEY_INDEX + i) % GEMINI_KEYS.length;
+        const libre = GEMINI_KEY_RESET[idx] || 0;
+        if (ahora >= libre) {
+            GEMINI_KEY_INDEX = (idx + 1) % GEMINI_KEYS.length; // apuntar a la siguiente para la próxima
             return { key: GEMINI_KEYS[idx], idx };
         }
     }
-    // Todas en cooldown — usar la que tenga menos tiempo de espera
+
+    // Todas descansando — esperar la que termine antes
     let menorEspera = Infinity, menorIdx = 0;
     for (let i = 0; i < GEMINI_KEYS.length; i++) {
         const espera = (GEMINI_KEY_RESET[i] || 0) - ahora;
         if (espera < menorEspera) { menorEspera = espera; menorIdx = i; }
     }
+    console.log(`   [Gemini] Todas en descanso — esperando ${Math.round(menorEspera/1000)}s (Key ${menorIdx+1})`);
     return { key: GEMINI_KEYS[menorIdx], idx: menorIdx, espera: menorEspera };
+}
+
+function marcarKeyDescansando(idx) {
+    GEMINI_KEY_RESET[idx] = Date.now() + GEMINI_DESCANSO;
+    console.log(`   [Gemini] Key ${idx+1} descansando 60s`);
 }
 
 // Pexels y Pixabay eliminados — fotos vienen directo del periódico original
@@ -539,7 +557,8 @@ async function llamarGemini(prompt, reintentos = 3) {
             const texto = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (!texto) throw new Error('Respuesta vacía de Gemini');
 
-            console.log(`   [Gemini] OK (${texto.length} chars)`);
+            console.log(`   [Gemini] OK (${texto.length} chars) — Key ${idx+1} publicó`);
+            marcarKeyDescansando(idx); // key descansa 60s antes del próximo turno
             return texto;
 
         } catch (err) {
@@ -753,9 +772,86 @@ function imgLocal(sub, cat) {
     return b[Math.floor(Math.random() * b.length)];
 }
 
-// Fallback: banco local curado cuando el RSS no trae imagen
+// ─── GOOGLE IMÁGENES — busca la foto exacta en alta resolución ───────────────
+// Si la foto del RSS viene pequeña, busca en Google la misma imagen en HD
+// Usa el título de la noticia como query de búsqueda
+// GOOGLE_CSE_KEY  = API Key de Google Custom Search
+// GOOGLE_CSE_ID   = ID del motor de búsqueda personalizado
+// Gratis: 100 búsquedas/día — suficiente para noticias de alta calidad
+// Obtener en: console.developers.google.com → Custom Search API
+async function buscarEnGoogle(titulo, categoria) {
+    const GOOGLE_CSE_KEY = process.env.GOOGLE_CSE_KEY || null;
+    const GOOGLE_CSE_ID  = process.env.GOOGLE_CSE_ID  || null;
+
+    // ── Método 1: Google Custom Search API (100/día gratis) ──────────────────
+    if (GOOGLE_CSE_KEY && GOOGLE_CSE_ID) {
+        try {
+            // Query periodístico específico — busca foto de prensa real
+            const q    = `${titulo} press photo news`;
+            const url  = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_CSE_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(q)}&searchType=image&imgSize=large&imgType=photo&safe=active&num=5&fileType=jpg`;
+            const ctrl = new AbortController();
+            const tm   = setTimeout(() => ctrl.abort(), 8000);
+            const res  = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+
+            if (res.ok) {
+                const data = await res.json();
+                const items = data.items || [];
+                // Filtrar ilustraciones y logos
+                const bloq = ['logo','icon','cartoon','illustration','vector','clipart','render','3d'];
+                for (const item of items) {
+                    const src = item.link || '';
+                    const title = (item.title || '').toLowerCase();
+                    if (bloq.some(b => title.includes(b) || src.includes(b))) continue;
+                    if (!src.match(/\.(jpg|jpeg|png|webp)/i)) continue;
+                    console.log(`   [Google-CSE ✓] ${src.substring(0, 70)}`);
+                    return src;
+                }
+            }
+        } catch (_) {}
+    }
+
+    // ── Método 2: Wikimedia Commons — fotos libres de alta calidad ───────────
+    // Si no hay Google API, buscar en Wikimedia que siempre acepta peticiones
+    try {
+        const q    = encodeURIComponent(titulo.split(' ').slice(0, 4).join(' '));
+        const url  = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${q}&srnamespace=6&format=json&srlimit=5&origin=*`;
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 6000);
+        const res  = await fetch(url, { signal: ctrl.signal, headers: BROWSER_HEADERS }).finally(() => clearTimeout(tm));
+
+        if (res.ok) {
+            const data  = await res.json();
+            const items = data?.query?.search || [];
+            for (const item of items) {
+                const title = item.title || '';
+                if (!title.match(/\.(jpg|jpeg|png|webp)/i)) continue;
+                const nombre = encodeURIComponent(title.replace('File:', ''));
+                const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=imageinfo&iiprop=url|size&format=json&origin=*`;
+                const res2 = await fetch(infoUrl, { headers: BROWSER_HEADERS }).catch(() => null);
+                if (!res2?.ok) continue;
+                const data2 = await res2.json();
+                const pages = Object.values(data2?.query?.pages || {});
+                const imgUrl = pages[0]?.imageinfo?.[0]?.url;
+                const w      = pages[0]?.imageinfo?.[0]?.width || 0;
+                if (imgUrl && w >= 600) {
+                    console.log(`   [Wikimedia ✓] ${imgUrl.substring(0, 70)}`);
+                    return imgUrl;
+                }
+            }
+        }
+    } catch (_) {}
+
+    return null;
+}
+
+// ─── IMAGEN INTELIGENTE — RSS → Google HD → Banco local ──────────────────────
 async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
-    // Sin Pexels ni Pixabay — directo al banco local
+    // Intentar Google Images para conseguir la foto en alta calidad
+    if (titulo && titulo.length > 10) {
+        const urlGoogle = await buscarEnGoogle(titulo, categoria);
+        if (urlGoogle) return urlGoogle;
+    }
+    // Banco local como último respaldo
     console.log(`   [Imagen] Banco local → "${subtema || categoria}"`);
     return imgLocal(subtema, categoria);
 }
@@ -1039,11 +1135,22 @@ CONTENIDO:
                 }).finally(() => clearTimeout(tm));
 
                 if (chk.ok && chk.headers.get('content-type')?.startsWith('image/')) {
-                    console.log(`   [IMG-RSS] ✓ Imagen válida del RSS`);
-                    urlOrig = imagenRSSOverride;
+                    // Verificar si la imagen RSS es suficientemente grande
+                    const cl = parseInt(chk.headers.get('content-length') || '0');
+                    if (cl > 0 && cl < 80000) {
+                        // Imagen pequeña (< 80KB) → buscar versión HD
+                        console.log(`   [IMG-RSS] Imagen pequeña (${cl} bytes) → buscando HD`);
+                        const urlHD = await buscarEnGoogle(titulo, categoria);
+                        urlOrig = urlHD || imagenRSSOverride;
+                        if (urlHD) console.log(`   [IMG-HD] Google encontró versión HD`);
+                    } else {
+                        console.log(`   [IMG-RSS] ✓ Imagen válida del RSS`);
+                        urlOrig = imagenRSSOverride;
+                    }
                 } else {
-                    console.log(`   [IMG-RSS] Imagen bloqueada (${chk.status}), usando búsqueda normal`);
-                    urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, null);
+                    console.log(`   [IMG-RSS] Imagen bloqueada (${chk.status}), buscando en Google`);
+                    const urlHD = await buscarEnGoogle(titulo, categoria);
+                    urlOrig = urlHD || await obtenerImagenInteligente(titulo, categoria, sub, null);
                 }
             } catch (_) {
                 console.log(`   [IMG-RSS] No accesible, usando búsqueda normal`);
