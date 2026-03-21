@@ -1,9 +1,9 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.5
- * Base: V34.4
+ * 🏮 EL FAROL AL DÍA — V34.6
+ * Base: V34.5
  * Cambios:
  *   1. Watermark: busca WATERMARK(1).png como nombre prioritario exacto
- *   2. Gemini: modelo gemini-1.5-flash, URL v1beta, AbortController 60s correcto
+ *   2. Gemini: modelo gemini-2.0-flash, URL v1beta, AbortController 60s correcto
  *   3. Railway: regenerarWatermarks y RSS 100% secuenciales, bandera anti-overlap
  *   4. Panel: rutas /api/coach, /api/memoria, /api/estadisticas verificadas y alineadas
  *   5. FIX 429: pausa 2s entre imágenes en regenerarWatermarks, batch reducido a 20
@@ -391,10 +391,10 @@ async function guardarConfigIA(cfg) {
 }
 
 // ─── GEMINI — FIX 2 ──────────────────────────────────────────────────────────
-// Modelo  : gemini-1.5-flash (estable en v1beta)
+// Modelo  : gemini-2.0-flash (estable en v1beta)
 // Timeout : 60 s con AbortController — clearTimeout en .finally() es obligatorio
 //           para que Node no mantenga el timer activo después de la respuesta.
-const GEMINI_MODEL   = 'gemini-1.5-flash';
+const GEMINI_MODEL   = 'gemini-2.0-flash';
 const GEMINI_TIMEOUT = 60000;
 const GS = { lastRequest: 0, resetTime: 0 };
 
