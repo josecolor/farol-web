@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.37
- * Base: V34.37
+ * 🏮 EL FAROL AL DÍA — V34.41
+ * Base: V34.41
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -440,7 +440,7 @@ async function guardarConfigIA(cfg) {
 // Timeout : 60 s con AbortController — clearTimeout en .finally() es obligatorio
 //           para que Node no mantenga el timer activo después de la respuesta.
 const GEMINI_MODEL   = 'gemini-2.5-flash';
-const GEMINI_TIMEOUT = 60000;
+const GEMINI_TIMEOUT = 90000; // 90s — Gemini 2.5 Flash necesita más para artículos completos
 const GS = { lastRequest: 0, resetTime: 0 };
 
 async function llamarGemini(prompt, reintentos = 3) {
@@ -1101,80 +1101,20 @@ CONTENIDO:
         // Problema anterior: content-length no siempre lo envía el servidor
         // Solución: descargar y medir píxeles reales con sharp — sin mentiras
         // Mínimo aceptable: 400px de ancho — menos que eso = pixelada en portada
-        const MIN_ANCHO_ACEPTABLE = 400;
-
         let urlOrig;
         if (imagenRSSOverride) {
             try {
-                const ctrl = new AbortController();
-                const tm   = setTimeout(() => ctrl.abort(), 8000);
-                const resp = await fetch(imagenRSSOverride, {
-                    headers: BROWSER_HEADERS,
-                    signal:  ctrl.signal,
-                }).finally(() => clearTimeout(tm));
+                // Verificar calidad real — píxeles + marca ajena
+                const calidad = await verificarCalidadImagen(imagenRSSOverride);
+                console.log(`   [IMG-CHECK] ${calidad.razon}`);
 
-                if (resp.ok) {
-                    const buf  = Buffer.from(await resp.arrayBuffer());
-                    const meta = await sharp(buf).metadata().catch(() => null);
-                    const ancho = meta?.width || 0;
-                    const alto  = meta?.height || 0;
-
-                    console.log(`   [IMG-CHECK] RSS: ${ancho}x${alto}px`);
-
-                    // ── DETECTAR MARCA DE AGUA AJENA ─────────────────────────
-                    // Los periódicos ponen su logo en la esquina inferior
-                    // Analizamos esa franja: si hay texto/logo sobreimpreso
-                    // es la marca de ELLOS, no nuestra → rechazar
-                    let tieneMarcaAjena = false;
-                    if (ancho >= MIN_ANCHO_ACEPTABLE && alto > 0) {
-                        try {
-                            // Recortar la franja inferior derecha (15% del alto, 50% del ancho)
-                            const franjaH = Math.round(alto * 0.15);
-                            const franjaW = Math.round(ancho * 0.50);
-                            const franjaX = ancho - franjaW;
-                            const franjaY = alto  - franjaH;
-
-                            const franja = await sharp(buf)
-                                .extract({ left: franjaX, top: franjaY, width: franjaW, height: franjaH })
-                                .grayscale()
-                                .raw()
-                                .toBuffer({ resolveWithObject: true });
-
-                            // Calcular contraste en la franja: marca de agua = alto contraste
-                            // Imagen limpia = contraste bajo (fondo uniforme)
-                            const pixels = franja.data;
-                            let suma = 0, sumaCuadrados = 0;
-                            for (const p of pixels) { suma += p; sumaCuadrados += p * p; }
-                            const media    = suma / pixels.length;
-                            const varianza = (sumaCuadrados / pixels.length) - (media * media);
-                            const stdDev   = Math.sqrt(varianza);
-
-                            // stdDev > 55 en la franja inferior = logo/texto encima
-                            // Imágenes limpias tienen stdDev < 40 en esa zona
-                            tieneMarcaAjena = stdDev > 55;
-                            console.log(`   [IMG-WM] Franja inferior stdDev: ${stdDev.toFixed(1)} → ${tieneMarcaAjena ? '⚠️ MARCA AJENA detectada' : '✅ Limpia'}`);
-                        } catch (_) {
-                            tieneMarcaAjena = false;
-                        }
-                    }
-
-                    if (ancho >= MIN_ANCHO_ACEPTABLE && !tieneMarcaAjena) {
-                        // ✅ Imagen grande Y limpia — usarla
-                        console.log(`   [IMG-RSS] ✓ Calidad OK (${ancho}px) sin marca ajena`);
-                        urlOrig = imagenRSSOverride;
-                    } else if (tieneMarcaAjena) {
-                        // ⚠️ Tiene logo de otro periódico — banco local
-                        console.log(`   [IMG-RSS] ⚠️ Marca ajena detectada → banco local`);
-                        urlOrig = imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
-                    } else {
-                        // ❌ Imagen pixelada — banco local
-                        console.log(`   [IMG-RSS] ⚠️ Pixelada (${ancho}px < ${MIN_ANCHO_ACEPTABLE}px) → banco local`);
-                        const urlHD = await buscarEnGoogle(titulo, categoria);
-                        urlOrig = urlHD || imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
-                    }
+                if (calidad.ok) {
+                    console.log(`   [IMG-RSS] ✓ Calidad OK — usando foto del periódico`);
+                    urlOrig = imagenRSSOverride;
                 } else {
-                    console.log(`   [IMG-RSS] HTTP ${resp.status} → banco local`);
-                    urlOrig = imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
+                    console.log(`   [IMG-RSS] ⚠️ Rechazada: ${calidad.razon} → buscando alternativa`);
+                    const urlHD = await buscarEnGoogle(titulo, categoria);
+                    urlOrig = urlHD || imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
                 }
             } catch (e) {
                 console.log(`   [IMG-RSS] Error: ${e.message} → banco local`);
@@ -1575,6 +1515,62 @@ async function procesarRSS() {
 // ─── REGENERAR WATERMARKS — FIX 3 (secuencial, respeta Railway) ──────────────
 let wmRegenEnProceso = false;
 
+// ─── VERIFICADOR DE CALIDAD DE IMAGEN ───────────────────────────────────────
+// Función reutilizable — usada tanto en generarNoticia como en el regenerador
+// Retorna: { ok, ancho, alto, razon }
+async function verificarCalidadImagen(urlImagen, minAncho = 400) {
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 8000);
+        const resp = await fetch(urlImagen, {
+            headers: BROWSER_HEADERS,
+            signal:  ctrl.signal,
+        }).finally(() => clearTimeout(tm));
+
+        if (!resp.ok) return { ok: false, razon: `HTTP ${resp.status}` };
+
+        const buf  = Buffer.from(await resp.arrayBuffer());
+        const meta = await sharp(buf).metadata().catch(() => null);
+        const ancho = meta?.width  || 0;
+        const alto  = meta?.height || 0;
+
+        // ❌ Foto pixelada
+        if (ancho < minAncho) {
+            return { ok: false, ancho, alto, razon: `pixelada (${ancho}px < ${minAncho}px)` };
+        }
+
+        // ❌ Detectar marca de agua ajena — franja inferior derecha
+        // stdDev > 55 en esa zona = logo/texto sobreimpreso de otro periódico
+        try {
+            const franjaH = Math.round(alto * 0.15);
+            const franjaW = Math.round(ancho * 0.50);
+            const franjaX = ancho - franjaW;
+            const franjaY = alto  - franjaH;
+
+            const franja = await sharp(buf)
+                .extract({ left: franjaX, top: franjaY, width: franjaW, height: franjaH })
+                .grayscale()
+                .raw()
+                .toBuffer({ resolveWithObject: true });
+
+            const pixels = franja.data;
+            let suma = 0, sumaCuadrados = 0;
+            for (const p of pixels) { suma += p; sumaCuadrados += p * p; }
+            const media    = suma / pixels.length;
+            const varianza = (sumaCuadrados / pixels.length) - (media * media);
+            const stdDev   = Math.sqrt(varianza);
+
+            if (stdDev > 55) {
+                return { ok: false, ancho, alto, razon: `marca ajena detectada (stdDev ${stdDev.toFixed(1)})` };
+            }
+        } catch (_) {} // Si falla el análisis, confiar en el tamaño
+
+        return { ok: true, ancho, alto, razon: `OK (${ancho}x${alto}px)` };
+    } catch (e) {
+        return { ok: false, razon: e.message };
+    }
+}
+
 // ─── DETECTOR DE FOTOS FEAS ─────────────────────────────────────────────────
 // Una foto es "fea" si:
 //   1. Es del banco local (pexels.com) — genérica, no corresponde a la noticia
@@ -1598,84 +1594,123 @@ function fotoRotaEnDisco(imagen) {
 }
 
 // ─── REGENERAR FOTOS FEAS ────────────────────────────────────────────────────
-// Corre al arrancar y cada 2 horas
-// Detecta fotos feas → busca la foto real del artículo original → aplica watermark
+// ─── REGENERACIÓN GRADUAL DE FOTOS FEAS ─────────────────────────────────────
+// NO de golpe — procesa 3 fotos por ciclo con 8s de pausa entre cada una
+// Corre cada 2 horas → en 24h limpia todas las fotos sin saturar el servidor
+// Gradual = no interfiere con la publicación de noticias nuevas
 async function regenerarWatermarksLostidos() {
     if (!WATERMARK_PATH)  { console.log('[WM-Regen] Sin watermark, omitido'); return; }
     if (wmRegenEnProceso) { console.log('[WM-Regen] Ya en proceso');          return; }
 
     wmRegenEnProceso = true;
     try {
-        // Buscar noticias con foto fea O foto rota en disco
+        // Solo mirar las últimas 30 noticias — las más recientes son las que se ven
         const r = await pool.query(`
             SELECT id, titulo, seccion, imagen, imagen_nombre, imagen_original, imagen_fuente
             FROM   noticias
             WHERE  estado = 'publicada'
             ORDER  BY fecha DESC
-            LIMIT  50`);
+            LIMIT  30`);
 
         if (!r.rows.length) { wmRegenEnProceso = false; return; }
 
-        // Filtrar las que necesitan regeneración
         const necesitan = r.rows.filter(n =>
             esFotoFea(n.imagen) || fotoRotaEnDisco(n.imagen)
         );
 
         if (!necesitan.length) {
-            console.log('[WM-Regen] Todas las fotos están bien ✅');
+            console.log('[WM-Regen] ✅ Todas las fotos están bien');
             wmRegenEnProceso = false;
             return;
         }
 
-        console.log(`[WM-Regen] 🔄 ${necesitan.length} fotos para regenerar...`);
+        // ── GRADUAL: máximo 3 por ciclo ──────────────────────────────────────
+        // Si hay 15 feas → este ciclo arregla 3 → próximo ciclo 3 más → etc.
+        // Así no colapsa el servidor ni interfiere con Gemini
+        const LOTE = 3;
+        const aTratar = necesitan.slice(0, LOTE);
+
+        console.log(`[WM-Regen] 🔄 ${necesitan.length} feas en total → procesando ${aTratar.length} ahora`);
         let regenerados = 0;
 
-        for (const n of necesitan) {
+        for (const n of aTratar) {
             try {
                 let urlFuente = null;
+                let metodo    = null;
 
-                // Estrategia 1: imagen_original si existe y no es fea
-                if (n.imagen_original && !esFotoFea(n.imagen_original)) {
-                    urlFuente = n.imagen_original;
+                console.log(`   [WM-Regen] 🔍 Buscando foto para: "${n.titulo.substring(0,45)}"`);
+
+                // ── PASO 1: imagen_original — verificar píxeles Y marca ajena ──
+                if (n.imagen_original && !esFotoFea(n.imagen_original)
+                    && n.imagen_original.match(/\.(jpg|jpeg|png|webp)/i)) {
+                    const cal = await verificarCalidadImagen(n.imagen_original);
+                    if (cal.ok) {
+                        urlFuente = n.imagen_original;
+                        metodo    = `imagen_original (${cal.razon})`;
+                    } else {
+                        console.log(`   [WM-Regen] imagen_original rechazada: ${cal.razon}`);
+                    }
                 }
 
-                // Estrategia 2: scraping del artículo RSS si hay link guardado
-                // (imagen_original a veces tiene la URL del artículo, no de la foto)
-                if (!urlFuente && n.imagen_original && n.imagen_original.startsWith('http') && !n.imagen_original.match(/\.(jpg|jpeg|png|webp)/i)) {
+                // ── PASO 2: scraping del artículo — verificar resultado ──────
+                if (!urlFuente && n.imagen_original?.startsWith('http')
+                    && !n.imagen_original.match(/\.(jpg|jpeg|png|webp)/i)) {
                     const imgScraped = await scrapearImagenArticulo(n.imagen_original);
-                    if (imgScraped) urlFuente = imgScraped;
+                    if (imgScraped) {
+                        const cal = await verificarCalidadImagen(imgScraped);
+                        if (cal.ok) {
+                            urlFuente = imgScraped;
+                            metodo    = `scraping artículo (${cal.razon})`;
+                        } else {
+                            console.log(`   [WM-Regen] scraping rechazada: ${cal.razon}`);
+                        }
+                    }
                 }
 
-                // Estrategia 3: buscar en Google si hay Google CSE
-                if (!urlFuente && n.titulo) {
-                    urlFuente = await buscarEnGoogle(n.titulo, n.seccion);
+                // ── PASO 3: Google CSE — verificar resultado ─────────────────
+                if (!urlFuente && process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID) {
+                    const urlGoogle = await buscarEnGoogle(n.titulo, n.seccion);
+                    if (urlGoogle) {
+                        const cal = await verificarCalidadImagen(urlGoogle);
+                        if (cal.ok) {
+                            urlFuente = urlGoogle;
+                            metodo    = `Google CSE (${cal.razon})`;
+                        } else {
+                            console.log(`   [WM-Regen] Google CSE rechazada: ${cal.razon}`);
+                        }
+                    }
                 }
 
-                // Estrategia 4: banco local por categoría — mejor que pexels genérico
+                // ── PASO 4: banco local — siempre nítido, sin marca ajena ────
+                // Fotos verificadas manualmente — nunca pixeladas ni con logos
                 if (!urlFuente) {
                     const sub = FALLBACK_CAT[n.seccion] || 'politica-gobierno';
                     urlFuente = imgLocal(sub, n.seccion);
-                    console.log(`   [WM-Regen] ${n.id} usando banco local (${n.seccion})`);
+                    metodo    = `banco local (${n.seccion})`;
                 }
 
-                // Aplicar watermark a la nueva foto
+                console.log(`   [WM-Regen] ID ${n.id} → ${metodo}`);
+
+                // Aplicar watermark
                 const res = await aplicarMarcaDeAgua(urlFuente);
                 if (res.procesada && res.nombre) {
                     await pool.query(
                         'UPDATE noticias SET imagen=$1, imagen_nombre=$2, imagen_original=$3 WHERE id=$4',
                         [`${BASE_URL}/img/${res.nombre}`, res.nombre, urlFuente, n.id]
                     );
-                    console.log(`   [WM-Regen] ✅ ID ${n.id} — ${n.titulo.substring(0,40)}`);
+                    console.log(`   [WM-Regen] ✅ ID ${n.id} — "${n.titulo.substring(0,35)}"`);
                     regenerados++;
                 }
             } catch (e) {
                 console.warn(`   [WM-Regen] ⚠️ ID ${n.id} falló: ${e.message}`);
             }
-            await new Promise(r => setTimeout(r, 3000)); // pausa entre fotos
+
+            // 8s entre fotos — gradual, no colapsa
+            await new Promise(r => setTimeout(r, 8000));
         }
 
         if (regenerados > 0) {
-            console.log(`[WM-Regen] ✅ Regeneradas: ${regenerados}/${necesitan.length}`);
+            console.log(`[WM-Regen] ✅ Lote: ${regenerados}/${aTratar.length} | Pendientes: ${necesitan.length - regenerados}`);
             invalidarCache();
         }
     } catch (e) {
@@ -1747,38 +1782,60 @@ cron.schedule('*/14 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch (_) {}
 });
 
-// ─── 3 SLOTS ESCALONADOS — una key por turno, sin chocar ────────────────────
-// Slot A → :00 (Key 1)   Slot B → :10 (Key 2)   Slot C → :20 (Key 3)
-// Cada slot espera su turno — 30 min de descanso entre publicaciones
-// Con 3 keys: ~4-5 noticias/hora = 100+ noticias/día sin errores 429
+// ─── HORARIOS INTELIGENTES ───────────────────────────────────────────────────
+//
+// 🌅 MAÑANA FUERTE   6:00–11:59  → cada 10 min (6 noticias/hora)
+// ☀️  TARDE FUERTE   12:00–19:59 → cada 10 min (6 noticias/hora)
+// 🌙 NOCHE TRANQUILA 20:00–23:59 → cada 30 min (2 noticias/hora)
+// 😴 MADRUGADA       00:00–05:59 → cada hora   (1 noticia/hora, la gente duerme)
+//
+// Gemini timeout: 90s — suficiente para artículo completo sin corte
+// ─────────────────────────────────────────────────────────────────────────────
 
-// SLOT A — minuto :00 de cada hora (usa Key 1 preferentemente)
-cron.schedule('0 * * * *', async () => {
-    if (rssEnProceso) { console.log('[Slot-A] En proceso, omitido'); return; }
-    console.log('[Slot-A] ⚡ Key-1 publicando...');
+// ── MAÑANA & TARDE FUERTES (6am–8pm) ─────────────────────────────────────────
+// :00 → Key 1   :10 → Key 2   :20 → Key 3   :40 → IA propia
+cron.schedule('0 6-19 * * *', async () => {
+    if (rssEnProceso) { console.log('[Mañana/Tarde] Slot :00 — en proceso'); return; }
+    console.log('[Mañana/Tarde] ⚡ :00 Key-1');
     procesarRSS();
 });
-
-// SLOT B — minuto :10 de cada hora (usa Key 2 preferentemente)
-cron.schedule('10 * * * *', async () => {
-    if (rssEnProceso) { console.log('[Slot-B] En proceso, omitido'); return; }
-    console.log('[Slot-B] ⚡ Key-2 publicando...');
+cron.schedule('10 6-19 * * *', async () => {
+    if (rssEnProceso) { console.log('[Mañana/Tarde] Slot :10 — en proceso'); return; }
+    console.log('[Mañana/Tarde] ⚡ :10 Key-2');
     procesarRSS();
 });
-
-// SLOT C — minuto :20 de cada hora (usa Key 3 preferentemente)
-cron.schedule('20 * * * *', async () => {
-    if (rssEnProceso) { console.log('[Slot-C] En proceso, omitido'); return; }
-    console.log('[Slot-C] ⚡ Key-3 publicando...');
+cron.schedule('20 6-19 * * *', async () => {
+    if (rssEnProceso) { console.log('[Mañana/Tarde] Slot :20 — en proceso'); return; }
+    console.log('[Mañana/Tarde] ⚡ :20 Key-3');
     procesarRSS();
 });
-
-// SLOT D — minuto :40 — noticia propia de análisis con IA
-cron.schedule('40 * * * *', async () => {
+cron.schedule('40 6-19 * * *', async () => {
     if (!CONFIG_IA.enabled || rssEnProceso) return;
     const cat = CATS[Math.floor(Math.random() * CATS.length)];
-    console.log(`[Slot-D] 🏮 Noticia propia: ${cat}`);
+    console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat}`);
     await generarNoticia(cat);
+});
+
+// ── NOCHE TRANQUILA (8pm–11pm) ───────────────────────────────────────────────
+// :00 y :30 — 2 noticias por hora
+cron.schedule('0 20-23 * * *', async () => {
+    if (rssEnProceso) { console.log('[Noche] :00 — en proceso'); return; }
+    console.log('[Noche] 🌙 :00 publicando...');
+    procesarRSS();
+});
+cron.schedule('30 20-23 * * *', async () => {
+    if (rssEnProceso) { console.log('[Noche] :30 — en proceso'); return; }
+    console.log('[Noche] 🌙 :30 publicando...');
+    procesarRSS();
+});
+
+// ── MADRUGADA (12am–5am) ─────────────────────────────────────────────────────
+// Solo :00 — 1 noticia por hora, la gente duerme
+// Aprovecha para publicar sin competencia — cuando amanezca ya hay contenido fresco
+cron.schedule('0 0-5 * * *', async () => {
+    if (rssEnProceso) { console.log('[Madrugada] :00 — en proceso'); return; }
+    console.log('[Madrugada] 😴 Publicando mientras RD duerme...');
+    procesarRSS();
 });
 
 // ─── LIMPIEZA AUTOMÁTICA — todos los días a las 3:00 AM ──────────────────────
@@ -2175,7 +2232,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.37               ║
+║        🏮  EL FAROL AL DIA  —  V34.41               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
