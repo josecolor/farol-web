@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.44
+ * 🏮 EL FAROL AL DÍA — V34.46
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -1060,7 +1060,7 @@ async function inicializarBase() {
 
         const fix = await client.query(`
             UPDATE noticias
-            SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='banco-local'
+            SET imagen='${PB}/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=900&fit=crop', imagen_fuente='banco-local'
             WHERE imagen LIKE '%/images/cache/%' OR imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
         if (fix.rowCount > 0) console.log('[BD] Imágenes reparadas: ' + fix.rowCount);
         console.log('[BD] Lista');
@@ -1856,107 +1856,192 @@ async function analizarRendimiento(dias = 7) {
 // Detecta problemas → los corrige automáticamente → los registra
 // Sin intervención manual — el servidor se repara solo
 
+// ─── ESTADO DE SALUD DEL SISTEMA ────────────────────────────────────────────
 const SALUD = {
-    erroresGemini:     0,   // errores 429 consecutivos
-    erroresImagen:     0,   // fallos de descarga consecutivos
-    rssVaciosCiclos:   0,   // ciclos sin publicar nada
+    erroresGemini:     0,
+    erroresImagen:     0,
+    rssVaciosCiclos:   0,
+    fotosBodaDetect:   0,   // veces que detectamos foto de boda/stock
     ultimaPublicacion: Date.now(),
     ultimoRSSOK:       Date.now(),
+    arranque:          Date.now(),
 };
 
+// ─── AUTO-DIAGNÓSTICO COMPLETO ───────────────────────────────────────────────
+// Conoce todos los problemas que hemos resuelto históricamente
+// Corre cada 30 minutos y se repara solo sin intervención manual
 async function autoDiagnostico() {
-    const ahora    = Date.now();
+    const ahora     = Date.now();
     const problemas = [];
     const acciones  = [];
 
-    // ── 1. GEMINI — demasiados errores seguidos ───────────────────────────────
+    // ── 1. GEMINI 429 — keys saturadas ───────────────────────────────────────
     if (SALUD.erroresGemini >= 3) {
-        problemas.push(`Gemini: ${SALUD.erroresGemini} errores consecutivos`);
-        // Auto-fix: resetear cooldowns de todas las keys
-        for (let i = 0; i < GEMINI_KEYS.length; i++) {
-            GEMINI_KEY_RESET[i] = 0;
-        }
-        GEMINI_KEY_INDEX  = 0;
+        problemas.push(`Gemini: ${SALUD.erroresGemini} errores seguidos`);
+        for (let i = 0; i < GEMINI_KEYS.length; i++) GEMINI_KEY_RESET[i] = 0;
+        GEMINI_KEY_INDEX = 0;
         SALUD.erroresGemini = 0;
         acciones.push('Keys Gemini reseteadas — cooldowns limpiados');
     }
 
-    // ── 2. SIN PUBLICAR — más de 2 horas sin noticias ────────────────────────
+    // ── 2. SIN PUBLICAR más de 2 horas ───────────────────────────────────────
     const minSinPublicar = (ahora - SALUD.ultimaPublicacion) / 60000;
     if (minSinPublicar > 120 && CONFIG_IA.enabled) {
         problemas.push(`Sin publicar hace ${Math.round(minSinPublicar)} min`);
-        // Auto-fix: forzar un ciclo RSS si no está en proceso
         if (!rssEnProceso) {
             procesarRSS();
-            acciones.push('RSS forzado — ciclo manual iniciado');
+            acciones.push('RSS forzado manualmente');
         }
     }
 
-    // ── 3. RSS VACÍO — varios ciclos sin encontrar noticias nuevas ────────────
+    // ── 3. RSS VACÍO varios ciclos seguidos ──────────────────────────────────
     if (SALUD.rssVaciosCiclos >= 5) {
         problemas.push(`RSS vacío: ${SALUD.rssVaciosCiclos} ciclos sin noticias`);
-        // Auto-fix: limpiar rss_procesados viejos para reprocesar
         try {
             await pool.query(`DELETE FROM rss_procesados WHERE fecha < NOW() - INTERVAL '6 hours'`);
             SALUD.rssVaciosCiclos = 0;
-            acciones.push('RSS procesados limpiados — artículos viejos pueden reprocesarse');
+            acciones.push('RSS procesados limpiados — fuentes pueden reprocesarse');
         } catch (_) {}
     }
 
-    // ── 4. BD — verificar conexión ───────────────────────────────────────────
+    // ── 4. FOTOS STOCK/BODA repetidas ────────────────────────────────────────
+    // Problema histórico: pexels-3052454 (boda) aparecía en todas las noticias
+    try {
+        const fotosMalas = await pool.query(`
+            SELECT COUNT(*) AS c FROM noticias
+            WHERE estado = 'publicada'
+            AND (
+                imagen LIKE '%3052454%'
+                OR imagen LIKE '%pexels.com%'
+                OR imagen LIKE '%pixabay.com%'
+                OR imagen LIKE '%wikimedia.org%'
+                OR imagen LIKE '%unsplash.com%'
+            )
+            AND imagen NOT LIKE '%/img/efd-%'`);
+        const nFeas = parseInt(fotosMalas.rows[0].c);
+        if (nFeas > 0) {
+            problemas.push(`${nFeas} noticias con foto stock sin watermark propio`);
+            if (!wmRegenEnProceso) {
+                regenerarWatermarksLostidos();
+                acciones.push(`Regenerador iniciado — limpiando ${nFeas} fotos feas`);
+            }
+        }
+    } catch (_) {}
+
+    // ── 5. FOTOS ROTAS en disco /tmp ─────────────────────────────────────────
+    try {
+        const noticiasConImg = await pool.query(`
+            SELECT imagen FROM noticias
+            WHERE estado = 'publicada'
+            AND imagen LIKE '%/img/efd-%'
+            ORDER BY fecha DESC LIMIT 20`);
+        const rotas = noticiasConImg.rows.filter(n => {
+            const nombre = n.imagen.split('/img/')[1];
+            return nombre && !require('fs').existsSync(require('path').join('/tmp', nombre));
+        }).length;
+        if (rotas > 3) {
+            problemas.push(`${rotas} fotos rotas en disco /tmp`);
+            if (!wmRegenEnProceso) {
+                regenerarWatermarksLostidos();
+                acciones.push('Regenerador iniciado — reconstruyendo fotos rotas');
+            }
+        }
+    } catch (_) {}
+
+    // ── 6. BD — conexión ─────────────────────────────────────────────────────
     try {
         await pool.query('SELECT 1');
     } catch (e) {
         problemas.push(`BD sin conexión: ${e.message}`);
-        // No hay auto-fix para BD — solo registrar
-        acciones.push('BD caída — Railway debería reiniciar automáticamente');
+        acciones.push('Sin auto-fix — Railway reiniciará el servicio');
     }
 
-    // ── 5. IMÁGENES — demasiados fallos seguidos ──────────────────────────────
+    // ── 7. IMÁGENES — muchos fallos descargando ───────────────────────────────
     if (SALUD.erroresImagen >= 10) {
-        problemas.push(`Imágenes: ${SALUD.erroresImagen} fallos descargando fotos`);
-        // Auto-fix: invalidar cache para forzar regeneración
+        problemas.push(`${SALUD.erroresImagen} fallos descargando imágenes`);
         invalidarCache();
         SALUD.erroresImagen = 0;
-        acciones.push('Cache invalidada — próximas fotos se procesarán de nuevo');
+        acciones.push('Cache invalidada — próximas imágenes se reintentarán');
     }
 
+    // ── 8. CONTENIDO DUPLICADO — mismo título publicado varias veces ─────────
+    try {
+        const dupes = await pool.query(`
+            SELECT titulo, COUNT(*) AS c FROM noticias
+            WHERE estado = 'publicada'
+            AND fecha > NOW() - INTERVAL '24 hours'
+            GROUP BY titulo HAVING COUNT(*) > 1`);
+        if (dupes.rows.length > 0) {
+            problemas.push(`${dupes.rows.length} títulos duplicados en las últimas 24h`);
+            // Auto-fix: borrar duplicados conservando el más reciente
+            for (const dup of dupes.rows) {
+                await pool.query(`
+                    DELETE FROM noticias
+                    WHERE titulo = $1
+                    AND id NOT IN (
+                        SELECT id FROM noticias WHERE titulo = $1
+                        ORDER BY fecha DESC LIMIT 1
+                    )`, [dup.titulo]).catch(() => {});
+            }
+            invalidarCache();
+            acciones.push('Duplicados eliminados — conservado el más reciente de cada título');
+        }
+    } catch (_) {}
+
+    // ── 9. CACHÉ VIEJA — datos obsoletos servidos al frontend ─────────────────
+    const minCache = (ahora - _cacheFecha) / 60000;
+    if (_cacheNoticias && minCache > 10) {
+        invalidarCache();
+        acciones.push('Cache invalidada por antigüedad (>10 min)');
+    }
+
+    // ── 10. NOTICIAS MUY VIEJAS — que el cron limpieza no corrió ─────────────
+    try {
+        const viejas = await pool.query(`
+            SELECT COUNT(*) AS c FROM noticias
+            WHERE fecha < NOW() - INTERVAL '8 days'`);
+        const nViejas = parseInt(viejas.rows[0].c);
+        if (nViejas > 0) {
+            await pool.query(`DELETE FROM noticias WHERE fecha < NOW() - INTERVAL '8 days'`);
+            invalidarCache();
+            acciones.push(`${nViejas} noticias viejas eliminadas`);
+        }
+    } catch (_) {}
+
     // ── REPORTE ───────────────────────────────────────────────────────────────
+    const uptime = Math.round((ahora - SALUD.arranque) / 3600000);
     if (problemas.length) {
         console.log(`
-[AutoDx] ⚠️  ${problemas.length} problema(s) detectado(s):`);
+[AutoDx] ⚠️  ${problemas.length} problema(s) — uptime: ${uptime}h`);
         problemas.forEach(p => console.log(`   → ${p}`));
-        console.log(`[AutoDx] 🔧 Acciones tomadas:`);
+        console.log(`[AutoDx] 🔧 Acciones:`);
         acciones.forEach(a => console.log(`   ✅ ${a}`));
-        // Registrar en memoria IA para historial
         for (const p of problemas) {
             await registrarError('autodiagnostico', p, 'sistema').catch(() => {});
         }
     } else {
-        console.log(`[AutoDx] ✅ Sistema saludable — sin problemas detectados`);
+        console.log(`[AutoDx] ✅ Todo saludable — uptime: ${uptime}h`);
     }
 }
 
-// Registrar publicación exitosa
-const _generarNoticiaOriginal = generarNoticia;
-// Wrapper que actualiza SALUD después de cada publicación
+// ─── MONITOR DE SALUD EN PUBLICACIÓN ────────────────────────────────────────
 async function generarNoticiaConSalud(...args) {
-    const result = await _generarNoticiaOriginal(...args);
+    const result = await generarNoticia(...args);
     if (result.success) {
         SALUD.ultimaPublicacion = Date.now();
         SALUD.erroresGemini     = 0;
         SALUD.erroresImagen     = 0;
     } else {
-        if (result.error?.includes('Gemini') || result.error?.includes('429') ||
-            result.error?.includes('timeout') || result.error?.includes('TIMEOUT')) {
+        const err = result.error || '';
+        if (err.includes('429') || err.includes('TIMEOUT') || err.includes('Gemini')) {
             SALUD.erroresGemini++;
+        }
+        if (err.includes('imagen') || err.includes('foto') || err.includes('HTTP')) {
+            SALUD.erroresImagen++;
         }
     }
     return result;
 }
-
-// Reemplazar generarNoticia con la versión monitoreada
-// (procesarRSS ya llama a generarNoticia internamente)
 
 // ─── CRON ─────────────────────────────────────────────────────────────────────
 // Pulso de vida — evita que Railway duerma el servidor
@@ -2301,7 +2386,7 @@ app.post('/api/publicar', express.json(), async (req, res) => {
             `INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado)
              VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
             [titulo, slF, seccion, contenido, red || 'Manual',
-             `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,
+             `${PB}/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=900&fit=crop`,
              `${titulo} - noticias Republica Dominicana El Farol al Dia`,
              `Fotografía: ${titulo}`, 'efd.jpg', 'el-farol', 'publicada']
         );
@@ -2395,7 +2480,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.44',
+            version:        '34.46',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2427,7 +2512,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.44               ║
+║        🏮  EL FAROL AL DIA  —  V34.46               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
@@ -2441,7 +2526,11 @@ async function iniciar() {
 ╚═══════════════════════════════════════════════════════╝`);
     });
 
-    setTimeout(regenerarWatermarksLostidos, 5000);
+    // Regenerar fotos feas inmediatamente al arrancar — 10s de gracia para que BD conecte
+    setTimeout(async () => {
+        console.log('[Arranque] 🖼️ Verificando fotos al arrancar...');
+        await regenerarWatermarksLostidos();
+    }, 10000);
 }
 
 iniciar();
