@@ -4,761 +4,166 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Redacción | El Farol al Día</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --fuego:  #FF5500;
-  --fuego2: #FF7A00;
-  --negro:  #080808;
-  --tinta:  #0E0E12;
-  --papel:  #141418;
-  --borde:  #1E1E26;
-  --crema:  #EDE8DF;
-  --crema2: #A89F94;
-  --muted:  #4E4E58;
-  --verde:  #22C55E;
-  --rojo:   #EF4444;
-  --azul:   #3B82F6;
-  --glow:   rgba(255,85,0,.35);
-}
+:root { --fuego: #FF5500; --negro: #080808; --papel: #141418; --crema: #EDE8DF; --muted: #4E4E58; --verde: #22C55E; --rojo: #EF4444; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);min-height:100vh}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 100% 0%,rgba(255,85,0,.06) 0%,transparent 55%),radial-gradient(ellipse 40% 30% at 0% 100%,rgba(255,85,0,.03) 0%,transparent 50%);pointer-events:none;z-index:0}
-
-/* HEADER */
-header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);box-shadow:0 4px 30px rgba(255,85,0,.15)}
-.header-inner{max-width:1280px;margin:0 auto;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
+header{background:rgba(8,8,8,.98);border-bottom:2px solid var(--fuego);position:sticky;top:0;z-index:100;padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between}
 .logo{display:flex;align-items:center;gap:12px;text-decoration:none}
-.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),var(--fuego2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px var(--glow)}
+.logo-flame{width:40px;height:40px;background:linear-gradient(135deg,var(--fuego),#FF7A00);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
 .logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;color:var(--fuego);line-height:1}
-.logo-text span{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);display:block}
-.header-right{display:flex;align-items:center;gap:12px}
 .live-pill{display:flex;align-items:center;gap:7px;background:rgba(255,85,0,.12);border:1px solid rgba(255,85,0,.3);padding:5px 14px;border-radius:20px}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--fuego);box-shadow:0 0 8px var(--fuego);animation:blink 1.5s infinite}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--fuego);animation:blink 1.5s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-.live-text{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--fuego)}
-.header-clock{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);letter-spacing:2px}
-.btn-portal{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 16px;border-radius:6px;transition:all .2s}
-.btn-portal:hover{border-color:rgba(255,85,0,.4);color:var(--fuego)}
-
-/* TICKER */
-.ticker{background:var(--fuego);height:30px;display:flex;align-items:center;overflow:hidden}
-.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;background:rgba(0,0,0,.3);color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker{background:var(--fuego);height:30px;display:flex;overflow:hidden}
+.ticker-tag{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0}
 .ticker-scroll{flex:1;overflow:hidden}
-.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 25s linear infinite;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.9)}
+.ticker-inner{display:inline-flex;gap:48px;white-space:nowrap;animation:scroll 25s linear infinite;font-size:11px;color:rgba(255,255,255,.9)}
 @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-
-/* LAYOUT */
-.container{max-width:1280px;margin:0 auto;padding:32px 28px 60px;position:relative;z-index:1}
-.layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
-
-/* CARD */
-.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .2s}
-.card:hover{border-color:rgba(255,85,0,.12)}
-.card-header{padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);display:flex;align-items:center;justify-content:space-between}
-.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego);display:flex;align-items:center;gap:10px}
-.card-body{padding:22px}
-
-/* IA SWITCH */
-.ia-row{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px;transition:border-color .3s}
-.ia-row.on{border-color:rgba(34,197,94,.25)}
-.ia-left{display:flex;align-items:center;gap:14px}
-.ia-lamp{font-size:28px;transition:filter .3s}
-.ia-row.on .ia-lamp{filter:drop-shadow(0 0 8px rgba(34,197,94,.5))}
-.ia-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--crema)}
-.ia-status{font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:3px}
-.ia-status.on{color:var(--verde)}
-.ia-status.off{color:var(--rojo)}
-.switch{position:relative;display:inline-block;width:56px;height:30px}
-.switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;cursor:pointer;inset:0;background:#222;border-radius:30px;transition:.3s;border:1px solid rgba(255,255,255,.08)}
-.slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.3s}
-input:checked+.slider{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4)}
-input:checked+.slider:before{transform:translateX(26px);background:var(--verde);box-shadow:0 0 8px var(--verde)}
-
-/* CAPS */
-.cap-list{display:flex;flex-direction:column;gap:7px}
-.cap-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
-.cap-dot{width:6px;height:6px;border-radius:50%;background:var(--verde);box-shadow:0 0 5px var(--verde);flex-shrink:0}
-
-/* FORM */
+.container{max-width:1280px;margin:0 auto;padding:32px 28px;display:grid;grid-template-columns:1fr 340px;gap:24px}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden;margin-bottom:20px;padding:20px}
+.card-header{padding:16px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;margin:-20px -20px 16px -20px;padding:16px 20px}
+.card-header h2{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--fuego)}
 .fgroup{margin-bottom:18px}
-.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted)}
-input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px;transition:border-color .2s,box-shadow .2s}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego);box-shadow:0 0 0 3px rgba(255,85,0,.1)}
-input::placeholder,textarea::placeholder{color:var(--muted);font-style:italic}
-select option{background:#0e0e12}
-textarea{resize:vertical;min-height:90px;line-height:1.65}
-
-/* CATEGORÍAS */
+.fgroup label{display:block;margin-bottom:7px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+input[type=text],select,textarea{width:100%;padding:11px 14px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:14px;border-radius:8px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fuego)}
+textarea{resize:vertical;min-height:90px}
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid var(--borde);background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
+.cat-tile{padding:12px 8px;border-radius:8px;border:1px solid #1E1E26;background:rgba(0,0,0,.3);text-align:center;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
 .cat-tile .ce{font-size:20px;display:block;margin-bottom:5px}
-.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema);background:rgba(255,85,0,.06)}
+.cat-tile:hover{border-color:rgba(255,85,0,.35);color:var(--crema)}
 .cat-tile.sel{border-color:var(--fuego);background:rgba(255,85,0,.14);color:var(--fuego)}
-
-/* BOTÓN PUBLICAR */
-.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego) 0%,var(--fuego2) 100%);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;box-shadow:0 6px 24px var(--glow);position:relative;overflow:hidden}
-.btn-publish::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
-.btn-publish:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,85,0,.5)}
-.btn-publish:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.bp-icon{font-size:22px}
-.bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
-.bp-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.7);display:block;margin-top:2px}
+.btn-publish{width:100%;padding:18px;background:linear-gradient(135deg,var(--fuego),#FF7A00);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s}
+.btn-publish:hover{transform:translateY(-2px)}
 .bp-spin{width:22px;height:22px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* BOTONES */
-.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;width:100%;margin-bottom:10px}
-.btn-orange{background:linear-gradient(135deg,var(--fuego),var(--fuego2));color:#fff;box-shadow:0 4px 16px var(--glow)}
-.btn-orange:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--glow)}
+.bp-icon{font-size:22px;color:#fff}
+.bp-main{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#fff}
+.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:13px;padding:12px 20px;border-radius:8px;border:none;cursor:pointer;width:100%;margin-bottom:10px;color:#fff}
+.btn-orange{background:linear-gradient(135deg,var(--fuego),#FF7A00)}
 .btn-green{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.25)}
-.btn-green:hover{background:rgba(34,197,94,.22)}
-.btn-ghost{background:transparent;color:var(--crema2);border:1px solid var(--borde)}
-.btn-ghost:hover{border-color:rgba(255,85,0,.3);color:var(--fuego)}
-.btn-blue{background:rgba(59,130,246,.12);color:var(--azul);border:1px solid rgba(59,130,246,.25)}
-.btn-blue:hover{background:rgba(59,130,246,.22)}
-.btn-manual{background:rgba(34,197,94,.1);color:var(--verde);border:2px solid rgba(34,197,94,.35);width:100%;padding:16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;box-shadow:0 4px 20px rgba(34,197,94,.15)}
-.btn-manual:hover{background:rgba(34,197,94,.2);box-shadow:0 8px 28px rgba(34,197,94,.3);transform:translateY(-1px)}
-.btn-manual:disabled{opacity:.5;cursor:not-allowed;transform:none}
-
-/* MSG */
-.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none;line-height:1.5}
+.msg{padding:12px 15px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:14px;display:none}
 .msg.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:var(--verde);display:block}
 .msg.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--rojo);display:block}
-
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;position:relative;overflow:hidden;text-align:center}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--fuego)}
-.stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego);line-height:1}
-.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:4px}
-
-/* SYS INFO */
-.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
-.sys-row:last-child{border-bottom:none}
-.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted)}
-.sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema2)}
+.stat-card{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;text-align:center}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--fuego)}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px}
+.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto}
+.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px}
+.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0}
+.nr-info{flex:1;min-width:0}
+.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px}
+.nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.btn-del,.btn-edit-img{border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px;border:none;flex-shrink:0;line-height:1}
+.btn-del{background:rgba(239,68,68,.12);color:var(--rojo)}
+.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego)}
+.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px}
+.sys-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sys-key{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+.sys-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--crema)}
 .badge{padding:2px 9px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace}
 .badge-on{background:rgba(34,197,94,.12);color:var(--verde);border:1px solid rgba(34,197,94,.2)}
-.badge-warn{background:rgba(255,193,7,.12);color:#ffc107;border:1px solid rgba(255,193,7,.2)}
-
-/* LISTA NOTICIAS */
-.noticias-list{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:4px}
-.noticias-list::-webkit-scrollbar{width:3px}
-.noticias-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
-.noticia-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px;transition:border-color .2s}
-.noticia-row:hover{border-color:rgba(255,85,0,.2)}
-.nr-thumb{width:50px;height:38px;object-fit:cover;border-radius:5px;flex-shrink:0;background:var(--borde)}
-.nr-info{flex:1;min-width:0}
-.nr-titulo{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nr-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;letter-spacing:1px}
-.nr-seccion{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--fuego);background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.2);padding:2px 8px;border-radius:3px;flex-shrink:0}
-.btn-del{background:rgba(239,68,68,.12);color:var(--rojo);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
-.btn-del:hover{background:rgba(239,68,68,.25)}
-.btn-edit-img{background:rgba(255,85,0,.1);color:var(--fuego);border:1px solid rgba(255,85,0,.2);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;font-size:14px;transition:background .2s;line-height:1}
-.btn-edit-img:hover{background:rgba(255,85,0,.22)}
-.search-noticias{width:100%;padding:9px 12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:12px;transition:border-color .2s}
-.search-noticias:focus{outline:none;border-color:var(--fuego)}
-.search-noticias::placeholder{color:var(--muted);font-style:italic}
-.noticias-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;letter-spacing:1px}
-
-/* MEMORIA IA */
-.memoria-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
-.memoria-list::-webkit-scrollbar{width:3px}
-.memoria-list::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
-.mem-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.04);border-radius:7px;padding:8px 10px}
-.mem-tipo{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:3px;flex-shrink:0}
-.mem-tipo.query{background:rgba(59,130,246,.15);color:var(--azul);border:1px solid rgba(59,130,246,.2)}
-.mem-tipo.error{background:rgba(239,68,68,.15);color:var(--rojo);border:1px solid rgba(239,68,68,.2)}
-.mem-valor{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mem-tasa{font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0}
-.mem-tasa.alta{color:var(--verde)}
-.mem-tasa.media{color:#ffc107}
-.mem-tasa.baja{color:var(--rojo)}
-.mem-empty{text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
-
-/* ═══ ZONA DE CARGA MULTIMEDIA ═══ */
-.upload-zone{border:2px dashed rgba(255,255,255,.12);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .25s;background:rgba(0,0,0,.3);position:relative;overflow:hidden}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--fuego);background:rgba(255,85,0,.06)}
-.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.upload-icon{font-size:34px;margin-bottom:10px;display:block}
-.upload-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--crema);margin-bottom:5px}
-.upload-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px}
-.upload-preview{width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:14px;display:none;border:1px solid rgba(255,85,0,.25)}
-.upload-name{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--verde);margin-top:8px;display:none;word-break:break-all}
-
-/* TABS de publicación manual */
-.tabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(0,0,0,.3);border-radius:9px;padding:4px}
-.tab{flex:1;padding:10px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;border-radius:7px;transition:all .2s;color:var(--muted);border:none;background:transparent}
-.tab.active{background:rgba(255,85,0,.15);color:var(--fuego);border:1px solid rgba(255,85,0,.3)}
-
-/* CHAR COUNTER */
-.char-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
-.char-count{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px}
-.char-count.ok{color:var(--verde)}
-.char-count.warn{color:#ffc107}
-.char-count.bad{color:var(--rojo)}
-
-/* PROGRESS BAR */
-.prog-bar{height:3px;border-radius:2px;background:var(--borde);margin-bottom:20px;overflow:hidden}
-.prog-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--fuego),var(--fuego2));transition:width .3s}
-
-/* MODALES */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9000;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
-.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.7);animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
-@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
-.modal-icon{font-size:40px;margin-bottom:14px}
+.modal{background:var(--papel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:34px 30px;max-width:400px;width:90%;text-align:center}
 .modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--rojo);margin-bottom:10px}
-.modal p{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:24px}
 .modal-btns{display:flex;gap:12px;justify-content:center}
-.btn-cancel{background:transparent;color:var(--crema2);border:1px solid var(--borde);border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
-.btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--crema)}
-.btn-confirm-del{background:var(--rojo);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
-.btn-confirm-del:hover{background:#C0392B;transform:translateY(-1px)}
-.modal-edit{max-width:480px}
-.modal-edit h3{color:var(--fuego)}
-.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid var(--borde);background:var(--borde);display:block}
-.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;transition:border-color .2s;margin-bottom:14px}
-.modal-input:focus{outline:none;border-color:var(--fuego)}
-.modal-input::placeholder{color:var(--muted);font-style:italic}
-.btn-confirm-edit{background:var(--fuego);color:#fff;border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;cursor:pointer;transition:all .2s}
-.btn-confirm-edit:hover{background:var(--fuego2);transform:translateY(-1px)}
-
-/* SEO QUALITY */
-.seo-item{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px;margin-bottom:6px}
-.seo-titulo{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--crema);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px}
-.seo-bars{display:flex;flex-direction:column;gap:4px}
-.seo-bar-row{display:flex;align-items:center;gap:8px}
-.seo-bar-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);width:52px;flex-shrink:0}
-.seo-bar-track{flex:1;height:4px;background:var(--borde);border-radius:2px;overflow:hidden}
-.seo-bar-fill{height:100%;border-radius:2px;transition:width .4s}
-.seo-bar-val{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);width:28px;text-align:right;flex-shrink:0}
-
-/* NOTIFICACION TOAST */
-#toast{position:fixed;bottom:28px;right:28px;z-index:9999;background:var(--papel);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:12px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.6);transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
-#toast.show{transform:translateY(0);opacity:1}
-#toast.ok{border-color:rgba(34,197,94,.4);color:var(--verde)}
-#toast.err{border-color:rgba(239,68,68,.4);color:var(--rojo)}
-
-@media(max-width:900px){.layout{grid-template-columns:1fr}}
-@media(max-width:600px){.container{padding:16px}.cat-grid{grid-template-columns:repeat(3,1fr)}}
+.btn-cancel{background:transparent;color:var(--crema);border:1px solid #1E1E26;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;cursor:pointer}
+.btn-confirm-del,.btn-confirm-edit{border:none;border-radius:7px;padding:10px 22px;font-family:'Bebas Neue',sans-serif;font-size:13px;cursor:pointer;color:#fff}
+.btn-confirm-del{background:var(--rojo)}
+.btn-confirm-edit{background:var(--fuego)}
+.modal-img-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin:12px 0;border:1px solid #1E1E26;display:block}
+.modal-input{width:100%;padding:10px 13px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.07);color:var(--crema);font-family:'Lora',serif;font-size:13px;border-radius:7px;margin-bottom:14px}
+@media(max-width:900px){.container{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-inner">
-    <a href="/" class="logo">
-      <div class="logo-flame">🏮</div>
-      <div class="logo-text"><h1>EL FAROL AL DÍA</h1><span>PANEL DE REDACCIÓN</span></div>
-    </a>
-    <div class="header-right">
-      <span class="header-clock" id="reloj">00:00:00</span>
-      <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);padding:5px 12px;border-radius:20px">
-        <span style="font-size:14px">🤖</span>
-        <div style="line-height:1.2">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted)">DESARROLLADO POR</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:var(--crema2)">CLAUDE <span style="color:var(--fuego)">+</span> DEEPSEEK</div>
-        </div>
-      </div>
-      <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
-      <a href="/" class="btn-portal">🌐 VER PORTAL</a>
-    </div>
-  </div>
+  <a href="/" class="logo"><div class="logo-flame">🏮</div><div class="logo-text"><h1>EL FAROL</h1></div></a>
+  <div class="live-pill"><div class="live-dot"></div><span class="live-text">EN VIVO</span></div>
 </header>
 
 <div class="ticker">
   <div class="ticker-tag">🏮 REDACCIÓN</div>
   <div class="ticker-scroll">
     <div class="ticker-inner">
-      <span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash · Periodista Élite · SEO Google News · Pexels + Pixabay</span>
-      <span>//</span><span>Listín · Diario Libre · N Digital · Por Categoría · Foto Real → Watermark → URL Propia</span>
-      <span>//</span><span style="color:#FFD700">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · APROBACIÓN EN PROCESO 🚀</span>
-      <span>//</span><span>El Farol al Día · Periódico Digital Dominicano</span>
-      <span>//</span><span>Gemini 2.5 Flash · Periodista Élite · SEO Google News · Pexels + Pixabay</span>
-      <span>//</span><span>Listín · Diario Libre · N Digital · Por Categoría · Foto Real → Watermark → URL Propia</span>
-      <span>//</span><span style="color:#FFD700">💰 ADSENSE: pub-5280872495839888 · ADS.TXT ✅ · APROBACIÓN EN PROCESO 🚀</span>
+      <span>Periódico Digital Dominicano · Gemini 2.5 · Wikipedia · SEO E-E-A-T</span>
+      <span>//</span><span>Redes: Facebook · Twitter · Telegram</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div class="layout">
-
-    <!-- ═══ COLUMNA IZQUIERDA ═══ -->
-    <div>
-
-      <!-- CONTROL IA -->
-      <div class="card">
-        <div class="card-header"><h2>⚙️ CONTROL DE IA</h2></div>
-        <div class="card-body">
-          <div class="ia-row" id="iaRow">
-            <div class="ia-left">
-              <span class="ia-lamp">🏮</span>
-              <div>
-                <div class="ia-name" id="iaModelName">GEMINI 2.5 FLASH ⚡</div>
-                <div class="ia-status off" id="iaStatus">● DESACTIVADO</div>
-              </div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="iaToggle">
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="cap-list">
-            <div class="cap-item"><div class="cap-dot"></div> Pensamiento crítico periodístico — 5W antes de escribir</div>
-            <div class="cap-item"><div class="cap-dot"></div> E-E-A-T: cita instituciones oficiales + datos verificables</div>
-            <div class="cap-item"><div class="cap-dot"></div> Pirámide invertida — dato más importante primero</div>
-            <div class="cap-item"><div class="cap-dot"></div> SEO Google News 2025 — título 60-70 chars sin fechas</div>
-            <div class="cap-item"><div class="cap-dot"></div> Memoria IA · Aprende qué funciona por categoría</div>
-            <div class="cap-item"><div class="cap-dot"></div> Pexels + Pixabay · Filtro E-E-A-T · Fotos de prensa real</div>
-            <div class="cap-item"><div class="cap-dot"></div> Plan C · Imagen real extraída del RSS (Listín, Reuters, BBC)</div>
-            <div class="cap-item"><div class="cap-dot"></div> Headers Chrome · Descarga imágenes de cualquier servidor</div>
-            <div class="cap-item"><div class="cap-dot"></div> Facebook + Twitter + Telegram automático tras publicar</div>
-          </div>
+  <div>
+    <div class="card">
+      <div class="card-header"><h2>🤖 GENERAR NOTICIA</h2></div>
+      <div class="fgroup">
+        <label>Categoría</label>
+        <div class="cat-grid">
+          <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
+          <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
+          <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
+          <div class="cat-tile" data-val="Economía" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
+          <div class="cat-tile" data-val="Tecnología" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
+          <div class="cat-tile" data-val="Espectáculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
         </div>
       </div>
-
-      <!-- INSTRUCCIONES GEMINI -->
-      <div class="card">
-        <div class="card-header"><h2>📝 INSTRUCCIONES PARA GEMINI</h2></div>
-        <div class="card-body">
-          <div class="fgroup">
-            <label>Instrucción Principal</label>
-            <textarea id="instruccionPrincipal" rows="5" placeholder="Ej: Periodista élite, cobertura RD completa, datos verificables..."></textarea>
-          </div>
-          <div class="fgroup">
-            <label>Énfasis Local y Alcance</label>
-            <textarea id="enfasis" rows="3" placeholder="Ej: Prioriza noticias de SDE, Los Mina, Invivienda..."></textarea>
-          </div>
-          <div class="fgroup">
-            <label>Tono de Noticias</label>
-            <select id="tono">
-              <option value="profesional">Profesional</option>
-              <option value="informal">Informal</option>
-              <option value="académico">Académico</option>
-              <option value="narrativo">Narrativo</option>
-            </select>
-          </div>
-          <div class="fgroup">
-            <label>Extensión</label>
-            <select id="extension">
-              <option value="corta">Corta (200-300 palabras)</option>
-              <option value="media">Media (400-500 palabras)</option>
-              <option value="larga">Larga (600-800 palabras)</option>
-            </select>
-          </div>
-          <div class="fgroup">
-            <label>Cosas que debe Evitar</label>
-            <textarea id="evitar" rows="3" placeholder="Ej: Opiniones personales, rumores sin confirmar..."></textarea>
-          </div>
-          <button class="btn btn-orange" onclick="guardarInstrucciones()">💾 GUARDAR INSTRUCCIONES</button>
-          <div id="msgConfig" class="msg"></div>
-        </div>
-      </div>
-
-      <!-- ═══ GENERAR / PUBLICAR NOTICIA ═══ -->
-      <div class="card" style="border-color:rgba(255,85,0,.2)">
-        <div class="card-header" style="border-bottom-color:rgba(255,85,0,.15)">
-          <h2>✍️ PUBLICAR NOTICIA</h2>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">IA O MANUAL</div>
-        </div>
-        <div class="card-body">
-
-          <!-- TABS -->
-          <div class="tabs">
-            <button class="tab active" id="tabIA" onclick="cambiarTab('ia')">🤖 CON GEMINI</button>
-            <button class="tab" id="tabManual" onclick="cambiarTab('manual')">✍️ MANUAL</button>
-          </div>
-
-          <!-- CATEGORÍAS (compartidas) -->
-          <div class="fgroup">
-            <label>Categoría</label>
-            <div class="cat-grid">
-              <div class="cat-tile sel" data-val="Nacionales" onclick="selCat(this)"><span class="ce">🏛️</span>NACIONALES</div>
-              <div class="cat-tile" data-val="Deportes" onclick="selCat(this)"><span class="ce">⚽</span>DEPORTES</div>
-              <div class="cat-tile" data-val="Internacionales" onclick="selCat(this)"><span class="ce">🌍</span>INTERNAC.</div>
-              <div class="cat-tile" data-val="Economia" onclick="selCat(this)"><span class="ce">💰</span>ECONOMÍA</div>
-              <div class="cat-tile" data-val="Tecnologia" onclick="selCat(this)"><span class="ce">💻</span>TECNOLOGÍA</div>
-              <div class="cat-tile" data-val="Espectaculos" onclick="selCat(this)"><span class="ce">🎬</span>ESPECT.</div>
-            </div>
-          </div>
-
-          <!-- ── PANEL IA ── -->
-          <div id="panelIA">
-            <button class="btn-publish" onclick="generarNoticia()" id="btnPublicarIA">
-              <div class="bp-spin" id="bpSpin"></div>
-              <span class="bp-icon" id="bpIcon">🚀</span>
-              <div>
-                <div class="bp-main" id="bpText">GENERAR NOTICIA AHORA</div>
-                <span class="bp-sub" id="bpSub">Gemini 2.5 · Memoria · Pexels · Pixabay · Redes</span>
-              </div>
-            </button>
-            <div id="msgGenerar" class="msg"></div>
-          </div>
-
-          <!-- ── PANEL MANUAL ── -->
-          <div id="panelManual" style="display:none">
-
-            <!-- BARRA DE PROGRESO (indica qué falta) -->
-            <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
-
-            <!-- TÍTULO -->
-            <div class="fgroup">
-              <div class="char-row">
-                <label style="margin:0">Título de la Noticia *</label>
-                <span class="char-count bad" id="tituloCount">0 / 70</span>
-              </div>
-              <input type="text" id="mTitulo" maxlength="120"
-                placeholder="Ej: Gobierno Dominicano Anuncia Nuevo Plan de Vivienda en SDE"
-                oninput="actualizarProgreso()">
-            </div>
-
-            <!-- CONTENIDO -->
-            <div class="fgroup">
-              <div class="char-row">
-                <label style="margin:0">Contenido / Cuerpo de la Noticia *</label>
-                <span class="char-count bad" id="contenidoCount">0 palabras</span>
-              </div>
-              <textarea id="mContenido" rows="10"
-                placeholder="Escribe aquí la noticia completa. Mínimo 150 palabras para una buena indexación.&#10;&#10;Recuerda la pirámide invertida:&#10;• Párrafo 1: Qué pasó + quién + cuándo + dónde&#10;• Párrafo 2: Contexto y datos&#10;• Párrafo 3: Fuentes y declaraciones&#10;• Párrafo 4: Impacto en el ciudadano&#10;• Párrafo 5: Cierre / próximos pasos"
-                oninput="actualizarProgreso()"></textarea>
-            </div>
-
-            <!-- DESCRIPCIÓN SEO -->
-            <div class="fgroup">
-              <div class="char-row">
-                <label style="margin:0">Descripción SEO</label>
-                <span class="char-count" id="descCount" style="color:var(--muted)">0 / 160</span>
-              </div>
-              <input type="text" id="mDesc" maxlength="160"
-                placeholder="Resumen de 150-160 caracteres para Google (meta description)"
-                oninput="actualizarProgreso()">
-            </div>
-
-            <!-- REDACTOR -->
-            <div class="fgroup">
-              <label>Nombre del Redactor</label>
-              <input type="text" id="mRedactor" value="Redacción EFD"
-                placeholder="Ej: Carlos Mendez, Laura Santana...">
-            </div>
-
-            <!-- ── IMAGEN: TABS URL vs SUBIR ── -->
-            <div class="fgroup">
-              <label>Imagen de Portada</label>
-              <div style="display:flex;gap:4px;margin-bottom:12px;background:rgba(0,0,0,.3);border-radius:8px;padding:3px">
-                <button id="tabImgUrl" onclick="modoImagen('url')"
-                  style="flex:1;padding:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;border-radius:6px;border:none;cursor:pointer;transition:all .2s;background:rgba(255,85,0,.15);color:var(--fuego)">
-                  🔗 PEGAR URL
-                </button>
-                <button id="tabImgFile" onclick="modoImagen('file')"
-                  style="flex:1;padding:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;border-radius:6px;border:none;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted)">
-                  📁 SUBIR ARCHIVO
-                </button>
-              </div>
-
-              <!-- MODO URL -->
-              <div id="imgModoUrl">
-                <input type="text" id="mImagen"
-                  placeholder="https://images.pexels.com/... o cualquier URL de imagen"
-                  oninput="previewManualImg(this.value);actualizarProgreso()">
-                <img id="mImgPreview" src="" alt="Preview"
-                  style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-top:10px;display:none;border:1px solid rgba(255,85,0,.25)">
-              </div>
-
-              <!-- MODO SUBIR ARCHIVO -->
-              <div id="imgModoFile" style="display:none">
-                <div class="upload-zone" id="uploadZone">
-                  <input type="file" id="fileInput" accept="image/*"
-                    onchange="manejarArchivo(this.files[0])">
-                  <span class="upload-icon">🖼️</span>
-                  <div class="upload-title">ARRASTRA O SELECCIONA</div>
-                  <div class="upload-sub">JPG · PNG · WEBP · GIF — MÁX. 8MB</div>
-                  <img id="filePreview" class="upload-preview" src="" alt="Preview">
-                  <div id="fileName" class="upload-name"></div>
-                </div>
-                <div id="uploadStatus" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;display:none"></div>
-              </div>
-            </div>
-
-            <!-- BOTÓN PUBLICAR MANUAL -->
-            <button class="btn-manual" id="btnManual" onclick="publicarManual()">
-              <span id="manualIcon">✍️</span>
-              <div>
-                <div>PUBLICAR NOTICIA MANUAL</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(34,197,94,.7);letter-spacing:1px;margin-top:3px">Sin Gemini · Publicación instantánea</div>
-              </div>
-            </button>
-
-            <div id="msgManual" class="msg"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- MIS NOTICIAS -->
-      <div class="card">
-        <div class="card-header">
-          <h2>📋 MIS NOTICIAS</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarListaNoticias()">🔄</button>
-        </div>
-        <div class="card-body">
-          <input type="text" class="search-noticias" id="searchNoticias"
-            placeholder="🔍 Buscar por título o categoría..." oninput="filtrarLista()">
-          <div class="noticias-count" id="noticiasCount">Cargando...</div>
-          <div class="noticias-list" id="noticiasLista">
-            <div style="text-align:center;padding:30px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">Cargando noticias...</div>
-          </div>
-        </div>
-      </div>
-
+      <button class="btn-publish" onclick="generarNoticia()">
+        <div class="bp-spin" id="bpSpin"></div>
+        <span class="bp-icon">🚀</span>
+        <div><div class="bp-main">GENERAR NOTICIA</div></div>
+      </button>
+      <div id="msgGenerar" class="msg"></div>
     </div>
 
-    <!-- ═══ COLUMNA DERECHA ═══ -->
-    <div>
+    <div class="card">
+      <div class="card-header"><h2>📋 MIS NOTICIAS</h2></div>
+      <input type="text" class="search-noticias" id="searchNoticias" placeholder="🔍 Buscar..." oninput="filtrarLista()">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px" id="noticiasCount">Cargando...</div>
+      <div class="noticias-list" id="noticiasLista">
+        <div style="text-align:center;padding:30px;color:var(--muted)">Cargando...</div>
+      </div>
+    </div>
+  </div>
 
-      <!-- ESTADÍSTICAS -->
-      <div class="card">
-        <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
-        <div class="card-body">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-val" id="statNoticias">—</div>
-              <div class="stat-lbl">PUBLICADAS</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-val" id="statVistas">—</div>
-              <div class="stat-lbl">VISTAS</div>
-            </div>
-          </div>
-          <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+  <div>
+    <div class="card">
+      <div class="card-header"><h2>📊 ESTADÍSTICAS</h2></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div class="stat-card">
+          <div class="stat-val" id="statNoticias">—</div>
+          <div class="stat-lbl">PUBLICADAS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statVistas">—</div>
+          <div class="stat-lbl">VISTAS</div>
         </div>
       </div>
+      <button class="btn btn-orange" onclick="cargarEstadisticas()">🔄 ACTUALIZAR</button>
+    </div>
 
-      <!-- LOGROS -->
-      <div class="card" style="border-color:rgba(255,215,0,.3);background:linear-gradient(135deg,rgba(10,38,71,.6) 0%,rgba(24,24,24,1) 60%)">
-        <div class="card-header" style="border-bottom-color:rgba(255,215,0,.15)">
-          <h2 style="color:#FFD700">🏆 LOGROS DEL PROYECTO</h2>
-        </div>
-        <div class="card-body">
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
-              <span style="font-size:18px">✅</span>
-              <div><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">156+ NOTICIAS PUBLICADAS</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Volumen suficiente para AdSense</div></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
-              <span style="font-size:18px">✅</span>
-              <div><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">6 PÁGINAS LEGALES ACTIVAS</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Privacidad · Términos · Cookies · Contacto · Nosotros</div></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
-              <span style="font-size:18px">✅</span>
-              <div><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">ADS.TXT CONFIGURADO</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">pub-5280872495839888 · DIRECT</div></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
-              <span style="font-size:18px">✅</span>
-              <div><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">SITEMAP.XML DINÁMICO</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Google indexa todas las noticias</div></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
-              <span style="font-size:18px">✅</span>
-              <div><div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:#22C55E">PUBLICACIÓN MANUAL ACTIVA</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">Funciona sin Gemini · Con multimedia</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ESTADO ADSENSE -->
-      <div class="card" style="border-color:rgba(255,215,0,.4);background:linear-gradient(135deg,rgba(10,38,71,.8) 0%,rgba(24,24,24,1) 70%)">
-        <div class="card-header" style="border-bottom-color:rgba(255,215,0,.2)">
-          <h2 style="color:#FFD700">💰 ESTADO ADSENSE</h2>
-          <a href="https://www.google.com/adsense" target="_blank" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#FFD700;text-decoration:none;border:1px solid rgba(255,215,0,.3);padding:4px 8px;border-radius:4px">ABRIR →</a>
-        </div>
-        <div class="card-body">
-          <div style="text-align:center;padding:16px 0 12px">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:rgba(255,255,255,.5);margin-bottom:4px">ID PUBLISHER</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFD700;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);padding:8px 14px;border-radius:6px;display:inline-block">ca-pub-5280872495839888</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-            <div class="sys-row"><span class="sys-key">ADS.TXT</span><span class="badge badge-on">✅ DIRECTO</span></div>
-            <div class="sys-row"><span class="sys-key">POLÍTICA COOKIES</span><span class="badge badge-on">✅ PUBLICADA</span></div>
-            <div class="sys-row"><span class="sys-key">POLÍTICA PRIVACIDAD</span><span class="badge badge-on">✅ PUBLICADA</span></div>
-            <div class="sys-row"><span class="sys-key">CONTENIDO (156+)</span><span class="badge badge-on">✅ SUFICIENTE</span></div>
-          </div>
-          <div style="margin-top:12px;display:flex;gap:8px">
-            <a href="https://elfarolaldia.com/ads.txt" target="_blank" style="flex:1;display:block;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;padding:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px;color:#FFD700;text-decoration:none">📄 ADS.TXT</a>
-            <a href="https://elfarolaldia.com/privacidad" target="_blank" style="flex:1;display:block;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;padding:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px;color:#FFD700;text-decoration:none">🔒 PRIVACIDAD</a>
-            <a href="https://elfarolaldia.com/sitemap.xml" target="_blank" style="flex:1;display:block;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;padding:8px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:6px;color:#FFD700;text-decoration:none">🗺️ SITEMAP</a>
-          </div>
-        </div>
-      </div>
-
-      <!-- CALIDAD SEO -->
-      <div class="card">
-        <div class="card-header">
-          <h2>🔍 CALIDAD SEO</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarCalidadSEO()">🔄</button>
-        </div>
-        <div class="card-body">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">Análisis de las últimas noticias publicadas.</p>
-          <div id="seoLista"><div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando...</div></div>
-        </div>
-      </div>
-
-      <!-- MEMORIA IA -->
-      <div class="card">
-        <div class="card-header">
-          <h2>🧠 MEMORIA IA</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarMemoria()">🔄</button>
-        </div>
-        <div class="card-body">
-          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.6">El sistema aprende qué imágenes funcionan mejor en cada categoría.</p>
-          <div class="memoria-list" id="memoriaLista">
-            <div class="mem-empty">Sin datos aún</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- INFORMACIÓN DEL SISTEMA -->
-      <div class="card">
-        <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
-        <div class="card-body">
-          <div>
-            <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on" id="sysVer">cargando...</span></div>
-            <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5 Flash ⚡</span></div>
-            <div class="sys-row"><span class="sys-key">PUBLICACIÓN</span><span class="badge badge-on">IA + MANUAL ✅</span></div>
-            <div class="sys-row"><span class="sys-key">MULTIMEDIA</span><span class="badge badge-on">URL + ARCHIVO ✅</span></div>
-            <div class="sys-row"><span class="sys-key">COBERTURA</span><span class="sys-val">🌍 RD + Mundial</span></div>
-            <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">E-E-A-T + Google News</span></div>
-            <div class="sys-row"><span class="sys-key">MEMORIA</span><span class="badge badge-on">✅ POSTGRESQL</span></div>
-            <div class="sys-row"><span class="sys-key">FACEBOOK</span><span class="badge badge-on" id="sysFB">✅</span></div>
-            <div class="sys-row"><span class="sys-key">TWITTER/X</span><span class="badge badge-on" id="sysTW">✅</span></div>
-            <div class="sys-row"><span class="sys-key">WATERMARK</span><span class="badge badge-warn" id="sysWM">⚠️ VERIF.</span></div>
-            <div class="sys-row"><span class="sys-key">PIXABAY</span><span class="badge badge-warn" id="sysPixabay">⚠️ VERIF.</span></div>
-            <div class="sys-row"><span class="sys-key">COMENTARIOS</span><span class="badge badge-on">✅ ACTIVOS</span></div>
-          </div>
-          <br>
-          <button class="btn btn-green" onclick="verStatus()">📡 VER STATUS COMPLETO</button>
-        </div>
-      </div>
-
-      <!-- COMENTARIOS RECIENTES -->
-      <div class="card">
-        <div class="card-header">
-          <h2>💬 COMENTARIOS</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarComentariosAdmin()">🔄</button>
-        </div>
-        <div class="card-body">
-          <div id="adminComLista" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
-            <div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando...</div>
-          </div>
-          <div id="msgCom" class="msg"></div>
-        </div>
-      </div>
-
-      <!-- COACH -->
-      <div class="card">
-        <div class="card-header">
-          <h2>📊 COACH DE REDACCIÓN</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarCoach()">🔄</button>
-        </div>
-        <div class="card-body">
-          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-            <button onclick="cargarCoach(7)"  class="btn-periodo" data-dias="7"  style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--borde);background:rgba(255,85,0,.14);color:var(--fuego);cursor:pointer">7 DÍAS</button>
-            <button onclick="cargarCoach(30)" class="btn-periodo" data-dias="30" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 10px;border-radius:5px;border:1px solid var(--borde);background:transparent;color:var(--muted);cursor:pointer">30 DÍAS</button>
-          </div>
-          <div id="coachLista"><div style="text-align:center;padding:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Cargando...</div></div>
-        </div>
-      </div>
-
-      <!-- RSS -->
-      <div class="card">
-        <div class="card-header"><h2>📡 RSS — 23 FUENTES ÉLITE</h2></div>
-        <div class="card-body">
-          <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px">
-
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:#FFD700;margin-bottom:4px">🏆 LISTÍN DIARIO (7 secciones)</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
-              Nacionales · República · Economía · Deportes · Espectáculos · Tecnología · Mundo
-            </div>
-
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:#C0C0C0;margin-top:8px;margin-bottom:4px">🥈 DIARIO LIBRE (6 secciones)</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
-              Nacionales · Economía · Deportes · Tecnología · Mundo · Entretenimiento
-            </div>
-
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:#CD7F32;margin-top:8px;margin-bottom:4px">🥉 N DIGITAL (5 secciones)</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
-              Nacionales · Economía · Deportes · Internacionales · Entretenimiento
-            </div>
-
-            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-top:8px;margin-bottom:4px">📡 RESPALDO INTERNACIONAL (5)</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:1.8">
-              BBC Mundo · Reuters LatAm · Bloomberg · Wired
-            </div>
-
-          </div>
-
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--verde);background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15);border-radius:6px;padding:9px 12px;margin-bottom:10px;line-height:1.9">
-            ✅ <strong>Foto real del artículo original</strong> — scraping de og:image<br>
-            ✅ <strong>Gemini reescribe</strong> con voz propia · SEO élite · Pirámide invertida<br>
-            ✅ <strong>Watermark automático</strong> → URL propia elfarolaldia.com/img/...<br>
-            ✅ <strong>Por categoría</strong> — cada sección va a su etiqueta correcta
-          </div>
-
-          <button class="btn btn-ghost" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
-          <div id="msgRSS" class="msg"></div>
-        </div>
-      </div>
-
-      <!-- TELEGRAM -->
-      <div class="card" style="border-color:rgba(0,136,204,.3)">
-        <div class="card-header" style="border-bottom-color:rgba(0,136,204,.15)">
-          <h2 style="color:#29B6F6">📱 TELEGRAM BOT</h2>
-          <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:11px;margin:0" onclick="cargarStatusTelegram()">🔄</button>
-        </div>
-        <div class="card-body">
-          <div id="telegramStatus" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-            <div style="text-align:center;padding:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">Verificando bot...</div>
-          </div>
-          <button class="btn btn-ghost" style="border-color:rgba(0,136,204,.3);color:#29B6F6;margin-bottom:8px" onclick="probarTelegram()">📤 ENVIAR MENSAJE DE PRUEBA</button>
-          <div id="msgTelegram" class="msg"></div>
-        </div>
-      </div>
-
-      <!-- EQUIPO -->
-      <div class="card" style="border-color:rgba(255,85,0,.3)">
-        <div class="card-header"><h2>👨‍💻 EQUIPO DE DESARROLLO</h2></div>
-        <div class="card-body">
-          <div style="display:flex;gap:14px;align-items:flex-start;padding:14px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.25);border-radius:10px;margin-bottom:10px">
-            <div style="width:64px;height:64px;border-radius:12px;flex-shrink:0;overflow:hidden;border:2px solid rgba(255,215,0,.5)">
-              <img src="/static/director%20(1).jpg" alt="José Gregorio" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.parentElement.innerHTML='<div style=\'width:64px;height:64px;background:linear-gradient(135deg,#0A2647,#FFD700);display:flex;align-items:center;justify-content:center;font-size:28px\'>🏮</div>'">
-            </div>
-            <div>
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:#FFD700">JOSÉ GREGORIO APELLIO</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:5px">DIRECTOR GENERAL · SANTO DOMINGO ESTE, RD</div>
-              <div style="font-size:11px;color:var(--crema2);line-height:1.6">Fundador y cerebro de El Farol al Día. Visión editorial, estrategia de negocios y dirección desde Los Mina.</div>
-            </div>
-          </div>
-          <div style="text-align:center;padding:12px;background:rgba(0,0,0,.4);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:6px">⚡ STACK TECNOLÓGICO</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2);line-height:2">Node.js · Express · PostgreSQL · Railway<br>Gemini 2.5 Flash · Pexels + Pixabay · RSS Image Extraction<br>Google AdSense · Facebook · Twitter/X · Telegram<br><span style="color:var(--fuego)">elfarolaldia.com · Santo Domingo Este, RD</span></div>
-          </div>
-        </div>
-      </div>
-
+    <div class="card">
+      <div class="card-header"><h2>ℹ️ INFORMACIÓN</h2></div>
+      <div class="sys-row"><span class="sys-key">VERSIÓN</span><span class="badge badge-on">V34.0 ✅</span></div>
+      <div class="sys-row"><span class="sys-key">IA</span><span class="sys-val">Gemini 2.5</span></div>
+      <div class="sys-row"><span class="sys-key">BD</span><span class="sys-val">PostgreSQL</span></div>
+      <div class="sys-row"><span class="sys-key">SEO</span><span class="sys-val">E-E-A-T</span></div>
+      <br>
+      <button class="btn btn-green" onclick="verStatus()">📡 VER STATUS</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL ELIMINAR -->
 <div class="modal-bg" id="modalDel">
   <div class="modal">
-    <div class="modal-icon">🗑️</div>
-    <h3>CONFIRMAR ELIMINACIÓN</h3>
-    <p id="modalDelTxt">¿Eliminar esta noticia?</p>
+    <div style="font-size:40px;margin-bottom:14px">🗑️</div>
+    <h3>CONFIRMAR</h3>
+    <p id="modalDelTxt">¿Eliminar?</p>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="cerrarModal()">CANCELAR</button>
       <button class="btn-confirm-del" onclick="confirmarEliminar()">🗑️ ELIMINAR</button>
@@ -766,276 +171,32 @@ textarea{resize:vertical;min-height:90px;line-height:1.65}
   </div>
 </div>
 
-<!-- MODAL EDITAR IMAGEN -->
 <div class="modal-bg" id="modalEditImg">
-  <div class="modal modal-edit">
-    <div class="modal-icon">🖼️</div>
+  <div class="modal" style="max-width:480px">
+    <div style="font-size:40px;margin-bottom:14px">🖼️</div>
     <h3>CAMBIAR IMAGEN</h3>
-    <p id="modalEditTitulo" style="color:var(--crema2);font-size:12px;margin-bottom:0"></p>
-    <img id="modalImgPreview" class="modal-img-preview" src="" alt="Preview">
-    <input type="text" class="modal-input" id="modalImgUrl"
-      placeholder="https://... pega aquí la URL de la nueva imagen"
-      oninput="previewImagen(this.value)">
-    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
-      Busca en <strong style="color:var(--fuego)">pexels.com</strong>, copia el link directo y pégalo arriba.
-    </p>
+    <img id="modalImgPreview" class="modal-img-preview" src="" alt="">
+    <input type="text" class="modal-input" id="modalImgUrl" placeholder="Pega URL de imagen">
     <div class="modal-btns">
       <button class="btn-cancel" onclick="cerrarModalEdit()">CANCELAR</button>
-      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR IMAGEN</button>
+      <button class="btn-confirm-edit" onclick="guardarImagen()">✅ GUARDAR</button>
     </div>
-    <div id="msgEditImg" class="msg" style="margin-top:12px"></div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
-
 <script>
 const API = window.location.origin, PIN = '311';
-let catActual = 'Nacionales';
-let imagenArchivoBase64 = null; // imagen subida como base64
-let modoImgActual = 'url';
+let catActual = 'Nacionales', todasNoticias = [], idAEliminar = null, idAEditar = null;
 
-/* ── RELOJ ── */
-setInterval(() => {
-  document.getElementById('reloj').textContent =
-    new Date().toLocaleTimeString('es-DO', { hour12: false });
-}, 1000);
-
-/* ── TOAST ── */
-function toast(msg, tipo = 'ok', ms = 4000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `show ${tipo}`;
-  clearTimeout(t._t);
-  t._t = setTimeout(() => { t.className = ''; }, ms);
-}
-
-/* ── TABS IA / MANUAL ── */
-function cambiarTab(tab) {
-  const ia = tab === 'ia';
-  document.getElementById('panelIA').style.display     = ia ? 'block' : 'none';
-  document.getElementById('panelManual').style.display = ia ? 'none' : 'block';
-  document.getElementById('tabIA').classList.toggle('active', ia);
-  document.getElementById('tabManual').classList.toggle('active', !ia);
-}
-
-/* ── MODO IMAGEN (URL vs FILE) ── */
-function modoImagen(modo) {
-  modoImgActual = modo;
-  document.getElementById('imgModoUrl').style.display  = modo === 'url'  ? 'block' : 'none';
-  document.getElementById('imgModoFile').style.display = modo === 'file' ? 'block' : 'none';
-  const btnUrl  = document.getElementById('tabImgUrl');
-  const btnFile = document.getElementById('tabImgFile');
-  if (modo === 'url') {
-    btnUrl.style.background  = 'rgba(255,85,0,.15)';  btnUrl.style.color  = 'var(--fuego)';
-    btnFile.style.background = 'transparent';          btnFile.style.color = 'var(--muted)';
-  } else {
-    btnFile.style.background = 'rgba(255,85,0,.15)';  btnFile.style.color  = 'var(--fuego)';
-    btnUrl.style.background  = 'transparent';          btnUrl.style.color   = 'var(--muted)';
-  }
-}
-
-/* ── SUBIDA DE ARCHIVO ── */
-function manejarArchivo(file) {
-  if (!file) return;
-  if (file.size > 8 * 1024 * 1024) { toast('❌ Imagen muy grande. Máx 8MB', 'err'); return; }
-  const allowed = ['image/jpeg','image/png','image/webp','image/gif'];
-  if (!allowed.includes(file.type)) { toast('❌ Formato no soportado', 'err'); return; }
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    imagenArchivoBase64 = e.target.result; // data:image/...;base64,...
-    document.getElementById('filePreview').src     = e.target.result;
-    document.getElementById('filePreview').style.display = 'block';
-    document.getElementById('fileName').textContent      = `✅ ${file.name} (${(file.size/1024).toFixed(0)} KB)`;
-    document.getElementById('fileName').style.display    = 'block';
-    document.getElementById('uploadStatus').textContent  = '✅ Imagen cargada — se subirá al publicar';
-    document.getElementById('uploadStatus').style.display = 'block';
-    document.getElementById('uploadStatus').style.color  = 'var(--verde)';
-    actualizarProgreso();
-  };
-  reader.readAsDataURL(file);
-}
-
-// Drag & drop
-const uz = document.getElementById('uploadZone');
-uz.addEventListener('dragover',  e => { e.preventDefault(); uz.classList.add('drag'); });
-uz.addEventListener('dragleave', () => uz.classList.remove('drag'));
-uz.addEventListener('drop', e => {
-  e.preventDefault(); uz.classList.remove('drag');
-  if (e.dataTransfer.files[0]) manejarArchivo(e.dataTransfer.files[0]);
-});
-
-/* ── PREVIEW IMG (URL) ── */
-function previewManualImg(url) {
-  const img = document.getElementById('mImgPreview');
-  if (url.startsWith('http')) { img.src = url; img.style.display = 'block'; }
-  else img.style.display = 'none';
-}
-
-/* ── PROGRESO DEL FORMULARIO ── */
-function actualizarProgreso() {
-  const titulo    = (document.getElementById('mTitulo')?.value || '').trim();
-  const contenido = (document.getElementById('mContenido')?.value || '').trim();
-  const desc      = (document.getElementById('mDesc')?.value || '').trim();
-  const tieneImg  = modoImgActual === 'file'
-    ? !!imagenArchivoBase64
-    : (document.getElementById('mImagen')?.value || '').startsWith('http');
-
-  // Contador título
-  const tc = document.getElementById('tituloCount');
-  if (tc) {
-    tc.textContent = `${titulo.length} / 70`;
-    tc.className = `char-count ${titulo.length >= 50 && titulo.length <= 75 ? 'ok' : titulo.length >= 30 ? 'warn' : 'bad'}`;
-  }
-
-  // Contador contenido
-  const palabras = contenido ? contenido.split(/\s+/).filter(w => w).length : 0;
-  const cc = document.getElementById('contenidoCount');
-  if (cc) {
-    cc.textContent = `${palabras} palabras`;
-    cc.className = `char-count ${palabras >= 200 ? 'ok' : palabras >= 100 ? 'warn' : 'bad'}`;
-  }
-
-  // Contador desc
-  const dc = document.getElementById('descCount');
-  if (dc) {
-    dc.textContent = `${desc.length} / 160`;
-    dc.className = `char-count ${desc.length >= 140 && desc.length <= 160 ? 'ok' : desc.length >= 80 ? 'warn' : ''}`;
-    dc.style.color = desc.length >= 140 ? 'var(--verde)' : desc.length >= 80 ? '#ffc107' : 'var(--muted)';
-  }
-
-  // Barra de progreso
-  let score = 0;
-  if (titulo.length >= 30)    score += 30;
-  if (palabras >= 150)         score += 40;
-  if (tieneImg)                score += 20;
-  if (desc.length >= 80)       score += 10;
-  document.getElementById('progFill').style.width = score + '%';
-}
-
-/* ── PUBLICAR MANUAL ── */
-async function publicarManual() {
-  const titulo    = (document.getElementById('mTitulo')?.value || '').trim();
-  const contenido = (document.getElementById('mContenido')?.value || '').trim();
-  const desc      = (document.getElementById('mDesc')?.value || '').trim();
-  const redactor  = (document.getElementById('mRedactor')?.value || 'Redacción EFD').trim();
-
-  if (!titulo)    { toast('❌ Falta el título', 'err'); return; }
-  if (!contenido || contenido.split(/\s+/).filter(w=>w).length < 50) {
-    toast('❌ El contenido es muy corto (mínimo 50 palabras)', 'err'); return;
-  }
-
-  // Determinar imagen
-  let imagen = '';
-  if (modoImgActual === 'file' && imagenArchivoBase64) {
-    imagen = imagenArchivoBase64; // el servidor la guardará en /tmp o la procesará
-  } else {
-    imagen = (document.getElementById('mImagen')?.value || '').trim();
-  }
-
-  const btn = document.getElementById('btnManual');
-  const ico = document.getElementById('manualIcon');
-  btn.disabled = true;
-  ico.textContent = '⏳';
-
-  try {
-    const r = await fetch(`${API}/api/publicar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: PIN, titulo, seccion: catActual, contenido, redactor, imagen, seo_description: desc })
-    });
-    const d = await r.json();
-    if (d.success) {
-      toast(`✅ Publicada: "${titulo}"`, 'ok');
-      showMsg('msgManual', `✅ Noticia publicada correctamente en /${d.slug}`, true);
-      // Limpiar formulario
-      document.getElementById('mTitulo').value    = '';
-      document.getElementById('mContenido').value = '';
-      document.getElementById('mDesc').value      = '';
-      document.getElementById('mImagen').value    = '';
-      document.getElementById('mImgPreview').style.display  = 'none';
-      document.getElementById('filePreview').style.display  = 'none';
-      document.getElementById('fileName').style.display     = 'none';
-      document.getElementById('uploadStatus').style.display = 'none';
-      imagenArchivoBase64 = null;
-      actualizarProgreso();
-      cargarEstadisticas();
-      cargarListaNoticias();
-    } else {
-      showMsg('msgManual', `❌ ${d.error || 'Error al publicar'}`, false);
-      toast('❌ Error al publicar', 'err');
-    }
-  } catch(e) {
-    showMsg('msgManual', `❌ ${e.message}`, false);
-    toast('❌ ' + e.message, 'err');
-  } finally {
-    btn.disabled = false;
-    ico.textContent = '✍️';
-  }
-}
-
-/* ── CARGAR CONFIG ── */
-async function cargarConfig() {
-  try {
-    const r = await fetch(`${API}/api/admin/config?pin=${PIN}`);
-    if (!r.ok) return;
-    const c = await r.json();
-    document.getElementById('instruccionPrincipal').value = c.instruccion_principal || '';
-    document.getElementById('enfasis').value              = c.enfasis               || '';
-    document.getElementById('tono').value                 = c.tono                  || 'profesional';
-    document.getElementById('extension').value            = c.extension             || 'media';
-    document.getElementById('evitar').value               = c.evitar                || '';
-    document.getElementById('iaToggle').checked           = c.enabled !== false;
-    actualizarIA();
-  } catch(e) { console.error('Config:', e); }
-}
-
-/* ── GUARDAR INSTRUCCIONES ── */
-async function guardarInstrucciones() {
-  try {
-    const r = await fetch(`${API}/api/admin/config`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pin: PIN,
-        enabled:               document.getElementById('iaToggle').checked,
-        instruccion_principal: document.getElementById('instruccionPrincipal').value,
-        enfasis:               document.getElementById('enfasis').value,
-        tono:                  document.getElementById('tono').value,
-        extension:             document.getElementById('extension').value,
-        evitar:                document.getElementById('evitar').value
-      })
-    });
-    const d = await r.json();
-    showMsg('msgConfig', d.success ? '✅ Instrucciones guardadas' : '❌ Error al guardar', d.success);
-    toast(d.success ? '✅ Config guardada' : '❌ Error guardando config', d.success ? 'ok' : 'err');
-  } catch(e) { showMsg('msgConfig', '❌ ' + e.message, false); }
-}
-
-/* ── CATEGORÍA ── */
 function selCat(el) {
   document.querySelectorAll('.cat-tile').forEach(c => c.classList.remove('sel'));
   el.classList.add('sel');
   catActual = el.dataset.val;
 }
 
-/* ── GENERAR NOTICIA IA ── */
 async function generarNoticia() {
-  if (!document.getElementById('iaToggle').checked) {
-    showMsg('msgGenerar', '❌ Active la IA primero con el interruptor de arriba', false); return;
-  }
   const spin = document.getElementById('bpSpin');
-  const icon = document.getElementById('bpIcon');
-  const txt  = document.getElementById('bpText');
-  const sub  = document.getElementById('bpSub');
-  const btn  = document.getElementById('btnPublicarIA');
-  spin.style.display = 'block'; icon.style.display = 'none';
-  txt.textContent = 'GENERANDO...';
-  sub.textContent = 'Memoria → Gemini Élite → Pexels → Pixabay → Redes';
-  btn.disabled = true;
-
+  spin.style.display = 'block';
   try {
     const r = await fetch(`${API}/api/generar-noticia`, {
       method: 'POST',
@@ -1043,421 +204,143 @@ async function generarNoticia() {
       body: JSON.stringify({ categoria: catActual })
     });
     const d = await r.json();
-    if (d.success) {
-      showMsg('msgGenerar', `✅ Publicada: "${d.titulo}"`, true);
-      toast(`✅ "${d.titulo}"`, 'ok');
-      cargarEstadisticas();
-      cargarListaNoticias();
-      setTimeout(cargarMemoria, 3000);
-    } else {
-      showMsg('msgGenerar', `❌ ${d.error || 'Error no especificado'}`, false);
-      toast('❌ ' + (d.error || 'Error Gemini'), 'err');
-    }
-  } catch(e) { showMsg('msgGenerar', '❌ ' + e.message, false); toast('❌ ' + e.message, 'err'); }
-  finally {
-    spin.style.display = 'none'; icon.style.display = 'block';
-    txt.textContent = 'GENERAR NOTICIA AHORA';
-    sub.textContent = 'Gemini 2.5 · Memoria · Pexels · Pixabay · Redes';
-    btn.disabled = false;
+    showMsg('msgGenerar', d.success ? `✅ "${d.titulo}"` : `❌ ${d.error}`, d.success);
+    if (d.success) { cargarEstadisticas(); cargarListaNoticias(); }
+  } catch(e) {
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  } finally {
+    spin.style.display = 'none';
   }
 }
 
-/* ── ESTADÍSTICAS ── */
 async function cargarEstadisticas() {
   try {
     const r = await fetch(`${API}/api/estadisticas`);
-    if (!r.ok) return;
     const d = await r.json();
     document.getElementById('statNoticias').textContent = d.totalNoticias || 0;
-    document.getElementById('statVistas').textContent   = d.totalVistas   || 0;
-  } catch(e) {}
+    document.getElementById('statVistas').textContent = d.totalVistas || 0;
+  } catch(e) { }
 }
-
-/* ── MEMORIA IA ── */
-async function cargarMemoria() {
-  try {
-    const r = await fetch(`${API}/api/memoria?pin=${PIN}`);
-    if (!r.ok) return;
-    const d = await r.json();
-    const lista = document.getElementById('memoriaLista');
-    if (!d.registros?.length) { lista.innerHTML = '<div class="mem-empty">Sin datos aún</div>'; return; }
-    lista.innerHTML = d.registros.slice(0, 20).map(m => {
-      const pct   = parseInt(m.pct_exito) || 0;
-      const clase = pct >= 70 ? 'alta' : pct >= 40 ? 'media' : 'baja';
-      const emoji = pct >= 70 ? '✅' : pct >= 40 ? '⚠️' : '❌';
-      const tipo  = m.tipo === 'pexels_query' ? 'query' : 'error';
-      const label = m.tipo === 'pexels_query' ? 'IMG' : 'ERR';
-      const valor = m.valor.length > 35 ? m.valor.substring(0, 35) + '...' : m.valor;
-      const cat   = m.categoria ? ` · ${m.categoria}` : '';
-      return `<div class="mem-row">
-        <span class="mem-tipo ${tipo}">${label}</span>
-        <div class="mem-valor" title="${m.valor}">${valor}<span style="color:var(--muted);font-size:9px">${cat}</span></div>
-        <span class="mem-tasa ${clase}">${emoji}</span>
-      </div>`;
-    }).join('');
-  } catch(e) {}
-}
-
-/* ── STATUS ── */
-async function actualizarInfoServidor(silencioso = true) {
-  try {
-    const r = await fetch(`${API}/status`);
-    const d = await r.json();
-    // Versión — automática desde el servidor
-    const ver = d.version || '?';
-    document.getElementById('sysVer').textContent = `V${ver} ✅`;
-    // Modelo IA — automático
-    const modelo = (d.modelo_gemini || 'gemini-2.5-flash').replace('gemini-','').toUpperCase();
-    const iaEl = document.getElementById('iaModelName');
-    if (iaEl) iaEl.textContent = `GEMINI ${modelo} ⚡`;
-    // Redes
-    document.getElementById('sysFB').textContent = d.facebook?.includes('Activo') ? '✅' : '⚠️';
-    document.getElementById('sysTW').textContent = d.twitter?.includes('Activo')  ? '✅' : '⚠️';
-    const wmOk = d.marca_de_agua && !d.marca_de_agua.includes('No encontrada') && !d.marca_de_agua.includes('No configurada');
-    document.getElementById('sysWM').textContent = wmOk ? '✅ ACTIVA' : '⚠️ SIN MARCA';
-    document.getElementById('sysWM').className   = wmOk ? 'badge badge-on' : 'badge badge-warn';
-    // Pixabay badge
-    const pxEl = document.getElementById('sysPixabay');
-    if (pxEl) {
-      pxEl.textContent = d.pixabay_api === 'Activa' ? '✅ ACTIVA' : '⚠️ SIN KEY';
-      pxEl.className   = d.pixabay_api === 'Activa' ? 'badge badge-on' : 'badge badge-warn';
-    }
-    return d;
-  } catch(e) { return null; }
-}
-
-async function verStatus() {
-  const d = await actualizarInfoServidor(false);
-  if (!d) { alert('Error conectando con el servidor'); return; }
-  alert(`🏮 EL FAROL AL DÍA — V${d.version}\n\nNoticias: ${d.noticias}\nRSS: ${d.rss_procesados}\nModelo: ${d.modelo_gemini}\nPixabay: ${d.pixabay_api||'Sin key'}\nFacebook: ${d.facebook}\nTwitter: ${d.twitter}\nTelegram: ${d.telegram}\nWatermark: ${d.marca_de_agua}`);
-}
-
-/* ── RSS ── */
-async function procesarRSS() {
-  try {
-    const r = await fetch(`${API}/api/procesar-rss`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: PIN })
-    });
-    const d = await r.json();
-    showMsg('msgRSS', d.success ? '✅ RSS iniciado en background' : '❌ ' + (d.error || 'Error'), d.success);
-    toast(d.success ? '📡 RSS procesándose en background' : '❌ Error RSS', d.success ? 'ok' : 'err');
-  } catch(e) { showMsg('msgRSS', '❌ ' + e.message, false); }
-}
-
-/* ── IA STATUS ── */
-function actualizarIA() {
-  const on  = document.getElementById('iaToggle').checked;
-  const s   = document.getElementById('iaStatus');
-  const row = document.getElementById('iaRow');
-  s.textContent = on ? '● ACTIVADO' : '● DESACTIVADO';
-  s.className   = 'ia-status ' + (on ? 'on' : 'off');
-  row.className = 'ia-row ' + (on ? 'on' : '');
-}
-document.getElementById('iaToggle').addEventListener('change', () => { actualizarIA(); guardarInstrucciones(); });
-
-/* ── MSG ── */
-function showMsg(id, txt, ok) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = txt;
-  el.className   = 'msg ' + (ok ? 'ok' : 'err');
-  setTimeout(() => { el.className = 'msg'; }, 6000);
-}
-
-/* ── LISTA DE NOTICIAS ── */
-let todasNoticias = [], idAEliminar = null;
 
 async function cargarListaNoticias() {
   try {
     const r = await fetch(`${API}/api/noticias`);
-    if (!r.ok) return;
     const d = await r.json();
     todasNoticias = d.noticias || [];
     renderizarLista(todasNoticias);
   } catch(e) {
-    document.getElementById('noticiasLista').innerHTML =
-      '<div style="text-align:center;padding:20px;color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error cargando noticias</div>';
+    document.getElementById('noticiasLista').innerHTML = '<div style="color:var(--rojo)">❌ Error</div>';
   }
 }
 
 function renderizarLista(noticias) {
   const lista = document.getElementById('noticiasLista');
-  const count = document.getElementById('noticiasCount');
-  count.textContent = `${noticias.length} NOTICIAS PUBLICADAS`;
+  document.getElementById('noticiasCount').textContent = `${noticias.length} NOTICIAS`;
   if (!noticias.length) {
-    lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);font-family:JetBrains Mono,monospace;font-size:11px">Sin noticias aún</div>';
+    lista.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Sin noticias</div>';
     return;
   }
   lista.innerHTML = noticias.map(n => {
-    const fecha  = new Date(n.fecha).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' });
-    const imgSrc = n.imagen?.startsWith('http') ? n.imagen
-      : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
-    const titulo = n.titulo.length > 46 ? n.titulo.substring(0, 46) + '…' : n.titulo;
-    return `
-    <div class="noticia-row" data-titulo="${n.titulo.toLowerCase()}" data-id="${n.id}">
-      <img class="nr-thumb" src="${imgSrc}" alt=""
-        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'" loading="lazy">
-      <div class="nr-info">
-        <div class="nr-titulo">${titulo}</div>
-        <div class="nr-meta">📅 ${fecha} · 👁 ${n.vistas||0}</div>
-      </div>
-      <span class="nr-seccion">${n.seccion}</span>
-      <button class="btn-edit-img" title="Cambiar imagen"
-        onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g,"\\'")}','${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button>
-      <button class="btn-del" title="Eliminar noticia"
-        onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g,"\\'")}')">🗑️</button>
-    </div>`;
+    const fecha = new Date(n.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
+    const imgSrc = n.imagen?.startsWith('http') ? n.imagen : 'https://via.placeholder.com/100';
+    const titulo = n.titulo.substring(0, 46);
+    return `<div class="noticia-row"><img class="nr-thumb" src="${imgSrc}" alt="" onerror="this.src='https://via.placeholder.com/100'"><div class="nr-info"><div class="nr-titulo">${titulo}</div><div class="nr-meta">📅 ${fecha}</div></div><span class="nr-seccion">${n.seccion}</span><button class="btn-edit-img" onclick="pedirEditarImagen(${n.id},'${n.titulo.replace(/'/g,"\\'")}','${(n.imagen||'').replace(/'/g,"\\'")}')">🖼️</button><button class="btn-del" onclick="pedirEliminar(${n.id},'${n.titulo.replace(/'/g,"\\'")}')">🗑️</button></div>`;
   }).join('');
 }
 
 function filtrarLista() {
-  const q = document.getElementById('searchNoticias').value.toLowerCase().trim();
+  const q = document.getElementById('searchNoticias').value.toLowerCase();
   if (!q) { renderizarLista(todasNoticias); return; }
-  renderizarLista(todasNoticias.filter(n =>
-    n.titulo.toLowerCase().includes(q) || n.seccion.toLowerCase().includes(q)
-  ));
+  renderizarLista(todasNoticias.filter(n => n.titulo.toLowerCase().includes(q)));
 }
 
-/* ── ELIMINAR ── */
+function showMsg(id, txt, ok) {
+  const el = document.getElementById(id);
+  el.textContent = txt;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+  setTimeout(() => { el.className = 'msg'; }, 5000);
+}
+
 function pedirEliminar(id, titulo) {
   idAEliminar = id;
-  document.getElementById('modalDelTxt').textContent = `¿Eliminar "${titulo}"? Acción permanente.`;
+  document.getElementById('modalDelTxt').textContent = `¿Eliminar "${titulo}"?`;
   document.getElementById('modalDel').classList.add('open');
 }
-function cerrarModal() { idAEliminar = null; document.getElementById('modalDel').classList.remove('open'); }
+
+function cerrarModal() {
+  document.getElementById('modalDel').classList.remove('open');
+}
 
 async function confirmarEliminar() {
-  if (!idAEliminar) return;
-  const btn = document.querySelector('.btn-confirm-del');
-  btn.textContent = 'Eliminando...'; btn.disabled = true;
   try {
     const r = await fetch(`${API}/api/eliminar/${idAEliminar}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: PIN })
     });
     const d = await r.json();
     cerrarModal();
-    if (d.success !== false) {
+    if (d.success) {
       todasNoticias = todasNoticias.filter(n => n.id !== idAEliminar);
       renderizarLista(todasNoticias);
-      cargarEstadisticas();
-      toast('🗑️ Noticia eliminada', 'ok');
-    } else toast('❌ ' + (d.error||'Error'), 'err');
-  } catch(e) { cerrarModal(); toast('❌ ' + e.message, 'err'); }
-  finally { btn.textContent = '🗑️ ELIMINAR'; btn.disabled = false; }
+      showMsg('msgGenerar', '🗑️ Eliminada', true);
+    }
+  } catch(e) {
+    cerrarModal();
+    showMsg('msgGenerar', '❌ ' + e.message, false);
+  }
 }
 
-/* ── EDITAR IMAGEN ── */
-let idAEditar = null;
 function pedirEditarImagen(id, titulo, imgActual) {
   idAEditar = id;
-  document.getElementById('modalEditTitulo').textContent = titulo;
+  document.getElementById('modalImgPreview').src = imgActual || 'https://via.placeholder.com/300';
   document.getElementById('modalImgUrl').value = '';
-  document.getElementById('modalImgPreview').src = imgActual || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=600';
-  document.getElementById('msgEditImg').className = 'msg';
   document.getElementById('modalEditImg').classList.add('open');
 }
-function previewImagen(url) {
-  if (url.startsWith('http')) document.getElementById('modalImgPreview').src = url;
+
+function cerrarModalEdit() {
+  document.getElementById('modalEditImg').classList.remove('open');
 }
-function cerrarModalEdit() { idAEditar = null; document.getElementById('modalEditImg').classList.remove('open'); }
 
 async function guardarImagen() {
-  if (!idAEditar) return;
   const url = document.getElementById('modalImgUrl').value.trim();
-  if (!url || !url.startsWith('http')) {
-    document.getElementById('msgEditImg').textContent = '❌ Pega una URL válida (https://)';
-    document.getElementById('msgEditImg').className = 'msg err'; return;
-  }
-  const btn = document.querySelector('.btn-confirm-edit');
-  btn.textContent = 'Guardando...'; btn.disabled = true;
+  if (!url || !url.startsWith('http')) { alert('Pega una URL válida'); return; }
   try {
     const r = await fetch(`${API}/api/actualizar-imagen/${idAEditar}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: PIN, imagen: url })
     });
     const d = await r.json();
     if (d.success) {
-      const row = document.querySelector(`.noticia-row[data-id="${idAEditar}"]`);
-      if (row) row.querySelector('.nr-thumb').src = url;
       const n = todasNoticias.find(x => x.id === idAEditar);
       if (n) n.imagen = url;
       cerrarModalEdit();
-      toast('✅ Imagen actualizada', 'ok');
-    } else {
-      document.getElementById('msgEditImg').textContent = '❌ ' + (d.error || 'Error');
-      document.getElementById('msgEditImg').className = 'msg err';
+      showMsg('msgGenerar', '✅ Actualizada', true);
     }
-  } catch(e) {
-    document.getElementById('msgEditImg').textContent = '❌ ' + e.message;
-    document.getElementById('msgEditImg').className = 'msg err';
-  } finally { btn.textContent = '✅ GUARDAR IMAGEN'; btn.disabled = false; }
+  } catch(e) { alert('❌ ' + e.message); }
 }
 
-document.getElementById('modalDel').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
-document.getElementById('modalEditImg').addEventListener('click', function(e) { if (e.target === this) cerrarModalEdit(); });
-
-/* ── CALIDAD SEO ── */
-async function cargarCalidadSEO() {
-  const lista = document.getElementById('seoLista');
+async function verStatus() {
   try {
-    const r = await fetch(`${API}/api/noticias`);
-    if (!r.ok) return;
+    const r = await fetch(`${API}/status`);
     const d = await r.json();
-    const noticias = (d.noticias || []).slice(0, 5);
-    if (!noticias.length) { lista.innerHTML = '<div style="text-align:center;padding:16px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">Sin noticias</div>'; return; }
-    lista.innerHTML = noticias.map(n => {
-      const tLen   = n.titulo.length;
-      const tScore = tLen >= 50 && tLen <= 75 ? 100 : tLen >= 40 && tLen <= 90 ? 70 : 40;
-      const tColor = tScore >= 80 ? '#22C55E' : tScore >= 60 ? '#ffc107' : '#EF4444';
-      const hasRD  = /dominicana|dominicano|rd\b|santo domingo|santiago/i.test(n.titulo) ? 100 : 40;
-      const rdColor= hasRD >= 80 ? '#22C55E' : '#EF4444';
-      const hasImg = n.imagen?.startsWith('http') ? 100 : 0;
-      const imgColor = hasImg ? '#22C55E' : '#EF4444';
-      const titulo = n.titulo.length > 32 ? n.titulo.substring(0, 32) + '…' : n.titulo;
-      return `<div class="seo-item">
-        <div class="seo-titulo" title="${n.titulo}">${titulo}</div>
-        <div class="seo-bars">
-          <div class="seo-bar-row"><span class="seo-bar-label">TÍTULO</span><div class="seo-bar-track"><div class="seo-bar-fill" style="width:${tScore}%;background:${tColor}"></div></div><span class="seo-bar-val" style="color:${tColor}">${tLen}c</span></div>
-          <div class="seo-bar-row"><span class="seo-bar-label">GEO RD</span><div class="seo-bar-track"><div class="seo-bar-fill" style="width:${hasRD}%;background:${rdColor}"></div></div><span class="seo-bar-val" style="color:${rdColor}">${hasRD===100?'✅':'❌'}</span></div>
-          <div class="seo-bar-row"><span class="seo-bar-label">IMAGEN</span><div class="seo-bar-track"><div class="seo-bar-fill" style="width:${hasImg}%;background:${imgColor}"></div></div><span class="seo-bar-val" style="color:${imgColor}">${hasImg?'✅':'❌'}</span></div>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) { lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Error</div>'; }
+    alert(`🏮 V${d.version}\n📰 ${d.noticias} noticias\n✅ Activo`);
+  } catch(e) { alert('Error'); }
 }
 
-/* ── COMENTARIOS ADMIN ── */
-async function cargarComentariosAdmin() {
-  const lista = document.getElementById('adminComLista');
-  try {
-    const r = await fetch(`${API}/api/admin/comentarios?pin=${PIN}`);
-    const d = await r.json();
-    if (!d.comentarios?.length) { lista.innerHTML = '<div style="text-align:center;padding:20px;font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">Sin comentarios</div>'; return; }
-    lista.innerHTML = d.comentarios.map(c => {
-      const fecha = new Date(c.fecha).toLocaleDateString('es-DO', { day:'2-digit', month:'short' });
-      const texto = c.texto.length > 60 ? c.texto.substring(0, 60) + '…' : c.texto;
-      return `<div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:10px 12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--fuego)">${c.nombre}</span>
-          <div style="display:flex;gap:6px;align-items:center">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted)">${fecha}</span>
-            <button onclick="eliminarComentario(${c.id})" style="background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;line-height:1.4">🗑️</button>
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--crema2);line-height:1.4">${texto}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px">📰 ${(c.noticia_titulo||'').substring(0,35)}…</div>
-      </div>`;
-    }).join('');
-  } catch(e) { lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Error</div>'; }
-}
+document.getElementById('modalDel').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModal();
+});
+document.getElementById('modalEditImg').addEventListener('click', function(e) {
+  if (e.target === this) cerrarModalEdit();
+});
 
-async function eliminarComentario(id) {
-  if (!confirm('¿Eliminar este comentario?')) return;
-  try {
-    const r = await fetch(`${API}/api/comentarios/eliminar/${id}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: PIN })
-    });
-    const d = await r.json();
-    if (d.success) { cargarComentariosAdmin(); toast('🗑️ Comentario eliminado', 'ok'); }
-    else toast('❌ Error al eliminar', 'err');
-  } catch(e) { toast('❌ ' + e.message, 'err'); }
-}
-
-/* ── COACH ── */
-let coachDiasActual = 7;
-async function cargarCoach(dias = coachDiasActual) {
-  coachDiasActual = dias;
-  document.querySelectorAll('.btn-periodo').forEach(b => {
-    const activo = parseInt(b.dataset.dias) === dias;
-    b.style.background = activo ? 'rgba(255,85,0,.14)' : 'transparent';
-    b.style.color       = activo ? 'var(--fuego)'      : 'var(--muted)';
-  });
-  const lista = document.getElementById('coachLista');
-  try {
-    const r = await fetch(`${API}/api/coach?dias=${dias}&pin=${PIN}`);
-    if (!r.ok) return;
-    const d = await r.json();
-    if (!d.success) { lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ Sin datos</div>'; return; }
-    const cats = d.categorias ? Object.entries(d.categorias) : [];
-    lista.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:12px;text-align:center">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--fuego)">${d.total_noticias||0}</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">NOTICIAS</div>
-        </div>
-        <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:12px;text-align:center">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--azul)">${d.total_vistas||0}</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px">VISTAS</div>
-        </div>
-      </div>
-      ${cats.map(([nombre, data]) => {
-        const pct   = data.rendimiento || 0;
-        const color = pct >= 100 ? 'var(--verde)' : pct >= 60 ? '#ffc107' : 'var(--rojo)';
-        const emoji = pct >= 100 ? '🔥' : pct >= 60 ? '📈' : '📉';
-        return `<div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);border-radius:7px;padding:8px 10px;margin-bottom:6px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--crema)">${emoji} ${nombre}</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${color}">${pct}%</span>
-          </div>
-          <div style="background:var(--borde);border-radius:2px;height:4px">
-            <div style="height:4px;border-radius:2px;background:${color};width:${Math.min(pct,100)}%;transition:width .4s"></div>
-          </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px">${data.total||0} noticias · ${data.vistas_promedio||0} vistas prom.</div>
-          ${data.mejor ? `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--crema2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📰 ${data.mejor.titulo?.substring(0,40)||''}</div>` : ''}
-        </div>`;
-      }).join('')}`;
-  } catch(e) { lista.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px;padding:10px">❌ ' + e.message + '</div>'; }
-}
-
-/* ── TELEGRAM ── */
-async function cargarStatusTelegram() {
-  const div = document.getElementById('telegramStatus');
-  try {
-    const r = await fetch(`${API}/api/telegram/status?pin=${PIN}`);
-    const d = await r.json();
-    div.innerHTML = `
-      <div class="sys-row"><span class="sys-key">TOKEN</span><span class="badge ${d.token_activo ? 'badge-on' : 'badge-warn'}">${d.token_activo ? '✅ ACTIVO' : '❌ FALTA'}</span></div>
-      <div class="sys-row"><span class="sys-key">CHAT ID</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${d.chat_id.includes('No') ? '#ffc107' : 'var(--verde)'}">${d.chat_id}</span></div>
-      <div class="sys-row"><span class="sys-key">ESTADO</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--crema2)">${d.instruccion}</span></div>`;
-  } catch(e) { div.innerHTML = '<div style="color:var(--rojo);font-family:JetBrains Mono,monospace;font-size:11px">❌ Error conectando</div>'; }
-}
-
-async function probarTelegram() {
-  try {
-    const r = await fetch(`${API}/api/telegram/test`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: PIN })
-    });
-    const d = await r.json();
-    showMsg('msgTelegram', d.mensaje, d.success);
-    toast(d.mensaje, d.success ? 'ok' : 'err');
-    if (d.success) cargarStatusTelegram();
-  } catch(e) { showMsg('msgTelegram', '❌ ' + e.message, false); }
-}
-
-/* ── INIT ── */
 document.addEventListener('DOMContentLoaded', () => {
-  actualizarInfoServidor();
-  cargarConfig();
   cargarEstadisticas();
   cargarListaNoticias();
-  cargarMemoria();
-  cargarCalidadSEO();
-  cargarComentariosAdmin();
-  cargarCoach();
-  cargarStatusTelegram();
-  setInterval(cargarEstadisticas,      30000);
-  setInterval(cargarMemoria,           60000);
-  setInterval(cargarCalidadSEO,        60000);
-  setInterval(cargarComentariosAdmin,  60000);
-  setInterval(cargarCoach,            120000);
-  setInterval(cargarStatusTelegram,    60000);
-  // Auto-actualiza versión y modelo desde el servidor cada 5 minutos
-  setInterval(actualizarInfoServidor,  300000);
+  setInterval(cargarEstadisticas, 30000);
+  setInterval(cargarListaNoticias, 60000);
 });
 </script>
 </body>
