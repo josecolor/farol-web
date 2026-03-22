@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.41
- * Base: V34.41
+ * 🏮 EL FAROL AL DÍA — V34.42
+ * Base: V34.42
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -923,13 +923,76 @@ async function construirMemoria() {
 }
 
 // ─── ADSENSE CPC ALTO ─────────────────────────────────────────────────────────
+// ─── TÉRMINOS ADSENSE CPC ALTO — investigados para RD ───────────────────────
+// CPC alto = anunciantes pagan más por clic en estos temas
+// Deben aparecer NATURALMENTE en el artículo — nunca forzados
+// Actualizar cada 3 meses según tendencias de Google Keyword Planner
 const ADSENSE_CPC = {
-    Nacionales:      'prestamos personales en republica dominicana, tasas de interes hipotecario, credito de vivienda, financiamiento de proyectos',
-    Economia:        'inversion inmobiliaria santo domingo, plusvalia propiedades RD, certificados financieros, tasas bancarias dominicanas, seguros de vida y retiro',
-    Tecnologia:      'banca digital dominicana, seguridad informatica empresarial, fintech caribe, software de gestion financiera',
-    Deportes:        'seguros medicos para atletas, patrocinios corporativos, inversion en infraestructura deportiva, creditos de consumo',
-    Internacionales: 'remesas republica dominicana, tipo de cambio dolar peso, inversion extranjera directa, seguros de viaje internacional',
-    Espectaculos:    'emprendimiento cultural, patrocinios comerciales en medios, inversion en entretenimiento, banca digital',
+    // Nacionales — préstamos, vivienda e hipotecas tienen CPC alto en RD
+    Nacionales: [
+        'prestamos personales republica dominicana',
+        'credito hipotecario banco BHD Leon',
+        'plan de vivienda gobierno dominicano',
+        'financiamiento inmobiliario RD 2025',
+        'tasas de interes bancos dominicanos',
+        'seguro de vida republica dominicana',
+        'abogado accidente republica dominicana',
+    ].join(', '),
+
+    // Economía — inversión y banca son los de mayor CPC en Caribe
+    Economia: [
+        'inversion inmobiliaria santo domingo este',
+        'certificados financieros banco popular dominicano',
+        'bolsa de valores republica dominicana',
+        'prestamo empresarial pyme dominicana',
+        'seguro de retiro republica dominicana',
+        'tipo de cambio dolar peso dominicano hoy',
+        'tarjeta de credito banco dominicano',
+    ].join(', '),
+
+    // Tecnología — software empresarial y fintech pagan bien
+    Tecnologia: [
+        'software empresarial republica dominicana',
+        'banca en linea banco popular dominicano',
+        'seguridad informatica empresas RD',
+        'internet fibra optica santo domingo',
+        'telefonia movil ofertas republica dominicana',
+        'aplicaciones moviles emprendimiento dominicano',
+        'INFOTEP cursos tecnologia 2025',
+    ].join(', '),
+
+    // Deportes — seguros médicos y marcas deportivas
+    Deportes: [
+        'seguro medico familiar republica dominicana',
+        'clinica deportiva santo domingo',
+        'academia beisbol republica dominicana',
+        'equipos deportivos comprar RD',
+        'seguro accidente personal dominicano',
+        'viaje a ver beisbol MLB desde RD',
+        'patrocinio deportivo empresas dominicanas',
+    ].join(', '),
+
+    // Internacionales — remesas y viajes tienen CPC altísimo
+    Internacionales: [
+        'envio de remesas a republica dominicana',
+        'western union republica dominicana',
+        'visa americana para dominicanos',
+        'vuelos baratos desde santo domingo',
+        'seguro de viaje internacional dominicano',
+        'inversion extranjera republica dominicana',
+        'tipo de cambio euro peso dominicano',
+    ].join(', '),
+
+    // Espectáculos — turismo y entretenimiento
+    Espectaculos: [
+        'hoteles punta cana todo incluido',
+        'conciertos santo domingo 2025',
+        'turismo republica dominicana paquetes',
+        'agencia de viajes republica dominicana',
+        'alquiler de salones de eventos santo domingo',
+        'streaming peliculas dominicanas online',
+        'entretenimiento familiar santo domingo este',
+    ].join(', '),
 };
 
 // ─── BD INIT ──────────────────────────────────────────────────────────────────
@@ -1051,7 +1114,7 @@ ESTRUCTURA PERIODÍSTICA ÉLITE (pirámide invertida estricta):
 ▸ LEAD (párrafo 1): La noticia completa en 2-3 líneas. Qué pasó + quién + cuándo + dónde + por qué importa. El lector que solo lea esto debe entender todo.
 ▸ DESARROLLO (párrafo 2): Cifras concretas, contexto histórico, comparación con año anterior o región. Dato duro obligatorio.
 ▸ FUENTE OFICIAL (párrafo 3): Cita textual o parafraseo de institución real: "El ministro X señaló...", "Según el informe del BCRD...", "La Procuraduría informó...". NUNCA inventar citas — usar fórmulas verificables.
-▸ IMPACTO CIUDADANO (párrafo 4): Qué cambia para el dominicano. Costo, beneficio, riesgo real. Integra NATURALMENTE estos términos de alto valor: ${termCPC}
+▸ IMPACTO CIUDADANO (párrafo 4): Qué cambia para el dominicano. Costo, beneficio, riesgo real. Menciona NATURALMENTE 2-3 de estos servicios o productos cuando sean relevantes al contexto: ${termCPC}. NUNCA forzados — solo si encajan con la noticia.
 ▸ PROYECCIÓN (párrafo 5): Qué sigue. Próxima reunión, votación, implementación, fecha clave. Cierre que da continuidad al lector.
 
 SEO DE ÉLITE:
@@ -2215,6 +2278,7 @@ app.get('/status', async (req, res) => {
             marca_de_agua:  WATERMARK_PATH ? `Activa: ${path.basename(WATERMARK_PATH)}` : 'No encontrada — publicando sin marca',
             gemini_keys:    GEMINI_KEYS.length,
             google_cse:     (process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID) ? 'Activo' : 'Sin configurar',
+            adsense:        'pub-5280872495839888',
             ia_activa:      CONFIG_IA.enabled,
             rss_en_proceso: rssEnProceso,
             wm_en_proceso:  wmRegenEnProceso,
@@ -2232,7 +2296,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.41               ║
+║        🏮  EL FAROL AL DIA  —  V34.42               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
