@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.47
+ * 🏮 EL FAROL AL DÍA — V34.48
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -912,17 +912,162 @@ async function registrarError(tipo, descripcion, categoria) {
     } catch (_) {}
 }
 
+// ─── SISTEMA DE APRENDIZAJE ───────────────────────────────────────────────────
+// El servidor aprende qué funciona y qué no:
+//   - Qué categorías generan más vistas
+//   - Qué fuentes RSS traen noticias que más se leen
+//   - Qué palabras en el título atraen más tráfico
+//   - Qué horarios publican mejor
+//   - Qué tipo de fotos funcionan más
+
+async function registrarAprendizaje(tipo, valor, categoria, exito = true) {
+    try {
+        const v = String(valor).substring(0, 200);
+        await pool.query(`
+            INSERT INTO memoria_ia(tipo, valor, categoria, exitos, fallos)
+            VALUES($1, $2, $3, $4, $5)
+            ON CONFLICT DO NOTHING`,
+            [tipo, v, categoria, exito ? 1 : 0, exito ? 0 : 1]
+        );
+        await pool.query(`
+            UPDATE memoria_ia
+            SET exitos    = exitos + $1,
+                fallos    = fallos + $2,
+                ultima_vez = NOW()
+            WHERE tipo = $3 AND valor = $4`,
+            [exito ? 1 : 0, exito ? 0 : 1, tipo, v]
+        );
+    } catch (_) {}
+}
+
+// ─── APRENDER DE VISTAS — qué categorías y patrones generan tráfico ──────────
+// Corre cada 4 horas — analiza las noticias más vistas y aprende
+async function aprenderDeVistas() {
+    try {
+        // Top noticias por vistas en las últimas 48h
+        const top = await pool.query(`
+            SELECT titulo, seccion, vistas, redactor, fecha
+            FROM   noticias
+            WHERE  estado = 'publicada'
+            AND    fecha  > NOW() - INTERVAL '48 hours'
+            AND    vistas > 0
+            ORDER  BY vistas DESC
+            LIMIT  20`);
+
+        if (!top.rows.length) return;
+
+        // Aprender: qué categorías rinden más
+        const vistasXCat = {};
+        const countXCat  = {};
+        for (const n of top.rows) {
+            vistasXCat[n.seccion] = (vistasXCat[n.seccion] || 0) + n.vistas;
+            countXCat[n.seccion]  = (countXCat[n.seccion]  || 0) + 1;
+        }
+
+        for (const [cat, total] of Object.entries(vistasXCat)) {
+            const promedio = Math.round(total / countXCat[cat]);
+            await registrarAprendizaje('rendimiento_categoria', cat, cat, promedio > 5);
+        }
+
+        // Aprender: qué palabras en títulos generan más vistas
+        const palabrasVistas = {};
+        for (const n of top.rows) {
+            const palabras = n.titulo.toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .split(/\s+/)
+                .filter(w => w.length > 5 && !['republica','dominicana','santo','domingo'].includes(w));
+
+            for (const p of palabras) {
+                palabrasVistas[p] = (palabrasVistas[p] || 0) + n.vistas;
+            }
+        }
+
+        // Las 10 palabras con más vistas — aprender que son trending real
+        const topPalabras = Object.entries(palabrasVistas)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+
+        for (const [palabra, vistas] of topPalabras) {
+            await registrarAprendizaje('palabra_trending', palabra, 'global', true);
+        }
+
+        // Aprender: qué horario publica mejor
+        const hora = new Date().getHours();
+        const promedioActual = top.rows.reduce((s, n) => s + n.vistas, 0) / top.rows.length;
+        await registrarAprendizaje('rendimiento_horario', `hora_${hora}`, 'global', promedioActual > 3);
+
+        console.log(`[Aprende] ✅ Analicé ${top.rows.length} noticias — top palabras: ${topPalabras.slice(0,3).map(p=>p[0]).join(', ')}`);
+
+    } catch (e) {
+        console.warn('[Aprende] Error: ' + e.message);
+    }
+}
+
+// ─── LEER LO APRENDIDO — palabras que el sistema sabe que generan tráfico ─────
+async function obtenerPalabrasAprendidas() {
+    try {
+        const r = await pool.query(`
+            SELECT valor, exitos
+            FROM   memoria_ia
+            WHERE  tipo     = 'palabra_trending'
+            AND    exitos   > 2
+            AND    ultima_vez > NOW() - INTERVAL '7 days'
+            ORDER  BY exitos DESC
+            LIMIT  20`);
+        return r.rows.map(r => r.valor);
+    } catch (_) { return []; }
+}
+
+// ─── CATEGORÍA MÁS RENTABLE — decide qué publicar en Slot D ─────────────────
+async function obtenerCategoriaOptima() {
+    try {
+        const r = await pool.query(`
+            SELECT categoria, exitos, fallos,
+                   ROUND(exitos::float / GREATEST(exitos+fallos,1) * 100) AS pct
+            FROM   memoria_ia
+            WHERE  tipo = 'rendimiento_categoria'
+            ORDER  BY exitos DESC
+            LIMIT  1`);
+
+        if (r.rows.length && r.rows[0].pct > 50) {
+            console.log(`[Aprende] 🧠 Categoría óptima: ${r.rows[0].categoria} (${r.rows[0].pct}% éxito)`);
+            return r.rows[0].categoria;
+        }
+    } catch (_) {}
+    // Si no hay datos suficientes → aleatoria
+    return CATS[Math.floor(Math.random() * CATS.length)];
+}
+
 async function construirMemoria() {
     try {
-        const r = await pool.query("SELECT titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 20");
+        // Noticias recientes — no repetir
+        const r = await pool.query("SELECT titulo, seccion, vistas FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 20");
+        let memoria = '';
+
         if (r.rows.length) {
-            // También actualizar temasPublicadosHoy con lo que ya está en BD
             r.rows.forEach(x => {
                 const palabrasClave = x.titulo.toLowerCase().split(' ').filter(w=>w.length>5).slice(0,3).join('-');
                 temasPublicadosHoy.add(palabrasClave);
             });
-            return '\nYA PUBLICADAS - NO repetir ningún tema similar:\n' + r.rows.map((x, i) => `${i + 1}. ${x.titulo}`).join('\n') + '\n';
+            memoria += '\nYA PUBLICADAS HOY — NO repetir:\n' + r.rows.map((x, i) => `${i+1}. ${x.titulo}`).join('\n') + '\n';
         }
+
+        // Lo que el sistema aprendió que funciona — dárselo a Gemini
+        if (PALABRAS_APRENDIDAS.length) {
+            memoria += `\nPALABRAS QUE GENERAN TRÁFICO REAL (usar si aplica): ${PALABRAS_APRENDIDAS.slice(0,10).join(', ')}\n`;
+        }
+
+        // Top noticias por vistas — para que Gemini entienda qué tipo funciona
+        const top = await pool.query(`
+            SELECT titulo, seccion, vistas FROM noticias
+            WHERE estado='publicada' AND vistas > 3
+            ORDER BY vistas DESC LIMIT 5`);
+        if (top.rows.length) {
+            memoria += '\nTITULARES QUE MÁS TRÁFICO GENERARON (aprender el estilo):\n';
+            memoria += top.rows.map(n => `- "${n.titulo}" (${n.vistas} vistas)`).join('\n') + '\n';
+        }
+
+        return memoria;
     } catch (_) {}
     return '';
 }
@@ -1232,6 +1377,16 @@ CONTENIDO:
         if (urlOrig)  fotosUsadasReciente.add(urlOrig);
         invalidarCache();
 
+        // Aprender: registrar que esta categoría y fuente funcionaron
+        await registrarAprendizaje('fuente_exitosa', categoria, categoria, true);
+        // Aprender: palabras del título que produjeron noticia exitosa
+        const palabrasExito = titulo.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .split(/\s+/).filter(w => w.length > 5).slice(0, 5);
+        for (const p of palabrasExito) {
+            await registrarAprendizaje('palabra_publicada', p, categoria, true);
+        }
+
         // Redes sociales eliminadas — tráfico viene de Google News
 
         return { success: true, slug: slFin, titulo, mensaje: 'Publicada en web + redes' };
@@ -1449,23 +1604,38 @@ setInterval(() => temasPublicadosHoy.clear(), 12 * 60 * 60 * 1000); // limpiar c
 const fotosUsadasReciente = new Set();
 setInterval(() => fotosUsadasReciente.clear(), 6 * 60 * 60 * 1000); // limpiar cada 6h
 
+// Palabras aprendidas en memoria — se actualiza cada 4 horas
+let PALABRAS_APRENDIDAS = [];
+async function refrescarPalabrasAprendidas() {
+    PALABRAS_APRENDIDAS = await obtenerPalabrasAprendidas();
+    if (PALABRAS_APRENDIDAS.length) {
+        console.log(`[Aprende] 🧠 ${PALABRAS_APRENDIDAS.length} palabras aprendidas activas`);
+    }
+}
+
 function puntuarRelevancia(titulo, contenido = '') {
     if (!titulo) return 0;
     const texto = (titulo + ' ' + contenido).toLowerCase();
     let score = 0;
 
-    // +3 por cada palabra trending encontrada
+    // +3 por cada palabra trending estática
     for (const palabra of PALABRAS_TRENDING) {
         if (texto.includes(palabra)) score += 3;
     }
 
-    // +5 si tiene cifras concretas (indica noticia con datos reales)
+    // +5 por cada palabra que el sistema APRENDIÓ que genera tráfico real
+    // Estas valen más porque vienen de datos reales, no de suposiciones
+    for (const palabra of PALABRAS_APRENDIDAS) {
+        if (texto.includes(palabra)) score += 5;
+    }
+
+    // +5 si tiene cifras concretas
     if (/\d+%|\$\d+|rd\$|millones|miles de|\d+ (personas|muertos|heridos|casos)/.test(texto)) score += 5;
 
     // +3 si menciona lugares de RD
     if (/santo domingo|santiago|la romana|san pedro|puerto plata|barahona|sde|los mina/.test(texto)) score += 3;
 
-    // -10 si ya cubrimos este tema hoy (anti-repetición)
+    // -10 si ya cubrimos este tema hoy
     const palabrasClave = titulo.toLowerCase().split(' ').filter(w => w.length > 5).slice(0, 3).join('-');
     if (temasPublicadosHoy.has(palabrasClave)) score -= 10;
 
@@ -2079,8 +2249,8 @@ cron.schedule('20 6-19 * * *', async () => {
 });
 cron.schedule('40 6-19 * * *', async () => {
     if (!CONFIG_IA.enabled || rssEnProceso) return;
-    const cat = CATS[Math.floor(Math.random() * CATS.length)];
-    console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat}`);
+    const cat = await obtenerCategoriaOptima(); // usa lo que el sistema aprendió
+    console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat} (aprendido)`);
     await generarNoticia(cat);
 });
 
@@ -2160,10 +2330,17 @@ cron.schedule('0 3 * * *', async () => {
 });
 
 // ─── REGENERAR FOTOS FEAS — cada 2 horas ─────────────────────────────────────
-// Detecta fotos del banco local (pexels genérico) y las reemplaza con fotos reales
 cron.schedule('0 */2 * * *', async () => {
     console.log('[Cron-Fotos] 🖼️ Revisando fotos que necesitan actualización...');
     regenerarWatermarksLostidos();
+});
+
+// ─── APRENDIZAJE — cada 4 horas ───────────────────────────────────────────────
+// Analiza vistas, aprende palabras y categorías que generan tráfico real
+cron.schedule('0 */4 * * *', async () => {
+    console.log('[Aprende] 📚 Analizando rendimiento para aprender...');
+    await aprenderDeVistas();
+    await refrescarPalabrasAprendidas();
 });
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
@@ -2500,7 +2677,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.47',
+            version:        '34.48',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2532,7 +2709,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.47               ║
+║        🏮  EL FAROL AL DIA  —  V34.48               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
@@ -2545,6 +2722,9 @@ async function iniciar() {
 ║  RSS            : 30 fuentes / ejecución secuencial   ║
 ╚═══════════════════════════════════════════════════════╝`);
     });
+
+    // Cargar palabras aprendidas de sesiones anteriores
+    setTimeout(refrescarPalabrasAprendidas, 3000);
 
     // Regenerar fotos feas inmediatamente al arrancar — 10s de gracia para que BD conecte
     setTimeout(async () => {
