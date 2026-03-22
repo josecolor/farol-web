@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.59
+ * 🏮 EL FAROL AL DÍA — V34.60
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -2770,22 +2770,40 @@ if (!MODO_ESPEJO) {
     });
 
     // NOCHE TRANQUILA (8pm–11pm) — cada 30 min
+    // NOCHE (8pm-12am) — cada 20 min
     cron.schedule('0 20-23 * * *', async () => {
         if (rssEnProceso) return;
-        console.log('[Noche] 🌙 :00 publicando...');
         procesarRSS();
     });
-    cron.schedule('30 20-23 * * *', async () => {
+    cron.schedule('20 20-23 * * *', async () => {
         if (rssEnProceso) return;
-        console.log('[Noche] 🌙 :30 publicando...');
+        procesarRSS();
+    });
+    cron.schedule('40 20-23 * * *', async () => {
+        if (rssEnProceso) return;
         procesarRSS();
     });
 
-    // MADRUGADA (12am–5am) — cada hora
+    // MADRUGADA (12am-6am) — cada 30 min
+    // El sitio sube pero hay noticias listas cuando RD despierte
     cron.schedule('0 0-5 * * *', async () => {
         if (rssEnProceso) return;
-        console.log('[Madrugada] 😴 Publicando mientras RD duerme...');
         procesarRSS();
+    });
+    cron.schedule('30 0-5 * * *', async () => {
+        if (rssEnProceso) return;
+        procesarRSS();
+    });
+
+    // GUARDIA NOCTURNA — si llevan 2h sin publicar, generar una noticia propia
+    cron.schedule('15 0-5 * * *', async () => {
+        if (!CONFIG_IA.enabled || rssEnProceso) return;
+        const minSin = Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000);
+        if (minSin > 90) {
+            const cat = await obtenerCategoriaOptima();
+            console.log(`[Guardia] 🌙 ${minSin}min sin publicar — generando noticia de ${cat}`);
+            await generarNoticia(cat);
+        }
     });
 
 } else {
@@ -2934,7 +2952,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.59', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.60', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3303,6 +3321,13 @@ app.get('/sitemap.xml', async (req, res) => {
     } catch (e) { res.status(500).send('Error'); }
 });
 
+app.get('/sw.js', (_, res) => {
+    res.setHeader('Content-Type',  'application/javascript');
+    res.setHeader('Cache-Control', 'public,max-age=0'); // siempre fresco
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.sendFile(path.join(__dirname, 'client', 'sw.js'));
+});
+
 app.get('/robots.txt', (_, res) => {
     res.header('Content-Type', 'text/plain');
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
@@ -3319,7 +3344,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.59',
+            version:        '34.60',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3525,7 +3550,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.59               ║
+║        🏮  EL FAROL AL DIA  —  V34.60               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
