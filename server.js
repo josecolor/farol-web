@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.60
+ * 🏮 EL FAROL AL DÍA — V34.61
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -1542,6 +1542,7 @@ async function inicializarBase() {
         client.release();
     }
     await cargarConfigIA();
+    await cargarHorarios();
 }
 
 // ─── GENERACIÓN ───────────────────────────────────────────────────────────────
@@ -2701,6 +2702,38 @@ async function autoDiagnostico() {
 // Railway sigue siendo el servidor principal que publica
 const MODO_ESPEJO = process.env.MODO_ESPEJO === 'true';
 
+// ─── CONFIGURACIÓN DE HORARIOS DINÁMICA ──────────────────────────────────────
+// Permite cambiar los horarios desde el panel sin tocar código
+// Se guarda en BD y persiste entre reinicios
+let HORARIO_CONFIG = {
+    manana_inicio:  6,   // hora de inicio mañana (0-23)
+    manana_fin:     20,  // hora de fin tarde
+    intervalo_pico: 10,  // minutos entre publicaciones en hora pico
+    intervalo_noche:20,  // minutos entre publicaciones en noche
+    intervalo_madrugada: 30, // minutos entre publicaciones en madrugada
+    publicar_madrugada: true, // publicar en madrugada
+    guardia_nocturna: true,   // generar noticia si pasan mucho sin publicar
+    guardia_minutos: 90,      // minutos sin publicar para activar guardia
+};
+
+async function cargarHorarioConfig() {
+    try {
+        const r = await pool.query("SELECT valor FROM memoria_ia WHERE tipo='horario_config' LIMIT 1");
+        if (r.rows.length) {
+            HORARIO_CONFIG = { ...HORARIO_CONFIG, ...JSON.parse(r.rows[0].valor) };
+            console.log('[Horario] Configuración cargada desde BD');
+        }
+    } catch (_) {}
+}
+
+async function guardarHorarioConfig() {
+    try {
+        const v = JSON.stringify(HORARIO_CONFIG);
+        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos) VALUES('horario_config',$1,'sistema',1) ON CONFLICT DO NOTHING", [v]);
+        await pool.query("UPDATE memoria_ia SET valor=$1,ultima_vez=NOW() WHERE tipo='horario_config'", [v]);
+    } catch (_) {}
+}
+
 if (MODO_ESPEJO) {
     console.log(`
 ╔══════════════════════════════════════════════════════╗
@@ -2733,6 +2766,39 @@ cron.schedule('0 * * * *', () => {
     }
 });
 
+// ─── CONFIGURACIÓN DE HORARIOS — editable desde el panel ────────────────────
+// El director puede cambiar los horarios sin tocar el código
+let HORARIOS_CONFIG = {
+    manana_inicio:    6,   // hora inicio mañana
+    manana_fin:       20,  // hora fin tarde
+    noche_inicio:     20,  // hora inicio noche
+    noche_fin:        24,  // hora fin noche
+    intervalo_manana: 10,  // minutos entre publicaciones (mañana/tarde)
+    intervalo_noche:  20,  // minutos entre publicaciones (noche)
+    intervalo_madrugada: 30, // minutos entre publicaciones (madrugada)
+    madrugada_activa: true,  // publicar en madrugada
+    guardia_nocturna: true,  // generar noticia si +90min sin publicar
+};
+
+// Cargar horarios guardados en BD
+async function cargarHorarios() {
+    try {
+        const r = await pool.query("SELECT valor FROM memoria_ia WHERE tipo='horarios_config' ORDER BY ultima_vez DESC LIMIT 1");
+        if (r.rows.length) {
+            HORARIOS_CONFIG = { ...HORARIOS_CONFIG, ...JSON.parse(r.rows[0].valor) };
+            console.log('[Horarios] Config cargada desde BD');
+        }
+    } catch (_) {}
+}
+
+async function guardarHorarios() {
+    try {
+        const v = JSON.stringify(HORARIOS_CONFIG);
+        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos) VALUES('horarios_config',$1,'sistema',1) ON CONFLICT DO NOTHING", [v]);
+        await pool.query("UPDATE memoria_ia SET valor=$1,ultima_vez=NOW() WHERE tipo='horarios_config'", [v]);
+    } catch (_) {}
+}
+
 // ─── HORARIOS INTELIGENTES ───────────────────────────────────────────────────
 //
 // 🌅 MAÑANA FUERTE   6:00–11:59  → cada 10 min (6 noticias/hora)
@@ -2746,62 +2812,40 @@ cron.schedule('0 * * * *', () => {
 // ── PUBLICACIÓN — solo en servidor principal (no en espejo) ──────────────────
 if (!MODO_ESPEJO) {
 
-    // MAÑANA & TARDE FUERTES (6am–8pm) — cada 10 min
-    cron.schedule('0 6-19 * * *', async () => {
-        if (rssEnProceso) return;
-        console.log('[Mañana/Tarde] ⚡ :00 Key-1');
-        procesarRSS();
-    });
-    cron.schedule('10 6-19 * * *', async () => {
-        if (rssEnProceso) return;
-        console.log('[Mañana/Tarde] ⚡ :10 Key-2');
-        procesarRSS();
-    });
-    cron.schedule('20 6-19 * * *', async () => {
-        if (rssEnProceso) return;
-        console.log('[Mañana/Tarde] ⚡ :20 Key-3');
-        procesarRSS();
-    });
-    cron.schedule('40 6-19 * * *', async () => {
+    // ── CICLO DINÁMICO — respeta HORARIO_CONFIG configurado desde el panel ──────
+    cron.schedule('* * * * *', async () => {
         if (!CONFIG_IA.enabled || rssEnProceso) return;
-        const cat = await obtenerCategoriaOptima();
-        console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat}`);
-        await generarNoticia(cat);
-    });
+        const ahora  = new Date();
+        const hora   = ahora.getHours();
+        const minuto = ahora.getMinutes();
+        const cfg    = HORARIO_CONFIG;
+        const esPico      = hora >= cfg.manana_inicio && hora < cfg.manana_fin;
+        const esMadrugada = hora < cfg.manana_inicio;
+        const intervalo   = esPico ? cfg.intervalo_pico : esMadrugada ? cfg.intervalo_madrugada : cfg.intervalo_noche;
 
-    // NOCHE TRANQUILA (8pm–11pm) — cada 30 min
-    // NOCHE (8pm-12am) — cada 20 min
-    cron.schedule('0 20-23 * * *', async () => {
-        if (rssEnProceso) return;
-        procesarRSS();
-    });
-    cron.schedule('20 20-23 * * *', async () => {
-        if (rssEnProceso) return;
-        procesarRSS();
-    });
-    cron.schedule('40 20-23 * * *', async () => {
-        if (rssEnProceso) return;
-        procesarRSS();
-    });
+        if (esMadrugada && !cfg.publicar_madrugada) return;
+        if (minuto % intervalo !== 0) return;
 
-    // MADRUGADA (12am-6am) — cada 30 min
-    // El sitio sube pero hay noticias listas cuando RD despierte
-    cron.schedule('0 0-5 * * *', async () => {
-        if (rssEnProceso) return;
-        procesarRSS();
-    });
-    cron.schedule('30 0-5 * * *', async () => {
-        if (rssEnProceso) return;
-        procesarRSS();
-    });
-
-    // GUARDIA NOCTURNA — si llevan 2h sin publicar, generar una noticia propia
-    cron.schedule('15 0-5 * * *', async () => {
-        if (!CONFIG_IA.enabled || rssEnProceso) return;
-        const minSin = Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000);
-        if (minSin > 90) {
+        // Slot D — noticia propia en minuto 40 durante hora pico
+        if (esPico && minuto === 40) {
             const cat = await obtenerCategoriaOptima();
-            console.log(`[Guardia] 🌙 ${minSin}min sin publicar — generando noticia de ${cat}`);
+            console.log(`[Slot-D] 🏮 IA propia — ${cat} (${hora}:40)`);
+            await generarNoticia(cat);
+            return;
+        }
+
+        const tipo = esPico ? 'pico' : esMadrugada ? 'madrugada' : 'noche';
+        console.log(`[Ciclo] ⚡ ${hora}:${String(minuto).padStart(2,'0')} ${tipo} (c/${intervalo}min)`);
+        procesarRSS();
+    });
+
+    // GUARDIA — actúa si llevan demasiado sin publicar
+    cron.schedule('*/5 * * * *', async () => {
+        if (!CONFIG_IA.enabled || rssEnProceso || !HORARIO_CONFIG.guardia_nocturna) return;
+        const minSin = Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000);
+        if (minSin >= HORARIO_CONFIG.guardia_minutos) {
+            const cat = await obtenerCategoriaOptima();
+            console.log(`[Guardia] 🌙 ${minSin}min sin publicar → generando ${cat}`);
             await generarNoticia(cat);
         }
     });
@@ -2952,7 +2996,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.60', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.61', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3344,7 +3388,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.60',
+            version:        '34.61',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3355,6 +3399,8 @@ app.get('/status', async (req, res) => {
             adsense:        'pub-5280872495839888',
             ia_activa:      CONFIG_IA.enabled,
             modo_espejo:    MODO_ESPEJO,
+            horarios:       HORARIOS_CONFIG,
+            horario:        HORARIO_CONFIG,
             rss_en_proceso: rssEnProceso,
             wm_en_proceso:  wmRegenEnProceso,
             salud: {
@@ -3501,11 +3547,59 @@ app.get('/api/cerebro', authMiddleware, async (req, res) => {
     }
 });
 
+// ─── API HORARIOS ────────────────────────────────────────────────────────────
+app.get('/api/horarios', authMiddleware, async (req, res) => {
+    res.json({ success: true, horarios: HORARIOS_CONFIG });
+});
+
+app.post('/api/horarios', authMiddleware, async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN' });
+    try {
+        const campos = [
+            'manana_inicio','manana_fin','intervalo_manana',
+            'intervalo_noche','intervalo_madrugada',
+            'madrugada_activa','guardia_nocturna'
+        ];
+        for (const campo of campos) {
+            if (req.body[campo] !== undefined) {
+                HORARIOS_CONFIG[campo] = req.body[campo];
+            }
+        }
+        await guardarHorarios();
+        console.log('[Horarios] Actualizados:', JSON.stringify(HORARIOS_CONFIG));
+        res.json({ success: true, horarios: HORARIOS_CONFIG });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── API DATOS EXTERNOS — trending, clima, cambio ────────────────────────────
 app.get('/api/mundo', authMiddleware, async (req, res) => {
     try {
         const datos = await getDatosExternos();
         res.json({ success: true, ...datos });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── API HORARIOS — leer y configurar desde el panel ────────────────────────
+app.get('/api/horarios', authMiddleware, (req, res) => {
+    res.json({ success: true, config: HORARIO_CONFIG });
+});
+
+app.post('/api/horarios', authMiddleware, async (req, res) => {
+    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN' });
+    try {
+        const campos = ['manana_inicio','manana_fin','intervalo_pico',
+                        'intervalo_noche','intervalo_madrugada',
+                        'publicar_madrugada','guardia_nocturna','guardia_minutos'];
+        for (const campo of campos) {
+            if (req.body[campo] !== undefined) {
+                HORARIO_CONFIG[campo] = typeof HORARIO_CONFIG[campo] === 'boolean'
+                    ? Boolean(req.body[campo])
+                    : Number(req.body[campo]);
+            }
+        }
+        await guardarHorarioConfig();
+        console.log('[Horario] Configuración actualizada:', HORARIO_CONFIG);
+        res.json({ success: true, config: HORARIO_CONFIG });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -3550,7 +3644,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.60               ║
+║        🏮  EL FAROL AL DIA  —  V34.61               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
@@ -3564,6 +3658,8 @@ async function iniciar() {
 ╚═══════════════════════════════════════════════════════╝`);
     });
 
+    // Cargar configuración de horarios guardada
+    await cargarHorarioConfig();
     // Cargar palabras aprendidas de sesiones anteriores
     setTimeout(refrescarPalabrasAprendidas, 3000);
 
