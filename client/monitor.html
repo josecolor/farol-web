@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏮 Monitor — El Farol al Día</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #EDE8DF;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #1e1e2e;
+  }
+
+  header h1 {
+    font-size: 18px;
+    color: #FF5500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #ultimo-update {
+    font-size: 11px;
+    color: #666;
+  }
+
+  /* SEMÁFORO PRINCIPAL */
+  #semaforo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  #semaforo-luz {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulso 2s infinite;
+  }
+
+  #semaforo-luz.verde  { background: #22c55e; box-shadow: 0 0 12px #22c55e88; }
+  #semaforo-luz.rojo   { background: #ef4444; box-shadow: 0 0 12px #ef444488; animation: none; }
+  #semaforo-luz.amarillo { background: #f59e0b; box-shadow: 0 0 12px #f59e0b88; }
+
+  @keyframes pulso {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  #semaforo-texto { flex: 1; }
+  #semaforo-titulo { font-size: 15px; font-weight: 600; }
+  #semaforo-sub    { font-size: 12px; color: #888; margin-top: 2px; }
+  #semaforo-version { font-size: 12px; color: #FF5500; }
+
+  /* GRID DE MÉTRICAS */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .metrica {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .metrica-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .metrica-valor {
+    font-size: 28px;
+    font-weight: 700;
+    color: #FF5500;
+    line-height: 1;
+  }
+
+  .metrica-sub {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  /* SALUD */
+  .seccion {
+    background: #111118;
+    border: 1px solid #1e1e2e;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .seccion-titulo {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a1a24;
+    font-size: 13px;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+
+  .check-icon { font-size: 16px; flex-shrink: 0; }
+  .check-label { flex: 1; color: #CCC; }
+  .check-valor { font-size: 12px; color: #888; }
+  .check-valor.alerta { color: #f59e0b; }
+  .check-valor.error  { color: #ef4444; }
+  .check-valor.ok     { color: #22c55e; }
+
+  /* ÚLTIMAS NOTICIAS */
+  .noticia-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #1a1a24;
+  }
+
+  .noticia-item:last-child { border-bottom: none; }
+
+  .noticia-titulo {
+    font-size: 13px;
+    color: #EDE8DF;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .noticia-meta {
+    font-size: 11px;
+    color: #555;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tag {
+    background: #1e1e2e;
+    color: #FF5500;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+
+  /* BOTONES DE ACCIÓN */
+  .acciones {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .btn {
+    background: #1a1a2e;
+    border: 1px solid #2a2a3e;
+    color: #EDE8DF;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .btn:hover { background: #222238; border-color: #FF5500; }
+  .btn:active { transform: scale(0.97); }
+  .btn-icon { font-size: 20px; }
+  .btn.danger { border-color: #3a1a1a; }
+  .btn.danger:hover { border-color: #ef4444; background: #1a0a0a; }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e2e;
+    border: 1px solid #FF5500;
+    color: #EDE8DF;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    z-index: 999;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  /* LOADER */
+  .loader {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #333;
+    border-top-color: #FF5500;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .cargando { display: flex; justify-content: center; padding: 20px; }
+
+  /* KEYS GEMINI */
+  .keys-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .key-badge {
+    background: #1a2a1a;
+    border: 1px solid #2a4a2a;
+    color: #22c55e;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .key-badge.inactiva {
+    background: #1a1a2a;
+    border-color: #2a2a3a;
+    color: #555;
+  }
+
+  /* REFRESH */
+  #refresh-btn {
+    background: none;
+    border: 1px solid #2a2a3a;
+    color: #888;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  #refresh-btn:hover { border-color: #FF5500; color: #FF5500; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏮 Monitor</h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="ultimo-update">Cargando...</span>
+    <button id="refresh-btn" onclick="cargarTodo()">↻ Actualizar</button>
+  </div>
+</header>
+
+<!-- SEMÁFORO -->
+<div id="semaforo">
+  <div id="semaforo-luz" class="amarillo"></div>
+  <div id="semaforo-texto">
+    <div id="semaforo-titulo">Verificando...</div>
+    <div id="semaforo-sub">Conectando con el servidor</div>
+  </div>
+  <div id="semaforo-version">—</div>
+</div>
+
+<!-- MÉTRICAS -->
+<div class="grid">
+  <div class="metrica">
+    <div class="metrica-label">Noticias</div>
+    <div class="metrica-valor" id="m-noticias">—</div>
+    <div class="metrica-sub">publicadas hoy</div>
+  </div>
+  <div class="metrica">
+    <div class="metrica-label">Vistas</div>
+    <div class="metrica-valor" id="m-vistas">—</div>
+    <div class="metrica-sub">total acumulado</div>
+  </div>
+  <div class="metrica">
+    <div class="metrica-label">Sin publicar</div>
+    <div class="metrica-valor" id="m-minutos">—</div>
+    <div class="metrica-sub">minutos</div>
+  </div>
+  <div class="metrica">
+    <div class="metrica-label">Gemini Keys</div>
+    <div class="metrica-valor" id="m-keys">—</div>
+    <div class="metrica-sub">activas rotando</div>
+  </div>
+</div>
+
+<!-- SALUD DEL SISTEMA -->
+<div class="seccion">
+  <div class="seccion-titulo">🩺 Salud del sistema</div>
+  <div id="checks-salud">
+    <div class="cargando"><div class="loader"></div></div>
+  </div>
+</div>
+
+<!-- ACCIONES -->
+<div class="seccion">
+  <div class="seccion-titulo">⚙️ Acciones</div>
+  <div class="acciones">
+    <button class="btn" onclick="accion('rss')">
+      <span class="btn-icon">📡</span>
+      Procesar RSS
+    </button>
+    <button class="btn" onclick="accion('fotos')">
+      <span class="btn-icon">🖼️</span>
+      Regenerar Fotos
+    </button>
+    <button class="btn" onclick="accion('generar')">
+      <span class="btn-icon">✍️</span>
+      Generar Noticia
+    </button>
+    <button class="btn danger" onclick="confirmarReset()">
+      <span class="btn-icon">🗑️</span>
+      Resetear BD
+    </button>
+  </div>
+</div>
+
+<!-- ÚLTIMAS NOTICIAS -->
+<div class="seccion">
+  <div class="seccion-titulo">📰 Últimas noticias</div>
+  <div id="lista-noticias">
+    <div class="cargando"><div class="loader"></div></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const PIN = '311';
+const AUTH = 'Basic ' + btoa('director:311');
+
+function toast(msg, ms = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', ms);
+}
+
+async function api(endpoint, method = 'GET', body = null) {
+  try {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': AUTH }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(endpoint, opts);
+    return await r.json();
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+function tiempoAtras(fecha) {
+  const min = Math.round((Date.now() - new Date(fecha)) / 60000);
+  if (min < 1)  return 'ahora';
+  if (min < 60) return `hace ${min}min`;
+  const h = Math.round(min / 60);
+  return `hace ${h}h`;
+}
+
+async function cargarStatus() {
+  const d = await api('/status');
+  if (d.error || !d.version) {
+    document.getElementById('semaforo-luz').className = 'rojo';
+    document.getElementById('semaforo-titulo').textContent = '🔴 Servidor no responde';
+    document.getElementById('semaforo-sub').textContent = d.error || 'Sin respuesta';
+    return null;
+  }
+
+  const salud = d.salud || {};
+  const minSin = salud.min_sin_publicar || 0;
+  const hayProblema = salud.errores_gemini >= 3 || minSin > 90 || salud.ciclos_rss_vacios >= 5;
+
+  const luz = document.getElementById('semaforo-luz');
+  luz.className = hayProblema ? 'amarillo' : 'verde';
+
+  document.getElementById('semaforo-titulo').textContent = hayProblema
+    ? '⚠️ Sistema con alertas'
+    : '✅ Sistema operando bien';
+  document.getElementById('semaforo-sub').textContent = d.rss_en_proceso
+    ? 'RSS procesándose ahora...'
+    : `${d.noticias} noticias · ${d.rss_procesados} RSS procesados`;
+  document.getElementById('semaforo-version').textContent = `V${d.version}`;
+
+  // Métricas
+  document.getElementById('m-noticias').textContent = d.noticias;
+  document.getElementById('m-minutos').textContent  = minSin;
+  document.getElementById('m-keys').textContent     = d.gemini_keys || '—';
+
+  // Checks de salud
+  const checks = [
+    {
+      icon: salud.errores_gemini >= 3 ? '🔴' : '🟢',
+      label: 'Gemini IA',
+      valor: salud.errores_gemini >= 3 ? `${salud.errores_gemini} errores` : 'OK',
+      clase: salud.errores_gemini >= 3 ? 'error' : 'ok'
+    },
+    {
+      icon: minSin > 90 ? '🟡' : '🟢',
+      label: 'Publicación',
+      valor: minSin > 0 ? `${minSin} min sin publicar` : 'Publicando OK',
+      clase: minSin > 90 ? 'alerta' : 'ok'
+    },
+    {
+      icon: salud.ciclos_rss_vacios >= 5 ? '🟡' : '🟢',
+      label: 'RSS',
+      valor: salud.ciclos_rss_vacios >= 5 ? `${salud.ciclos_rss_vacios} ciclos vacíos` : 'OK',
+      clase: salud.ciclos_rss_vacios >= 5 ? 'alerta' : 'ok'
+    },
+    {
+      icon: salud.errores_imagen >= 5 ? '🟡' : '🟢',
+      label: 'Imágenes',
+      valor: salud.errores_imagen >= 5 ? `${salud.errores_imagen} fallos` : 'OK',
+      clase: salud.errores_imagen >= 5 ? 'alerta' : 'ok'
+    },
+    {
+      icon: d.marca_de_agua?.includes('Activa') ? '🟢' : '🔴',
+      label: 'Watermark',
+      valor: d.marca_de_agua?.includes('Activa') ? 'Activa' : 'No encontrada',
+      clase: d.marca_de_agua?.includes('Activa') ? 'ok' : 'error'
+    },
+    {
+      icon: d.google_cse === 'Activo' ? '🟢' : '🟡',
+      label: 'Google CSE',
+      valor: d.google_cse || 'Sin configurar',
+      clase: d.google_cse === 'Activo' ? 'ok' : 'alerta'
+    },
+    {
+      icon: d.ia_activa ? '🟢' : '🔴',
+      label: 'IA',
+      valor: d.ia_activa ? 'Activa' : 'Desactivada',
+      clase: d.ia_activa ? 'ok' : 'error'
+    },
+    {
+      icon: '🟢',
+      label: 'AdSense',
+      valor: d.adsense || 'pub-5280872495839888',
+      clase: 'ok'
+    },
+  ];
+
+  document.getElementById('checks-salud').innerHTML = checks.map(ch => `
+    <div class="check-item">
+      <span class="check-icon">${ch.icon}</span>
+      <span class="check-label">${ch.label}</span>
+      <span class="check-valor ${ch.clase}">${ch.valor}</span>
+    </div>
+  `).join('');
+
+  return d;
+}
+
+async function cargarEstadisticas() {
+  const d = await api('/api/estadisticas');
+  if (d.totalVistas !== undefined) {
+    document.getElementById('m-vistas').textContent =
+      d.totalVistas > 999 ? (d.totalVistas/1000).toFixed(1)+'k' : d.totalVistas;
+  }
+}
+
+async function cargarNoticias() {
+  const d = await api('/api/noticias');
+  if (!d.noticias?.length) {
+    document.getElementById('lista-noticias').innerHTML =
+      '<p style="color:#555;font-size:13px;padding:8px 0">Sin noticias publicadas</p>';
+    return;
+  }
+  document.getElementById('lista-noticias').innerHTML = d.noticias.slice(0, 8).map(n => `
+    <div class="noticia-item">
+      <div class="noticia-titulo">${n.titulo}</div>
+      <div class="noticia-meta">
+        <span class="tag">${n.seccion}</span>
+        <span>${tiempoAtras(n.fecha)}</span>
+        <span>👁 ${n.vistas}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function accion(tipo) {
+  const endpoints = {
+    rss:     ['/api/procesar-rss',    'POST', { pin: PIN }],
+    fotos:   ['/api/regenerar-fotos', 'POST', { pin: PIN }],
+    generar: ['/api/generar-noticia', 'POST', { pin: PIN, categoria: 'Nacionales' }],
+  };
+  const [url, method, body] = endpoints[tipo];
+  toast('⏳ Ejecutando...');
+  const r = await api(url, method, body);
+  toast(r.success || r.mensaje ? '✅ ' + (r.mensaje || 'Listo') : '❌ ' + (r.error || 'Error'));
+  setTimeout(cargarTodo, 3000);
+}
+
+function confirmarReset() {
+  if (confirm('⚠️ ¿Borrar TODA la base de datos?\n\nEsto elimina todas las noticias, RSS y comentarios.')) {
+    if (confirm('¿Estás seguro? Esta acción no se puede deshacer.')) {
+      api('/api/resetear-todo', 'POST', { pin: PIN }).then(r => {
+        toast(r.success ? '✅ BD reseteada' : '❌ ' + r.error);
+        setTimeout(cargarTodo, 2000);
+      });
+    }
+  }
+}
+
+async function cargarTodo() {
+  document.getElementById('ultimo-update').textContent =
+    new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  await cargarStatus();
+  await cargarEstadisticas();
+  await cargarNoticias();
+}
+
+// Cargar al inicio
+cargarTodo();
+
+// Auto-refresh cada 60 segundos
+setInterval(cargarTodo, 60000);
+</script>
+</body>
+</html>
