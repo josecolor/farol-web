@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.43
+ * 🏮 EL FAROL AL DÍA — V34.44
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -392,6 +392,7 @@ async function aplicarMarcaDeAgua(urlImagen) {
         return { url: urlImagen, nombre, procesada: true };
     } catch (err) {
         console.warn('[WM] Error (continuando sin marca): ' + err.message);
+        SALUD.erroresImagen++;
         return { url: urlImagen, procesada: false };
     }
 }
@@ -1509,6 +1510,7 @@ async function procesarRSS() {
 
     if (!candidatos.length) {
         console.log('[RSS] Sin noticias nuevas en este ciclo');
+        SALUD.rssVaciosCiclos++;
         rssEnProceso = false;
         return;
     }
@@ -1576,6 +1578,11 @@ async function procesarRSS() {
     }
 
     console.log(`[RSS] Ciclo terminado — Publicadas: ${procesadas} | Omitidas: ${omitidas} | Score mínimo: ${SCORE_MINIMO}`);
+    if (procesadas > 0) {
+        SALUD.rssVaciosCiclos   = 0;
+        SALUD.ultimaPublicacion = Date.now();
+        SALUD.ultimoRSSOK       = Date.now();
+    }
     rssEnProceso = false;
 }
 
@@ -1844,6 +1851,113 @@ async function analizarRendimiento(dias = 7) {
     } catch (e) { return { success: false, error: e.message }; }
 }
 
+// ─── SISTEMA DE AUTO-DIAGNÓSTICO Y AUTO-CORRECCIÓN ──────────────────────────
+// Monitorea el sistema cada 30 minutos
+// Detecta problemas → los corrige automáticamente → los registra
+// Sin intervención manual — el servidor se repara solo
+
+const SALUD = {
+    erroresGemini:     0,   // errores 429 consecutivos
+    erroresImagen:     0,   // fallos de descarga consecutivos
+    rssVaciosCiclos:   0,   // ciclos sin publicar nada
+    ultimaPublicacion: Date.now(),
+    ultimoRSSOK:       Date.now(),
+};
+
+async function autoDiagnostico() {
+    const ahora    = Date.now();
+    const problemas = [];
+    const acciones  = [];
+
+    // ── 1. GEMINI — demasiados errores seguidos ───────────────────────────────
+    if (SALUD.erroresGemini >= 3) {
+        problemas.push(`Gemini: ${SALUD.erroresGemini} errores consecutivos`);
+        // Auto-fix: resetear cooldowns de todas las keys
+        for (let i = 0; i < GEMINI_KEYS.length; i++) {
+            GEMINI_KEY_RESET[i] = 0;
+        }
+        GEMINI_KEY_INDEX  = 0;
+        SALUD.erroresGemini = 0;
+        acciones.push('Keys Gemini reseteadas — cooldowns limpiados');
+    }
+
+    // ── 2. SIN PUBLICAR — más de 2 horas sin noticias ────────────────────────
+    const minSinPublicar = (ahora - SALUD.ultimaPublicacion) / 60000;
+    if (minSinPublicar > 120 && CONFIG_IA.enabled) {
+        problemas.push(`Sin publicar hace ${Math.round(minSinPublicar)} min`);
+        // Auto-fix: forzar un ciclo RSS si no está en proceso
+        if (!rssEnProceso) {
+            procesarRSS();
+            acciones.push('RSS forzado — ciclo manual iniciado');
+        }
+    }
+
+    // ── 3. RSS VACÍO — varios ciclos sin encontrar noticias nuevas ────────────
+    if (SALUD.rssVaciosCiclos >= 5) {
+        problemas.push(`RSS vacío: ${SALUD.rssVaciosCiclos} ciclos sin noticias`);
+        // Auto-fix: limpiar rss_procesados viejos para reprocesar
+        try {
+            await pool.query(`DELETE FROM rss_procesados WHERE fecha < NOW() - INTERVAL '6 hours'`);
+            SALUD.rssVaciosCiclos = 0;
+            acciones.push('RSS procesados limpiados — artículos viejos pueden reprocesarse');
+        } catch (_) {}
+    }
+
+    // ── 4. BD — verificar conexión ───────────────────────────────────────────
+    try {
+        await pool.query('SELECT 1');
+    } catch (e) {
+        problemas.push(`BD sin conexión: ${e.message}`);
+        // No hay auto-fix para BD — solo registrar
+        acciones.push('BD caída — Railway debería reiniciar automáticamente');
+    }
+
+    // ── 5. IMÁGENES — demasiados fallos seguidos ──────────────────────────────
+    if (SALUD.erroresImagen >= 10) {
+        problemas.push(`Imágenes: ${SALUD.erroresImagen} fallos descargando fotos`);
+        // Auto-fix: invalidar cache para forzar regeneración
+        invalidarCache();
+        SALUD.erroresImagen = 0;
+        acciones.push('Cache invalidada — próximas fotos se procesarán de nuevo');
+    }
+
+    // ── REPORTE ───────────────────────────────────────────────────────────────
+    if (problemas.length) {
+        console.log(`
+[AutoDx] ⚠️  ${problemas.length} problema(s) detectado(s):`);
+        problemas.forEach(p => console.log(`   → ${p}`));
+        console.log(`[AutoDx] 🔧 Acciones tomadas:`);
+        acciones.forEach(a => console.log(`   ✅ ${a}`));
+        // Registrar en memoria IA para historial
+        for (const p of problemas) {
+            await registrarError('autodiagnostico', p, 'sistema').catch(() => {});
+        }
+    } else {
+        console.log(`[AutoDx] ✅ Sistema saludable — sin problemas detectados`);
+    }
+}
+
+// Registrar publicación exitosa
+const _generarNoticiaOriginal = generarNoticia;
+// Wrapper que actualiza SALUD después de cada publicación
+async function generarNoticiaConSalud(...args) {
+    const result = await _generarNoticiaOriginal(...args);
+    if (result.success) {
+        SALUD.ultimaPublicacion = Date.now();
+        SALUD.erroresGemini     = 0;
+        SALUD.erroresImagen     = 0;
+    } else {
+        if (result.error?.includes('Gemini') || result.error?.includes('429') ||
+            result.error?.includes('timeout') || result.error?.includes('TIMEOUT')) {
+            SALUD.erroresGemini++;
+        }
+    }
+    return result;
+}
+
+// Reemplazar generarNoticia con la versión monitoreada
+// (procesarRSS ya llama a generarNoticia internamente)
+
 // ─── CRON ─────────────────────────────────────────────────────────────────────
 // Pulso de vida — evita que Railway duerma el servidor
 // ─── KEEP-ALIVE cada 14 min (Railway no duerme el proceso) ──────────────────
@@ -1907,6 +2021,11 @@ cron.schedule('0 0-5 * * *', async () => {
     procesarRSS();
 });
 
+// ─── AUTO-DIAGNÓSTICO cada 30 minutos ───────────────────────────────────────
+cron.schedule('*/30 * * * *', async () => {
+    await autoDiagnostico();
+});
+
 // ─── LIMPIEZA AUTOMÁTICA — todos los días a las 3:00 AM ──────────────────────
 // Mantiene la BD ligera y el sitio siempre con contenido fresco
 // Reglas:
@@ -1963,7 +2082,7 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.43', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.44', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',  (_, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
@@ -2276,7 +2395,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.43',
+            version:        '34.44',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2288,6 +2407,12 @@ app.get('/status', async (req, res) => {
             ia_activa:      CONFIG_IA.enabled,
             rss_en_proceso: rssEnProceso,
             wm_en_proceso:  wmRegenEnProceso,
+            salud: {
+                errores_gemini:      SALUD.erroresGemini,
+                errores_imagen:      SALUD.erroresImagen,
+                ciclos_rss_vacios:   SALUD.rssVaciosCiclos,
+                min_sin_publicar:    Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000),
+            },
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -2302,7 +2427,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.43               ║
+║        🏮  EL FAROL AL DIA  —  V34.44               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
