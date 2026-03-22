@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.56
+ * 🏮 EL FAROL AL DÍA — V34.57
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -321,6 +321,144 @@ async function buscarContextoWikipedia(titulo, categoria) {
         return `\nCONTEXTO REFERENCIA (no copiar):\n${txt}\n`;
     } catch (_) { return ''; }
 }
+
+// ─── APIS GRATUITAS — el sistema aprende del mundo ──────────────────────────
+// Todas sin API key, sin límites problemáticos, 100% gratuitas
+// El sistema las consulta para enriquecer noticias y aprender tendencias
+
+// ── 1. GOOGLE TRENDS RD — qué busca la gente ahora mismo ─────────────────────
+// pytrends no disponible en Node — usamos el RSS público de Google Trends
+async function obtenerTrendingRD() {
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 8000);
+        // Google Trends RSS para República Dominicana
+        const r = await fetch(
+            'https://trends.google.com/trends/trendingsearches/daily/rss?geo=DO',
+            { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } }
+        ).finally(() => clearTimeout(tm));
+        if (!r.ok) return [];
+        const xml = await r.text();
+        // Extraer títulos de tendencias
+        const matches = [...xml.matchAll(/<title><!\[CDATA\[([^\]]+)\]\]><\/title>/g)];
+        const trending = matches.slice(1, 11).map(m => m[1].trim()); // top 10
+        console.log(`[Trends-RD] ${trending.length} tendencias: ${trending.slice(0,3).join(', ')}`);
+        return trending;
+    } catch (_) { return []; }
+}
+
+// ── 2. TIPO DE CAMBIO — dólar/peso dominicano en tiempo real ─────────────────
+// ExchangeRate-API — gratis sin key
+async function obtenerTipoCambio() {
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 5000);
+        const r    = await fetch(
+            'https://api.exchangerate-api.com/v4/latest/USD',
+            { signal: ctrl.signal }
+        ).finally(() => clearTimeout(tm));
+        if (!r.ok) return null;
+        const d = await r.json();
+        const dop = d.rates?.DOP;
+        if (dop) console.log(`[Cambio] USD/DOP: ${dop}`);
+        return dop ? { usd_dop: dop, eur_dop: d.rates?.EUR ? (dop / d.rates.EUR) : null } : null;
+    } catch (_) { return null; }
+}
+
+// ── 3. CLIMA SANTO DOMINGO — Open-Meteo gratis ────────────────────────────────
+async function obtenerClimaSD() {
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 5000);
+        // Santo Domingo: lat=18.4861, lon=-69.9312
+        const r = await fetch(
+            'https://api.open-meteo.com/v1/forecast?latitude=18.4861&longitude=-69.9312&current=temperature_2m,precipitation,wind_speed_10m,weather_code&timezone=America/Santo_Domingo',
+            { signal: ctrl.signal }
+        ).finally(() => clearTimeout(tm));
+        if (!r.ok) return null;
+        const d = await r.json();
+        const cur = d.current;
+        const clima = {
+            temperatura: cur.temperature_2m,
+            lluvia:      cur.precipitation > 0,
+            viento:      cur.wind_speed_10m,
+            codigo:      cur.weather_code,
+            descripcion: wmoToText(cur.weather_code),
+        };
+        console.log(`[Clima-SD] ${clima.temperatura}°C ${clima.descripcion}`);
+        return clima;
+    } catch (_) { return null; }
+}
+
+// Códigos WMO a texto en español
+function wmoToText(code) {
+    const m = {0:'Despejado',1:'Mayormente despejado',2:'Parcialmente nublado',3:'Nublado',
+               45:'Neblina',48:'Neblina con hielo',51:'Llovizna leve',53:'Llovizna',
+               61:'Lluvia leve',63:'Lluvia',65:'Lluvia intensa',80:'Chubascos',
+               81:'Chubascos moderados',82:'Chubascos fuertes',95:'Tormenta',
+               96:'Tormenta con granizo',99:'Tormenta severa'};
+    return m[code] || 'Variable';
+}
+
+// ── 4. GOOGLE NEWS RSS — noticias trending mundiales ─────────────────────────
+async function obtenerGoogleNewsRD() {
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 8000);
+        // Google News en español para RD
+        const r = await fetch(
+            'https://news.google.com/rss/search?q=republica+dominicana&hl=es-419&gl=DO&ceid=DO:es-419',
+            { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } }
+        ).finally(() => clearTimeout(tm));
+        if (!r.ok) return [];
+        const xml  = await r.text();
+        const titulos = [...xml.matchAll(/<title>([^<]+)<\/title>/g)]
+            .slice(1, 8)
+            .map(m => m[1].replace(/&amp;/g,'&').replace(/&quot;/g,'"').trim());
+        console.log(`[GNews-RD] ${titulos.length} noticias trending`);
+        return titulos;
+    } catch (_) { return []; }
+}
+
+// ── 5. CACHE DE DATOS EXTERNOS ────────────────────────────────────────────────
+const CACHE_EXTERNO = {
+    trending: { data: [], fecha: 0 },
+    cambio:   { data: null, fecha: 0 },
+    clima:    { data: null, fecha: 0 },
+    gnews:    { data: [], fecha: 0 },
+};
+const TTL_EXTERNO = {
+    trending: 30 * 60 * 1000,  // 30 min — trends cambian cada media hora
+    cambio:   60 * 60 * 1000,  // 1 hora — tipo de cambio
+    clima:    15 * 60 * 1000,  // 15 min — clima
+    gnews:    20 * 60 * 1000,  // 20 min — noticias
+};
+
+async function getDatosExternos() {
+    const ahora = Date.now();
+    const promesas = [];
+
+    if (ahora - CACHE_EXTERNO.trending.fecha > TTL_EXTERNO.trending)
+        promesas.push(obtenerTrendingRD().then(d => { CACHE_EXTERNO.trending = { data: d, fecha: ahora }; }));
+    if (ahora - CACHE_EXTERNO.cambio.fecha > TTL_EXTERNO.cambio)
+        promesas.push(obtenerTipoCambio().then(d => { CACHE_EXTERNO.cambio = { data: d, fecha: ahora }; }));
+    if (ahora - CACHE_EXTERNO.clima.fecha > TTL_EXTERNO.clima)
+        promesas.push(obtenerClimaSD().then(d => { CACHE_EXTERNO.clima = { data: d, fecha: ahora }; }));
+    if (ahora - CACHE_EXTERNO.gnews.fecha > TTL_EXTERNO.gnews)
+        promesas.push(obtenerGoogleNewsRD().then(d => { CACHE_EXTERNO.gnews = { data: d, fecha: ahora }; }));
+
+    if (promesas.length) await Promise.allSettled(promesas);
+
+    return {
+        trending: CACHE_EXTERNO.trending.data,
+        cambio:   CACHE_EXTERNO.cambio.data,
+        clima:    CACHE_EXTERNO.clima.data,
+        gnews:    CACHE_EXTERNO.gnews.data,
+    };
+}
+
+// ── API PÚBLICA DE DATOS EXTERNOS ─────────────────────────────────────────────
+// El bot y el panel los consultan directamente
 
 // ─── WATERMARK (aplicación) ───────────────────────────────────────────────────
 async function aplicarMarcaDeAgua(urlImagen) {
@@ -1470,11 +1608,29 @@ async function generarNoticia(categoria, comunicadoExterno = null, imagenRSSOver
             : categoria;
         const contextoWiki = await buscarContextoWikipedia(temaWiki, categoria);
 
+        // Inyectar datos del mundo en el prompt
+        if (contextoMundo) {
+            console.log(`   [Mundo] Datos externos: tipo cambio + clima + trending`);
+        }
+
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta noticia profesional basada en este comunicado. No copies textualmente.`
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para Republica Dominicana.`;
 
         const termCPC = ADSENSE_CPC[categoria] || 'prestamos, inversion inmobiliaria, seguros, banca digital';
+
+        // Enriquecer contexto con datos reales del mundo
+        const datosExternos = await getDatosExternos();
+        let contextoMundo = '';
+        if (datosExternos.cambio?.usd_dop) {
+            contextoMundo += `\nTIPO DE CAMBIO ACTUAL: 1 USD = RD$${datosExternos.cambio.usd_dop.toFixed(2)}`;
+        }
+        if (datosExternos.clima) {
+            contextoMundo += `\nCLIMA SANTO DOMINGO: ${datosExternos.clima.temperatura}°C, ${datosExternos.clima.descripcion}`;
+        }
+        if (datosExternos.trending.length) {
+            contextoMundo += `\nTRENDING EN RD AHORA: ${datosExternos.trending.slice(0,5).join(', ')}`;
+        }
 
         const redactor = elegirRedactor(categoria);
         const perfil   = obtenerPerfilPeriodista(redactor);
@@ -1500,7 +1656,7 @@ ${memoria}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-ÉNFASIS: ${CONFIG_IA.enfasis}
+ÉNFASIS: ${CONFIG_IA.enfasis}${contextoMundo ? '\n\nDATO DEL MUNDO REAL (usar si es relevante para la noticia):' + contextoMundo : ''}
 EVITAR: ${CONFIG_IA.evitar}
 
 ESTRUCTURA PERIODÍSTICA ÉLITE (pirámide invertida estricta):
@@ -1887,9 +2043,17 @@ function puntuarRelevancia(titulo, contenido = '') {
     }
 
     // +5 por cada palabra que el sistema APRENDIÓ que genera tráfico real
-    // Estas valen más porque vienen de datos reales, no de suposiciones
     for (const palabra of PALABRAS_APRENDIDAS) {
         if (texto.includes(palabra)) score += 5;
+    }
+
+    // +8 si la noticia está en Google Trends RD ahora mismo — oro puro
+    const trendingAhora = CACHE_EXTERNO.trending.data || [];
+    for (const trend of trendingAhora) {
+        if (texto.includes(trend.toLowerCase().substring(0, 8))) {
+            score += 8;
+            console.log(`   [Trend+8] "${trend}" detectado en: ${titulo.substring(0,40)}`);
+        }
     }
 
     // +5 si tiene cifras concretas
@@ -2683,10 +2847,10 @@ if (!MODO_ESPEJO) {
 
 // ─── AUTO-DIAGNÓSTICO cada 30 minutos ───────────────────────────────────────
 // ─── INGENIERO — revisa TODO cada 15 minutos sin que nadie lo llame ──────────
-// Más frecuente que antes — 15 min = 96 revisiones al día
-// Si algo está mal lo resuelve solo y lo registra en memoria
 cron.schedule('*/15 * * * *', async () => {
     await autoDiagnostico();
+    // Refrescar datos externos en segundo plano
+    getDatosExternos().catch(() => {});
 });
 
 // ─── TAREAS DE MANTENIMIENTO — solo en servidor principal ────────────────────
@@ -2823,7 +2987,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.56', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.57', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3208,7 +3372,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.56',
+            version:        '34.57',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3280,7 +3444,7 @@ app.get('/api/cerebro', authMiddleware, async (req, res) => {
         res.json({
             // Estado en tiempo real
             servidor: {
-                version:        '34.56',
+                version:        '34.57',
                 uptime_horas:   uptime,
                 modelo_ia:      GEMINI_MODEL,
                 timeout_ia:     GEMINI_TIMEOUT / 1000,
@@ -3347,6 +3511,9 @@ app.get('/api/cerebro', authMiddleware, async (req, res) => {
                 enfasis:   CONFIG_IA.enfasis?.substring(0, 100),
             },
 
+            // Datos del mundo en tiempo real
+            mundo: await getDatosExternos().catch(() => ({})),
+
             // Horarios del sistema
             horarios: {
                 manana_tarde: '6am-8pm cada 10min',
@@ -3360,6 +3527,14 @@ app.get('/api/cerebro', authMiddleware, async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+// ─── API DATOS EXTERNOS — trending, clima, cambio ────────────────────────────
+app.get('/api/mundo', authMiddleware, async (req, res) => {
+    try {
+        const datos = await getDatosExternos();
+        res.json({ success: true, ...datos });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── API SEO — análisis de noticias recientes ────────────────────────────────
@@ -3403,7 +3578,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.56               ║
+║        🏮  EL FAROL AL DIA  —  V34.57               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
