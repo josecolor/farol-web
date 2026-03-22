@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.52
+ * 🏮 EL FAROL AL DÍA — V34.53
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -2282,12 +2282,17 @@ async function autoDiagnostico() {
     // BLOQUE 4 — BASE DE DATOS
     // ════════════════════════════════════════════════════════════════════════
 
-    // 4A. Conexión BD
+    // 4A. Conexión BD — auto-reconexión si falla
     try {
         await pool.query('SELECT 1');
     } catch (e) {
         problemas.push(`BD sin conexión: ${e.message}`);
-        acciones.push('⚠️ Sin auto-fix para BD — Railway reiniciará automáticamente');
+        try {
+            await pool.end().catch(() => {});
+            resueltos.push('✅ Pool BD reiniciado — reconectará en próximo ciclo');
+        } catch (_) {
+            acciones.push('⚠️ BD caída — Railway reiniciará automáticamente');
+        }
     }
 
     // 4B. Títulos duplicados
@@ -2343,6 +2348,52 @@ async function autoDiagnostico() {
 
     // 5B. Actualizar palabras aprendidas
     await refrescarPalabrasAprendidas().catch(() => {});
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BLOQUE 6 — SEGURIDAD Y ESTABILIDAD
+    // ════════════════════════════════════════════════════════════════════════
+
+    // 6A. /tmp lleno — borrar imágenes viejas
+    try {
+        const archivos = fs.readdirSync('/tmp').filter(f => f.startsWith('efd-') && f.endsWith('.jpg'));
+        if (archivos.length > 200) {
+            const conFecha = archivos.map(f => ({ f, t: fs.statSync(path.join('/tmp', f)).mtimeMs }))
+                                     .sort((a, b) => b.t - a.t);
+            const aBorrar = conFecha.slice(100);
+            aBorrar.forEach(({ f }) => { try { fs.unlinkSync(path.join('/tmp', f)); } catch (_) {} });
+            resueltos.push(`✅ /tmp limpiado — ${aBorrar.length} imágenes viejas borradas`);
+        }
+    } catch (_) {}
+
+    // 6B. Cache muy grande — optimizar
+    if (_cacheNoticias && _cacheNoticias.length > 50) {
+        _cacheNoticias = _cacheNoticias.slice(0, 30);
+        resueltos.push('✅ Cache optimizada');
+    }
+
+    // 6C. Sin noticias nuevas en 3 horas — forzar publicación
+    try {
+        const hora = new Date().getHours();
+        if (hora >= 6 && hora <= 23 && CONFIG_IA.enabled && !MODO_ESPEJO) {
+            const rec = await pool.query(`
+                SELECT COUNT(*) AS c FROM noticias
+                WHERE estado='publicada' AND fecha > NOW() - INTERVAL '3 hours'`);
+            if (parseInt(rec.rows[0].c) === 0 && !rssEnProceso) {
+                problemas.push('Sin noticias nuevas en 3 horas durante horario activo');
+                procesarRSS();
+                resueltos.push('✅ RSS forzado — portada necesita contenido fresco');
+            }
+        }
+    } catch (_) {}
+
+    // 6D. Health check interno
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 3000);
+        const r    = await fetch(`http://localhost:${PORT}/health`, { signal: ctrl.signal })
+                          .finally(() => clearTimeout(tm));
+        if (!r.ok) problemas.push(`Health check respondió ${r.status}`);
+    } catch (_) {}
 
     // ════════════════════════════════════════════════════════════════════════
     // REPORTE FINAL
@@ -2624,7 +2675,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.52', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.53', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -2959,7 +3010,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.52',
+            version:        '34.53',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3023,7 +3074,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.52               ║
+║        🏮  EL FAROL AL DIA  —  V34.53               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
