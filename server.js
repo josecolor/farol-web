@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.58
+ * 🏮 EL FAROL AL DÍA — V34.59
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -177,38 +177,8 @@ const rssParser = new RSSParser({ timeout: 10000 });
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
 
-// Compresión gzip nativa de Node.js — simple y estable
-app.use((req, res, next) => {
-    const accept = req.headers['accept-encoding'] || '';
-    if (!accept.includes('gzip')) return next();
-    // Solo comprimir texto/json — no imágenes
-    if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(req.url)) return next();
-
-    const _end   = res.end.bind(res);
-    const _write = res.write.bind(res);
-    const gz     = zlib.createGzip({ level: 6 });
-    let   piped  = false;
-
-    const ensurePiped = () => {
-        if (piped) return;
-        piped = true;
-        res.setHeader('Content-Encoding', 'gzip');
-        res.setHeader('Vary', 'Accept-Encoding');
-        res.removeHeader('Content-Length');
-        gz.on('data', chunk => _write(chunk));
-        gz.on('end',  ()    => _end());
-    };
-
-    res.write = (chunk, enc, cb) => { ensurePiped(); gz.write(chunk, enc, cb); };
-    res.end   = (chunk, enc, cb) => {
-        const ct = res.getHeader('Content-Type') || '';
-        if (!/text|json|javascript|xml/i.test(ct)) { piped=true; return _end(chunk,enc,cb); }
-        ensurePiped();
-        if (chunk) gz.write(chunk, enc);
-        gz.end(cb);
-    };
-    next();
-});
+// Compresión desactivada — Railway maneja gzip a nivel de proxy
+// El gzip manual causaba crashes y lentitud
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
@@ -1213,7 +1183,7 @@ function obtenerPerfilPeriodista(nombre) {
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 300000; // 5 minutos — balance entre frescura y velocidad
+const CACHE_TTL = 120000; // 2 minutos — fresco sin sobrecargar
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
@@ -1555,6 +1525,10 @@ async function inicializarBase() {
                 fecha      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_comentarios_noticia ON comentarios(noticia_id,aprobado,fecha DESC)`).catch(() => {});
+        // Índices para queries más rápidas
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_estado_fecha ON noticias(estado,fecha DESC)`).catch(() => {});
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_slug ON noticias(slug)`).catch(() => {});
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_vistas ON noticias(vistas DESC)`).catch(() => {});
 
         const fix = await client.query(`
             UPDATE noticias
@@ -1591,17 +1565,18 @@ async function generarNoticia(categoria, comunicadoExterno = null, imagenRSSOver
 
         const termCPC = ADSENSE_CPC[categoria] || 'prestamos, inversion inmobiliaria, seguros, banca digital';
 
-        // Enriquecer contexto con datos reales del mundo
-        const datosExternos = await getDatosExternos();
+        // Usar datos externos del cache — NO hacer requests en tiempo real
+        // Los datos se refrescan en background cada 15-30 min sin bloquear
         let contextoMundo = '';
-        if (datosExternos.cambio?.usd_dop) {
-            contextoMundo += `\nTIPO DE CAMBIO ACTUAL: 1 USD = RD$${datosExternos.cambio.usd_dop.toFixed(2)}`;
+        const ce = CACHE_EXTERNO;
+        if (ce.cambio?.data?.usd_dop) {
+            contextoMundo += `\nTIPO DE CAMBIO: 1 USD = RD$${ce.cambio.data.usd_dop.toFixed(2)}`;
         }
-        if (datosExternos.clima) {
-            contextoMundo += `\nCLIMA SANTO DOMINGO: ${datosExternos.clima.temperatura}°C, ${datosExternos.clima.descripcion}`;
+        if (ce.clima?.data) {
+            contextoMundo += `\nCLIMA SD: ${ce.clima.data.temperatura}°C, ${ce.clima.data.descripcion}`;
         }
-        if (datosExternos.trending.length) {
-            contextoMundo += `\nTRENDING EN RD AHORA: ${datosExternos.trending.slice(0,5).join(', ')}`;
+        if (ce.trending?.data?.length) {
+            contextoMundo += `\nTRENDING RD: ${ce.trending.data.slice(0,5).join(', ')}`;
         }
 
         const redactor = elegirRedactor(categoria);
@@ -2959,7 +2934,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.58', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.59', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3344,7 +3319,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.58',
+            version:        '34.59',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3483,8 +3458,8 @@ app.get('/api/cerebro', authMiddleware, async (req, res) => {
                 enfasis:   CONFIG_IA.enfasis?.substring(0, 100),
             },
 
-            // Datos del mundo en tiempo real
-            mundo: await getDatosExternos().catch(() => ({})),
+            // Datos del mundo (desde cache — no bloquea)
+            mundo: { trending: CACHE_EXTERNO.trending.data, cambio: CACHE_EXTERNO.cambio.data, clima: CACHE_EXTERNO.clima.data, gnews: CACHE_EXTERNO.gnews.data },
 
             // Horarios del sistema
             horarios: {
@@ -3550,7 +3525,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.58               ║
+║        🏮  EL FAROL AL DIA  —  V34.59               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
