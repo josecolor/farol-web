@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.46
+ * 🏮 EL FAROL AL DÍA — V34.47
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -2169,7 +2169,26 @@ cron.schedule('0 */2 * * *', async () => {
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
 app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.44', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/redaccion', authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/ingeniero',  (req, res) => {
+    // Panel de ingeniería — PIN en query o en sesión
+    const pin = req.query.pin;
+    if (pin !== '311') {
+        return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Acceso</title><style>body{background:#0a0a0f;display:flex;align-items:center;
+justify-content:center;min-height:100vh;font-family:Arial}
+.b{background:#111118;border:1px solid #FF5500;border-radius:12px;padding:30px;text-align:center}
+h2{color:#FF5500;margin-bottom:16px}input{padding:10px;border-radius:6px;border:1px solid #333;
+background:#0a0a0f;color:#fff;font-size:20px;text-align:center;letter-spacing:6px;width:120px}
+button{display:block;margin:12px auto 0;padding:10px 24px;background:#FF5500;color:#fff;
+border:none;border-radius:6px;cursor:pointer;font-weight:bold}</style></head>
+<body><div class="b"><h2>🤖 INGENIERÍA</h2>
+<form action="/ingeniero" method="get">
+<input type="password" name="pin" placeholder="PIN" maxlength="6" autofocus>
+<button type="submit">ENTRAR</button></form></div></body></html>`);
+    }
+    res.sendFile(path.join(__dirname, 'client', 'ingeniero.html'));
+});
 app.get('/contacto',  (_, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
 app.get('/nosotros',  (_, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
 app.get('/privacidad',(_, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
@@ -2480,7 +2499,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.46',
+            version:        '34.47',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2512,7 +2531,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.46               ║
+║        🏮  EL FAROL AL DIA  —  V34.47               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
