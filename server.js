@@ -2559,6 +2559,7 @@ app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.51', mod
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'monitor.html')));
+app.get('/ingeniero',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'ingeniero.html')));
 app.get('/ingeniero',  (req, res) => {
     // Panel de ingeniería — PIN en query o en sesión
     const pin = req.query.pin;
