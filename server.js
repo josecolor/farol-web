@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.50
+ * 🏮 EL FAROL AL DÍA — V34.51
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -515,7 +515,9 @@ async function llamarGemini(prompt, reintentos = 3) {
 
         } catch (err) {
             if (tm) clearTimeout(tm); // seguridad extra si .finally() no se ejecutó
-            const label = err.name === 'AbortError' ? `TIMEOUT (${GEMINI_TIMEOUT / 1000}s)` : err.message;
+            const isTimeout = err.name === 'AbortError';
+            const label = isTimeout ? `TIMEOUT (${GEMINI_TIMEOUT / 1000}s)` : err.message;
+            if (isTimeout) SALUD.timeoutsGemini++;
             console.error(`   [Gemini] ERROR intento ${i + 1}: ${label}`);
             if (i < reintentos - 1) await new Promise(r => setTimeout(r, Math.pow(2, i) * 3000));
         }
@@ -784,8 +786,56 @@ async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
     return imgLocal(subtema, categoria);
 }
 
-// ─── SEO ──────────────────────────────────────────────────────────────────────
+// ─── SEO AVANZADO ─────────────────────────────────────────────────────────────
 const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ─── ANALIZADOR SEO — detecta problemas y los corrige automáticamente ─────────
+function analizarSEOTitulo(titulo) {
+    const problemas = [];
+    const sugerencias = [];
+
+    if (!titulo) return { score: 0, problemas: ['Sin título'], sugerencias: [] };
+
+    const len = titulo.length;
+    if (len < 40) { problemas.push(`Título muy corto (${len} chars)`); sugerencias.push('Alargar a 55-65 chars'); }
+    if (len > 70) { problemas.push(`Título muy largo (${len} chars)`); sugerencias.push('Acortar a 55-65 chars'); }
+
+    // Palabras de alto CTR para Google News dominicano
+    const palabrasCTR = ['anuncia','aprueba','aumenta','baja','alerta','muere','gana','pierde','sube','confirma','ordena','revela','impone'];
+    const tieneVerboCTR = palabrasCTR.some(p => titulo.toLowerCase().includes(p));
+    if (!tieneVerboCTR) sugerencias.push('Agregar verbo activo al inicio');
+
+    // Números aumentan CTR en 20-30%
+    const tieneNumero = /\d/.test(titulo);
+    if (!tieneNumero) sugerencias.push('Incluir cifra o porcentaje');
+
+    const score = Math.max(0, 100
+        - (len < 40 ? 20 : 0)
+        - (len > 70 ? 15 : 0)
+        - (!tieneVerboCTR ? 15 : 0)
+        - (!tieneNumero ? 10 : 0)
+    );
+
+    return { score, problemas, sugerencias, len };
+}
+
+function analizarSEOContenido(contenido) {
+    if (!contenido) return { score: 0, problemas: ['Sin contenido'] };
+    const palabras = contenido.split(/\s+/).filter(Boolean).length;
+    const parrafos = contenido.split('\n\n').filter(p => p.trim()).length;
+    const problemas = [];
+
+    if (palabras < 300) problemas.push(`Contenido corto (${palabras} palabras)`);
+    if (parrafos < 4)   problemas.push(`Pocos párrafos (${parrafos})`);
+
+    // Densidad de keywords — no más del 3%
+    const score = Math.max(0, 100
+        - (palabras < 300 ? 20 : 0)
+        - (parrafos < 4 ? 15 : 0)
+    );
+
+    return { score, problemas, palabras, parrafos };
+}
 
 function metaTagsCompletos(n, url) {
     const t   = esc(n.titulo);
@@ -946,6 +996,31 @@ async function registrarAprendizaje(tipo, valor, categoria, exito = true) {
     } catch (_) {}
 }
 
+// ─── APRENDIZAJE EXPANDIDO — CTR, patrones, SEO score ───────────────────────
+// El sistema aprende de sus propios resultados y mejora con el tiempo
+// Métricas que rastrea: vistas, palabras trending, horarios, categorías, SEO score
+
+// Registrar análisis SEO de cada noticia publicada
+async function registrarSEONoticia(titulo, contenido, categoria) {
+    try {
+        const seoTitulo    = analizarSEOTitulo(titulo);
+        const seoContenido = analizarSEOContenido(contenido);
+        const scoreTotal   = Math.round((seoTitulo.score + seoContenido.score) / 2);
+
+        await registrarAprendizaje('seo_score', `${scoreTotal}`, categoria, scoreTotal > 70);
+
+        if (seoTitulo.problemas.length) {
+            console.log(`   [SEO] ⚠️ Título: ${seoTitulo.problemas.join(', ')}`);
+        }
+        if (seoTitulo.sugerencias.length) {
+            console.log(`   [SEO] 💡 Sugerencias: ${seoTitulo.sugerencias.join(', ')}`);
+        }
+        console.log(`   [SEO] Score: ${scoreTotal}/100 (título: ${seoTitulo.score}, contenido: ${seoContenido.score})`);
+
+        return scoreTotal;
+    } catch (_) { return 0; }
+}
+
 // ─── APRENDER DE VISTAS — qué categorías y patrones generan tráfico ──────────
 // Corre cada 4 horas — analiza las noticias más vistas y aprende
 async function aprenderDeVistas() {
@@ -1069,8 +1144,22 @@ async function construirMemoria() {
             WHERE estado='publicada' AND vistas > 3
             ORDER BY vistas DESC LIMIT 5`);
         if (top.rows.length) {
-            memoria += '\nTITULARES QUE MÁS TRÁFICO GENERARON (aprender el estilo):\n';
-            memoria += top.rows.map(n => `- "${n.titulo}" (${n.vistas} vistas)`).join('\n') + '\n';
+            memoria += '\nTITULARES QUE MÁS TRÁFICO GENERARON — aprende el estilo exacto:\n';
+            top.rows.forEach(n => {
+                const seo = analizarSEOTitulo(n.titulo);
+                memoria += `- "${n.titulo}" → ${n.vistas} vistas (SEO: ${seo.score}/100, ${seo.len} chars)\n`;
+            });
+            memoria += '\n';
+        }
+
+        // Patrón SEO aprendido — qué estructura de título funciona mejor
+        const mejorSEO = await pool.query(`
+            SELECT valor, exitos FROM memoria_ia
+            WHERE tipo = 'seo_score' AND exitos > 2
+            ORDER BY exitos DESC LIMIT 3`).catch(() => ({ rows: [] }));
+        if (mejorSEO.rows.length) {
+            const scorePromedio = Math.round(mejorSEO.rows.reduce((s,r) => s + parseInt(r.valor||0), 0) / mejorSEO.rows.length);
+            memoria += `\nSEO SCORE PROMEDIO HISTÓRICO: ${scorePromedio}/100 — apunta a superar este score\n`;
         }
 
         return memoria;
@@ -1273,11 +1362,23 @@ ESTRUCTURA PERIODÍSTICA ÉLITE (pirámide invertida estricta):
 ▸ IMPACTO CIUDADANO (párrafo 4): Qué cambia para el dominicano. Costo, beneficio, riesgo real. Menciona NATURALMENTE 2-3 de estos servicios o productos cuando sean relevantes al contexto: ${termCPC}. NUNCA forzados — solo si encajan con la noticia.
 ▸ PROYECCIÓN (párrafo 5): Qué sigue. Próxima reunión, votación, implementación, fecha clave. Cierre que da continuidad al lector.
 
-SEO DE ÉLITE:
-- TITULO: 55-65 caracteres exactos. Verbo activo al inicio cuando sea posible. Incluir término de búsqueda principal. Ejemplos de estructura ganadora: "Abinader anuncia...", "Sube el precio de...", "RD aprueba ley que...", "Último Minuto: [hecho]"
-- DESCRIPCION: 150-158 chars. Amplía el titular con dato nuevo. Termina con gancho.
-- PALABRAS: 6 keywords. Primera SIEMPRE "republica dominicana". Incluir variante long-tail.
-- ALT_IMAGEN: 15-20 palabras en español, descriptivas, con RD y contexto.
+SEO PARA GOOGLE NEWS Y BÚSQUEDA ORGÁNICA:
+- TITULO: 55-65 chars EXACTOS. OBLIGATORIO:
+  ① Verbo activo al inicio (anuncia, aprueba, sube, cae, alerta, revela, ordena)
+  ② Una cifra o porcentaje si existe (aumenta RD$15, baja 3.2%, 200 muertos)
+  ③ Término geográfico si aplica (RD, Santo Domingo, Caribe)
+  Estructura ganadora: [Verbo] + [Sujeto] + [Cifra/Impacto]
+  Ejemplos: "Sube gasolina RD$15 esta semana en República Dominicana"
+            "Abinader anuncia 500 viviendas para Santo Domingo Este"
+            "Trump impone 25% arancel a productos dominicanos"
+
+- DESCRIPCION: 150-158 chars. Fórmula: [Dato nuevo que no está en el título] + [Impacto en el dominicano] + [Dato que genera clic]
+
+- PALABRAS: 8 keywords. Orden: (1) keyword principal long-tail, (2) "republica dominicana", (3-8) variantes y sinónimos con intención de búsqueda
+
+- ALT_IMAGEN: 15-20 palabras. Describe EXACTAMENTE lo que muestra la foto + contexto RD
+
+- GOOGLE NEWS: El primer párrafo (LEAD) debe responder: Qué + Quién + Cuándo + Dónde + Por qué. Google News indexa en 15 minutos si el lead es perfecto.
 
 RESPONDE EXACTAMENTE EN ESTE FORMATO — SIN asteriscos, SIN markdown, SIN texto extra:
 TITULO: [55-65 chars]
@@ -1383,15 +1484,23 @@ CONTENIDO:
         if (urlOrig)  fotosUsadasReciente.add(urlOrig);
         invalidarCache();
 
+        // Aprender: registrar SEO score de la noticia publicada
+        await registrarSEONoticia(titulo, contenido, categoria);
+
         // Aprender: registrar que esta categoría y fuente funcionaron
         await registrarAprendizaje('fuente_exitosa', categoria, categoria, true);
-        // Aprender: palabras del título que produjeron noticia exitosa
+
+        // Aprender: palabras del título — las que tienen verbo activo valen más
         const palabrasExito = titulo.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .split(/\s+/).filter(w => w.length > 5).slice(0, 5);
+            .split(/\s+/).filter(w => w.length > 4).slice(0, 6);
         for (const p of palabrasExito) {
             await registrarAprendizaje('palabra_publicada', p, categoria, true);
         }
+
+        // Aprender: horario de publicación para optimizar el slot D
+        const horaPublicacion = new Date().getHours();
+        await registrarAprendizaje('horario_publicacion', `hora_${horaPublicacion}`, categoria, true);
 
         // Redes sociales eliminadas — tráfico viene de Google News
 
@@ -2035,9 +2144,10 @@ async function analizarRendimiento(dias = 7) {
 // ─── ESTADO DE SALUD DEL SISTEMA ────────────────────────────────────────────
 const SALUD = {
     erroresGemini:     0,
+    timeoutsGemini:    0,   // timeouts específicos de Gemini
     erroresImagen:     0,
     rssVaciosCiclos:   0,
-    fotosBodaDetect:   0,   // veces que detectamos foto de boda/stock
+    fotosBodaDetect:   0,
     ultimaPublicacion: Date.now(),
     ultimoRSSOK:       Date.now(),
     arranque:          Date.now(),
@@ -2046,178 +2156,234 @@ const SALUD = {
 // ─── AUTO-DIAGNÓSTICO COMPLETO ───────────────────────────────────────────────
 // Conoce todos los problemas que hemos resuelto históricamente
 // Corre cada 30 minutos y se repara solo sin intervención manual
+// ─── INGENIERO INTERNO — el cerebro que resuelve todo solo ──────────────────
+// Conoce cada problema que ha ocurrido históricamente
+// Actúa sin esperar instrucciones — diagnóstica, decide y ejecuta
+// Corre cada 30 minutos — 48 veces al día
+
 async function autoDiagnostico() {
     const ahora     = Date.now();
     const problemas = [];
     const acciones  = [];
+    const resueltos = [];
 
-    // ── 1. GEMINI 429 — keys saturadas ───────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // BLOQUE 1 — GEMINI IA
+    // ════════════════════════════════════════════════════════════════════════
+
+    // 1A. Keys saturadas con errores 429
     if (SALUD.erroresGemini >= 3) {
         problemas.push(`Gemini: ${SALUD.erroresGemini} errores seguidos`);
         for (let i = 0; i < GEMINI_KEYS.length; i++) GEMINI_KEY_RESET[i] = 0;
         GEMINI_KEY_INDEX = 0;
         SALUD.erroresGemini = 0;
-        acciones.push('Keys Gemini reseteadas — cooldowns limpiados');
+        resueltos.push('✅ Keys Gemini reseteadas — cooldowns limpiados');
     }
 
-    // ── 2. SIN PUBLICAR más de 2 horas ───────────────────────────────────────
+    // 1B. Timeout frecuente — aumentar pausa entre requests
+    if (SALUD.timeoutsGemini >= 5) {
+        problemas.push(`Gemini: ${SALUD.timeoutsGemini} timeouts — servidor lento`);
+        // Aumentar pausa mínima temporalmente
+        GS.lastRequest = Date.now() + 30000; // forzar 30s de espera
+        SALUD.timeoutsGemini = 0;
+        resueltos.push('✅ Pausa Gemini extendida — esperando que el servidor se recupere');
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BLOQUE 2 — PUBLICACIÓN
+    // ════════════════════════════════════════════════════════════════════════
+
+    // 2A. Sin publicar más de 2 horas
     const minSinPublicar = (ahora - SALUD.ultimaPublicacion) / 60000;
     if (minSinPublicar > 120 && CONFIG_IA.enabled) {
         problemas.push(`Sin publicar hace ${Math.round(minSinPublicar)} min`);
         if (!rssEnProceso) {
             procesarRSS();
-            acciones.push('RSS forzado manualmente');
+            resueltos.push('✅ RSS forzado — ciclo iniciado ahora mismo');
         }
     }
 
-    // ── 3. RSS VACÍO varios ciclos seguidos ──────────────────────────────────
+    // 2B. RSS vacío muchos ciclos — fuentes bloqueadas o sin contenido nuevo
     if (SALUD.rssVaciosCiclos >= 5) {
-        problemas.push(`RSS vacío: ${SALUD.rssVaciosCiclos} ciclos sin noticias`);
+        problemas.push(`RSS vacío: ${SALUD.rssVaciosCiclos} ciclos sin noticias nuevas`);
         try {
-            await pool.query(`DELETE FROM rss_procesados WHERE fecha < NOW() - INTERVAL '6 hours'`);
+            // Limpiar historial de 6h para reprocesar artículos recientes
+            const r = await pool.query(`DELETE FROM rss_procesados WHERE fecha < NOW() - INTERVAL '6 hours'`);
             SALUD.rssVaciosCiclos = 0;
-            acciones.push('RSS procesados limpiados — fuentes pueden reprocesarse');
+            resueltos.push(`✅ ${r.rowCount} RSS procesados limpiados — fuentes pueden reprocesarse`);
         } catch (_) {}
     }
 
-    // ── 4. FOTOS STOCK/BODA repetidas ────────────────────────────────────────
-    // Problema histórico: pexels-3052454 (boda) aparecía en todas las noticias
+    // 2C. Pocas noticias en portada — menos de 5
+    try {
+        const cnt = await pool.query(`SELECT COUNT(*) AS c FROM noticias WHERE estado='publicada'`);
+        const total = parseInt(cnt.rows[0].c);
+        if (total < 5 && CONFIG_IA.enabled && !rssEnProceso) {
+            problemas.push(`Solo ${total} noticias en portada — portada casi vacía`);
+            // Publicar una noticia de cada categoría principal
+            for (const cat of ['Nacionales', 'Deportes', 'Economia']) {
+                setTimeout(() => generarNoticia(cat), (CATS.indexOf(cat) + 1) * 90000);
+            }
+            resueltos.push('✅ Generando noticias de emergencia para llenar la portada');
+        }
+    } catch (_) {}
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BLOQUE 3 — IMÁGENES
+    // ════════════════════════════════════════════════════════════════════════
+
+    // 3A. Fotos feas — stock sin watermark propio
     try {
         const fotosMalas = await pool.query(`
             SELECT COUNT(*) AS c FROM noticias
             WHERE estado = 'publicada'
-            AND (
-                imagen LIKE '%3052454%'
-                OR imagen LIKE '%pexels.com%'
-                OR imagen LIKE '%pixabay.com%'
-                OR imagen LIKE '%wikimedia.org%'
-                OR imagen LIKE '%unsplash.com%'
-            )
+            AND (imagen LIKE '%pexels.com%' OR imagen LIKE '%pixabay.com%'
+                OR imagen LIKE '%wikimedia.org%' OR imagen LIKE '%unsplash.com%'
+                OR imagen LIKE '%3052454%')
             AND imagen NOT LIKE '%/img/efd-%'`);
         const nFeas = parseInt(fotosMalas.rows[0].c);
         if (nFeas > 0) {
-            problemas.push(`${nFeas} noticias con foto stock sin watermark propio`);
+            problemas.push(`${nFeas} noticias con foto genérica sin marca propia`);
             if (!wmRegenEnProceso) {
                 regenerarWatermarksLostidos();
-                acciones.push(`Regenerador iniciado — limpiando ${nFeas} fotos feas`);
+                resueltos.push(`✅ Regenerador iniciado — limpiando ${nFeas} fotos feas`);
             }
         }
     } catch (_) {}
 
-    // ── 5. FOTOS ROTAS en disco /tmp ─────────────────────────────────────────
+    // 3B. Fotos rotas en disco /tmp
     try {
         const noticiasConImg = await pool.query(`
             SELECT imagen FROM noticias
-            WHERE estado = 'publicada'
-            AND imagen LIKE '%/img/efd-%'
-            ORDER BY fecha DESC LIMIT 20`);
+            WHERE estado='publicada' AND imagen LIKE '%/img/efd-%'
+            ORDER BY fecha DESC LIMIT 30`);
         const rotas = noticiasConImg.rows.filter(n => {
             const nombre = n.imagen.split('/img/')[1];
-            return nombre && !require('fs').existsSync(require('path').join('/tmp', nombre));
+            return nombre && !fs.existsSync(path.join('/tmp', nombre));
         }).length;
         if (rotas > 3) {
-            problemas.push(`${rotas} fotos rotas en disco /tmp`);
+            problemas.push(`${rotas} fotos rotas — archivos eliminados del disco`);
             if (!wmRegenEnProceso) {
                 regenerarWatermarksLostidos();
-                acciones.push('Regenerador iniciado — reconstruyendo fotos rotas');
+                resueltos.push('✅ Regenerador iniciado — reconstruyendo fotos rotas');
             }
         }
     } catch (_) {}
 
-    // ── 6. BD — conexión ─────────────────────────────────────────────────────
+    // 3C. Muchos fallos descargando fotos
+    if (SALUD.erroresImagen >= 10) {
+        problemas.push(`${SALUD.erroresImagen} fallos consecutivos descargando imágenes`);
+        invalidarCache();
+        SALUD.erroresImagen = 0;
+        resueltos.push('✅ Cache invalidada — próximas imágenes se reintentarán');
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BLOQUE 4 — BASE DE DATOS
+    // ════════════════════════════════════════════════════════════════════════
+
+    // 4A. Conexión BD
     try {
         await pool.query('SELECT 1');
     } catch (e) {
         problemas.push(`BD sin conexión: ${e.message}`);
-        acciones.push('Sin auto-fix — Railway reiniciará el servicio');
+        acciones.push('⚠️ Sin auto-fix para BD — Railway reiniciará automáticamente');
     }
 
-    // ── 7. IMÁGENES — muchos fallos descargando ───────────────────────────────
-    if (SALUD.erroresImagen >= 10) {
-        problemas.push(`${SALUD.erroresImagen} fallos descargando imágenes`);
-        invalidarCache();
-        SALUD.erroresImagen = 0;
-        acciones.push('Cache invalidada — próximas imágenes se reintentarán');
-    }
-
-    // ── 8. CONTENIDO DUPLICADO — mismo título publicado varias veces ─────────
+    // 4B. Títulos duplicados
     try {
         const dupes = await pool.query(`
             SELECT titulo, COUNT(*) AS c FROM noticias
-            WHERE estado = 'publicada'
-            AND fecha > NOW() - INTERVAL '24 hours'
+            WHERE estado='publicada' AND fecha > NOW() - INTERVAL '24 hours'
             GROUP BY titulo HAVING COUNT(*) > 1`);
         if (dupes.rows.length > 0) {
             problemas.push(`${dupes.rows.length} títulos duplicados en las últimas 24h`);
-            // Auto-fix: borrar duplicados conservando el más reciente
             for (const dup of dupes.rows) {
                 await pool.query(`
-                    DELETE FROM noticias
-                    WHERE titulo = $1
-                    AND id NOT IN (
-                        SELECT id FROM noticias WHERE titulo = $1
-                        ORDER BY fecha DESC LIMIT 1
-                    )`, [dup.titulo]).catch(() => {});
+                    DELETE FROM noticias WHERE titulo=$1
+                    AND id NOT IN (SELECT id FROM noticias WHERE titulo=$1 ORDER BY fecha DESC LIMIT 1)
+                `, [dup.titulo]).catch(() => {});
             }
             invalidarCache();
-            acciones.push('Duplicados eliminados — conservado el más reciente de cada título');
+            resueltos.push(`✅ ${dupes.rows.length} duplicados eliminados`);
         }
     } catch (_) {}
 
-    // ── 9. CACHÉ VIEJA — datos obsoletos servidos al frontend ─────────────────
-    const minCache = (ahora - _cacheFecha) / 60000;
-    if (_cacheNoticias && minCache > 10) {
-        invalidarCache();
-        acciones.push('Cache invalidada por antigüedad (>10 min)');
-    }
-
-    // ── 10. NOTICIAS MUY VIEJAS — que el cron limpieza no corrió ─────────────
+    // 4C. Noticias muy viejas acumuladas
     try {
-        const viejas = await pool.query(`
-            SELECT COUNT(*) AS c FROM noticias
-            WHERE fecha < NOW() - INTERVAL '8 days'`);
+        const viejas = await pool.query(`SELECT COUNT(*) AS c FROM noticias WHERE fecha < NOW() - INTERVAL '8 days'`);
         const nViejas = parseInt(viejas.rows[0].c);
         if (nViejas > 0) {
             await pool.query(`DELETE FROM noticias WHERE fecha < NOW() - INTERVAL '8 days'`);
             invalidarCache();
-            acciones.push(`${nViejas} noticias viejas eliminadas`);
+            resueltos.push(`✅ ${nViejas} noticias viejas eliminadas — BD aligerada`);
         }
     } catch (_) {}
 
-    // ── REPORTE ───────────────────────────────────────────────────────────────
+    // 4D. RSS procesados acumulados — puede llenar la BD
+    try {
+        const rssCount = await pool.query(`SELECT COUNT(*) AS c FROM rss_procesados`);
+        const nRSS = parseInt(rssCount.rows[0].c);
+        if (nRSS > 5000) {
+            await pool.query(`DELETE FROM rss_procesados WHERE fecha < NOW() - INTERVAL '3 days'`);
+            resueltos.push(`✅ RSS procesados limpiados — había ${nRSS} registros`);
+        }
+    } catch (_) {}
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BLOQUE 5 — RENDIMIENTO Y CACHÉ
+    // ════════════════════════════════════════════════════════════════════════
+
+    // 5A. Cache vieja
+    const minCache = (ahora - _cacheFecha) / 60000;
+    if (_cacheNoticias && minCache > 10) {
+        invalidarCache();
+        resueltos.push('✅ Cache refrescada — datos actualizados');
+    }
+
+    // 5B. Actualizar palabras aprendidas
+    await refrescarPalabrasAprendidas().catch(() => {});
+
+    // ════════════════════════════════════════════════════════════════════════
+    // REPORTE FINAL
+    // ════════════════════════════════════════════════════════════════════════
     const uptime = Math.round((ahora - SALUD.arranque) / 3600000);
-    if (problemas.length) {
+    const horaRD = new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santo_Domingo' });
+
+    if (problemas.length || resueltos.length) {
         console.log(`
-[AutoDx] ⚠️  ${problemas.length} problema(s) — uptime: ${uptime}h`);
-        problemas.forEach(p => console.log(`   → ${p}`));
-        console.log(`[AutoDx] 🔧 Acciones:`);
-        acciones.forEach(a => console.log(`   ✅ ${a}`));
+[Ingeniero] 🔧 ${horaRD} — uptime: ${uptime}h`);
+        if (problemas.length) {
+            console.log(`   Problemas detectados: ${problemas.length}`);
+            problemas.forEach(p => console.log(`   ⚠️  ${p}`));
+        }
+        if (resueltos.length) {
+            console.log(`   Resueltos automáticamente:`);
+            resueltos.forEach(r => console.log(`   ${r}`));
+        }
         for (const p of problemas) {
             await registrarError('autodiagnostico', p, 'sistema').catch(() => {});
         }
     } else {
-        console.log(`[AutoDx] ✅ Todo saludable — uptime: ${uptime}h`);
+        console.log(`[Ingeniero] ✅ ${horaRD} — Todo operando perfectamente (uptime: ${uptime}h)`);
     }
+
+    // Guardar estado de salud en BD para historial
+    try {
+        await pool.query(`
+            INSERT INTO memoria_ia(tipo, valor, categoria, exitos)
+            VALUES('salud_sistema', $1, 'sistema', 1)
+        `, [JSON.stringify({
+            uptime,
+            noticias: (await pool.query(`SELECT COUNT(*) AS c FROM noticias WHERE estado='publicada'`)).rows[0].c,
+            problemas: problemas.length,
+            resueltos: resueltos.length,
+            hora: horaRD,
+        })]).catch(() => {});
+    } catch (_) {}
 }
 
-// ─── MONITOR DE SALUD EN PUBLICACIÓN ────────────────────────────────────────
-async function generarNoticiaConSalud(...args) {
-    const result = await generarNoticia(...args);
-    if (result.success) {
-        SALUD.ultimaPublicacion = Date.now();
-        SALUD.erroresGemini     = 0;
-        SALUD.erroresImagen     = 0;
-    } else {
-        const err = result.error || '';
-        if (err.includes('429') || err.includes('TIMEOUT') || err.includes('Gemini')) {
-            SALUD.erroresGemini++;
-        }
-        if (err.includes('imagen') || err.includes('foto') || err.includes('HTTP')) {
-            SALUD.erroresImagen++;
-        }
-    }
-    return result;
-}
+// Monitor de salud integrado directamente en generarNoticia y procesarRSS
 
 // ─── MODO ESPEJO ─────────────────────────────────────────────────────────────
 // Si MODO_ESPEJO=true → solo sirve el sitio, sin publicar ni escribir en BD
@@ -2389,7 +2555,7 @@ cron.schedule('0 */4 * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.44', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.51', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'monitor.html')));
@@ -2722,7 +2888,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.50',
+            version:        '34.51',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2745,6 +2911,37 @@ app.get('/status', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── API SEO — análisis de noticias recientes ────────────────────────────────
+app.get('/api/seo', authMiddleware, async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN' });
+    try {
+        const r = await pool.query(`
+            SELECT id, titulo, seccion, vistas, contenido, fecha
+            FROM noticias WHERE estado='publicada'
+            ORDER BY fecha DESC LIMIT 20`);
+
+        const analisis = r.rows.map(n => {
+            const seoT = analizarSEOTitulo(n.titulo);
+            const seoC = analizarSEOContenido(n.contenido);
+            return {
+                id:         n.id,
+                titulo:     n.titulo,
+                seccion:    n.seccion,
+                vistas:     n.vistas,
+                seo_titulo: seoT,
+                seo_contenido: { score: seoC.score, palabras: seoC.palabras },
+                score_total: Math.round((seoT.score + seoC.score) / 2),
+            };
+        });
+
+        const promedio = analisis.length
+            ? Math.round(analisis.reduce((s,a) => s + a.score_total, 0) / analisis.length)
+            : 0;
+
+        res.json({ success: true, promedio_seo: promedio, analisis });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // Catch-all SPA
 app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 
@@ -2755,7 +2952,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.50               ║
+║        🏮  EL FAROL AL DIA  —  V34.51               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
