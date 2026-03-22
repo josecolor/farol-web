@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.57
+ * 🏮 EL FAROL AL DÍA — V34.58
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -177,64 +177,36 @@ const rssParser = new RSSParser({ timeout: 10000 });
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
 
-// ── COMPRESIÓN GZIP — reduce tamaño de respuestas hasta 70% ──────────────────
-// HTML, JSON, CSS, JS se comprimen automáticamente
-// Imágenes ya están comprimidas — se excluyen
+// Compresión gzip nativa de Node.js — simple y estable
 app.use((req, res, next) => {
     const accept = req.headers['accept-encoding'] || '';
-    const url    = req.url;
+    if (!accept.includes('gzip')) return next();
+    // Solo comprimir texto/json — no imágenes
+    if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(req.url)) return next();
 
-    // No comprimir imágenes — ya están optimizadas con Sharp
-    if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(url)) return next();
-    // No comprimir archivos muy pequeños
-    if (req.method === 'HEAD') return next();
+    const _end   = res.end.bind(res);
+    const _write = res.write.bind(res);
+    const gz     = zlib.createGzip({ level: 6 });
+    let   piped  = false;
 
-    const _write      = res.write.bind(res);
-    const _end        = res.end.bind(res);
-    const _setHeader  = res.setHeader.bind(res);
-    let   compressor  = null;
-    let   headersSent = false;
-
-    const initCompressor = () => {
-        if (headersSent) return;
-        headersSent = true;
-        if (accept.includes('br')) {
-            compressor = zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 } });
-            _setHeader('Content-Encoding', 'br');
-        } else if (accept.includes('gzip')) {
-            compressor = zlib.createGzip({ level: 6 });
-            _setHeader('Content-Encoding', 'gzip');
-        }
-        if (compressor) {
-            _setHeader('Vary', 'Accept-Encoding');
-            res.removeHeader('Content-Length');
-            compressor.pipe({ write: _write, end: _end });
-        }
+    const ensurePiped = () => {
+        if (piped) return;
+        piped = true;
+        res.setHeader('Content-Encoding', 'gzip');
+        res.setHeader('Vary', 'Accept-Encoding');
+        res.removeHeader('Content-Length');
+        gz.on('data', chunk => _write(chunk));
+        gz.on('end',  ()    => _end());
     };
 
-    res.setHeader = (name, value) => {
-        if (name.toLowerCase() === 'content-type') {
-            const ct = String(value);
-            if (/text|json|javascript|xml/i.test(ct)) initCompressor();
-        }
-        _setHeader(name, value);
+    res.write = (chunk, enc, cb) => { ensurePiped(); gz.write(chunk, enc, cb); };
+    res.end   = (chunk, enc, cb) => {
+        const ct = res.getHeader('Content-Type') || '';
+        if (!/text|json|javascript|xml/i.test(ct)) { piped=true; return _end(chunk,enc,cb); }
+        ensurePiped();
+        if (chunk) gz.write(chunk, enc);
+        gz.end(cb);
     };
-
-    res.write = (chunk, encoding, cb) => {
-        if (!headersSent) initCompressor();
-        if (compressor) return compressor.write(chunk, encoding, cb);
-        return _write(chunk, encoding, cb);
-    };
-
-    res.end = (chunk, encoding, cb) => {
-        if (!headersSent) initCompressor();
-        if (compressor) {
-            if (chunk) compressor.write(chunk, encoding);
-            return compressor.end(cb);
-        }
-        return _end(chunk, encoding, cb);
-    };
-
     next();
 });
 
@@ -2987,7 +2959,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.57', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.58', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3372,7 +3344,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.57',
+            version:        '34.58',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3578,7 +3550,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.57               ║
+║        🏮  EL FAROL AL DIA  —  V34.58               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
