@@ -329,7 +329,7 @@ footer {
 
 /* GOOGLE TRANSLATE */
 .translate-wrap { display:flex; align-items:center; }
-#google_translate_element .goog-te-combo {
+#idioma-selector select, #google_translate_element .goog-te-combo {
   background:rgba(255,255,255,.08); border:1px solid var(--borde);
   color:var(--crema); padding:6px 10px; border-radius:6px;
   font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer;
@@ -337,6 +337,13 @@ footer {
 }
 #google_translate_element .goog-te-combo:hover { border-color:var(--fuego); background:rgba(255,85,0,.1); }
 .goog-te-banner-frame.skiptranslate { display:none !important; }
+#idioma-selector select {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,85,0,0.3);
+  color: var(--texto); padding: 5px 10px; border-radius: 6px;
+  font-size: 12px; cursor: pointer; outline: none; font-family: inherit;
+}
+#idioma-selector select:hover { border-color: var(--fuego); background: rgba(255,85,0,.1); }
+#idioma-selector select option { background: #111; color: #fff; }
 body { top:0 !important; }
 
 /* MENÚ CATEGORÍAS STICKY */
@@ -441,6 +448,10 @@ body { top:0 !important; }
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 <meta name="google-adsense-account" content="ca-pub-5280872495839888">
+<script>
+function cambiarIdioma(lang){if(lang==='es'){localStorage.removeItem('farol_lang');window.location.href='/';return;}localStorage.setItem('farol_lang',lang);window.location.href='/?lang='+lang;}
+window.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('lang-select');const l=localStorage.getItem('farol_lang')||new URLSearchParams(window.location.search).get('lang');if(s&&l)s.value=l;});
+</script>
 </head>
 <body>
 
@@ -460,7 +471,22 @@ body { top:0 !important; }
       <a href="/privacidad">PRIVACIDAD</a>
     </nav>
     <div class="translate-wrap">
-      <div id="google_translate_element"></div>
+      <div id="idioma-selector">
+        <select id="lang-select" onchange="cambiarIdioma(this.value)" title="Seleccionar idioma">
+          <option value="es">🇩🇴 ES</option>
+          <option value="en">🇺🇸 EN</option>
+          <option value="fr">🇫🇷 FR</option>
+          <option value="pt">🇧🇷 PT</option>
+          <option value="ht">🇭🇹 HT</option>
+          <option value="de">🇩🇪 DE</option>
+          <option value="it">🇮🇹 IT</option>
+          <option value="zh">🇨🇳 ZH</option>
+          <option value="ar">🇸🇦 AR</option>
+          <option value="ru">🇷🇺 RU</option>
+          <option value="ja">🇯🇵 JA</option>
+          <option value="ko">🇰🇷 KO</option>
+        </select>
+      </div>
     </div>
     <a href="#negocios" class="cat-nav-link negocios" style="text-decoration:none" onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
     <div class="live-badge" aria-label="Transmisión en vivo">
@@ -521,8 +547,7 @@ body { top:0 !important; }
         <div class="business-card-icon">🏭</div>
         <h3>HUB LOGÍSTICO SDE</h3>
         <p>Presidente Abinader inaugura nuevo hub logístico en Santo Domingo Este. Centro operativo para distribución de equipos tecnológicos hacia EE.UU. y el Caribe.</p>
-        <a href="mailto:logistics@elfarolaldia.com?subject=Consulta%20Hub%20Log%C3%ADstico%20SDE"
-           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
+        <a href="/cdn-cgi/l/email-protection#cea2a1a9a7bdbaa7adbd8eaba2a8afbca1a2afa2aaa7afe0ada1a3f1bdbbaca4abadbaf38da1a0bdbba2baafebfcfe86bbacebfcfe82a1a9eb8dfdeb8f8abdbaa7ada1ebfcfe9d8a8b" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
           📧 CONTACTAR LOGÍSTICA
         </a>
       </div>
@@ -536,8 +561,7 @@ body { top:0 !important; }
         <div class="business-card-icon">💻</div>
         <h3>EQUIPAMIENTO PC & TECH</h3>
         <p>INFOTEP lanza 5,000 becas en cloud computing para jóvenes de SDE. Proveemos equipos certificados para programas educativos y empresariales con documentación legal USA.</p>
-        <a href="mailto:acquisitions@elfarolaldia.com?subject=Adquisiciones%20USA%20-%20Equipamiento%20PC"
-           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
+        <a href="/cdn-cgi/l/email-protection#1f7e7c6e6a766c766b7670716c5f7a73797e6d70737e737b767e317c7072206c6a7d757a7c6b225e7b6e6a766c767c7670717a6c3a2d2f4a4c5e3a2d2f323a2d2f5a6e6a766f7e72767a716b703a2d2f4f5c" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
           🇺🇸 ADQUISICIONES USA
         </a>
       </div>
@@ -551,8 +575,7 @@ body { top:0 !important; }
         <div class="business-card-icon">📋</div>
         <h3>MARCO LEGAL & ADUANAS</h3>
         <p>DGA simplifica aranceles para importación de tecnología. Operamos con documentación completa: factura comercial, packing list, certificado de origen y gestión aduanal RD–Miami.</p>
-        <a href="mailto:legal@elfarolaldia.com?subject=Consulta%20Legal%20-%20Importación%20Tecnología"
-           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
+        <a href="/cdn-cgi/l/email-protection#80ece5e7e1ecc0e5ece6e1f2efece1ece4e9e1aee3efedbff3f5e2eae5e3f4bdc3efeef3f5ecf4e1a5b2b0cce5e7e1eca5b2b0ada5b2b0c9edf0eff2f4e1e3e94333eea5b2b0d4e5e3eeefecefe7432de1" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
           ⚖️ CONSULTA LEGAL
         </a>
       </div>
@@ -577,12 +600,11 @@ body { top:0 !important; }
     </div>
 
     <div style="text-align:center">
-      <a href="mailto:business@elfarolaldia.com?subject=Consulta%20General%20-%20El%20Farol%20Business"
-         style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--dorado),#FFA500);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;padding:16px 36px;border-radius:30px;text-decoration:none;box-shadow:0 8px 24px rgba(255,215,0,.4);transition:all .2s;font-weight:700">
+      <a href="/cdn-cgi/l/email-protection#f89a8d8b91969d8b8bb89d949e998a979499949c9199d69b9795c78b8d9a929d9b8cc5bb97968b8d948c99ddcac8bf9d969d8a9994ddcac8d5ddcac8bd94ddcac8be998a9794ddcac8ba8d8b91969d8b8b" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--dorado),#FFA500);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;padding:16px 36px;border-radius:30px;text-decoration:none;box-shadow:0 8px 24px rgba(255,215,0,.4);transition:all .2s;font-weight:700">
         📧 CONTACTO GENERAL DE NEGOCIOS
       </a>
       <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-top:12px">
-        business@elfarolaldia.com · logistics@elfarolaldia.com · acquisitions@elfarolaldia.com
+        <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9dffe8eef4f3f8eeeeddf8f1fbfceff2f1fcf1f9f4fcb3fef2f0">[email&#160;protected]</a> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3b57545c52484f5258487b5e575d5a4954575a575f525a15585456">[email&#160;protected]</a> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4e2f2d3f3b273d273a2721203d0e2b22282f3c21222f222a272f602d2123">[email&#160;protected]</a>
       </p>
     </div>
   </div>
@@ -666,7 +688,7 @@ body { top:0 !important; }
   </div>
 </footer>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const CONFIG = {
   CATS: ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'],
   EMOJIS: { Nacionales:'🏛️', Deportes:'⚽', Internacionales:'🌍', Economía:'💼', Tecnología:'💻', Espectáculos:'🎬' },
@@ -769,28 +791,4 @@ async function cargar() {
       document.getElementById('grid').innerHTML = `
         <div class="loading-wrap" role="alert">
           <p style="color:#ff4444">❌ Error cargando noticias</p>
-          <p style="font-size:13px;margin-top:10px;color:var(--muted)">Verifica tu conexión e intenta de nuevo</p>
-          <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--fuego);border:none;border-radius:6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;cursor:pointer">🔄 REINTENTAR</button>
-        </div>`;
-    }
-  } finally { cargando = false; }
-}
-
-function leerCatURL() {
-  const params = new URLSearchParams(window.location.search);
-  const cat = params.get('categoria');
-  if (cat) {
-    const btn = document.querySelector(`.cat-btn[data-cat="${cat}"]`);
-    if (btn) { categoriaActiva = cat; btn.click(); }
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  actualizarFecha();
-  crearCats();
-  cargar().then(leerCatURL);
-  setInterval(cargar, 60000);
-});
-</script>
-</body>
-</html>
+          <p style="font-size:
