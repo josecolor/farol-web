@@ -227,6 +227,12 @@ header{background:var(--bg2);border-bottom:2px solid var(--acc);padding:8px 14px
   <button class="sg" onclick="env('¿Cuál es el mejor horario para publicar?')">horarios</button>
   <button class="sg" onclick="env('Genera un reporte completo')">reporte</button>
   <button class="sg" onclick="env('¿Cómo está el SEO?')">seo</button>
+  <button class="sg" onclick="env('El sitio carga lento, arréglalo')">velocidad</button>
+  <button class="sg" onclick="env('El servidor crasheó, qué pasó?')">crasheo</button>
+  <button class="sg" onclick="env('Muéstrame los logs')">logs</button>
+  <button class="sg" onclick="env('¿Cómo está el AdSense?')">adsense</button>
+  <button class="sg" onclick="env('Hay fotos de boda repetidas')">fotos repetidas</button>
+  <button class="sg" onclick="env('Gemini da error 429')">gemini 429</button>
 </div>
 <div class="chat-ia" id="chat-ia">
   <textarea id="inp" placeholder="Habla con el ingeniero..." rows="1"
@@ -354,18 +360,29 @@ function confirmarReset(){
 // INGENIERO ELITE — el mejor programador que puede existir
 // Conoce cada línea del sistema, detecta problemas, optimiza, explica
 // ══════════════════════════════════════════════════════════════════════════════
-const CONTEXTO_SISTEMA = {
-  stack: 'Node.js 18 + Express + PostgreSQL (Railway) + Sharp (imágenes) + node-cron',
-  ia: 'Gemini 2.5 Flash — hasta 5 keys rotando con cooldown 60s entre usos',
-  imagenes: 'Pipeline: RSS og:image → verificarCalidadImagen() → watermark WATERMARK(1).png → /img/efd-*.jpg',
-  ingeniero: 'autoDiagnostico() corre cada 15min — 6 bloques — resuelve 20+ problemas solo',
-  aprendizaje: 'aprenderDeVistas() cada 4h — registra palabras trending y categorías exitosas en memoria_ia',
-  horarios: '6am-8pm: cada 10min | 8pm-12am: cada 30min | 12am-6am: cada hora',
-  rutas: '/  /noticia/:slug  /redaccion  /monitor  /panel  /ingeniero  /api/*',
-  bd: 'tablas: noticias, rss_procesados, memoria_ia, comentarios',
-  seo: 'Schema NewsArticle + BreadcrumbList + hreflang + sitemap.xml dinámico',
-  idiomas: '12 idiomas — detección automática Accept-Language — traducción con Gemini',
-};
+// ── CEREBRO DEL BOT — lee TODO el servidor en tiempo real ────────────────────
+// No trabaja con datos estáticos — siempre consulta el estado real
+let CEREBRO = null;
+let CEREBRO_FECHA = 0;
+const CEREBRO_TTL = 60000; // refrescar cada 60s
+
+async function getCerebro(forzar=false) {
+  const ahora = Date.now();
+  if (!forzar && CEREBRO && (ahora - CEREBRO_FECHA) < CEREBRO_TTL) return CEREBRO;
+  try {
+    const r = await api('/api/cerebro');
+    if (!r.error) {
+      CEREBRO = r;
+      CEREBRO_FECHA = ahora;
+      console.log('[Cerebro] Actualizado —', r.contenido?.total_noticias, 'noticias,', r.salud?.min_sin_publicar, 'min sin publicar');
+    }
+  } catch(_) {}
+  return CEREBRO;
+}
+
+// Cargar cerebro al inicio
+getCerebro(true);
+setInterval(() => getCerebro(true), 60000);
 
 function addMsg(html,role='b'){
   const c=document.getElementById('chat-msgs');
@@ -384,32 +401,39 @@ function showT(){
 }
 function hideT(){document.getElementById('typ')?.remove()}
 
-function bienvenida(){
-  setTimeout(()=>addMsg(
-`<span class="acc">// INGENIERO ELITE — El Farol al Día</span>
-<span class="dim">// Sistema de autogestión y desarrollo</span>
+async function bienvenida(){
+  showT();
+  const cb = await getCerebro(true);
+  hideT();
+  const v = cb?.servidor?.version || '—';
+  const n = cb?.contenido?.total_noticias || 0;
+  const t = cb?.salud?.min_sin_publicar || 0;
+  const k = cb?.servidor?.keys_activas || 0;
+  const ok = cb && cb.salud?.errores_gemini < 3 && t < 90;
 
-<span class="ok">✓</span> Stack completo cargado
-<span class="ok">✓</span> APIs verificadas
-<span class="ok">✓</span> Listo para operar
+  addMsg(
+`<span class="acc">// INGENIERO ELITE — V${v}</span>
+<span class="dim">// Sistema cargado · uptime ${cb?.servidor?.uptime_horas||0}h</span>
 
-Soy tu ingeniero senior. Conozco cada línea del sistema.
+<span class="${ok?'ok':'warn'}">${ok?'✓ Sistema saludable':'⚠ Hay alertas'}</span>
+<span class="dim">  ${n} noticias · ${t}min sin publicar · ${k} keys Gemini</span>
 
-<span class="kw">Puedo:</span>
-<span class="str">→</span> Diagnosticar y reparar cualquier fallo
-<span class="str">→</span> Optimizar rendimiento y SEO
-<span class="str">→</span> Analizar métricas y aprendizaje
-<span class="str">→</span> Explicar cómo funciona cualquier parte
-<span class="str">→</span> Ejecutar acciones sobre el servidor
-<span class="str">→</span> Planificar mejoras técnicas
+Soy tu ingeniero senior. Leo el servidor en tiempo real.
+Conozco cada función, cada error, cada decisión del sistema.
 
-Dime qué necesitas. 🏮`
-  ,'b'),200);
+<span class="kw">Dime lo que necesitas:</span>
+<span class="str">→</span> crash | logs | optimizar | diagnostico
+<span class="str">→</span> fotos | rss | generar | velocidad
+<span class="str">→</span> adsense | gemini | watermark | render
+<span class="str">→</span> o pregunta en español natural 🏮`
+  ,'b');
 }
 
 // ── MOTOR DE INTELIGENCIA DEL BOT ────────────────────────────────────────────
 async function proc(txt){
   const q=txt.toLowerCase().trim();
+  // Cargar cerebro — datos reales del servidor
+  const cb = await getCerebro();
 
   // ── REPORTE COMPLETO ──────────────────────────────────────────────────────
   if(/reporte|informe|resumen completo|dashboard/.test(q)){
@@ -457,6 +481,9 @@ async function proc(txt){
   if(/diagnós|diagnostic|error|falla|problema|qué hay|qué está|crash/.test(q)){
     const d=await api('/status');
     const s=d.salud||{};
+    // Enriquecer con datos del cerebro
+    const errores_reales = cb?.errores_recientes || [];
+    const fotos_malas = cb ? (cb.contenido?.fotos_externas || 0) : 0;
     const problemas=[];
     const bien=[];
 
@@ -476,6 +503,10 @@ async function proc(txt){
     if(!d.marca_de_agua?.includes('Activa')) problemas.push({t:'ALTO',m:'Watermark no encontrada en /static',fix:'Verifica que WATERMARK(1).png está en la carpeta static/'});
     else bien.push('Watermark activa');
 
+    // Agregar fotos malas al diagnóstico
+    if(fotos_malas>3) problemas.push({t:'MEDIO',m:`${fotos_malas} fotos sin watermark propio`,fix:'Ejecuta Regenerar Fotos — el ingeniero las limpia gradualmente'});
+    else bien.push('Fotos con watermark propio');
+
     let html='';
     if(problemas.length){
       html+=`<span class="err">// ${problemas.length} PROBLEMA(S) DETECTADO(S)</span>\n\n`;
@@ -490,6 +521,13 @@ async function proc(txt){
     if(bien.length){
       html+=`<span class="kw">Verificado OK:</span>\n`;
       bien.forEach(b=>html+=`  <span class="ok">✓</span> ${b}\n`);
+    }
+    // Mostrar errores reales del servidor
+    if(errores_reales.length){
+      html+=`\n<span class="kw">Errores recientes en sistema:</span>\n`;
+      errores_reales.slice(0,3).forEach(e=>{
+        html+=`  <span class="err">×</span> ${(e.error||'').substring(0,55)} <span class="dim">(${e.fallos}x)</span>\n`;
+      });
     }
     return html;
   }
@@ -733,6 +771,218 @@ async function proc(txt){
 Habla en español natural. Entiendo contexto. 🏮`;
   }
 
+  // ── CARGA LENTA ──────────────────────────────────────────────────────────
+  if(/lento|carga|lenta|demora|tarda|slow|velocidad|rápido|rapido|performance/.test(q)){
+    const d=await api('/status');
+    let html=`<span class="acc">// DIAGNÓSTICO DE VELOCIDAD</span>
+
+`;
+    html+=`<span class="kw">Causas comunes de carga lenta:</span>
+
+`;
+    html+=`<span class="badge badge-info">1</span> <span class="fn">Imágenes sin optimizar</span>
+`;
+    html+=`<span class="dim">   Sharp procesa cada foto — puede tardar en imágenes grandes</span>
+`;
+    html+=`<span class="str">   FIX → Fotos ya pasan por Sharp con quality:92 + mozjpeg</span>
+
+`;
+    html+=`<span class="badge badge-info">2</span> <span class="fn">Sin compresión gzip</span>
+`;
+    html+=`<span class="dim">   HTML/JSON sin comprimir pesan 5-10x más</span>
+`;
+    html+=`<span class="str">   FIX → V34.55 activa gzip/brotli automático ✓</span>
+
+`;
+    html+=`<span class="badge badge-info">3</span> <span class="fn">Railway Free tier</span>
+`;
+    html+=`<span class="dim">   Servidor en US-East — latencia desde RD ~80-120ms</span>
+`;
+    html+=`<span class="str">   FIX → Normal, no se puede reducir sin cambiar región</span>
+
+`;
+    html+=`<span class="badge badge-info">4</span> <span class="fn">Muchas noticias sin cache</span>
+`;
+    html+=`<span class="dim">   Primera carga hace query a PostgreSQL</span>
+`;
+    html+=`<span class="str">   FIX → Cache activa 5 min — segunda visita instantánea ✓</span>
+
+`;
+    html+=`<span class="badge badge-info">5</span> <span class="fn">Imágenes externas</span>
+`;
+    html+=`<span class="dim">   Fotos de periódicos que bloquean hotlinking</span>
+`;
+    html+=`<span class="str">   FIX → Regenerar fotos convierte todo a /img/efd-* propio</span>
+
+`;
+    html+=`<span class="ok">Acción recomendada:</span> Ejecuta "Regenerar Fotos" para que todas las imágenes sean propias y se sirvan desde el mismo servidor.`;
+    return html;
+  }
+
+  // ── CRASHEO / SERVIDOR CAÍDO ────────────────────────────────────────────
+  if(/crash|caído|caido|502|no responde|no carga|no funciona|down|reinici|cayó|cayo/.test(q)){
+    const d=await api('/status');
+    if(d.error){
+      return`<span class="err">⚡ SERVIDOR CAÍDO CONFIRMADO</span>
+
+<span class="kw">Pasos en Railway:</span>
+  <span class="num">1.</span> railway.app → ideal-reverence → farol-web → Deploy Logs
+  <span class="num">2.</span> Busca líneas rojas — causas frecuentes:
+
+  <span class="err">FATAL DATABASE_URL</span>
+     → Variable vacía. Ir a Variables → DATABASE_URL → pegar URL del Postgres
+
+  <span class="err">FATAL GEMINI_API_KEY</span>
+     → Falta una key. Agregar GEMINI_API_KEY en Variables
+
+  <span class="err">ETIMEDOUT postgres.railway.internal</span>
+     → BD sin conectar. Crear PostgreSQL nuevo en el proyecto
+
+  <span class="err">npm error SIGTERM</span>
+     → Redespliegue en proceso. Esperar 2-3 minutos
+
+  <span class="num">3.</span> Si persiste: Settings → Redeploy`;
+    }
+    return`<span class="ok">✅ Servidor respondiendo (V${d.version})</span>
+<span class="dim">// El crash fue temporal — Railway reinició automáticamente.</span>`;
+  }
+
+  // ── LOGS / HISTORIAL ─────────────────────────────────────────────────────
+  if(/log|logs|registro|historial|que pasó|que paso|qué pasó|qué ocurrió/.test(q)){
+    const r=await api('/api/memoria?pin=311');
+    if(!r.registros)return'<span class="warn">// Sin registros en memoria</span>';
+    let h=`<span class="acc">// HISTORIAL DEL SISTEMA</span>
+
+`;
+    const errs=r.registros.filter(x=>x.tipo==='error'||x.tipo==='autodiagnostico').slice(0,8);
+    if(errs.length){
+      errs.forEach(e=>{
+        const t=new Date(e.ultima_vez||e.fecha).toLocaleString('es-DO',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+        h+=`<span class="err">×</span> [${t}] ${(e.valor||'').substring(0,55)}
+`;
+        h+=`  <span class="dim">fallos:${e.fallos||0} · ${e.categoria||'sistema'}</span>
+
+`;
+      });
+    } else {
+      h+='<span class="ok">// Sin errores recientes registrados</span>
+';
+    }
+    h+=`<span class="dim">// Logs en tiempo real → Railway → farol-web → Deploy Logs</span>`;
+    return h;
+  }
+
+  // ── FOTO BODA / MISMA FOTO / REPETIDA ───────────────────────────────────
+  if(/boda|misma foto|repeti|stock|genéric|generic|pexels|pixabay|foto fea/.test(q)){
+    const r=await api('/api/regenerar-fotos','POST',{pin:PIN});
+    return`<span class="acc">// FOTOS REPETIDAS O GENÉRICAS</span>
+
+<span class="kw">Causa:</span> Foto del banco local (pexels) cuando el periódico
+  no tiene imagen accesible o es pixelada.
+
+<span class="kw">Fix aplicado:</span> ${r.success?'<span class="ok">✅ Regenerador iniciado</span>':'<span class="warn">Ya en proceso</span>'}
+
+<span class="kw">Prevención permanente:</span>
+  <span class="str">→</span> Google CSE activo = fotos HD por título
+  <span class="str">→</span> Ingeniero detecta fotos feas cada 15min
+  <span class="str">→</span> verificarCalidadImagen() rechaza pixeladas y logos ajenos`;
+  }
+
+  // ── VARIABLE / RAILWAY CONFIG ────────────────────────────────────────────
+  if(/variable|env|railway var|gemini key|api key|database_url|configurar|configuracion/.test(q)){
+    return`<span class="acc">// VARIABLES DE ENTORNO</span>
+
+<span class="err">OBLIGATORIAS:</span>
+  DATABASE_URL      → PostgreSQL URL
+  GEMINI_API_KEY    → Al menos una
+
+<span class="warn">RECOMENDADAS:</span>
+  BASE_URL          → https://elfarolaldia.com
+  GEMINI_API_KEY2   → Key 2 (gratis aistudio.google.com)
+  GEMINI_API_KEY3   → Key 3
+  GEMINI_API_KEY4   → Key 4
+  GOOGLE_CSE_KEY    → Fotos HD
+  GOOGLE_CSE_ID     → ID del motor CSE
+
+<span class="dim">MODO_ESPEJO=true → solo para Render (espejo)</span>`;
+  }
+
+  // ── WATERMARK / MARCA DE AGUA ────────────────────────────────────────────
+  if(/watermark|marca.?de.?agua|logo|marca ajena|wm|sello/.test(q)){
+    const d=await api('/status');
+    const ok=d.marca_de_agua?.includes('Activa');
+    return`<span class="acc">// SISTEMA WATERMARK</span>
+
+Estado: <span class="${ok?'ok':'err'}">${d.marca_de_agua||'No encontrada'}</span>
+
+<span class="kw">Tamaño adaptativo:</span>
+  ≥1000px → marca 20% del ancho
+  600-999px → 25% del ancho
+  <600px  → 30% del ancho
+
+${!ok?`<span class="err">⚠ FALTA LA WATERMARK</span>
+  Verifica que WATERMARK(1).png está en /static/`:'<span class="ok">✓ Aplicándose en todas las fotos nuevas</span>'}`;
+  }
+
+  // ── ADSENSE / MONETIZACIÓN ───────────────────────────────────────────────
+  if(/adsense|monetiz|dinero|ingreso|pub-|anuncio|publicidad|aprobacion/.test(q)){
+    return`<span class="acc">// ADSENSE — MONETIZACIÓN</span>
+
+<span class="kw">Publisher ID:</span> <span class="str">pub-5280872495839888</span>
+<span class="kw">Estado:</span> <span class="warn">En revisión (enviado Mar 20, 2026)</span>
+<span class="kw">Tiempo estimado:</span> 3–14 días
+
+<span class="kw">Checklist para aprobación:</span>
+  <span class="ok">✓</span> ads.txt configurado
+  <span class="ok">✓</span> Política de privacidad
+  <span class="ok">✓</span> Términos de uso
+  <span class="ok">✓</span> Contacto visible
+  <span class="ok">✓</span> Contenido original (Gemini élite)
+  <span class="ok">✓</span> Imágenes propias con watermark
+  <span class="ok">✓</span> Schema NewsArticle
+
+<span class="dim">Verificar en: adsense.google.com</span>`;
+  }
+
+  // ── GEMINI 429 / LÍMITE ──────────────────────────────────────────────────
+  if(/429|límite|limite|quota|cuota|gemini error|key agotada/.test(q)){
+    const d=await api('/status');
+    return`<span class="acc">// GEMINI 429 — RATE LIMIT</span>
+
+<span class="kw">Keys activas:</span> <span class="${d.gemini_keys>=3?'ok':'err'}">${d.gemini_keys}</span>
+
+<span class="kw">Cómo funciona la rotación:</span>
+  Key 1 publica → descansa 60s → Key 2 → descansa → Key 3...
+  Si una da 429 → cooldown automático → pasa a la siguiente
+
+<span class="kw">El ingeniero auto-corrige:</span>
+  3+ errores seguidos → resetea cooldowns de todas las keys
+
+<span class="kw">Si persiste:</span>
+  <span class="str">→</span> Agregar GEMINI_API_KEY5 en Railway
+  <span class="str">→</span> Obtener gratis en aistudio.google.com (otra cuenta Google)`;
+  }
+
+  // ── RENDER / ESPEJO ──────────────────────────────────────────────────────
+  if(/render|espejo|mirror|backup|segundo servidor/.test(q)){
+    const d=await api('/status');
+    return`<span class="acc">// MODO ESPEJO (RENDER)</span>
+
+<span class="kw">Estado actual:</span> <span class="${d.modo_espejo?'warn':'ok'}">${d.modo_espejo?'ESPEJO ACTIVO':'Servidor Principal'}</span>
+
+<span class="kw">Diferencia:</span>
+  Principal (Railway) → publica, procesa RSS, aprende
+  Espejo (Render)     → solo sirve el sitio, no escribe
+
+<span class="kw">Variables para Render:</span>
+  DATABASE_URL   → URL pública del Postgres de Railway
+  BASE_URL       → https://elfarolaldia.com
+  GEMINI_API_KEY → cualquier key
+  MODO_ESPEJO    → true
+
+<span class="dim">URL pública: postgres → Variables → DATABASE_PUBLIC_URL</span>`;
+  }
+
   // ── RESPUESTA POR DEFECTO ─────────────────────────────────────────────────
   return`<span class="warn">// No reconocí ese comando específico.</span>
 
@@ -740,6 +990,8 @@ Habla en español natural. Entiendo contexto. 🏮`;
   reporte | diagnostico | optimizar | seo
   noticias | rss | fotos | generar
   arquitectura | horarios | aprendizaje
+  crash | logs | variable | watermark
+  adsense | gemini | render | velocidad
 
 <span class="dim">// O pregunta en lenguaje natural.</span>`;
 }
