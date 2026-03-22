@@ -164,6 +164,7 @@ header{background:var(--bg2);border-bottom:2px solid var(--acc);padding:8px 14px
   <button class="tab on"  onclick="tab('estado')">📊 Estado</button>
   <button class="tab"     onclick="tab('noticias')">📰 Noticias</button>
   <button class="tab"     onclick="tab('acciones')">⚙️ Acciones</button>
+  <button class="tab"     onclick="tab('horarios')">🕐 Horarios</button>
   <button class="tab"     onclick="tab('bot')">🤖 Ingeniero</button>
 </div>
 
@@ -194,6 +195,96 @@ header{background:var(--bg2);border-bottom:2px solid var(--acc);padding:8px 14px
   </div>
 </div>
 
+<!-- HORARIOS -->
+<div class="panel" id="t-horarios">
+  <div class="sec">
+    <div class="stit">⏰ Horario de publicación <span id="h-badge">cargando...</span></div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)">
+        Configura cuándo y cada cuánto el sistema publica noticias.
+        Los cambios aplican inmediatamente.
+      </div>
+
+      <!-- MAÑANA / TARDE -->
+      <div style="background:var(--bg3);border:1px solid var(--borde);border-left:3px solid var(--green);border-radius:8px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:10px">🌅 MAÑANA / TARDE (horario fuerte)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Hora inicio</div>
+            <select id="h-manana-inicio" style="width:100%;background:var(--bg2);border:1px solid var(--borde);color:var(--text);padding:6px;border-radius:6px;font-size:12px">
+              ${Array.from({length:12},(_,i)=>`<option value="${i+4}">${(i+4).toString().padStart(2,'0')}:00</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Hora fin</div>
+            <select id="h-manana-fin" style="width:100%;background:var(--bg2);border:1px solid var(--borde);color:var(--text);padding:6px;border-radius:6px;font-size:12px">
+              ${Array.from({length:12},(_,i)=>`<option value="${i+12}">${(i+12).toString().padStart(2,'0')}:00</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Publicar cada (minutos)</div>
+          <select id="h-intervalo-manana" style="width:100%;background:var(--bg2);border:1px solid var(--borde);color:var(--text);padding:6px;border-radius:6px;font-size:12px">
+            <option value="5">5 min (máximo)</option>
+            <option value="10">10 min (recomendado)</option>
+            <option value="15">15 min</option>
+            <option value="20">20 min</option>
+            <option value="30">30 min</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- NOCHE -->
+      <div style="background:var(--bg3);border:1px solid var(--borde);border-left:3px solid var(--yellow);border-radius:8px;padding:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--yellow);font-weight:600;margin-bottom:10px">🌙 NOCHE (tranquila)</div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Publicar cada (minutos)</div>
+          <select id="h-intervalo-noche" style="width:100%;background:var(--bg2);border:1px solid var(--borde);color:var(--text);padding:6px;border-radius:6px;font-size:12px">
+            <option value="15">15 min</option>
+            <option value="20">20 min (recomendado)</option>
+            <option value="30">30 min</option>
+            <option value="60">1 hora</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- MADRUGADA -->
+      <div style="background:var(--bg3);border:1px solid var(--borde);border-left:3px solid var(--muted);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:10px">😴 MADRUGADA (la gente duerme)</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <input type="checkbox" id="h-madrugada" style="width:16px;height:16px;accent-color:var(--acc)">
+          <label for="h-madrugada" style="font-size:12px;cursor:pointer">Publicar en madrugada</label>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Publicar cada (minutos)</div>
+          <select id="h-intervalo-madrugada" style="width:100%;background:var(--bg2);border:1px solid var(--borde);color:var(--text);padding:6px;border-radius:6px;font-size:12px">
+            <option value="20">20 min</option>
+            <option value="30">30 min (recomendado)</option>
+            <option value="60">1 hora</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- GUARDIA NOCTURNA -->
+      <div style="background:var(--bg3);border:1px solid var(--borde);border-left:3px solid var(--acc);border-radius:8px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" id="h-guardia" style="width:16px;height:16px;accent-color:var(--acc)">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--acc)">🛡️ Guardia nocturna</div>
+            <div style="font-size:10px;color:var(--muted)">Si pasan 90min sin publicar → genera noticia automáticamente</div>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="guardarHorarios()" style="width:100%;background:var(--acc);border:none;color:#fff;padding:12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s"
+        onmouseover="this.style.background='#cc4400'" onmouseout="this.style.background='var(--acc)'">
+        💾 Guardar horarios
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ACCIONES -->
 <div class="panel" id="t-acciones">
   <div class="sec">
@@ -210,6 +301,80 @@ header{background:var(--bg2);border-bottom:2px solid var(--acc);padding:8px 14px
       <button class="btn" onclick="window.location.href='/redaccion'"><span class="bico">✏️</span>Panel Redacción</button>
       <button class="btn danger" onclick="confirmarReset()"><span class="bico">🗑️</span>Resetear BD</button>
     </div>
+  </div>
+</div>
+
+<!-- HORARIOS -->
+<div class="panel" id="t-horarios">
+  <div class="sec">
+    <div class="stit">🕐 Configuración de horarios de publicación</div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono)">HORA PICO (mañana/tarde)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Inicio (hora)</label>
+          <input type="number" id="h-inicio" min="0" max="23" value="6"
+            style="width:100%;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:var(--mono)">
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Fin (hora)</label>
+          <input type="number" id="h-fin" min="0" max="23" value="20"
+            style="width:100%;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:var(--mono)">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono)">INTERVALO ENTRE PUBLICACIONES</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Pico (min)</label>
+          <input type="number" id="h-pico" min="5" max="60" value="10"
+            style="width:100%;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:var(--mono)">
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Noche (min)</label>
+          <input type="number" id="h-noche" min="5" max="120" value="20"
+            style="width:100%;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:var(--mono)">
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Madrugada (min)</label>
+          <input type="number" id="h-madrugada" min="15" max="120" value="30"
+            style="width:100%;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:var(--mono)">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--mono)">GUARDIA NOCTURNA</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="checkbox" id="h-guardia" checked style="width:16px;height:16px;accent-color:var(--acc)">
+        <label for="h-guardia" style="font-size:12px;color:var(--text)">Activar guardia nocturna</label>
+      </div>
+      <div>
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Minutos sin publicar para activar</label>
+        <input type="number" id="h-guardia-min" min="30" max="240" value="90"
+          style="width:100%;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:var(--mono)">
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="h-pub-madrugada" checked style="width:16px;height:16px;accent-color:var(--acc)">
+        <label for="h-pub-madrugada" style="font-size:12px;color:var(--text)">Publicar en madrugada (12am–6am)</label>
+      </div>
+    </div>
+
+    <div id="h-preview" class="sec" style="background:var(--bg3);margin-bottom:12px">
+      <div class="stit">Vista previa del horario</div>
+      <div id="h-preview-text" style="font-size:11px;font-family:var(--mono);color:var(--muted);line-height:1.8"></div>
+    </div>
+
+    <button class="btn" onclick="guardarHorarios()" style="width:100%;background:var(--acc);color:#fff;border-color:var(--acc);font-size:13px;padding:12px">
+      💾 Guardar y aplicar ahora
+    </button>
+    <div id="h-msg" style="text-align:center;font-size:11px;margin-top:8px;font-family:var(--mono)"></div>
   </div>
 </div>
 
@@ -263,8 +428,13 @@ const toast=(msg,ms=3000)=>{const t=document.getElementById('toast');t.textConte
 function tab(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
-  const ids=['estado','noticias','acciones','bot'];
+  const ids=['estado','noticias','acciones','horarios','bot'];
   document.querySelectorAll('.tab')[ids.indexOf(id)].classList.add('on');
+  if(id==='horarios'){
+    document.getElementById('t-horarios').classList.add('on');
+    cargarHorarios();
+    return;
+  }
   if(id==='bot'){
     document.getElementById('chat-wrap').classList.add('on');
     document.getElementById('sugs').classList.add('on');
@@ -1067,6 +1237,136 @@ async function env(txt){
 }
 function si(){const v=document.getElementById('inp').value.trim();if(v)env(v);}
 document.getElementById('inp').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
+
+// ── HORARIOS ─────────────────────────────────────────────────────────────────
+async function cargarHorarios(){
+  const r=await api('/api/horarios');
+  if(!r.config)return;
+  const cfg=r.config;
+  document.getElementById('h-inicio').value=cfg.manana_inicio;
+  document.getElementById('h-fin').value=cfg.manana_fin;
+  document.getElementById('h-pico').value=cfg.intervalo_pico;
+  document.getElementById('h-noche').value=cfg.intervalo_noche;
+  document.getElementById('h-madrugada').value=cfg.intervalo_madrugada;
+  document.getElementById('h-guardia').checked=cfg.guardia_nocturna;
+  document.getElementById('h-guardia-min').value=cfg.guardia_minutos;
+  document.getElementById('h-pub-madrugada').checked=cfg.publicar_madrugada;
+  actualizarPreview(cfg);
+}
+
+function actualizarPreview(cfg){
+  if(!cfg){
+    cfg={
+      manana_inicio:parseInt(document.getElementById('h-inicio').value),
+      manana_fin:parseInt(document.getElementById('h-fin').value),
+      intervalo_pico:parseInt(document.getElementById('h-pico').value),
+      intervalo_noche:parseInt(document.getElementById('h-noche').value),
+      intervalo_madrugada:parseInt(document.getElementById('h-madrugada').value),
+      guardia_nocturna:document.getElementById('h-guardia').checked,
+      guardia_minutos:parseInt(document.getElementById('h-guardia-min').value),
+      publicar_madrugada:document.getElementById('h-pub-madrugada').checked,
+    };
+  }
+  const nxh=24-cfg.manana_fin+cfg.manana_fin-cfg.manana_inicio;
+  const nPico=Math.floor(60/cfg.intervalo_pico);
+  const nNoche=Math.floor(60/cfg.intervalo_noche);
+  const nMad=cfg.publicar_madrugada?Math.floor(60/cfg.intervalo_madrugada):0;
+  const horasPico=cfg.manana_fin-cfg.manana_inicio;
+  const horasNoche=24-cfg.manana_fin;
+  const horasMad=cfg.manana_inicio;
+  const total=nPico*horasPico+nNoche*horasNoche+nMad*horasMad;
+  document.getElementById('h-preview-text').innerHTML=
+    `🌅 ${cfg.manana_inicio}am–${cfg.manana_fin>12?cfg.manana_fin-12+'pm':cfg.manana_fin+'am'} cada ${cfg.intervalo_pico}min → ${nPico*horasPico} noticias
+`+
+    `🌙 ${cfg.manana_fin>12?cfg.manana_fin-12:'cfg.manana_fin'}pm–12am cada ${cfg.intervalo_noche}min → ${nNoche*horasNoche} noticias
+`+
+    `😴 Madrugada: ${cfg.publicar_madrugada?'cada '+cfg.intervalo_madrugada+'min → '+nMad*horasMad+' noticias':'desactivada'}
+`+
+    `🛡️ Guardia: ${cfg.guardia_nocturna?'activa ('+cfg.guardia_minutos+'min límite)':'desactivada'}
+
+`+
+    `📊 <b>~${total} noticias/día estimadas</b>`;
+}
+
+// Actualizar preview en tiempo real
+['h-inicio','h-fin','h-pico','h-noche','h-madrugada','h-guardia-min'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('input',()=>actualizarPreview(null));
+});
+['h-guardia','h-pub-madrugada'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('change',()=>actualizarPreview(null));
+});
+
+async function guardarHorarios(){
+  const msg=document.getElementById('h-msg');
+  msg.textContent='⏳ Guardando...';msg.style.color='var(--muted)';
+  const r=await api('/api/horarios','POST',{
+    pin:PIN,
+    manana_inicio:parseInt(document.getElementById('h-inicio').value),
+    manana_fin:parseInt(document.getElementById('h-fin').value),
+    intervalo_pico:parseInt(document.getElementById('h-pico').value),
+    intervalo_noche:parseInt(document.getElementById('h-noche').value),
+    intervalo_madrugada:parseInt(document.getElementById('h-madrugada').value),
+    guardia_nocturna:document.getElementById('h-guardia').checked,
+    guardia_minutos:parseInt(document.getElementById('h-guardia-min').value),
+    publicar_madrugada:document.getElementById('h-pub-madrugada').checked,
+  });
+  if(r.success){
+    msg.textContent='✅ Guardado — el sistema aplica los nuevos horarios ahora mismo';
+    msg.style.color='var(--green)';
+    actualizarPreview(r.config);
+  } else {
+    msg.textContent='❌ '+(r.error||'Error');
+    msg.style.color='var(--red)';
+  }
+}
+
+// ── HORARIOS ─────────────────────────────────────────────────────────────────
+async function cargarHorarios(){
+  const r = await api('/api/horarios');
+  if(!r.horarios) return;
+  const h = r.horarios;
+
+  // Poblar selects
+  const mi = document.getElementById('h-manana-inicio');
+  const mf = document.getElementById('h-manana-fin');
+  const im = document.getElementById('h-intervalo-manana');
+  const hn = document.getElementById('h-intervalo-noche');
+  const hm = document.getElementById('h-intervalo-madrugada');
+  const md = document.getElementById('h-madrugada');
+  const gd = document.getElementById('h-guardia');
+
+  if(mi) mi.innerHTML = Array.from({length:16},(_,i)=>`<option value="${i+4}"${h.manana_inicio==i+4?' selected':''}>${String(i+4).padStart(2,'0')}:00</option>`).join('');
+  if(mf) mf.innerHTML = Array.from({length:12},(_,i)=>`<option value="${i+12}"${h.manana_fin==i+12?' selected':''}>${String(i+12).padStart(2,'0')}:00</option>`).join('');
+  if(im) Array.from(im.options).forEach(o=>o.selected=o.value==h.intervalo_manana);
+  if(hn) Array.from(hn.options).forEach(o=>o.selected=o.value==h.intervalo_noche);
+  if(hm) Array.from(hm.options).forEach(o=>o.selected=o.value==h.intervalo_madrugada);
+  if(md) md.checked = h.madrugada_activa;
+  if(gd) gd.checked = h.guardia_nocturna;
+
+  // Actualizar badge
+  const badge = document.getElementById('h-badge');
+  if(badge) badge.textContent = `${h.manana_inicio}am-${h.manana_fin>12?h.manana_fin-12+'pm':h.manana_fin+'am'} cada ${h.intervalo_manana}min`;
+}
+
+async function guardarHorarios(){
+  const datos = {
+    pin: '311',
+    manana_inicio:     parseInt(document.getElementById('h-manana-inicio')?.value||6),
+    manana_fin:        parseInt(document.getElementById('h-manana-fin')?.value||20),
+    intervalo_manana:  parseInt(document.getElementById('h-intervalo-manana')?.value||10),
+    intervalo_noche:   parseInt(document.getElementById('h-intervalo-noche')?.value||20),
+    intervalo_madrugada: parseInt(document.getElementById('h-intervalo-madrugada')?.value||30),
+    madrugada_activa:  document.getElementById('h-madrugada')?.checked ?? true,
+    guardia_nocturna:  document.getElementById('h-guardia')?.checked ?? true,
+  };
+  const r = await api('/api/horarios','POST', datos);
+  if(r.success){
+    toast('✅ Horarios guardados — aplican en el próximo ciclo');
+    cargarHorarios();
+  } else {
+    toast('❌ Error: ' + r.error);
+  }
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 cargarEstado();
