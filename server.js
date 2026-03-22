@@ -1,21 +1,13 @@
 /**
- * 🏮 EL FAROL AL DÍA — server.js V34.31 COMPLETO E INTEGRADO
+ * 🏮 EL FAROL AL DÍA — server.js V34.31 FINAL Y FUNCIONAL
  * 
- * STACK FINAL:
+ * STACK:
  * ✓ Express.js + PostgreSQL
- * ✓ Gemini 2.5 Flash (3 keys rotando)
- * ✓ Google Custom Search (imágenes HD)
- * ✓ Anti-duplicados (BD compartida)
- * ✓ Monetización CPC automática
- * ✓ Redacción manual + IA
- * ✓ Watermark responsivo
- * ✓ RSS 23 fuentes élite
+ * ✓ Gemini 2.5 Flash (3 keys)
+ * ✓ Anti-duplicados (similitud)
+ * ✓ Monetización CPC
  * ✓ Telegram Bot
- * ✓ AdSense
- * 
- * DEPLOY: Railway
- * BD: PostgreSQL
- * DOMINIO: elfarolaldia.com
+ * ✓ Panel redacción manual + IA
  */
 
 require('dotenv').config();
@@ -24,25 +16,21 @@ const pg = require('pg');
 const schedule = require('node-schedule');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fetch = require('node-fetch');
-const sharp = require('sharp');
-const fs = require('fs');
-const path = require('path');
 const axios = require('axios');
 const crypto = require('crypto');
 
-// ═══════════════════════════════════════════════════════════════════
-// CONFIGURACIÓN INICIAL
-// ═══════════════════════════════════════════════════════════════════
-
+// CONFIG
 const app = express();
 const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
+// PostgreSQL
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
+// Gemini Keys
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
   process.env.GEMINI_API_KEY2,
@@ -51,33 +39,28 @@ const GEMINI_KEYS = [
 
 let slotActual = 0;
 
-// ═══════════════════════════════════════════════════════════════════
 // MIDDLEWARE
-// ═══════════════════════════════════════════════════════════════════
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('client'));
 
-const verificarAuth = (req, res, next) => {
-  const pin = req.query.pin || req.body.pin;
-  if (pin !== '311') {
+const auth = (req, res, next) => {
+  if ((req.query.pin || req.body.pin) !== '311') {
     return res.status(401).json({ success: false, error: 'PIN incorrecto' });
   }
   next();
 };
 
-// ═══════════════════════════════════════════════════════════════════
-// INICIALIZAR BASE DE DATOS
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// CREAR TABLAS
+// ════════════════════════════════════════════════════════════════
 
-async function inicializarBD() {
+async function crearTablas() {
   try {
-    // Tabla de noticias
     await pool.query(`
       CREATE TABLE IF NOT EXISTS noticias (
         id SERIAL PRIMARY KEY,
-        titulo VARCHAR(255) NOT NULL,
+        titulo VARCHAR(255),
         slug VARCHAR(255) UNIQUE,
         seccion VARCHAR(50),
         contenido TEXT,
@@ -86,28 +69,22 @@ async function inicializarBD() {
         keywords VARCHAR(255),
         redactor VARCHAR(100),
         vistas INT DEFAULT 0,
-        fecha TIMESTAMP DEFAULT NOW(),
-        actualizado TIMESTAMP DEFAULT NOW()
+        fecha TIMESTAMP DEFAULT NOW()
       )
     `);
 
-    // Tabla anti-duplicados
     await pool.query(`
       CREATE TABLE IF NOT EXISTS noticias_publicadas_hoy (
         id SERIAL PRIMARY KEY,
-        titulo VARCHAR(255) NOT NULL,
+        titulo VARCHAR(255),
         slug VARCHAR(255) UNIQUE,
         categoria VARCHAR(50),
-        contenido_hash VARCHAR(64),
-        titulo_normalizado VARCHAR(255),
+        titulo_normalizado VARCHAR(255) UNIQUE,
         fecha_publicacion TIMESTAMP DEFAULT NOW(),
-        gemini_key_num INT,
-        fuente_rss VARCHAR(255),
-        UNIQUE(titulo_normalizado)
+        gemini_key_num INT
       )
     `);
 
-    // Tabla de intentos
     await pool.query(`
       CREATE TABLE IF NOT EXISTS intentos_gemini (
         id SERIAL PRIMARY KEY,
@@ -118,17 +95,14 @@ async function inicializarBD() {
       )
     `);
 
-    // Tabla RSS
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS rss_procesados (
+      CREATE TABLE IF NOT EXISTS config (
         id SERIAL PRIMARY KEY,
-        titulo VARCHAR(255) UNIQUE,
-        url VARCHAR(500),
-        fecha TIMESTAMP DEFAULT NOW()
+        clave VARCHAR(100) UNIQUE,
+        valor TEXT
       )
     `);
 
-    // Tabla comentarios
     await pool.query(`
       CREATE TABLE IF NOT EXISTS comentarios (
         id SERIAL PRIMARY KEY,
@@ -136,398 +110,243 @@ async function inicializarBD() {
         nombre VARCHAR(100),
         email VARCHAR(100),
         texto TEXT,
-        fecha TIMESTAMP DEFAULT NOW(),
-        aprobado BOOLEAN DEFAULT FALSE
+        fecha TIMESTAMP DEFAULT NOW()
       )
     `);
 
-    // Tabla configuración
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS config (
-        id SERIAL PRIMARY KEY,
-        clave VARCHAR(100) UNIQUE,
-        valor TEXT,
-        actualizado TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    console.log('✅ Base de datos inicializada');
+    console.log('✅ Tablas listas');
   } catch (e) {
-    console.error('❌ Error inicializando BD:', e.message);
+    console.error('❌ Error BD:', e.message);
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 // FUNCIONES AUXILIARES
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 
-function generarSlug(titulo) {
-  return titulo
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 80);
+function slug(titulo) {
+  return titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 80);
 }
 
-function normalizarTitulo(titulo) {
-  return titulo
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+function normalizar(titulo) {
+  return titulo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
 }
 
-// Similitud Levenshtein
-function similitud(str1, str2) {
-  const longer = str1.length > str2.length ? str1 : str2;
-  const shorter = str1.length > str2.length ? str2 : str1;
+function similitud(s1, s2) {
+  const longer = s1.length > s2.length ? s1 : s2;
+  const shorter = s1.length > s2.length ? s2 : s1;
   if (longer.length === 0) return 100;
   
-  const editDistance = getEditDistance(longer, shorter);
-  return ((longer.length - editDistance) / longer.length) * 100;
-}
-
-function getEditDistance(s1, s2) {
-  const costs = [];
-  for (let i = 0; i <= s1.length; i++) {
-    let lastValue = i;
-    for (let j = 0; j <= s2.length; j++) {
-      if (i === 0) {
-        costs[j] = j;
-      } else if (j > 0) {
-        let newValue = costs[j - 1];
-        if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
-          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+  const dist = (s1, s2) => {
+    const costs = [];
+    for (let i = 0; i <= s1.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= s2.length; j++) {
+        if (i === 0) costs[j] = j;
+        else if (j > 0) {
+          let newValue = costs[j - 1];
+          if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          }
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
         }
-        costs[j - 1] = lastValue;
-        lastValue = newValue;
       }
+      if (i > 0) costs[s2.length] = lastValue;
     }
-    if (i > 0) costs[s2.length] = lastValue;
-  }
-  return costs[s2.length];
+    return costs[s2.length];
+  };
+  
+  return ((longer.length - dist(longer, shorter)) / longer.length) * 100;
 }
 
-// Verificar duplicados
+// ════════════════════════════════════════════════════════════════
+// ANTI-DUPLICADOS
+// ════════════════════════════════════════════════════════════════
+
 async function verificarDuplicado(titulo, categoria) {
   try {
-    const tituloNormalizado = normalizarTitulo(titulo);
+    const norm = normalizar(titulo);
     const result = await pool.query(
-      `SELECT id, titulo, slug, gemini_key_num, fecha_publicacion
-       FROM noticias_publicadas_hoy
+      `SELECT titulo FROM noticias_publicadas_hoy
        WHERE categoria = $1 AND fecha_publicacion > NOW() - INTERVAL '24 hours'
-       ORDER BY fecha_publicacion DESC
-       LIMIT 100`,
+       LIMIT 50`,
       [categoria]
     );
 
-    if (result.rows.length === 0) {
-      return { esDuplicada: false, porSimilitud: 0 };
+    let maxSim = 0;
+    for (const row of result.rows) {
+      const sim = similitud(norm, normalizar(row.titulo));
+      maxSim = Math.max(maxSim, sim);
     }
 
-    let mejorSimilitud = 0;
-    let noticiaParecida = null;
-
-    for (const noticia of result.rows) {
-      const tituloExistenteNormalizado = normalizarTitulo(noticia.titulo);
-      const porcentajeSimilitud = similitud(tituloNormalizado, tituloExistenteNormalizado);
-
-      if (porcentajeSimilitud > mejorSimilitud) {
-        mejorSimilitud = porcentajeSimilitud;
-        noticiaParecida = noticia;
-      }
-    }
-
-    if (mejorSimilitud >= 80) {
-      return {
-        esDuplicada: true,
-        porSimilitud: mejorSimilitud.toFixed(1),
-        noticiaExistente: noticiaParecida,
-        razon: `Muy similar a noticia publicada por Key ${noticiaParecida.gemini_key_num}`
-      };
-    }
-
-    return { esDuplicada: false, porSimilitud: mejorSimilitud.toFixed(1) };
+    return {
+      esDuplicada: maxSim >= 80,
+      similitud: maxSim.toFixed(1)
+    };
   } catch (e) {
-    console.error('❌ Error verificando duplicado:', e.message);
-    return { esDuplicada: false, error: e.message };
+    return { esDuplicada: false, similitud: 0, error: e.message };
   }
 }
 
-// Guardar noticia en tabla anti-duplicados
-async function guardarNoticiaPublicada(titulo, slug, categoria, contenido, geminiKeyNum) {
-  try {
-    const tituloNormalizado = normalizarTitulo(titulo);
-    const contenidoHash = crypto.createHash('sha256').update(contenido).digest('hex');
-
-    const result = await pool.query(
-      `INSERT INTO noticias_publicadas_hoy 
-       (titulo, slug, categoria, contenido_hash, titulo_normalizado, gemini_key_num)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (titulo_normalizado) DO NOTHING
-       RETURNING id`,
-      [titulo, slug, categoria, contenidoHash, tituloNormalizado, geminiKeyNum]
-    );
-
-    if (result.rows.length > 0) {
-      console.log(`✅ Noticia guardada en anti-duplicados`);
-      return { exito: true, id: result.rows[0].id };
-    }
-    return { exito: false, razon: 'Ya existe' };
-  } catch (e) {
-    console.error('❌ Error guardando noticia:', e.message);
-    return { exito: false, error: e.message };
-  }
-}
-
-// Registrar intento de Gemini
-async function registrarIntentoGemini(geminiKeyNum, titulo, resultado) {
+async function guardarDuplicado(titulo, titulo_norm, slug, categoria, gemini_key_num) {
   try {
     await pool.query(
-      `INSERT INTO intentos_gemini (gemini_key_num, titulo_intento, resultado)
-       VALUES ($1, $2, $3)`,
-      [geminiKeyNum, titulo, resultado]
+      `INSERT INTO noticias_publicadas_hoy 
+       (titulo, titulo_normalizado, slug, categoria, gemini_key_num)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (titulo_normalizado) DO NOTHING`,
+      [titulo, titulo_norm, slug, categoria, gemini_key_num]
     );
   } catch (e) {
-    console.error('⚠️ Error registrando intento:', e.message);
+    console.error('⚠️ Error guardando:', e.message);
   }
 }
 
-// Buscar imagen óptima (CSE + og:image + Pexels + local)
-async function buscarImagenOptima(keyword, categoria) {
-  try {
-    // INTENTO 1: Pexels (fallback simple)
-    if (process.env.PEXELS_API_KEY) {
-      const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(keyword)}&per_page=1`, {
-        headers: { 'Authorization': process.env.PEXELS_API_KEY },
-        timeout: 5000
-      });
-      const data = await response.json();
-      if (data.photos && data.photos.length > 0) {
-        const foto = data.photos[0];
-        return {
-          url: foto.src.original,
-          fuente: 'pexels',
-          ancho: foto.width,
-          alto: foto.height
-        };
-      }
-    }
+// ════════════════════════════════════════════════════════════════
+// MONETIZACIÓN
+// ════════════════════════════════════════════════════════════════
 
-    // FALLBACK: imagen local
-    return {
-      url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-      fuente: 'pexels_default',
-      ancho: 1200,
-      alto: 800
-    };
-  } catch (e) {
-    console.error('⚠️ Error buscando imagen:', e.message);
-    return {
-      url: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg',
-      fuente: 'fallback',
-      ancho: 1200,
-      alto: 800
-    };
-  }
-}
-
-// Limpiar tabla anti-duplicados
-async function limpiarTablaAntiduplicated() {
-  try {
-    const result = await pool.query(
-      `DELETE FROM noticias_publicadas_hoy
-       WHERE fecha_publicacion < NOW() - INTERVAL '24 hours'`
-    );
-    console.log(`🧹 Limpieza: ${result.rowCount} noticias borradas`);
-  } catch (e) {
-    console.error('❌ Error limpiando tabla:', e.message);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// MONETIZACIÓN CPC
-// ═══════════════════════════════════════════════════════════════════
-
-function monetizarNoticia(noticia) {
-  const { titulo, descripcion, keywords, contenido, categoria } = noticia;
+function monetizar(titulo, contenido, categoria) {
+  let t = titulo;
   
-  // Palabras mágicas CPC
-  const palabrasCPC = {
-    'Economia': ['inversión', 'banco', 'financiero', 'crédito', 'ahorro'],
-    'Nacionales': ['Santo Domingo', 'infraestructura', 'desarrollo', 'vivienda'],
-    'Tecnologia': ['fintech', 'digital', 'blockchain', 'pagos'],
-  };
-
-  let tituloFinal = titulo;
-  let descFinal = descripcion;
-
-  // Inyectar palabra CPC sutil
   if (categoria === 'Economia') {
-    if (!titulo.toLowerCase().includes('inversión')) {
-      tituloFinal = `${titulo} – Clima de Inversión`;
-    }
+    if (!t.includes('inversión')) t = `${t} – Clima Inversión`;
   } else if (categoria === 'Nacionales') {
-    if (titulo.toLowerCase().includes('construcci') || titulo.toLowerCase().includes('vivienda')) {
-      tituloFinal = `${titulo} – Plusvalía Inmobiliaria`;
+    if (t.includes('construcci') || t.includes('vivienda')) {
+      t = `${t} – Plusvalía`;
     }
   }
-
-  // Limitar a 110 caracteres
-  if (tituloFinal.length > 110) {
-    tituloFinal = tituloFinal.substring(0, 107) + '...';
-  }
-
-  return {
-    titulo: tituloFinal,
-    descripcion: descFinal,
-    keywords: keywords,
-    contenido: contenido
-  };
+  
+  if (t.length > 110) t = t.substring(0, 107) + '...';
+  return t;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// GENERAR NOTICIA CON GEMINI
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// GENERAR NOTICIA
+// ════════════════════════════════════════════════════════════════
 
-async function generarNoticia(categoria, intentoNum = 0) {
-  if (intentoNum > 2) {
-    console.log('❌ 3 intentos fallidos');
-    return null;
-  }
+async function generarNoticia(categoria, intento = 0) {
+  if (intento > 2) return null;
 
   try {
-    // Rotar key
     slotActual = (slotActual + 1) % 3;
-    const geminiKeyNum = slotActual + 1;
+    const keyNum = slotActual + 1;
     const apiKey = GEMINI_KEYS[slotActual];
 
-    console.log(`\n🚀 Generando — Key ${geminiKeyNum}, Intento ${intentoNum + 1}`);
+    console.log(`\n🚀 Key ${keyNum} - Generando ${categoria}`);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // Instrucción
-    const instruccion = `Eres periodista élite de República Dominicana. 
-Escribe noticias verificables, impactantes, con pirámide invertida.
-Categoría: ${categoria}
-Formato JSON: {"titulo", "descripcion", "keywords", "contenido"}`;
+    const prompt = `Eres periodista de República Dominicana.
+Escribe UNA noticia sobre ${categoria} en formato JSON.
+Responde SOLO con JSON: {"titulo": "...", "descripcion": "...", "keywords": "...", "contenido": "..."}`;
 
     const response = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: instruccion }] }],
-      generationConfig: { maxOutputTokens: 2000 }
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 1500 }
     });
 
-    const respuesta = response.response.text();
-    const jsonMatch = respuesta.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No es JSON');
+    const text = response.response.text();
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON');
 
-    const noticia = JSON.parse(jsonMatch[0]);
-    let { titulo, descripcion: desc, keywords: pals, contenido } = noticia;
+    const data = JSON.parse(match[0]);
+    let titulo = (data.titulo || '').replace(/[*_#`"]/g, '').substring(0, 110);
+    let desc = (data.descripcion || '').replace(/[*_#`]/g, '').substring(0, 160);
+    let keywords = (data.keywords || '').split(',').map(k => k.trim()).join(', ');
+    let contenido = data.contenido || '';
 
-    // Limpiar
-    titulo = titulo.replace(/[*_#`"]/g, '').trim().substring(0, 110);
-    desc = desc.replace(/[*_#`]/g, '').trim().substring(0, 160);
-    pals = pals.split(',').map(p => p.trim()).join(', ');
-    const slug = generarSlug(titulo);
+    if (!titulo || !contenido) throw new Error('Datos incompletos');
 
-    console.log(`✅ Generado: "${titulo.substring(0, 50)}..."`);
-
-    // VERIFICACIÓN ANTI-DUPLICADOS
-    const verificacion = await verificarDuplicado(titulo, categoria);
-
-    if (verificacion.esDuplicada) {
-      console.log(`⚠️ RECHAZADA: ${verificacion.razon} (${verificacion.porSimilitud}%)`);
-      await registrarIntentoGemini(geminiKeyNum, titulo, 'duplicada');
-      return generarNoticia(categoria, intentoNum + 1);
+    // VERIFICAR DUPLICADO
+    const dup = await verificarDuplicado(titulo, categoria);
+    if (dup.esDuplicada) {
+      console.log(`⚠️ Duplicada (${dup.similitud}%)`);
+      await pool.query(
+        `INSERT INTO intentos_gemini (gemini_key_num, titulo_intento, resultado)
+         VALUES ($1, $2, $3)`,
+        [keyNum, titulo, 'duplicada']
+      );
+      return generarNoticia(categoria, intento + 1);
     }
 
-    console.log(`✅ Verificada (${verificacion.porSimilitud}% similar máx)`);
+    const slugFinal = slug(titulo);
+    const normTitulo = normalizar(titulo);
+    const tituloMone = monetizar(titulo, contenido, categoria);
 
-    // Guardar en tabla anti-duplicados
-    await guardarNoticiaPublicada(titulo, slug, categoria, contenido, geminiKeyNum);
+    // Guardar en anti-duplicados
+    await guardarDuplicado(titulo, normTitulo, slugFinal, categoria, keyNum);
 
-    // Buscar imagen
-    const imagenData = await buscarImagenOptima(titulo, categoria);
-    const imagen = imagenData.url;
+    // Imagen fallback
+    let imagen = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg';
+    if (process.env.PEXELS_API_KEY) {
+      try {
+        const resp = await fetch(
+          `https://api.pexels.com/v1/search?query=${encodeURIComponent(titulo)}&per_page=1`,
+          { headers: { 'Authorization': process.env.PEXELS_API_KEY }, timeout: 5000 }
+        );
+        const d = await resp.json();
+        if (d.photos && d.photos[0]) {
+          imagen = d.photos[0].src.original;
+        }
+      } catch (e) {
+        console.log('⚠️ Pexels error');
+      }
+    }
 
-    // Monetización
-    const noticiaSinMonetizar = {
-      titulo,
-      descripcion: desc,
-      keywords: pals,
-      contenido,
-      categoria
-    };
-    const noticiaMonetizada = monetizarNoticia(noticiaSinMonetizar);
-
-    // Publicar en BD
+    // PUBLICAR
     await pool.query(
       `INSERT INTO noticias (titulo, slug, seccion, contenido, imagen, descripcion_seo, keywords, redactor)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [
-        noticiaMonetizada.titulo,
-        slug,
-        categoria,
-        noticiaMonetizada.contenido,
-        imagen,
-        noticiaMonetizada.descripcion,
-        noticiaMonetizada.keywords,
-        'Redacción IA'
-      ]
+      [tituloMone, slugFinal, categoria, contenido, imagen, desc, keywords, 'IA']
     );
 
-    console.log(`✅ PUBLICADA: ${slug}`);
+    console.log(`✅ Publicada: ${slugFinal}`);
 
     // Telegram
     if (process.env.TELEGRAM_TOKEN) {
-      const msg = `📰 ${noticiaMonetizada.titulo}\n\n${noticiaMonetizada.descripcion}\n\n${BASE_URL}/${slug}`;
-      await axios.post(
-        `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-        {
-          chat_id: process.env.TELEGRAM_CHAT_ID,
-          text: msg
-        }
-      ).catch(e => console.log('⚠️ Telegram error'));
+      const msg = `📰 ${tituloMone}\n\n${desc}\n\n${BASE_URL}/${slugFinal}`;
+      try {
+        await axios.post(
+          `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
+          { chat_id: process.env.TELEGRAM_CHAT_ID, text: msg }
+        );
+      } catch (e) {
+        console.log('⚠️ Telegram error');
+      }
     }
 
-    await registrarIntentoGemini(geminiKeyNum, titulo, 'publicada');
+    await pool.query(
+      `INSERT INTO intentos_gemini (gemini_key_num, titulo_intento, resultado)
+       VALUES ($1, $2, $3)`,
+      [keyNum, titulo, 'publicada']
+    );
 
-    return {
-      success: true,
-      titulo: noticiaMonetizada.titulo,
-      slug,
-      categoria,
-      imagen,
-      url: `${BASE_URL}/${slug}`
-    };
+    return { success: true, titulo: tituloMone, slug: slugFinal, url: `${BASE_URL}/${slugFinal}` };
 
   } catch (e) {
-    console.error(`❌ Error:`, e.message);
-    if (intentoNum < 2) {
-      return generarNoticia(categoria, intentoNum + 1);
-    }
+    console.error(`❌ Error Key ${slotActual + 1}:`, e.message);
+    if (intento < 2) return generarNoticia(categoria, intento + 1);
     return null;
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// RUTAS API
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// RUTAS
+// ════════════════════════════════════════════════════════════════
 
 app.get('/status', async (req, res) => {
   try {
-    const noticias = await pool.query('SELECT COUNT(*) FROM noticias');
+    const count = await pool.query('SELECT COUNT(*) FROM noticias');
     res.json({
       version: '34.31',
-      noticias: noticias.rows[0].count,
+      noticias: count.rows[0].count,
       modelo: 'gemini-2.5-flash',
-      base_url: BASE_URL,
-      uptime: process.uptime()
+      base_url: BASE_URL
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -538,11 +357,7 @@ app.post('/api/generar-noticia', async (req, res) => {
   const { categoria = 'Nacionales' } = req.body;
   try {
     const resultado = await generarNoticia(categoria);
-    if (resultado) {
-      res.json({ success: true, ...resultado });
-    } else {
-      res.json({ success: false, error: 'No se pudo generar' });
-    }
+    res.json(resultado || { success: false });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -550,20 +365,16 @@ app.post('/api/generar-noticia', async (req, res) => {
 
 app.post('/api/publicar', async (req, res) => {
   const { pin, titulo, seccion, contenido, redactor, imagen, seo_description } = req.body;
-
-  if (pin !== '311') {
-    return res.status(401).json({ success: false, error: 'PIN incorrecto' });
-  }
+  if (pin !== '311') return res.status(401).json({ success: false });
 
   try {
-    const slug = generarSlug(titulo);
+    const slug_final = slug(titulo);
     await pool.query(
       `INSERT INTO noticias (titulo, slug, seccion, contenido, imagen, descripcion_seo, redactor)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [titulo, slug, seccion, contenido, imagen, seo_description, redactor]
+      [titulo, slug_final, seccion, contenido, imagen, seo_description, redactor]
     );
-
-    res.json({ success: true, slug, url: `${BASE_URL}/${slug}` });
+    res.json({ success: true, slug: slug_final, url: `${BASE_URL}/${slug_final}` });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -572,27 +383,27 @@ app.post('/api/publicar', async (req, res) => {
 app.get('/api/noticias', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, titulo, slug, seccion, imagen, descripcion_seo, fecha, vistas FROM noticias ORDER BY fecha DESC LIMIT 100'
+      `SELECT id, titulo, slug, seccion, imagen, descripcion_seo, fecha, vistas
+       FROM noticias ORDER BY fecha DESC LIMIT 100`
     );
     res.json({ success: true, noticias: result.rows });
   } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
-app.post('/api/eliminar/:id', verificarAuth, async (req, res) => {
+app.post('/api/eliminar/:id', auth, async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM noticias WHERE id = $1 RETURNING slug', [req.params.id]);
-    res.json({ success: true, deleted: result.rowCount });
+    await pool.query('DELETE FROM noticias WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
 });
 
-app.post('/api/actualizar-imagen/:id', verificarAuth, async (req, res) => {
-  const { imagen } = req.body;
+app.post('/api/actualizar-imagen/:id', auth, async (req, res) => {
   try {
-    await pool.query('UPDATE noticias SET imagen = $1 WHERE id = $2', [imagen, req.params.id]);
+    await pool.query('UPDATE noticias SET imagen = $1 WHERE id = $2', [req.body.imagen, req.params.id]);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -601,36 +412,37 @@ app.post('/api/actualizar-imagen/:id', verificarAuth, async (req, res) => {
 
 app.get('/api/estadisticas', async (req, res) => {
   try {
-    const noticias = await pool.query('SELECT COUNT(*) as total FROM noticias');
-    const vistas = await pool.query('SELECT SUM(vistas) as total FROM noticias');
+    const n = await pool.query('SELECT COUNT(*) FROM noticias');
+    const v = await pool.query('SELECT SUM(vistas) FROM noticias');
     res.json({
-      totalNoticias: noticias.rows[0].total,
-      totalVistas: vistas.rows[0].total || 0
+      totalNoticias: n.rows[0].count,
+      totalVistas: v.rows[0].sum || 0
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-app.get('/api/admin/config', verificarAuth, async (req, res) => {
+app.get('/api/admin/config', auth, async (req, res) => {
   try {
     const result = await pool.query('SELECT clave, valor FROM config');
     const config = {};
-    result.rows.forEach(row => { config[row.clave] = row.valor; });
+    result.rows.forEach(r => { config[r.clave] = r.valor; });
     res.json(config);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-app.post('/api/admin/config', verificarAuth, async (req, res) => {
+app.post('/api/admin/config', auth, async (req, res) => {
   try {
     const keys = ['enabled', 'instruccion_principal', 'enfasis', 'tono', 'extension', 'evitar'];
-    for (const key of keys) {
-      if (key in req.body) {
+    for (const k of keys) {
+      if (k in req.body) {
         await pool.query(
-          'INSERT INTO config (clave, valor) VALUES ($1, $2) ON CONFLICT (clave) DO UPDATE SET valor = $2',
-          [key, req.body[key]]
+          `INSERT INTO config (clave, valor) VALUES ($1, $2)
+           ON CONFLICT (clave) DO UPDATE SET valor = $2`,
+          [k, req.body[k]]
         );
       }
     }
@@ -640,14 +452,15 @@ app.post('/api/admin/config', verificarAuth, async (req, res) => {
   }
 });
 
-app.get('/api/memoria', verificarAuth, async (req, res) => {
+app.get('/api/memoria', auth, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT gemini_key_num, titulo_intento as valor, resultado FROM intentos_gemini ORDER BY timestamp_intento DESC LIMIT 50'
+      `SELECT gemini_key_num, titulo_intento, resultado FROM intentos_gemini
+       ORDER BY timestamp_intento DESC LIMIT 50`
     );
     const registros = result.rows.map(r => ({
       tipo: 'intentos',
-      valor: r.valor,
+      valor: r.titulo_intento,
       resultado: r.resultado,
       key: r.gemini_key_num,
       pct_exito: r.resultado === 'publicada' ? 100 : 0
@@ -658,12 +471,11 @@ app.get('/api/memoria', verificarAuth, async (req, res) => {
   }
 });
 
-app.get('/api/admin/comentarios', verificarAuth, async (req, res) => {
+app.get('/api/admin/comentarios', auth, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT c.id, c.nombre, c.texto, c.fecha, n.titulo as noticia_titulo 
-       FROM comentarios c 
-       LEFT JOIN noticias n ON c.noticia_id = n.id 
+      `SELECT c.id, c.nombre, c.texto, c.fecha, n.titulo as noticia_titulo
+       FROM comentarios c LEFT JOIN noticias n ON c.noticia_id = n.id
        ORDER BY c.fecha DESC LIMIT 50`
     );
     res.json({ comentarios: result.rows });
@@ -672,7 +484,7 @@ app.get('/api/admin/comentarios', verificarAuth, async (req, res) => {
   }
 });
 
-app.post('/api/comentarios/eliminar/:id', verificarAuth, async (req, res) => {
+app.post('/api/comentarios/eliminar/:id', auth, async (req, res) => {
   try {
     await pool.query('DELETE FROM comentarios WHERE id = $1', [req.params.id]);
     res.json({ success: true });
@@ -681,57 +493,47 @@ app.post('/api/comentarios/eliminar/:id', verificarAuth, async (req, res) => {
   }
 });
 
-app.get('/api/coach', verificarAuth, async (req, res) => {
+app.get('/api/coach', auth, async (req, res) => {
   const dias = parseInt(req.query.dias) || 7;
   try {
     const result = await pool.query(
-      `SELECT seccion, COUNT(*) as total, SUM(vistas) as vistas, ROUND(AVG(vistas)) as vistas_promedio
-       FROM noticias
-       WHERE fecha > NOW() - INTERVAL '${dias} days'
-       GROUP BY seccion
-       ORDER BY vistas DESC`
+      `SELECT seccion, COUNT(*) as total, SUM(vistas) as vistas, ROUND(AVG(vistas)) as prom
+       FROM noticias WHERE fecha > NOW() - INTERVAL '${dias} days'
+       GROUP BY seccion ORDER BY vistas DESC`
     );
     
-    const categorias = {};
+    const cats = {};
     result.rows.forEach(r => {
-      categorias[r.seccion] = {
+      cats[r.seccion] = {
         total: r.total,
-        vistas_promedio: r.vistas_promedio || 0,
-        rendimiento: Math.min(100, (r.vistas_promedio || 0) / 10)
+        vistas_promedio: r.prom || 0,
+        rendimiento: Math.min(100, (r.prom || 0) / 10)
       };
     });
     
-    const totalNoticias = result.rows.reduce((sum, r) => sum + parseInt(r.total), 0);
-    const totalVistas = result.rows.reduce((sum, r) => sum + (r.vistas || 0), 0);
+    const total_n = result.rows.reduce((s, r) => s + parseInt(r.total), 0);
+    const total_v = result.rows.reduce((s, r) => s + (r.vistas || 0), 0);
     
-    res.json({
-      success: true,
-      categorias,
-      total_noticias: totalNoticias,
-      total_vistas: totalVistas
-    });
+    res.json({ success: true, categorias: cats, total_noticias: total_n, total_vistas: total_v });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
 });
 
-app.get('/api/telegram/status', verificarAuth, async (req, res) => {
+app.get('/api/telegram/status', auth, async (req, res) => {
   res.json({
     token_activo: !!process.env.TELEGRAM_TOKEN,
-    chat_id: process.env.TELEGRAM_CHAT_ID || 'No configurado',
-    instruccion: 'Bot preparado'
+    chat_id: process.env.TELEGRAM_CHAT_ID || 'No',
+    status: 'OK'
   });
 });
 
-app.post('/api/telegram/test', verificarAuth, async (req, res) => {
+app.post('/api/telegram/test', auth, async (req, res) => {
   try {
-    const msg = `🏮 Test El Farol al Día ✅\n\n${new Date().toLocaleString('es-DO')}`;
+    const msg = `🏮 Test ${new Date().toLocaleString('es-DO')}`;
     await axios.post(
       `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`,
-      {
-        chat_id: process.env.TELEGRAM_CHAT_ID,
-        text: msg
-      }
+      { chat_id: process.env.TELEGRAM_CHAT_ID, text: msg }
     );
     res.json({ success: true, mensaje: '✅ Enviado' });
   } catch (e) {
@@ -739,53 +541,52 @@ app.post('/api/telegram/test', verificarAuth, async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 // CRON JOBS
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 
 schedule.scheduleJob('*/10 * * * *', async () => {
-  const categorias = ['Nacionales', 'Deportes', 'Internacionales', 'Economia', 'Tecnologia', 'Espectaculos'];
-  const categoria = categorias[Math.floor(Math.random() * categorias.length)];
-  await generarNoticia(categoria);
+  const cats = ['Nacionales', 'Deportes', 'Internacionales', 'Economia', 'Tecnologia', 'Espectaculos'];
+  const cat = cats[Math.floor(Math.random() * cats.length)];
+  await generarNoticia(cat);
 });
 
 schedule.scheduleJob('0 3 * * *', async () => {
-  console.log('🧹 Limpieza anti-duplicados');
-  await limpiarTablaAntiduplicated();
+  console.log('🧹 Limpieza');
+  try {
+    await pool.query(`DELETE FROM noticias_publicadas_hoy
+                      WHERE fecha_publicacion < NOW() - INTERVAL '24 hours'`);
+  } catch (e) {
+    console.error('⚠️ Error limpieza:', e.message);
+  }
 });
 
-// ═══════════════════════════════════════════════════════════════════
-// INICIAR SERVIDOR
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// INICIAR
+// ════════════════════════════════════════════════════════════════
 
-async function iniciar() {
+async function start() {
   try {
-    await inicializarBD();
-    
+    await crearTablas();
     app.listen(PORT, () => {
       console.log(`\n${'═'.repeat(60)}`);
-      console.log(`🏮 EL FAROL AL DÍA — V34.31 COMPLETO`);
+      console.log(`🏮 EL FAROL AL DÍA — V34.31`);
       console.log(`${'═'.repeat(60)}`);
-      console.log(`✅ Servidor en puerto ${PORT}`);
-      console.log(`✅ BD: PostgreSQL conectada`);
-      console.log(`✅ Gemini: 3 keys rotando`);
-      console.log(`✅ Anti-duplicados: ACTIVO`);
-      console.log(`✅ Monetización CPC: ACTIVA`);
-      console.log(`✅ Telegram Bot: LISTO`);
+      console.log(`✅ Servidor ${PORT}`);
+      console.log(`✅ BD: PostgreSQL`);
+      console.log(`✅ Gemini: 3 keys`);
+      console.log(`✅ Anti-duplicados: ON`);
+      console.log(`✅ Monetización: ON`);
+      console.log(`✅ Telegram: ON`);
       console.log(`${'═'.repeat(60)}\n`);
     });
   } catch (e) {
-    console.error('❌ Error iniciando:', e.message);
+    console.error('❌ Error:', e.message);
     process.exit(1);
   }
 }
 
-iniciar();
+start();
 
-process.on('unhandledRejection', (reason) => {
-  console.error('❌ Promise rechazada:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('❌ Excepción:', error);
-});
+process.on('unhandledRejection', e => console.error('❌ Rejection:', e));
+process.on('uncaughtException', e => console.error('❌ Exception:', e));
