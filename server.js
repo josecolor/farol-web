@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.53
+ * 🏮 EL FAROL AL DÍA — V34.54
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -452,6 +452,91 @@ async function guardarConfigIA(cfg) {
 //           para que Node no mantenga el timer activo después de la respuesta.
 const GEMINI_MODEL   = 'gemini-2.5-flash';
 const GEMINI_TIMEOUT = 90000; // 90s — Gemini 2.5 Flash necesita más para artículos completos
+
+// ─── SISTEMA MULTIIDIOMA ──────────────────────────────────────────────────────
+// El Farol al Día habla con el mundo — detecta el idioma del visitante
+// y traduce el contenido automáticamente con Gemini
+// Idiomas soportados con su cultura periodística propia
+const IDIOMAS = {
+    'es': { nombre: 'Español',    locale: 'es-DO', gemini: 'español dominicano'      },
+    'en': { nombre: 'English',    locale: 'en-US', gemini: 'professional English'     },
+    'fr': { nombre: 'Français',   locale: 'fr-FR', gemini: 'français journalistique'  },
+    'pt': { nombre: 'Português',  locale: 'pt-BR', gemini: 'português brasileiro'     },
+    'it': { nombre: 'Italiano',   locale: 'it-IT', gemini: 'italiano giornalistico'   },
+    'de': { nombre: 'Deutsch',    locale: 'de-DE', gemini: 'professionelles Deutsch'  },
+    'zh': { nombre: '中文',        locale: 'zh-CN', gemini: '专业中文新闻'              },
+    'ar': { nombre: 'العربية',    locale: 'ar-SA', gemini: 'عربي صحفي احترافي'        },
+    'ru': { nombre: 'Русский',    locale: 'ru-RU', gemini: 'профессиональный русский' },
+    'ja': { nombre: '日本語',      locale: 'ja-JP', gemini: 'プロの日本語ニュース'       },
+    'ko': { nombre: '한국어',      locale: 'ko-KR', gemini: '전문 한국어 뉴스'          },
+    'hi': { nombre: 'हिन्दी',      locale: 'hi-IN', gemini: 'पेशेवर हिंदी समाचार'     },
+    'ht': { nombre: 'Kreyòl',     locale: 'ht-HT', gemini: 'kreyòl ayisyen'           },
+};
+
+// Cache de traducciones — evita traducir lo mismo dos veces
+const cacheTraduccion = new Map();
+const CACHE_TRAD_TTL  = 3600000; // 1 hora
+
+// Detectar idioma desde Accept-Language header
+function detectarIdioma(req) {
+    const al = req.headers['accept-language'] || '';
+    const preferidos = al.split(',').map(l => l.split(';')[0].trim().substring(0,2).toLowerCase());
+    for (const lang of preferidos) {
+        if (IDIOMAS[lang]) return lang;
+    }
+    return 'es'; // default español
+}
+
+// Traducir texto con Gemini — inteligente y cultural
+async function traducirConGemini(texto, idiomaDestino, contexto = 'noticia') {
+    if (idiomaDestino === 'es') return texto; // ya en español
+    if (!IDIOMAS[idiomaDestino]) return texto;
+
+    const cacheKey = `${idiomaDestino}:${texto.substring(0,50)}`;
+    const cached = cacheTraduccion.get(cacheKey);
+    if (cached && (Date.now() - cached.t) < CACHE_TRAD_TTL) return cached.v;
+
+    try {
+        const idioma = IDIOMAS[idiomaDestino];
+        const prompt = `Traduce este texto de un periódico dominicano al ${idioma.gemini}.
+
+REGLAS:
+- Mantén el tono periodístico profesional
+- Adapta culturalmente (no traduzcas literalmente)
+- Conserva nombres propios, lugares y siglas dominicanas
+- Para títulos: máximo 65 caracteres
+- Responde SOLO con la traducción, sin explicaciones
+
+TEXTO:
+${texto}`;
+
+        const { key } = getGeminiKey();
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 15000);
+        const res  = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: ctrl.signal,
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.3, maxOutputTokens: 1000 },
+                }),
+            }
+        ).finally(() => clearTimeout(tm));
+
+        if (!res.ok) return texto;
+        const data = await res.json();
+        const traducido = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (!traducido) return texto;
+
+        cacheTraduccion.set(cacheKey, { v: traducido, t: Date.now() });
+        return traducido;
+    } catch (_) {
+        return texto; // Si falla → texto original
+    }
+}
 const GS = { lastRequest: 0, resetTime: 0 };
 
 async function llamarGemini(prompt, reintentos = 3) {
@@ -883,7 +968,7 @@ function metaTagsCompletos(n, url) {
 <meta name="news_keywords" content="ultimo minuto, santo domingo este, tendencias dominicanas, ${esc(k)}">
 <meta name="geo.region" content="DO-01"><meta name="geo.placename" content="Santo Domingo Este, Republica Dominicana">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<link rel="canonical" href="${ue}"><link rel="alternate" hreflang="es-DO" href="${ue}"><link rel="alternate" hreflang="es" href="${ue}">
+<link rel="canonical" href="${ue}"><link rel="alternate" hreflang="es-DO" href="${ue}"><link rel="alternate" hreflang="es" href="${ue}"><link rel="alternate" hreflang="en" href="${ue}?lang=en"><link rel="alternate" hreflang="fr" href="${ue}?lang=fr"><link rel="alternate" hreflang="pt" href="${ue}?lang=pt"><link rel="alternate" hreflang="ht" href="${ue}?lang=ht"><link rel="alternate" hreflang="x-default" href="${ue}">
 <meta property="og:type" content="article"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}">
 <meta property="og:image" content="${img}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta property="og:url" content="${ue}"><meta property="og:site_name" content="El Farol al Dia - Ultimo Minuto RD"><meta property="og:locale" content="es_DO">
@@ -2675,7 +2760,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.53', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.54', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -2950,8 +3035,21 @@ app.get('/noticia/:slug', async (req, res) => {
             [req.params.slug, 'publicada']
         );
         if (!r.rows.length) return res.status(404).send('Noticia no encontrada');
-        const n = r.rows[0];
+        let n = r.rows[0];
         await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1', [n.id]);
+
+        // Detectar idioma del visitante — traducir si no es español
+        const lang = req.query.lang || detectarIdioma(req);
+        if (lang !== 'es' && IDIOMAS[lang]) {
+            try {
+                const [titulo, contenido] = await Promise.all([
+                    traducirConGemini(n.titulo, lang, 'titulo'),
+                    traducirConGemini(n.contenido.substring(0, 3000), lang, 'articulo'),
+                ]);
+                n = { ...n, titulo, contenido };
+                console.log(`[i18n] Noticia servida en ${IDIOMAS[lang].nombre}: "${titulo.substring(0,40)}"`);
+            } catch (_) {} // Si falla → español original
+        }
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
             const urlN  = `${BASE_URL}/noticia/${n.slug}`;
@@ -2975,6 +3073,43 @@ app.get('/noticia/:slug', async (req, res) => {
 });
 
 // ─── SITEMAP / ROBOTS / ADS ───────────────────────────────────────────────────
+// ─── API MULTIIDIOMA ─────────────────────────────────────────────────────────
+// GET /api/noticias?lang=en  → devuelve noticias traducidas al inglés
+// GET /noticia/:slug?lang=fr → devuelve noticia en francés
+// Soporta: es, en, fr, pt, it, de, zh, ar, ru, ja, ko, hi, ht
+
+app.get('/api/idiomas', (req, res) => {
+    res.json({ success: true, idiomas: IDIOMAS });
+});
+
+app.get('/api/traducir/:id', async (req, res) => {
+    const lang = req.query.lang || detectarIdioma(req);
+    if (!IDIOMAS[lang]) return res.status(400).json({ error: 'Idioma no soportado' });
+
+    try {
+        const r = await pool.query('SELECT * FROM noticias WHERE id=$1 AND estado=$2', [req.params.id, 'publicada']);
+        if (!r.rows.length) return res.status(404).json({ error: 'No encontrada' });
+
+        const n = r.rows[0];
+        if (lang === 'es') return res.json({ success: true, noticia: n, idioma: 'es' });
+
+        // Traducir título, descripción y contenido en paralelo
+        const [titulo, descripcion, contenido] = await Promise.all([
+            traducirConGemini(n.titulo, lang, 'titulo'),
+            traducirConGemini(n.seo_description || '', lang, 'descripcion'),
+            traducirConGemini(n.contenido.substring(0, 2000), lang, 'articulo'),
+        ]);
+
+        res.json({
+            success: true,
+            idioma:  lang,
+            noticia: { ...n, titulo, seo_description: descripcion, contenido },
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 app.get('/sitemap.xml', async (req, res) => {
     try {
         const r   = await pool.query("SELECT slug,fecha FROM noticias WHERE estado='publicada' ORDER BY fecha DESC");
@@ -3010,7 +3145,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.53',
+            version:        '34.54',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3074,7 +3209,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.53               ║
+║        🏮  EL FAROL AL DIA  —  V34.54               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
