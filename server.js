@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.36
- * Base: V34.36
+ * 🏮 EL FAROL AL DÍA — V34.37
+ * Base: V34.37
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -70,21 +70,26 @@ const PORT     = process.env.PORT || 8080;
 const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\/$/, '');
 
 if (!process.env.DATABASE_URL)   { console.error('[FATAL] DATABASE_URL requerido');   process.exit(1); }
-if (!process.env.GEMINI_API_KEY) { console.error('[FATAL] GEMINI_API_KEY requerido'); process.exit(1); }
 // Google Custom Search — opcional, mejora calidad de fotos
-if (!process.env.GOOGLE_CSE_KEY) console.warn('[IMG] GOOGLE_CSE_KEY no configurada — usando Wikimedia para fotos HD');
+if (!process.env.GOOGLE_CSE_KEY) console.warn('[IMG] GOOGLE_CSE_KEY no configurada — fotos HD limitadas');
 
-// ─── GEMINI MULTI-KEY — hasta 5 cuentas rotan automáticamente ────────────────
-// Agregar en Railway: GEMINI_API_KEY, GEMINI_API_KEY2, GEMINI_API_KEY3...
-// Cada cuenta Google gratuita da ~15 req/min — 5 cuentas = 75 req/min
-// Si una da 429 → pasa a la siguiente automáticamente
+// ─── GEMINI MULTI-KEY — acepta KEY, KEY2, KEY3, KEY4, KEY5 en cualquier combinación ──
+// Si tienes KEY2, KEY3, KEY4 pero no KEY — el servidor igual arranca con las que haya
+// Cada cuenta Google gratuita da ~15 req/min — 4 cuentas = 60 req/min
 const GEMINI_KEYS = [
-    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY  || null,
     process.env.GEMINI_API_KEY2 || null,
     process.env.GEMINI_API_KEY3 || null,
     process.env.GEMINI_API_KEY4 || null,
     process.env.GEMINI_API_KEY5 || null,
 ].filter(Boolean);
+
+// Verificar que al menos UNA key existe — cualquiera sirve como principal
+if (!GEMINI_KEYS.length) {
+    console.error('[FATAL] Se necesita al menos una GEMINI_API_KEY (KEY, KEY2, KEY3 o KEY4)');
+    process.exit(1);
+}
+console.log(`[Gemini] ${GEMINI_KEYS.length} key(s) disponibles`);
 // ─── ROTACIÓN DE KEYS POR TURNO ──────────────────────────────────────────────
 // Cada noticia usa la siguiente key en orden — turno estricto
 // Key 1 → descansa → Key 2 → descansa → Key 3 → descansa → Key 1...
@@ -93,7 +98,6 @@ let   GEMINI_KEY_INDEX  = 0;
 const GEMINI_KEY_RESET  = {}; // { keyIndex: tiempoLibre }
 const GEMINI_DESCANSO   = 60000; // 60s de descanso entre usos de la misma key
 
-console.log(`[Gemini] ${GEMINI_KEYS.length} key(s) en rotación por turno`);
 GEMINI_KEYS.forEach((k, i) => console.log(`   Key ${i+1}: ...${k.slice(-6)}`));
 
 function getGeminiKey() {
@@ -1833,7 +1837,7 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.4', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.36', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',  (_, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
@@ -2146,17 +2150,14 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.4',
+            version:        '34.36',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
-            // Facebook eliminado
-            // Twitter eliminado
-
-            
-            
             marca_de_agua:  WATERMARK_PATH ? `Activa: ${path.basename(WATERMARK_PATH)}` : 'No encontrada — publicando sin marca',
+            gemini_keys:    GEMINI_KEYS.length,
+            google_cse:     (process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID) ? 'Activo' : 'Sin configurar',
             ia_activa:      CONFIG_IA.enabled,
             rss_en_proceso: rssEnProceso,
             wm_en_proceso:  wmRegenEnProceso,
@@ -2174,7 +2175,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.4                ║
+║        🏮  EL FAROL AL DIA  —  V34.37               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
