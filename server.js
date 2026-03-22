@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.48
+ * 🏮 EL FAROL AL DÍA — V34.50
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -165,7 +165,13 @@ const WATERMARK_PATH = (() => {
 })();
 
 // ─── POOL + PARSERS ───────────────────────────────────────────────────────────
-const pool      = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+const pool      = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl:             { rejectUnauthorized: false },
+    max:             5,    // máximo 5 conexiones simultáneas — evita saturar Railway
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
 const rssParser = new RSSParser({ timeout: 10000 });
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
@@ -899,7 +905,7 @@ function obtenerPerfilPeriodista(nombre) {
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 300000; // 5 minutos
+const CACHE_TTL = 600000; // 10 minutos — menos queries a la BD
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
@@ -1743,7 +1749,7 @@ async function procesarRSS() {
             const palabrasClave = (item.title||'').toLowerCase().split(' ').filter(w=>w.length>5).slice(0,3).join('-');
             temasPublicadosHoy.add(palabrasClave);
             procesadas++;
-            await new Promise(r => setTimeout(r, 20000)); // pausa 20s — evita 429 de Gemini
+            await new Promise(r => setTimeout(r, 25000)); // pausa 25s — evita 429 y reduce memoria
         }
     }
 
@@ -1873,7 +1879,7 @@ async function regenerarWatermarksLostidos() {
         // ── GRADUAL: máximo 3 por ciclo ──────────────────────────────────────
         // Si hay 15 feas → este ciclo arregla 3 → próximo ciclo 3 más → etc.
         // Así no colapsa el servidor ni interfiere con Gemini
-        const LOTE = 3;
+        const LOTE = 2; // reducido para no saturar memoria en Railway
         const aTratar = necesitan.slice(0, LOTE);
 
         console.log(`[WM-Regen] 🔄 ${necesitan.length} feas en total → procesando ${aTratar.length} ahora`);
@@ -2213,11 +2219,42 @@ async function generarNoticiaConSalud(...args) {
     return result;
 }
 
+// ─── MODO ESPEJO ─────────────────────────────────────────────────────────────
+// Si MODO_ESPEJO=true → solo sirve el sitio, sin publicar ni escribir en BD
+// Usar en Render como servidor de respaldo/espejo de elfarolaldia.com
+// Railway sigue siendo el servidor principal que publica
+const MODO_ESPEJO = process.env.MODO_ESPEJO === 'true';
+
+if (MODO_ESPEJO) {
+    console.log(`
+╔══════════════════════════════════════════════════════╗
+║  🪞  MODO ESPEJO ACTIVO                              ║
+║  Solo lectura — sin publicación — sin crons IA       ║
+║  Railway es el servidor principal                    ║
+╚══════════════════════════════════════════════════════╝`);
+}
+
 // ─── CRON ─────────────────────────────────────────────────────────────────────
-// Pulso de vida — evita que Railway duerma el servidor
-// ─── KEEP-ALIVE cada 14 min (Railway no duerme el proceso) ──────────────────
+// Pulso de vida — evita que el servidor duerma
 cron.schedule('*/14 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch (_) {}
+});
+
+// Liberar memoria cada hora — evita SIGTERM por uso excesivo
+cron.schedule('0 * * * *', () => {
+    if (global.gc) {
+        global.gc();
+        console.log('[Mem] GC ejecutado');
+    }
+    // Limpiar sets grandes si crecieron demasiado
+    if (fotosUsadasReciente.size > 500) {
+        fotosUsadasReciente.clear();
+        console.log('[Mem] fotosUsadasReciente limpiado');
+    }
+    if (temasPublicadosHoy.size > 500) {
+        temasPublicadosHoy.clear();
+        console.log('[Mem] temasPublicadosHoy limpiado');
+    }
 });
 
 // ─── HORARIOS INTELIGENTES ───────────────────────────────────────────────────
@@ -2230,56 +2267,62 @@ cron.schedule('*/14 * * * *', async () => {
 // Gemini timeout: 90s — suficiente para artículo completo sin corte
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── MAÑANA & TARDE FUERTES (6am–8pm) ─────────────────────────────────────────
-// :00 → Key 1   :10 → Key 2   :20 → Key 3   :40 → IA propia
-cron.schedule('0 6-19 * * *', async () => {
-    if (rssEnProceso) { console.log('[Mañana/Tarde] Slot :00 — en proceso'); return; }
-    console.log('[Mañana/Tarde] ⚡ :00 Key-1');
-    procesarRSS();
-});
-cron.schedule('10 6-19 * * *', async () => {
-    if (rssEnProceso) { console.log('[Mañana/Tarde] Slot :10 — en proceso'); return; }
-    console.log('[Mañana/Tarde] ⚡ :10 Key-2');
-    procesarRSS();
-});
-cron.schedule('20 6-19 * * *', async () => {
-    if (rssEnProceso) { console.log('[Mañana/Tarde] Slot :20 — en proceso'); return; }
-    console.log('[Mañana/Tarde] ⚡ :20 Key-3');
-    procesarRSS();
-});
-cron.schedule('40 6-19 * * *', async () => {
-    if (!CONFIG_IA.enabled || rssEnProceso) return;
-    const cat = await obtenerCategoriaOptima(); // usa lo que el sistema aprendió
-    console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat} (aprendido)`);
-    await generarNoticia(cat);
-});
+// ── PUBLICACIÓN — solo en servidor principal (no en espejo) ──────────────────
+if (!MODO_ESPEJO) {
 
-// ── NOCHE TRANQUILA (8pm–11pm) ───────────────────────────────────────────────
-// :00 y :30 — 2 noticias por hora
-cron.schedule('0 20-23 * * *', async () => {
-    if (rssEnProceso) { console.log('[Noche] :00 — en proceso'); return; }
-    console.log('[Noche] 🌙 :00 publicando...');
-    procesarRSS();
-});
-cron.schedule('30 20-23 * * *', async () => {
-    if (rssEnProceso) { console.log('[Noche] :30 — en proceso'); return; }
-    console.log('[Noche] 🌙 :30 publicando...');
-    procesarRSS();
-});
+    // MAÑANA & TARDE FUERTES (6am–8pm) — cada 10 min
+    cron.schedule('0 6-19 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Mañana/Tarde] ⚡ :00 Key-1');
+        procesarRSS();
+    });
+    cron.schedule('10 6-19 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Mañana/Tarde] ⚡ :10 Key-2');
+        procesarRSS();
+    });
+    cron.schedule('20 6-19 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Mañana/Tarde] ⚡ :20 Key-3');
+        procesarRSS();
+    });
+    cron.schedule('40 6-19 * * *', async () => {
+        if (!CONFIG_IA.enabled || rssEnProceso) return;
+        const cat = await obtenerCategoriaOptima();
+        console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat}`);
+        await generarNoticia(cat);
+    });
 
-// ── MADRUGADA (12am–5am) ─────────────────────────────────────────────────────
-// Solo :00 — 1 noticia por hora, la gente duerme
-// Aprovecha para publicar sin competencia — cuando amanezca ya hay contenido fresco
-cron.schedule('0 0-5 * * *', async () => {
-    if (rssEnProceso) { console.log('[Madrugada] :00 — en proceso'); return; }
-    console.log('[Madrugada] 😴 Publicando mientras RD duerme...');
-    procesarRSS();
-});
+    // NOCHE TRANQUILA (8pm–11pm) — cada 30 min
+    cron.schedule('0 20-23 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Noche] 🌙 :00 publicando...');
+        procesarRSS();
+    });
+    cron.schedule('30 20-23 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Noche] 🌙 :30 publicando...');
+        procesarRSS();
+    });
+
+    // MADRUGADA (12am–5am) — cada hora
+    cron.schedule('0 0-5 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Madrugada] 😴 Publicando mientras RD duerme...');
+        procesarRSS();
+    });
+
+} else {
+    console.log('[Espejo] 🪞 Crons de publicación desactivados — solo lectura');
+}
 
 // ─── AUTO-DIAGNÓSTICO cada 30 minutos ───────────────────────────────────────
 cron.schedule('*/30 * * * *', async () => {
     await autoDiagnostico();
 });
+
+// ─── TAREAS DE MANTENIMIENTO — solo en servidor principal ────────────────────
+if (!MODO_ESPEJO) {
 
 // ─── LIMPIEZA AUTOMÁTICA — todos los días a las 3:00 AM ──────────────────────
 // Mantiene la BD ligera y el sitio siempre con contenido fresco
@@ -2343,6 +2386,8 @@ cron.schedule('0 */4 * * *', async () => {
     await refrescarPalabrasAprendidas();
 });
 
+} // fin if(!MODO_ESPEJO) — mantenimiento
+
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
 app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.44', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
@@ -2390,7 +2435,7 @@ app.get('/api/noticias', async (req, res) => {
             return res.json({ success: true, noticias: _cacheNoticias, cached: true });
         const r = await pool.query(
             `SELECT id,titulo,slug,seccion,imagen,imagen_alt,fecha,vistas,redactor
-             FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`,
+             FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 20`,
             ['publicada']
         );
         // Optimizar URLs de Pexels para carga rápida en lista
@@ -2677,7 +2722,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.48',
+            version:        '34.50',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2687,6 +2732,7 @@ app.get('/status', async (req, res) => {
             google_cse:     (process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID) ? 'Activo' : 'Sin configurar',
             adsense:        'pub-5280872495839888',
             ia_activa:      CONFIG_IA.enabled,
+            modo_espejo:    MODO_ESPEJO,
             rss_en_proceso: rssEnProceso,
             wm_en_proceso:  wmRegenEnProceso,
             salud: {
@@ -2709,7 +2755,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.48               ║
+║        🏮  EL FAROL AL DIA  —  V34.50               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
