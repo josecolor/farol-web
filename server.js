@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.54
+ * 🏮 EL FAROL AL DÍA — V34.56
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -31,15 +31,16 @@ const BROWSER_HEADERS = {
     'sec-fetch-site':  'cross-site',
 };
 
-const express   = require('express');
-const cors      = require('cors');
-const path      = require('path');
-const fs        = require('fs');
-const cron      = require('node-cron');
-const { Pool }  = require('pg');
-const sharp     = require('sharp');
-const RSSParser = require('rss-parser');
-const crypto    = require('crypto');
+const express     = require('express');
+const cors        = require('cors');
+const path        = require('path');
+const fs          = require('fs');
+const cron        = require('node-cron');
+const { Pool }    = require('pg');
+const sharp       = require('sharp');
+const RSSParser   = require('rss-parser');
+const crypto      = require('crypto');
+const zlib        = require('zlib');
 
 // ─── BASIC AUTH ───────────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
@@ -175,8 +176,70 @@ const pool      = new Pool({
 const rssParser = new RSSParser({ timeout: 10000 });
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// ── COMPRESIÓN GZIP — reduce tamaño de respuestas hasta 70% ──────────────────
+// HTML, JSON, CSS, JS se comprimen automáticamente
+// Imágenes ya están comprimidas — se excluyen
+app.use((req, res, next) => {
+    const accept = req.headers['accept-encoding'] || '';
+    const url    = req.url;
+
+    // No comprimir imágenes — ya están optimizadas con Sharp
+    if (/\.(jpg|jpeg|png|gif|webp|ico|svg)$/i.test(url)) return next();
+    // No comprimir archivos muy pequeños
+    if (req.method === 'HEAD') return next();
+
+    const _write      = res.write.bind(res);
+    const _end        = res.end.bind(res);
+    const _setHeader  = res.setHeader.bind(res);
+    let   compressor  = null;
+    let   headersSent = false;
+
+    const initCompressor = () => {
+        if (headersSent) return;
+        headersSent = true;
+        if (accept.includes('br')) {
+            compressor = zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4 } });
+            _setHeader('Content-Encoding', 'br');
+        } else if (accept.includes('gzip')) {
+            compressor = zlib.createGzip({ level: 6 });
+            _setHeader('Content-Encoding', 'gzip');
+        }
+        if (compressor) {
+            _setHeader('Vary', 'Accept-Encoding');
+            res.removeHeader('Content-Length');
+            compressor.pipe({ write: _write, end: _end });
+        }
+    };
+
+    res.setHeader = (name, value) => {
+        if (name.toLowerCase() === 'content-type') {
+            const ct = String(value);
+            if (/text|json|javascript|xml/i.test(ct)) initCompressor();
+        }
+        _setHeader(name, value);
+    };
+
+    res.write = (chunk, encoding, cb) => {
+        if (!headersSent) initCompressor();
+        if (compressor) return compressor.write(chunk, encoding, cb);
+        return _write(chunk, encoding, cb);
+    };
+
+    res.end = (chunk, encoding, cb) => {
+        if (!headersSent) initCompressor();
+        if (compressor) {
+            if (chunk) compressor.write(chunk, encoding);
+            return compressor.end(cb);
+        }
+        return _end(chunk, encoding, cb);
+    };
+
+    next();
+});
+
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use('/static', express.static(path.join(__dirname, 'static'), {
     setHeaders: (res) => res.setHeader('Cache-Control', 'public,max-age=2592000,immutable'),
 }));
@@ -1040,7 +1103,7 @@ function obtenerPerfilPeriodista(nombre) {
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 600000; // 10 minutos — menos queries a la BD
+const CACHE_TTL = 300000; // 5 minutos — balance entre frescura y velocidad
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
@@ -2760,7 +2823,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.54', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.56', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3145,7 +3208,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.54',
+            version:        '34.56',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3166,6 +3229,137 @@ app.get('/status', async (req, res) => {
             },
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── API CEREBRO — el bot lee el estado COMPLETO del servidor ────────────────
+// Todo lo que el ingeniero necesita para entender y razonar sobre el sistema
+app.get('/api/cerebro', authMiddleware, async (req, res) => {
+    try {
+        // Leer TODO en paralelo — máxima eficiencia
+        const [
+            statsNoticias,
+            statsRSS,
+            memoriaReciente,
+            noticiasRecientes,
+            topVistas,
+            erroresRecientes,
+            aprendizaje,
+        ] = await Promise.all([
+            pool.query(`SELECT COUNT(*) as total,
+                        SUM(vistas) as vistas,
+                        MAX(fecha) as ultima,
+                        AVG(vistas) as promedio
+                        FROM noticias WHERE estado='publicada'`),
+            pool.query(`SELECT COUNT(*) as total FROM rss_procesados
+                        WHERE fecha > NOW() - INTERVAL '24 hours'`),
+            pool.query(`SELECT tipo, valor, categoria, exitos, fallos, ultima_vez
+                        FROM memoria_ia ORDER BY ultima_vez DESC LIMIT 30`),
+            pool.query(`SELECT titulo, seccion, vistas, fecha, imagen
+                        FROM noticias WHERE estado='publicada'
+                        ORDER BY fecha DESC LIMIT 10`),
+            pool.query(`SELECT titulo, seccion, vistas
+                        FROM noticias WHERE estado='publicada'
+                        ORDER BY vistas DESC LIMIT 5`),
+            pool.query(`SELECT valor, fallos, categoria, ultima_vez
+                        FROM memoria_ia WHERE tipo='error'
+                        AND ultima_vez > NOW() - INTERVAL '24 hours'
+                        ORDER BY fallos DESC LIMIT 10`),
+            pool.query(`SELECT tipo, valor, exitos, categoria
+                        FROM memoria_ia
+                        WHERE tipo IN ('palabra_trending','palabra_publicada','rendimiento_categoria')
+                        ORDER BY exitos DESC LIMIT 20`),
+        ]);
+
+        // Analizar calidad de fotos
+        const fotosPropias = noticiasRecientes.rows.filter(n => n.imagen?.includes('/img/efd-')).length;
+        const fotosExternas = noticiasRecientes.rows.filter(n => !n.imagen?.includes('/img/efd-')).length;
+
+        // Estado del ingeniero interno
+        const uptime = Math.round((Date.now() - SALUD.arranque) / 3600000);
+
+        res.json({
+            // Estado en tiempo real
+            servidor: {
+                version:        '34.56',
+                uptime_horas:   uptime,
+                modelo_ia:      GEMINI_MODEL,
+                timeout_ia:     GEMINI_TIMEOUT / 1000,
+                keys_activas:   GEMINI_KEYS.length,
+                watermark:      WATERMARK_PATH ? path.basename(WATERMARK_PATH) : null,
+                google_cse:     !!(process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID),
+                modo_espejo:    MODO_ESPEJO,
+                ia_habilitada:  CONFIG_IA.enabled,
+                rss_procesando: rssEnProceso,
+                fotos_regenerando: wmRegenEnProceso,
+            },
+
+            // Salud actual
+            salud: {
+                errores_gemini:    SALUD.erroresGemini,
+                timeouts_gemini:   SALUD.timeoutsGemini,
+                errores_imagen:    SALUD.erroresImagen,
+                rss_vacios:        SALUD.rssVaciosCiclos,
+                min_sin_publicar:  Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000),
+                arranque:          new Date(SALUD.arranque).toISOString(),
+            },
+
+            // Métricas de contenido
+            contenido: {
+                total_noticias:   parseInt(statsNoticias.rows[0].total),
+                total_vistas:     parseInt(statsNoticias.rows[0].vistas) || 0,
+                vistas_promedio:  Math.round(parseFloat(statsNoticias.rows[0].promedio) || 0),
+                ultima_publicacion: statsNoticias.rows[0].ultima,
+                rss_hoy:          parseInt(statsRSS.rows[0].total),
+                fotos_propias:    fotosPropias,
+                fotos_externas:   fotosExternas,
+            },
+
+            // Últimas noticias
+            ultimas_noticias: noticiasRecientes.rows.map(n => ({
+                titulo:  n.titulo,
+                seccion: n.seccion,
+                vistas:  n.vistas,
+                fecha:   n.fecha,
+                foto_propia: n.imagen?.includes('/img/efd-') || false,
+            })),
+
+            // Top por vistas
+            top_vistas: topVistas.rows,
+
+            // Errores recientes
+            errores_recientes: erroresRecientes.rows.map(e => ({
+                error:     e.valor?.substring(0, 100),
+                fallos:    e.fallos,
+                categoria: e.categoria,
+                cuando:    e.ultima_vez,
+            })),
+
+            // Lo que aprendió el sistema
+            aprendizaje: {
+                palabras:    aprendizaje.rows.filter(x => x.tipo.includes('palabra')).slice(0, 10),
+                categorias:  aprendizaje.rows.filter(x => x.tipo === 'rendimiento_categoria'),
+            },
+
+            // Configuración IA activa
+            config_ia: {
+                tono:      CONFIG_IA.tono,
+                extension: CONFIG_IA.extension,
+                enfasis:   CONFIG_IA.enfasis?.substring(0, 100),
+            },
+
+            // Horarios del sistema
+            horarios: {
+                manana_tarde: '6am-8pm cada 10min',
+                noche:        '8pm-12am cada 30min',
+                madrugada:    '12am-6am cada hora',
+                diagnostico:  'cada 15min',
+                aprendizaje:  'cada 4h',
+                limpieza:     '3am diario',
+            },
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ─── API SEO — análisis de noticias recientes ────────────────────────────────
@@ -3209,7 +3403,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.54               ║
+║        🏮  EL FAROL AL DIA  —  V34.56               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
