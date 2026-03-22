@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🏮 Panel — El Farol al Día</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07070d;--bg2:#0f0f1a;--bg3:#13131f;--borde:#1a1a2e;--acc:#FF5500;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;--text:#EDE8DF;--muted:#555;--font:'Segoe UI',system-ui,sans-serif;--mono:'Courier New',monospace}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;max-width:620px;margin:0 auto;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* HEADER */
+header{background:var(--bg2);border-bottom:1px solid var(--borde);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hl{display:flex;align-items:center;gap:10px}
+.hlogo{width:32px;height:32px;background:var(--acc);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.htitle{font-size:14px;font-weight:700;color:var(--acc)}
+.hsub{font-size:10px;color:var(--muted)}
+.hdot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:p 2s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--borde);flex-shrink:0}
+.tab{flex:1;padding:10px;text-align:center;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:.15s;border-bottom:2px solid transparent}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* PANEL CONTENIDO */
+.panel{flex:1;overflow-y:auto;padding:12px;display:none}
+.panel.on{display:block}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+
+/* ═══ TAB 1: ESTADO ═══ */
+#semaforo{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--borde);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+#sluz{width:16px;height:16px;border-radius:50%;flex-shrink:0}
+.verde{background:var(--green);box-shadow:0 0 12px #22c55e88;animation:p 2s infinite}
+.rojo{background:var(--red);box-shadow:0 0 12px #ef444488}
+.amarillo{background:var(--yellow);box-shadow:0 0 12px #f59e0b88;animation:p 1s infinite}
+#stitle{font-size:14px;font-weight:600}
+#ssub{font-size:11px;color:var(--muted);margin-top:2px}
+#sver{font-size:11px;color:var(--acc);margin-left:auto;white-space:nowrap}
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.met{background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:12px 8px;text-align:center}
+.ml{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.mv{font-size:22px;font-weight:700;color:var(--acc);line-height:1}
+.ms{font-size:9px;color:#444;margin-top:3px}
+.mv-ok{color:var(--green)!important}.mv-warn{color:var(--yellow)!important}.mv-err{color:var(--red)!important}
+
+.sec{background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:14px;margin-bottom:10px}
+.stit{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.chk{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg3);font-size:12px}
+.chk:last-child{border-bottom:none}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dv{background:var(--green)}.da{background:var(--yellow)}.dr{background:var(--red)}
+.clabel{flex:1;color:#bbb}
+.cval-ok{color:var(--green)}.cval-w{color:var(--yellow)}.cval-e{color:var(--red)}.cval-d{color:var(--muted)}
+
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.btn{background:var(--bg3);border:1px solid #22223a;color:#ccc;padding:11px 8px;border-radius:8px;font-size:12px;cursor:pointer;text-align:center;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
+.btn:hover{background:var(--borde);border-color:var(--acc);color:#fff}
+.btn:active{transform:scale(.97)}
+.bico{font-size:18px}
+.btn.danger:hover{border-color:var(--red);background:#1a0505}
+
+/* NOTICIAS */
+.nitem{padding:10px 0;border-bottom:1px solid var(--bg3)}
+.nitem:last-child{border-bottom:none}
+.ntit{font-size:13px;color:var(--text);margin-bottom:4px;line-height:1.3}
+.nmeta{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.ntag{background:var(--bg3);color:var(--acc);padding:1px 6px;border-radius:4px;font-size:10px}
+#upd{font-size:10px;color:var(--muted)}
+
+/* ═══ TAB 2: INGENIERO (CHAT) ═══ */
+#chat-panel{flex:1;overflow-y:auto;padding:12px;display:none;flex-direction:column;gap:10px}
+#chat-panel.on{display:flex}
+#chat-panel::-webkit-scrollbar{width:3px}
+#chat-panel::-webkit-scrollbar-thumb{background:var(--borde);border-radius:2px}
+
+.msg{display:flex;gap:8px;max-width:94%;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg.u{align-self:flex-end;flex-direction:row-reverse}
+.msg.b{align-self:flex-start}
+.av{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px}
+.msg.b .av{background:var(--acc)}
+.msg.u .av{background:var(--bg3);border:1px solid var(--borde)}
+.bub{background:var(--bg2);border:1px solid var(--borde);border-radius:10px;padding:9px 12px;font-size:12px;font-family:var(--mono);line-height:1.7;max-width:100%;white-space:pre-wrap;word-break:break-word}
+.msg.u .bub{background:var(--bg3);border-color:var(--acc);border-radius:10px 10px 2px 10px}
+.msg.b .bub{border-radius:2px 10px 10px 10px}
+.bub table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.bub td,.bub th{padding:4px 7px;border:1px solid var(--borde)}
+.bub th{background:var(--bg3);color:var(--acc)}
+.ok{color:var(--green)}.warn{color:var(--yellow)}.err{color:var(--red)}.info{color:var(--blue)}.acc{color:var(--acc)}
+
+.sugs{display:flex;gap:5px;overflow-x:auto;padding:8px 12px;flex-shrink:0;border-top:1px solid var(--borde);display:none}
+.sugs.on{display:flex}
+.sugs::-webkit-scrollbar{display:none}
+.sg{background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:5px 10px;border-radius:14px;font-size:11px;font-family:var(--mono);cursor:pointer;white-space:nowrap;transition:.15s;flex-shrink:0}
+.sg:hover{border-color:var(--acc);color:var(--acc)}
+
+.chat-ia{background:var(--bg2);border-top:1px solid var(--borde);padding:10px 12px;display:none;gap:8px;align-items:flex-end;flex-shrink:0}
+.chat-ia.on{display:flex}
+#inp{flex:1;background:var(--bg3);border:1px solid var(--borde);color:var(--text);padding:9px 12px;border-radius:18px;font-family:var(--mono);font-size:12px;resize:none;max-height:80px;outline:none}
+#inp:focus{border-color:var(--acc)}
+#send{background:var(--acc);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:15px;flex-shrink:0;transition:.2s}
+#send:hover{background:#cc4400}
+.typing{display:flex;gap:3px;padding:3px 0}
+.typing span{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:b .8s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+a{color:var(--acc)}
+
+/* TOAST */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--acc);color:var(--text);padding:9px 18px;border-radius:8px;font-size:12px;display:none;z-index:99;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hl">
+    <div class="hlogo">🏮</div>
+    <div><div class="htitle">EL FAROL AL DÍA</div><div class="hsub">Panel de ingeniería</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="hdot"></div>
+    <span id="upd" style="font-size:10px;color:var(--muted)">—</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab on" onclick="tab('estado')">📊 Estado</button>
+  <button class="tab" onclick="tab('noticias')">📰 Noticias</button>
+  <button class="tab" onclick="tab('acciones')">⚙️ Acciones</button>
+  <button class="tab" onclick="tab('ingeniero')">🤖 Ingeniero</button>
+</div>
+
+<!-- ═══ TAB ESTADO ═══ -->
+<div class="panel on" id="t-estado">
+  <div id="semaforo">
+    <div id="sluz" class="amarillo"></div>
+    <div><div id="stitle">Verificando...</div><div id="ssub">Conectando</div></div>
+    <div id="sver">—</div>
+  </div>
+  <div class="grid4">
+    <div class="met"><div class="ml">Noticias</div><div class="mv" id="m-n">—</div><div class="ms">publicadas</div></div>
+    <div class="met"><div class="ml">Vistas</div><div class="mv" id="m-v">—</div><div class="ms">total</div></div>
+    <div class="met"><div class="ml">Sin pub.</div><div class="mv" id="m-t">—</div><div class="ms">minutos</div></div>
+    <div class="met"><div class="ml">Keys</div><div class="mv" id="m-k">—</div><div class="ms">Gemini</div></div>
+  </div>
+  <div class="sec">
+    <div class="stit">🩺 Salud del sistema</div>
+    <div id="checks"></div>
+  </div>
+</div>
+
+<!-- ═══ TAB NOTICIAS ═══ -->
+<div class="panel" id="t-noticias">
+  <div class="sec">
+    <div class="stit">📰 Últimas publicadas</div>
+    <div id="lista-n"><div style="color:var(--muted);font-size:12px">Cargando...</div></div>
+  </div>
+</div>
+
+<!-- ═══ TAB ACCIONES ═══ -->
+<div class="panel" id="t-acciones">
+  <div class="sec">
+    <div class="stit">⚡ Acciones rápidas</div>
+    <div class="g2">
+      <button class="btn" onclick="accion('rss')"><span class="bico">📡</span>Procesar RSS</button>
+      <button class="btn" onclick="accion('fotos')"><span class="bico">🖼️</span>Regenerar Fotos</button>
+      <button class="btn" onclick="accion('nacionales')"><span class="bico">🏠</span>Noticia Nacional</button>
+      <button class="btn" onclick="accion('deportes')"><span class="bico">⚽</span>Noticia Deportes</button>
+      <button class="btn" onclick="accion('economia')"><span class="bico">💰</span>Noticia Economía</button>
+      <button class="btn" onclick="accion('internacional')"><span class="bico">🌎</span>Noticia Mundial</button>
+    </div>
+    <div class="g2" style="margin-top:8px">
+      <button class="btn" onclick="irRedaccion()"><span class="bico">✏️</span>Panel Redacción</button>
+      <button class="btn danger" onclick="confirmarReset()"><span class="bico">🗑️</span>Resetear BD</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB INGENIERO (CHAT) ═══ -->
+<div id="chat-panel" class="panel"></div>
+<div class="sugs" id="sugs">
+  <button class="sg" onclick="env('¿Cómo está el sistema?')">📊 Estado</button>
+  <button class="sg" onclick="env('¿Qué problemas hay?')">🩺 Diagnóstico</button>
+  <button class="sg" onclick="env('Cuántas noticias hay')">📰 Noticias</button>
+  <button class="sg" onclick="env('Procesa el RSS ahora')">📡 RSS</button>
+  <button class="sg" onclick="env('Regenera las fotos feas')">🖼️ Fotos</button>
+  <button class="sg" onclick="env('Qué aprendió el sistema')">🧠 Aprendizaje</button>
+  <button class="sg" onclick="env('Estadísticas de esta semana')">📈 Stats</button>
+</div>
+<div class="chat-ia" id="chat-ia">
+  <textarea id="inp" placeholder="Pregúntame algo..." rows="1"
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();si()}"></textarea>
+  <button id="send" onclick="si()">➤</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const PIN='311', AUTH='Basic '+btoa('director:311');
+let busy=false, chatInited=false;
+
+async function api(u,m='GET',b=null){
+  try{const o={method:m,headers:{'Content-Type':'application/json',Authorization:AUTH}};
+  if(b)o.body=JSON.stringify(b);return await(await fetch(u,o)).json();}
+  catch(e){return{error:e.message}}}
+
+function ta(f){const m=Math.round((Date.now()-new Date(f))/60000);
+  if(m<1)return'ahora';if(m<60)return`${m}min`;return`${Math.round(m/60)}h`;}
+function fmt(n){return n>999?(n/1000).toFixed(1)+'k':n}
+function toast(msg,ms=3000){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',ms)}
+
+// ═══ TABS ═══
+function tab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  const tabs=['estado','noticias','acciones','ingeniero'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('on');
+
+  if(id==='ingeniero'){
+    document.getElementById('chat-panel').classList.add('on');
+    document.getElementById('sugs').classList.add('on');
+    document.getElementById('chat-ia').classList.add('on');
+    if(!chatInited){chatInited=true;bienvenida();}
+  } else {
+    document.getElementById('chat-panel').classList.remove('on');
+    document.getElementById('sugs').classList.remove('on');
+    document.getElementById('chat-ia').classList.remove('on');
+    document.getElementById('t-'+id).classList.add('on');
+    if(id==='noticias')cargarNoticias();
+  }
+}
+
+// ═══ ESTADO ═══
+async function cargarEstado(){
+  const[d,e]=await Promise.all([api('/status'),api('/api/estadisticas')]);
+  document.getElementById('upd').textContent=new Date().toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
+
+  if(d.error||!d.version){
+    document.getElementById('sluz').className='rojo';
+    document.getElementById('stitle').textContent='❌ Servidor no responde';
+    return;
+  }
+
+  const s=d.salud||{};
+  const hay=s.errores_gemini>=3||s.min_sin_publicar>90||s.ciclos_rss_vacios>=5;
+  document.getElementById('sluz').className=hay?'amarillo':'verde';
+  document.getElementById('stitle').textContent=hay?'⚠️ Sistema con alertas':'✅ Sistema operando bien';
+  document.getElementById('ssub').textContent=`${d.noticias} noticias · ${d.rss_procesados} RSS`;
+  document.getElementById('sver').textContent=`V${d.version}`;
+
+  document.getElementById('m-n').textContent=d.noticias;
+  document.getElementById('m-t').textContent=s.min_sin_publicar||0;
+  const tm=s.min_sin_publicar||0;
+  document.getElementById('m-t').className='mv '+(tm>90?'mv-err':tm>30?'mv-warn':'mv-ok');
+  document.getElementById('m-k').textContent=d.gemini_keys||'—';
+  if(e.totalVistas!==undefined)document.getElementById('m-v').textContent=fmt(e.totalVistas);
+
+  const checks=[
+    {label:'Gemini IA',val:s.errores_gemini>=3?`${s.errores_gemini} errores`:'OK',cls:s.errores_gemini>=3?'e':'ok'},
+    {label:'Publicación',val:tm>90?`${tm}min sin publicar`:'Publicando OK',cls:tm>90?'w':'ok'},
+    {label:'RSS',val:s.ciclos_rss_vacios>=5?`${s.ciclos_rss_vacios} vacíos`:'OK',cls:s.ciclos_rss_vacios>=5?'w':'ok'},
+    {label:'Imágenes',val:s.errores_imagen>=5?`${s.errores_imagen} fallos`:'OK',cls:s.errores_imagen>=5?'w':'ok'},
+    {label:'Watermark',val:d.marca_de_agua?.includes('Activa')?'Activa':'No encontrada',cls:d.marca_de_agua?.includes('Activa')?'ok':'e'},
+    {label:'Google CSE',val:d.google_cse==='Activo'?'Activo':'Sin configurar',cls:d.google_cse==='Activo'?'ok':'w'},
+    {label:'IA',val:d.ia_activa?'Activa':'Desactivada',cls:d.ia_activa?'ok':'e'},
+    {label:'Modo',val:d.modo_espejo?'Espejo 🪞':'Principal 🚀',cls:d.modo_espejo?'w':'ok'},
+  ];
+  document.getElementById('checks').innerHTML=checks.map(c=>`
+    <div class="chk">
+      <div class="cdot d${c.cls==='ok'?'v':c.cls==='w'?'a':'r'}"></div>
+      <span class="clabel">${c.label}</span>
+      <span class="cval-${c.cls==='ok'?'ok':c.cls==='w'?'w':'e'}">${c.val}</span>
+    </div>`).join('');
+}
+
+async function cargarNoticias(){
+  const r=await api('/api/noticias');
+  if(!r.noticias?.length){document.getElementById('lista-n').innerHTML='<p style="color:var(--muted);font-size:12px">Sin noticias</p>';return;}
+  document.getElementById('lista-n').innerHTML=r.noticias.slice(0,10).map(n=>`
+    <div class="nitem">
+      <div class="ntit">${n.titulo}</div>
+      <div class="nmeta"><span class="ntag">${n.seccion}</span><span>${ta(n.fecha)}</span><span>👁 ${n.vistas}</span></div>
+    </div>`).join('');
+}
+
+// ═══ ACCIONES ═══
+async function accion(tipo){
+  const m={rss:['/api/procesar-rss','POST',{pin:PIN}],fotos:['/api/regenerar-fotos','POST',{pin:PIN}],
+    nacionales:['/api/generar-noticia','POST',{pin:PIN,categoria:'Nacionales'}],
+    deportes:['/api/generar-noticia','POST',{pin:PIN,categoria:'Deportes'}],
+    economia:['/api/generar-noticia','POST',{pin:PIN,categoria:'Economia'}],
+    internacional:['/api/generar-noticia','POST',{pin:PIN,categoria:'Internacionales'}]};
+  toast('⏳ Ejecutando...');
+  const[u,mt,b]=m[tipo];
+  const r=await api(u,mt,b);
+  toast(r.success||r.mensaje?'✅ '+(r.titulo||r.mensaje||'Listo'):'❌ '+(r.error||'Error'));
+  setTimeout(cargarEstado,3000);
+}
+function irRedaccion(){window.location.href='/redaccion'}
+function confirmarReset(){
+  if(confirm('⚠️ ¿Borrar TODA la base de datos?\n\nNoticias, RSS, comentarios — todo.')){
+    if(confirm('¿Confirmas? No se puede deshacer.')){
+      api('/api/resetear-todo','POST',{pin:PIN}).then(r=>{
+        toast(r.success?'✅ BD reseteada':'❌ '+r.error);
+        setTimeout(cargarEstado,2000);
+      });
+    }
+  }
+}
+
+// ═══ CHAT INGENIERO ═══
+function addMsg(html,role='b'){
+  const c=document.getElementById('chat-panel');
+  const d=document.createElement('div');
+  d.className=`msg ${role}`;
+  d.innerHTML=`<div class="av">${role==='b'?'🤖':'👤'}</div><div class="bub">${html}</div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;return d;
+}
+function showT(){const c=document.getElementById('chat-panel');const d=document.createElement('div');d.className='msg b';d.id='typ';d.innerHTML=`<div class="av">🤖</div><div class="bub"><div class="typing"><span></span><span></span><span></span></div></div>`;c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function hideT(){document.getElementById('typ')?.remove()}
+
+function bienvenida(){
+  setTimeout(()=>addMsg(`<span class="acc">🤖 Ingeniero en línea.</span>
+
+Soy tu asistente técnico. Habla conmigo en español normal.
+
+Pregúntame sobre el servidor, noticias, imágenes, estadísticas o cualquier problema. 🏮`,'b'),200);
+}
+
+async function proc(t){
+  const q=t.toLowerCase();
+
+  if(/estado|cómo está|como esta|status|funciona/.test(q)){
+    const d=await api('/status');
+    if(d.error)return`<span class="err">❌ No responde: ${d.error}</span>`;
+    const s=d.salud||{};
+    const ok=s.errores_gemini<3&&s.min_sin_publicar<90;
+    return`<span class="${ok?'ok':'warn'}">${ok?'✅ Sistema bien':'⚠️ Hay alertas'}</span>
+
+<table><tr><th>Item</th><th>Estado</th></tr>
+<tr><td>Versión</td><td><span class="acc">V${d.version}</span></td></tr>
+<tr><td>Noticias</td><td><span class="ok">${d.noticias}</span></td></tr>
+<tr><td>Keys Gemini</td><td><span class="ok">${d.gemini_keys}</span></td></tr>
+<tr><td>Sin publicar</td><td><span class="${s.min_sin_publicar>90?'warn':'ok'}">${s.min_sin_publicar||0} min</span></td></tr>
+<tr><td>Watermark</td><td><span class="${d.marca_de_agua?.includes('Activa')?'ok':'err'}">${d.marca_de_agua?.includes('Activa')?'✅':'❌'}</span></td></tr>
+<tr><td>Google CSE</td><td><span class="${d.google_cse==='Activo'?'ok':'warn'}">${d.google_cse==='Activo'?'✅':'⏳'}</span></td></tr>
+</table>`;
+  }
+
+  if(/problema|diagnós|diagnostico|salud|falla/.test(q)){
+    const d=await api('/status');const s=d.salud||{};
+    const ps=[];const ok=[];
+    if(s.errores_gemini>=3)ps.push(`Gemini: ${s.errores_gemini} errores`);else ok.push('Gemini OK');
+    if(s.min_sin_publicar>90)ps.push(`Sin publicar: ${s.min_sin_publicar}min`);else ok.push('Publicando bien');
+    if(s.ciclos_rss_vacios>=5)ps.push(`RSS vacío ${s.ciclos_rss_vacios} ciclos`);else ok.push('RSS OK');
+    if(s.errores_imagen>=5)ps.push(`Imágenes: ${s.errores_imagen} fallos`);else ok.push('Imágenes OK');
+    let h='';
+    if(ps.length){h+=`<span class="warn">⚠️ ${ps.length} problema(s):\n</span>`;ps.forEach(p=>h+=`<span class="err">→ ${p}\n</span>`);h+=`\n<span class="info">El ingeniero interno los está resolviendo.</span>`;}
+    else{h+=`<span class="ok">✅ Todo perfecto.\n\n</span>`;ok.forEach(o=>h+=`<span class="ok">✓</span> ${o}\n`);}
+    return h;
+  }
+
+  if(/noticia|publicad|últimas|ultimas|cuántas|cuantas/.test(q)){
+    const[e,n]=await Promise.all([api('/api/estadisticas'),api('/api/noticias')]);
+    if(!n.noticias)return'<span class="err">❌ Error obteniendo noticias</span>';
+    let h=`<span class="ok">📰 ${e.totalNoticias} noticias · ${fmt(e.totalVistas)} vistas</span>\n\n`;
+    n.noticias.slice(0,5).forEach((x,i)=>{h+=`<b>${i+1}.</b> ${x.titulo.substring(0,50)}\n`;h+=`   <span style="color:var(--muted);font-size:10px">${x.seccion} · ${ta(x.fecha)} · ${x.vistas} vistas</span>\n\n`;});
+    return h;
+  }
+
+  if(/rss|procesa/.test(q)){
+    const r=await api('/api/procesar-rss','POST',{pin:PIN});
+    return r.success?'<span class="ok">✅ RSS procesándose.</span>\nNuevas noticias en 2-3 min.':`<span class="err">❌ ${r.error}</span>`;
+  }
+
+  if(/foto|imagen|regenera|pixelad/.test(q)){
+    const r=await api('/api/regenerar-fotos','POST',{pin:PIN});
+    return r.success?'<span class="ok">✅ Regeneración iniciada.</span>\n3 fotos cada 8 segundos.':`<span class="warn">${r.mensaje||r.error}</span>`;
+  }
+
+  if(/genera|escribe|publica una/.test(q)){
+    const cats=['Nacionales','Deportes','Internacionales','Economia','Tecnologia','Espectaculos'];
+    let cat='Nacionales';for(const c of cats){if(q.includes(c.toLowerCase())){cat=c;break}}
+    addMsg(`<span class="info">⏳ Generando ${cat}...</span>`,'b');
+    const r=await api('/api/generar-noticia','POST',{categoria:cat});
+    return r.success?`<span class="ok">✅ "${r.titulo}"</span>\n\n<a href="/noticia/${r.slug}" target="_blank">→ Ver</a>`:`<span class="err">❌ ${r.error}</span>`;
+  }
+
+  if(/estadística|estadistica|vista|tráfico|trafico|semana/.test(q)){
+    const[r,c]=await Promise.all([api('/api/estadisticas'),api('/api/coach?dias=7')]);
+    let h=`<span class="ok">📊 7 días</span>\n\nNoticias: <span class="acc">${r.totalNoticias}</span>\nVistas: <span class="acc">${fmt(r.totalVistas)}</span>\n\n`;
+    if(c.categorias){h+='<b>Por categoría:</b>\n';Object.entries(c.categorias).sort((a,b)=>b[1].vistas_totales-a[1].vistas_totales).forEach(([cat,d])=>{if(d.total>0)h+=`  ${cat}: ${d.total} ·<span class="ok"> ${d.vistas_totales}v</span>\n`});}
+    return h;
+  }
+
+  if(/aprend|sabe|inteligencia|memoria/.test(q)){
+    const r=await api('/api/memoria?pin=311');
+    if(!r.registros)return'<span class="warn">Sin datos aún. Vuelve mañana.</span>';
+    const ps=r.registros.filter(x=>x.tipo==='palabra_trending'||x.tipo==='palabra_publicada').slice(0,8);
+    let h='<span class="acc">🧠 Aprendizaje:\n\n</span>';
+    if(ps.length){h+='Palabras que generan tráfico:\n';ps.forEach(p=>h+=`  <span class="ok">+</span> ${p.valor} (${p.exitos}x)\n`);}
+    else h+='<span class="warn">Recopilando datos...</span>';
+    return h;
+  }
+
+  if(/ayuda|hola|buenas|qué puedes/.test(q)){
+    return`<span class="acc">👋 Soy el Ingeniero Farol.</span>
+
+<span class="ok">Pregúntame:</span>
+• "¿Cómo está el sistema?"
+• "¿Qué problemas hay?"
+• "Genera una noticia de Economía"
+• "Procesa el RSS ahora"
+• "Regenera las fotos feas"
+• "Estadísticas de esta semana"
+• "¿Qué aprendió el sistema?"
+
+Habla en español normal. 🏮`;
+  }
+
+  return`<span class="warn">No entendí.</span> Intenta preguntar sobre estado, noticias, RSS, fotos o estadísticas.`;
+}
+
+async function env(t){
+  if(busy||!t.trim())return;busy=true;
+  addMsg(t,'u');
+  const i=document.getElementById('inp');i.value='';i.style.height='auto';
+  showT();await new Promise(r=>setTimeout(r,500));hideT();
+  try{addMsg(await proc(t),'b');}catch(e){addMsg(`<span class="err">❌ ${e.message}</span>`,'b');}
+  busy=false;
+}
+function si(){const v=document.getElementById('inp').value.trim();if(v)env(v)}
+document.getElementById('inp').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
+
+// INIT
+cargarEstado();
+setInterval(cargarEstado,60000);
+</script>
+</body>
+</html>
