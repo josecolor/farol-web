@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.60
+ * 🏮 EL FAROL AL DÍA — V34.61
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -547,14 +547,32 @@ async function aplicarMarcaDeAgua(urlImagen) {
 }
 
 app.get('/img/:nombre', (req, res) => {
-    const ruta = path.join('/tmp', path.basename(req.params.nombre));
-    if (fs.existsSync(ruta)) {
-        res.setHeader('Content-Type',   'image/jpeg');
-        res.setHeader('Cache-Control',  'public,max-age=604800,immutable');
+    const nombre = path.basename(req.params.nombre);
+    const ruta   = path.join('/tmp', nombre);
+    if (!fs.existsSync(ruta)) return res.status(404).send('No disponible');
+
+    try {
+        const stat  = fs.statSync(ruta);
+        const etag  = `"${stat.size}-${stat.mtimeMs}"`;
+        const since = req.headers['if-none-match'];
+
+        // 304 Not Modified — navegador usa su cache sin descargar nada
+        if (since === etag) {
+            return res.status(304).end();
+        }
+
+        res.setHeader('Content-Type',           'image/jpeg');
+        res.setHeader('Content-Length',         stat.size);
+        res.setHeader('Cache-Control',          'public,max-age=2592000,immutable'); // 30 días
+        res.setHeader('ETag',                   etag);
+        res.setHeader('Last-Modified',          stat.mtime.toUTCString());
         res.setHeader('X-Content-Type-Options', 'nosniff');
-        return res.sendFile(ruta);
+
+        // Stream directo — no carga en RAM
+        fs.createReadStream(ruta).pipe(res);
+    } catch(_) {
+        res.status(404).send('No disponible');
     }
-    res.status(404).send('No disponible');
 });
 
 // ─── CONFIG IA ────────────────────────────────────────────────────────────────
@@ -1183,7 +1201,7 @@ function obtenerPerfilPeriodista(nombre) {
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 120000; // 2 minutos — fresco sin sobrecargar
+const CACHE_TTL = 60000; // 1 minuto — siempre fresco
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
@@ -2996,7 +3014,7 @@ cron.schedule('5 * * * *', async () => {
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.60', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.61', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -3037,7 +3055,7 @@ app.options('/api/noticias', (req, res) => {
 
 app.get('/api/noticias', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public,max-age=300,stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'public,max-age=60,stale-while-revalidate=300');
     res.setHeader('Content-Type',  'application/json');
     try {
         if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL)
@@ -3302,7 +3320,7 @@ app.get('/noticia/:slug', async (req, res) => {
                 .replace(/{{SECCION}}/g,   esc(n.seccion))
                 .replace(/{{URL}}/g,       encodeURIComponent(urlN));
             res.setHeader('Content-Type',  'text/html;charset=utf-8');
-            res.setHeader('Cache-Control', 'public,max-age=1800,stale-while-revalidate=3600');
+            res.setHeader('Cache-Control', 'public,max-age=3600,stale-while-revalidate=86400');
             res.send(html);
         } catch (_) { res.json({ success: true, noticia: n }); }
     } catch (e) { res.status(500).send('Error interno'); }
@@ -3388,7 +3406,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.60',
+            version:        '34.61',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3640,11 +3658,21 @@ app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html'))
 // ─── ARRANQUE ─────────────────────────────────────────────────────────────────
 async function iniciar() {
     await inicializarBase();
+    // Precalentar cache de noticias — primera visita instantánea
+    try {
+        const r = await pool.query(
+            `SELECT id,titulo,slug,seccion,imagen,fecha,vistas
+             FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 24`
+        );
+        _cacheNoticias = r.rows;
+        _cacheFecha    = Date.now();
+        console.log(`[Cache] ♨️  Precalentado con ${r.rows.length} noticias`);
+    } catch(_) {}
     app.listen(PORT, '0.0.0.0', () => {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.60               ║
+║        🏮  EL FAROL AL DIA  —  V34.61               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
