@@ -1,14 +1,18 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.42
- * Base: V34.42
- * Cambios:
- *   1. Watermark: WATERMARK(1).png prioritario exacto
- *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
- *   3. Railway: regenerarWatermarks + RSS secuenciales, anti-overlap
- *   4. Panel: /api/coach, /api/memoria, /api/estadisticas alineadas
- *   5. FIX 429: pausa 2s entre imágenes, batch 20
- *   6. IMÁGENES V2: Pixabay como banco 2, filtro realismo -illustration -render -3d
- *   8. Wikipedia: solo contexto texto, eliminada de búsqueda de imágenes
+ * 🏮 EL FAROL AL DÍA — V34.43
+ * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
+ *
+ * SISTEMA DE IMÁGENES:
+ *   - Scraper por dominio (Listín, Diario Libre, N Digital) → og:image
+ *   - verificarCalidadImagen(): ≥400px + sin marca ajena (stdDev franja inferior)
+ *   - Regeneración gradual: 3 fotos/ciclo cada 2h
+ *   - Banco local 170 fotos verificadas como último recurso
+ *
+ * GEMINI:
+ *   - Timeout: 90s · Descanso entre keys: 60s · Hasta 5 keys rotando
+ *   - Horarios: 6-20h cada 10min · 20-24h cada 30min · 0-6h cada hora
+ *
+ * SIN: Pexels · Pixabay · Wikimedia · Facebook · Twitter · Telegram
  */
 
 'use strict';
@@ -437,7 +441,7 @@ async function guardarConfigIA(cfg) {
 
 // ─── GEMINI — FIX 2 ──────────────────────────────────────────────────────────
 // Modelo  : gemini-2.5-flash (estable en v1beta)
-// Timeout : 60 s con AbortController — clearTimeout en .finally() es obligatorio
+// Timeout : 90s con AbortController — clearTimeout en .finally() es obligatorio
 //           para que Node no mantenga el timer activo después de la respuesta.
 const GEMINI_MODEL   = 'gemini-2.5-flash';
 const GEMINI_TIMEOUT = 90000; // 90s — Gemini 2.5 Flash necesita más para artículos completos
@@ -1642,10 +1646,13 @@ async function verificarCalidadImagen(urlImagen, minAncho = 400) {
 //   4. El archivo /tmp ya no existe (roto)
 function esFotoFea(imagen) {
     if (!imagen) return true;
-    if (imagen.includes('pexels.com'))     return true;  // banco local genérico
-    if (imagen.includes('wikimedia.org'))  return true;  // Wikimedia irrelevante
-    if (imagen.includes('pixabay.com'))    return true;  // stock genérico
-    if (imagen.includes('unsplash.com'))   return true;  // stock genérico
+    // Fotos propias con watermark = nunca feas
+    if (imagen.includes('/img/efd-')) return false;
+    // Stock genérico sin watermark = fea
+    if (imagen.includes('pexels.com'))    return true;
+    if (imagen.includes('wikimedia.org')) return true;
+    if (imagen.includes('pixabay.com'))   return true;
+    if (imagen.includes('unsplash.com'))  return true;
     return false;
 }
 
@@ -1656,7 +1663,6 @@ function fotoRotaEnDisco(imagen) {
     return !fs.existsSync(path.join('/tmp', nombre));
 }
 
-// ─── REGENERAR FOTOS FEAS ────────────────────────────────────────────────────
 // ─── REGENERACIÓN GRADUAL DE FOTOS FEAS ─────────────────────────────────────
 // NO de golpe — procesa 3 fotos por ciclo con 8s de pausa entre cada una
 // Corre cada 2 horas → en 24h limpia todas las fotos sin saturar el servidor
@@ -1957,7 +1963,7 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.42', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.43', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/contacto',  (_, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
@@ -2270,7 +2276,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.42',
+            version:        '34.43',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2296,7 +2302,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.42               ║
+║        🏮  EL FAROL AL DIA  —  V34.43               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
