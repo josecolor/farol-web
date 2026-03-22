@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.51
+ * 🏮 EL FAROL AL DÍA — V34.52
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -2483,7 +2483,10 @@ if (!MODO_ESPEJO) {
 }
 
 // ─── AUTO-DIAGNÓSTICO cada 30 minutos ───────────────────────────────────────
-cron.schedule('*/30 * * * *', async () => {
+// ─── INGENIERO — revisa TODO cada 15 minutos sin que nadie lo llame ──────────
+// Más frecuente que antes — 15 min = 96 revisiones al día
+// Si algo está mal lo resuelve solo y lo registra en memoria
+cron.schedule('*/15 * * * *', async () => {
     await autoDiagnostico();
 });
 
@@ -2545,17 +2548,83 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 // ─── APRENDIZAJE — cada 4 horas ───────────────────────────────────────────────
-// Analiza vistas, aprende palabras y categorías que generan tráfico real
 cron.schedule('0 */4 * * *', async () => {
-    console.log('[Aprende] 📚 Analizando rendimiento para aprender...');
+    console.log('[Aprende] 📚 Analizando rendimiento...');
     await aprenderDeVistas();
     await refrescarPalabrasAprendidas();
+});
+
+// ─── REVISIÓN PROFUNDA — cada hora ───────────────────────────────────────────
+// El ingeniero revisa cosas que el diagnóstico rápido no cubre:
+// - Calidad del contenido publicado (títulos muy cortos, contenido vacío)
+// - Fotos sin watermark propio que se colaron
+// - Slugs duplicados que rompen rutas
+// - Noticias sin imagen que dañan el SEO
+cron.schedule('5 * * * *', async () => {
+    if (MODO_ESPEJO) return;
+    try {
+        let fixes = 0;
+
+        // 1. Noticias sin imagen — afectan SEO y AdSense
+        const sinImg = await pool.query(`
+            SELECT id, titulo, seccion FROM noticias
+            WHERE estado='publicada'
+            AND (imagen IS NULL OR imagen='' OR imagen LIKE '%undefined%')
+            LIMIT 5`);
+        for (const n of sinImg.rows) {
+            const sub  = FALLBACK_CAT[n.seccion] || 'politica-gobierno';
+            const url  = imgLocal(sub, n.seccion);
+            const res  = await aplicarMarcaDeAgua(url);
+            if (res.procesada) {
+                await pool.query(
+                    'UPDATE noticias SET imagen=$1, imagen_nombre=$2 WHERE id=$3',
+                    [`${BASE_URL}/img/${res.nombre}`, res.nombre, n.id]
+                );
+                fixes++;
+                console.log(`[Ingeniero] 🔧 Imagen faltante reparada: ID ${n.id}`);
+            }
+        }
+
+        // 2. Noticias con contenido muy corto (< 100 chars) — posible error Gemini
+        const cortas = await pool.query(`
+            SELECT id, titulo FROM noticias
+            WHERE estado='publicada'
+            AND LENGTH(contenido) < 100
+            AND fecha > NOW() - INTERVAL '24 hours'`);
+        for (const n of cortas.rows) {
+            await pool.query("UPDATE noticias SET estado='borrador' WHERE id=$1", [n.id]);
+            fixes++;
+            console.log(`[Ingeniero] 🔧 Noticia vacía ocultada: "${n.titulo.substring(0,40)}"`);
+        }
+
+        // 3. Títulos duplicados recientes
+        const dupes = await pool.query(`
+            SELECT titulo, COUNT(*) AS c FROM noticias
+            WHERE estado='publicada' AND fecha > NOW() - INTERVAL '6 hours'
+            GROUP BY titulo HAVING COUNT(*) > 1`);
+        for (const d of dupes.rows) {
+            await pool.query(`
+                DELETE FROM noticias WHERE titulo=$1
+                AND id NOT IN (SELECT id FROM noticias WHERE titulo=$1 ORDER BY fecha DESC LIMIT 1)
+            `, [d.titulo]).catch(() => {});
+            fixes++;
+            console.log(`[Ingeniero] 🔧 Duplicado limpiado: "${d.titulo.substring(0,40)}"`);
+        }
+
+        if (fixes > 0) {
+            invalidarCache();
+            console.log(`[Ingeniero] ✅ Revisión profunda: ${fixes} problema(s) corregido(s)`);
+        }
+
+    } catch (e) {
+        console.warn('[Ingeniero] Revisión profunda error: ' + e.message);
+    }
 });
 
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.51', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.52', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
 app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
@@ -2890,7 +2959,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.51',
+            version:        '34.52',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -2954,7 +3023,7 @@ async function iniciar() {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.51               ║
+║        🏮  EL FAROL AL DIA  —  V34.52               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
