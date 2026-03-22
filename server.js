@@ -1,6 +1,6 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.34
- * Base: V34.34
+ * 🏮 EL FAROL AL DÍA — V34.36
+ * Base: V34.36
  * Cambios:
  *   1. Watermark: WATERMARK(1).png prioritario exacto
  *   2. Gemini: gemini-2.5-flash, v1beta, AbortController 60s
@@ -1093,40 +1093,88 @@ CONTENIDO:
 
         console.log('[Gen] Título: ' + titulo);
 
-        // Plan C: si el RSS trajo imagen real, validarla y usarla
+        // ── IMAGEN: verificación real de calidad ────────────────────────────────
+        // Problema anterior: content-length no siempre lo envía el servidor
+        // Solución: descargar y medir píxeles reales con sharp — sin mentiras
+        // Mínimo aceptable: 400px de ancho — menos que eso = pixelada en portada
+        const MIN_ANCHO_ACEPTABLE = 400;
+
         let urlOrig;
         if (imagenRSSOverride) {
             try {
-                // Verificar que la imagen sea accesible (algunos medios bloquean hotlinking)
                 const ctrl = new AbortController();
-                const tm   = setTimeout(() => ctrl.abort(), 5000);
-                const chk  = await fetch(imagenRSSOverride, {
-                    method: 'HEAD',
-                    signal: ctrl.signal,
+                const tm   = setTimeout(() => ctrl.abort(), 8000);
+                const resp = await fetch(imagenRSSOverride, {
                     headers: BROWSER_HEADERS,
+                    signal:  ctrl.signal,
                 }).finally(() => clearTimeout(tm));
 
-                if (chk.ok && chk.headers.get('content-type')?.startsWith('image/')) {
-                    // Verificar si la imagen RSS es suficientemente grande
-                    const cl = parseInt(chk.headers.get('content-length') || '0');
-                    if (cl > 0 && cl < 80000) {
-                        // Imagen pequeña (< 80KB) → buscar versión HD
-                        console.log(`   [IMG-RSS] Imagen pequeña (${cl} bytes) → buscando HD`);
-                        const urlHD = await buscarEnGoogle(titulo, categoria);
-                        urlOrig = urlHD || imagenRSSOverride;
-                        if (urlHD) console.log(`   [IMG-HD] Google encontró versión HD`);
-                    } else {
-                        console.log(`   [IMG-RSS] ✓ Imagen válida del RSS`);
+                if (resp.ok) {
+                    const buf  = Buffer.from(await resp.arrayBuffer());
+                    const meta = await sharp(buf).metadata().catch(() => null);
+                    const ancho = meta?.width || 0;
+                    const alto  = meta?.height || 0;
+
+                    console.log(`   [IMG-CHECK] RSS: ${ancho}x${alto}px`);
+
+                    // ── DETECTAR MARCA DE AGUA AJENA ─────────────────────────
+                    // Los periódicos ponen su logo en la esquina inferior
+                    // Analizamos esa franja: si hay texto/logo sobreimpreso
+                    // es la marca de ELLOS, no nuestra → rechazar
+                    let tieneMarcaAjena = false;
+                    if (ancho >= MIN_ANCHO_ACEPTABLE && alto > 0) {
+                        try {
+                            // Recortar la franja inferior derecha (15% del alto, 50% del ancho)
+                            const franjaH = Math.round(alto * 0.15);
+                            const franjaW = Math.round(ancho * 0.50);
+                            const franjaX = ancho - franjaW;
+                            const franjaY = alto  - franjaH;
+
+                            const franja = await sharp(buf)
+                                .extract({ left: franjaX, top: franjaY, width: franjaW, height: franjaH })
+                                .grayscale()
+                                .raw()
+                                .toBuffer({ resolveWithObject: true });
+
+                            // Calcular contraste en la franja: marca de agua = alto contraste
+                            // Imagen limpia = contraste bajo (fondo uniforme)
+                            const pixels = franja.data;
+                            let suma = 0, sumaCuadrados = 0;
+                            for (const p of pixels) { suma += p; sumaCuadrados += p * p; }
+                            const media    = suma / pixels.length;
+                            const varianza = (sumaCuadrados / pixels.length) - (media * media);
+                            const stdDev   = Math.sqrt(varianza);
+
+                            // stdDev > 55 en la franja inferior = logo/texto encima
+                            // Imágenes limpias tienen stdDev < 40 en esa zona
+                            tieneMarcaAjena = stdDev > 55;
+                            console.log(`   [IMG-WM] Franja inferior stdDev: ${stdDev.toFixed(1)} → ${tieneMarcaAjena ? '⚠️ MARCA AJENA detectada' : '✅ Limpia'}`);
+                        } catch (_) {
+                            tieneMarcaAjena = false;
+                        }
+                    }
+
+                    if (ancho >= MIN_ANCHO_ACEPTABLE && !tieneMarcaAjena) {
+                        // ✅ Imagen grande Y limpia — usarla
+                        console.log(`   [IMG-RSS] ✓ Calidad OK (${ancho}px) sin marca ajena`);
                         urlOrig = imagenRSSOverride;
+                    } else if (tieneMarcaAjena) {
+                        // ⚠️ Tiene logo de otro periódico — banco local
+                        console.log(`   [IMG-RSS] ⚠️ Marca ajena detectada → banco local`);
+                        urlOrig = imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
+                    } else {
+                        // ❌ Imagen pixelada — banco local
+                        console.log(`   [IMG-RSS] ⚠️ Pixelada (${ancho}px < ${MIN_ANCHO_ACEPTABLE}px) → banco local`);
+                        const urlHD = await buscarEnGoogle(titulo, categoria);
+                        urlOrig = urlHD || imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
                     }
                 } else {
-                    console.log(`   [IMG-RSS] Imagen bloqueada (${chk.status}), buscando en Google`);
-                    const urlHD = await buscarEnGoogle(titulo, categoria);
-                    urlOrig = urlHD || await obtenerImagenInteligente(titulo, categoria, sub, null);
+                    console.log(`   [IMG-RSS] HTTP ${resp.status} → banco local`);
+                    urlOrig = imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
                 }
-            } catch (_) {
-                console.log(`   [IMG-RSS] No accesible, usando búsqueda normal`);
-                urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, null);
+            } catch (e) {
+                console.log(`   [IMG-RSS] Error: ${e.message} → banco local`);
+                urlOrig = imgLocal(sub || FALLBACK_CAT[categoria] || 'politica-gobierno', categoria);
             }
         } else {
             urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, null);
