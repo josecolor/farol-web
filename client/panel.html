@@ -233,6 +233,8 @@ header{background:var(--bg2);border-bottom:2px solid var(--acc);padding:8px 14px
   <button class="sg" onclick="env('¿Cómo está el AdSense?')">adsense</button>
   <button class="sg" onclick="env('Hay fotos de boda repetidas')">fotos repetidas</button>
   <button class="sg" onclick="env('Gemini da error 429')">gemini 429</button>
+  <button class="sg" onclick="env('Qué está trending en RD ahora')">trending RD</button>
+  <button class="sg" onclick="env('Cómo está el clima y el dólar')">clima y dólar</button>
 </div>
 <div class="chat-ia" id="chat-ia">
   <textarea id="inp" placeholder="Habla con el ingeniero..." rows="1"
@@ -370,11 +372,14 @@ async function getCerebro(forzar=false) {
   const ahora = Date.now();
   if (!forzar && CEREBRO && (ahora - CEREBRO_FECHA) < CEREBRO_TTL) return CEREBRO;
   try {
-    const r = await api('/api/cerebro');
+    // Cargar cerebro y mundo en paralelo
+    const [r, m] = await Promise.all([
+      api('/api/cerebro'),
+      api('/api/mundo'),
+    ]);
     if (!r.error) {
-      CEREBRO = r;
+      CEREBRO = { ...r, mundo: m };
       CEREBRO_FECHA = ahora;
-      console.log('[Cerebro] Actualizado —', r.contenido?.total_noticias, 'noticias,', r.salud?.min_sin_publicar, 'min sin publicar');
     }
   } catch(_) {}
   return CEREBRO;
@@ -411,21 +416,23 @@ async function bienvenida(){
   const k = cb?.servidor?.keys_activas || 0;
   const ok = cb && cb.salud?.errores_gemini < 3 && t < 90;
 
+  const m = cb?.mundo || {};
+  const trend1 = m.trending?.[0] || '';
+  const cambio = m.cambio?.usd_dop?.toFixed(2) || '—';
+  const clima  = m.clima ? `${m.clima.temperatura}°C` : '—';
+
   addMsg(
 `<span class="acc">// INGENIERO ELITE — V${v}</span>
-<span class="dim">// Sistema cargado · uptime ${cb?.servidor?.uptime_horas||0}h</span>
+<span class="dim">// uptime ${cb?.servidor?.uptime_horas||0}h · ${new Date().toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'})}</span>
 
 <span class="${ok?'ok':'warn'}">${ok?'✓ Sistema saludable':'⚠ Hay alertas'}</span>
-<span class="dim">  ${n} noticias · ${t}min sin publicar · ${k} keys Gemini</span>
+<span class="dim">  ${n} noticias · ${t}min sin publicar · ${k} keys activas</span>
 
-Soy tu ingeniero senior. Leo el servidor en tiempo real.
-Conozco cada función, cada error, cada decisión del sistema.
+<span class="kw">Mundo ahora:</span>
+<span class="dim">  USD/DOP: ${cambio} · SD: ${clima}${trend1?' · Trending: '+trend1:''}</span>
 
-<span class="kw">Dime lo que necesitas:</span>
-<span class="str">→</span> crash | logs | optimizar | diagnostico
-<span class="str">→</span> fotos | rss | generar | velocidad
-<span class="str">→</span> adsense | gemini | watermark | render
-<span class="str">→</span> o pregunta en español natural 🏮`
+Conozco cada función del servidor. Leo datos reales.
+Pregúntame lo que necesites. 🏮`
   ,'b');
 }
 
@@ -633,6 +640,57 @@ async function proc(txt){
     if(errores.length){
       html+=`<span class="kw">Errores recurrentes:</span>\n`;
       errores.forEach(e=>html+=`  <span class="err">×</span> ${e.valor?.substring(0,50)} (<span class="warn">${e.fallos}x</span>)\n`);
+    }
+    return html;
+  }
+
+  // ── MUNDO — trending, clima, tipo de cambio ────────────────────────────
+  if(/trending|tendencia|trend|clima|tiempo|temperatura|lluvia|dólar|peso|cambio|tasa|cotizacion|google news|mundo ahora/.test(q)){
+    const m = cb?.mundo || await api('/api/mundo');
+    let html=`<span class="acc">// DATOS DEL MUNDO EN TIEMPO REAL</span>
+
+`;
+
+    if(m.trending?.length){
+      html+=`<span class="kw">🔥 Google Trends RD ahora:</span>
+`;
+      m.trending.slice(0,8).forEach((t,i)=>html+=`  <span class="num">${i+1}.</span> ${t}
+`);
+      html+='
+';
+    }
+
+    if(m.cambio?.usd_dop){
+      html+=`<span class="kw">💵 Tipo de cambio:</span>
+`;
+      html+=`  USD → <span class="ok">RD$${m.cambio.usd_dop.toFixed(2)}</span>
+`;
+      if(m.cambio.eur_dop) html+=`  EUR → <span class="ok">RD$${m.cambio.eur_dop.toFixed(2)}</span>
+`;
+      html+='
+';
+    }
+
+    if(m.clima){
+      const ico = m.clima.lluvia ? '🌧' : m.clima.temperatura > 32 ? '🌡' : '🌤';
+      html+=`<span class="kw">${ico} Clima Santo Domingo:</span>
+`;
+      html+=`  <span class="ok">${m.clima.temperatura}°C</span> · ${m.clima.descripcion}
+`;
+      html+=`  Viento: ${m.clima.viento} km/h
+
+`;
+    }
+
+    if(m.gnews?.length){
+      html+=`<span class="kw">📡 Google News RD:</span>
+`;
+      m.gnews.slice(0,5).forEach(n=>html+=`  <span class="dim">→</span> ${n.substring(0,60)}
+`);
+    }
+
+    if(!m.trending?.length && !m.cambio && !m.clima){
+      html+=`<span class="warn">// Datos externos cargando... intenta en 30 segundos</span>`;
     }
     return html;
   }
