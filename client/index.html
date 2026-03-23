@@ -88,9 +88,15 @@
   </script>
   <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
 
+  <!-- Resource hints — conexiones anticipadas -->
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+  <link rel="dns-prefetch" href="//pagead2.googlesyndication.com">
+  <link rel="dns-prefetch" href="//fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Fuentes: media=print + onload = no bloquea render -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
 
 <style>
 :root {
@@ -329,7 +335,7 @@ footer {
 
 /* GOOGLE TRANSLATE */
 .translate-wrap { display:flex; align-items:center; }
-#idioma-selector select, #google_translate_element .goog-te-combo {
+#google_translate_element .goog-te-combo {
   background:rgba(255,255,255,.08); border:1px solid var(--borde);
   color:var(--crema); padding:6px 10px; border-radius:6px;
   font-family:'JetBrains Mono',monospace; font-size:11px; cursor:pointer;
@@ -337,13 +343,7 @@ footer {
 }
 #google_translate_element .goog-te-combo:hover { border-color:var(--fuego); background:rgba(255,85,0,.1); }
 .goog-te-banner-frame.skiptranslate { display:none !important; }
-#idioma-selector select {
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,85,0,0.3);
-  color: var(--texto); padding: 5px 10px; border-radius: 6px;
-  font-size: 12px; cursor: pointer; outline: none; font-family: inherit;
-}
-#idioma-selector select:hover { border-color: var(--fuego); background: rgba(255,85,0,.1); }
-#idioma-selector select option { background: #111; color: #fff; }
+
 body { top:0 !important; }
 
 /* MENÚ CATEGORÍAS STICKY */
@@ -444,13 +444,25 @@ body { top:0 !important; }
   .live-badge { display: none; }
 }
 @media (max-width: 480px) { .card-titulo { font-size: 20px; } }
+
+/* Skeleton loader */
+@keyframes shimmer {
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
 </style>
-<!-- Google AdSense -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 <meta name="google-adsense-account" content="ca-pub-5280872495839888">
 <script>
 function cambiarIdioma(lang){if(lang==='es'){localStorage.removeItem('farol_lang');window.location.href='/';return;}localStorage.setItem('farol_lang',lang);window.location.href='/?lang='+lang;}
 window.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('lang-select');const l=localStorage.getItem('farol_lang')||new URLSearchParams(window.location.search).get('lang');if(s&&l)s.value=l;});
+</script>
+<!-- Service Worker — cache inteligente para carga instantánea -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
 </script>
 </head>
 <body>
@@ -471,22 +483,7 @@ window.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById(
       <a href="/privacidad">PRIVACIDAD</a>
     </nav>
     <div class="translate-wrap">
-      <div id="idioma-selector">
-        <select id="lang-select" onchange="cambiarIdioma(this.value)" title="Seleccionar idioma">
-          <option value="es">🇩🇴 ES</option>
-          <option value="en">🇺🇸 EN</option>
-          <option value="fr">🇫🇷 FR</option>
-          <option value="pt">🇧🇷 PT</option>
-          <option value="ht">🇭🇹 HT</option>
-          <option value="de">🇩🇪 DE</option>
-          <option value="it">🇮🇹 IT</option>
-          <option value="zh">🇨🇳 ZH</option>
-          <option value="ar">🇸🇦 AR</option>
-          <option value="ru">🇷🇺 RU</option>
-          <option value="ja">🇯🇵 JA</option>
-          <option value="ko">🇰🇷 KO</option>
-        </select>
-      </div>
+      <div id="google_translate_element"></div>
     </div>
     <a href="#negocios" class="cat-nav-link negocios" style="text-decoration:none" onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
     <div class="live-badge" aria-label="Transmisión en vivo">
@@ -773,11 +770,26 @@ function renderizar(noticias) {
   }).join('');
 }
 
+// Mostrar skeleton inmediatamente — UX de app nativa
+function mostrarSkeleton(n=6) {
+  const sk = Array(n).fill(0).map(()=>`
+    <div style="background:#111;border-radius:10px;overflow:hidden;animation:shimmer 1.5s infinite">
+      <div style="height:200px;background:linear-gradient(90deg,#111 25%,#1a1a1a 50%,#111 75%);background-size:200% 100%;animation:shimmer 1.5s infinite"></div>
+      <div style="padding:12px">
+        <div style="height:14px;background:#1a1a1a;border-radius:4px;margin-bottom:8px;width:90%"></div>
+        <div style="height:12px;background:#1a1a1a;border-radius:4px;width:60%"></div>
+      </div>
+    </div>`).join('');
+  const grid = document.getElementById('noticias-grid');
+  if(grid) grid.innerHTML = sk;
+}
+
 async function cargar() {
   if (cargando) return;
   cargando = true;
   try {
     const ctrl = new AbortController();
+    mostrarSkeleton(); // mostrar skeleton mientras carga
     const tm   = setTimeout(() => ctrl.abort(), 10000);
     const res  = await fetch('/api/noticias', { signal: ctrl.signal });
     clearTimeout(tm);
