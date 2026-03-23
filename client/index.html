@@ -65,7 +65,10 @@
     "name": "El Farol al Día",
     "url": "https://elfarolaldia.com/",
     "logo": "https://elfarolaldia.com/static/favicon.png",
-    "sameAs": ["https://t.me/elfarolaldia"],
+    "sameAs": [
+      "https://www.facebook.com/elfarolaldia",
+      "https://twitter.com/elfarolaldia"
+    ],
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Santo Domingo Este",
@@ -88,15 +91,11 @@
   </script>
   <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
 
-  <!-- Resource hints — conexiones anticipadas -->
-  <link rel="dns-prefetch" href="//fonts.googleapis.com">
-  <link rel="dns-prefetch" href="//pagead2.googlesyndication.com">
-  <link rel="dns-prefetch" href="//fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Fuentes: media=print + onload = no bloquea render -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+  <link rel="preconnect" href="https://images.pexels.com">
+  <link rel="dns-prefetch" href="https://api.pexels.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -343,7 +342,6 @@ footer {
 }
 #google_translate_element .goog-te-combo:hover { border-color:var(--fuego); background:rgba(255,85,0,.1); }
 .goog-te-banner-frame.skiptranslate { display:none !important; }
-
 body { top:0 !important; }
 
 /* MENÚ CATEGORÍAS STICKY */
@@ -444,26 +442,10 @@ body { top:0 !important; }
   .live-badge { display: none; }
 }
 @media (max-width: 480px) { .card-titulo { font-size: 20px; } }
-
-/* Skeleton loader */
-@keyframes shimmer {
-  0%{background-position:200% 0}
-  100%{background-position:-200% 0}
-}
 </style>
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 <meta name="google-adsense-account" content="ca-pub-5280872495839888">
-<script>
-function cambiarIdioma(lang){if(lang==='es'){localStorage.removeItem('farol_lang');window.location.href='/';return;}localStorage.setItem('farol_lang',lang);window.location.href='/?lang='+lang;}
-window.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('lang-select');const l=localStorage.getItem('farol_lang')||new URLSearchParams(window.location.search).get('lang');if(s&&l)s.value=l;});
-</script>
-<!-- Service Worker — cache inteligente para carga instantánea -->
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  });
-}
-</script>
 </head>
 <body>
 
@@ -482,9 +464,11 @@ if('serviceWorker' in navigator){
       <a href="/contacto">CONTACTO</a>
       <a href="/privacidad">PRIVACIDAD</a>
     </nav>
+    <!-- Google Translate -->
     <div class="translate-wrap">
       <div id="google_translate_element"></div>
     </div>
+    <!-- Botón Negocios -->
     <a href="#negocios" class="cat-nav-link negocios" style="text-decoration:none" onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
     <div class="live-badge" aria-label="Transmisión en vivo">
       <div class="live-dot" aria-hidden="true"></div>
@@ -534,7 +518,10 @@ if('serviceWorker' in navigator){
       <p class="business-desc">Hardware profesional y suministros de oficina con respaldo legal para exportación a EE.UU. y el Caribe. Operamos bajo marcos legales RD–USA.</p>
     </div>
 
+    <!-- CUADRÍCULA DE NOTICIAS DE NEGOCIOS -->
     <div class="business-grid" style="margin-bottom:36px">
+
+      <!-- CARD 1: HUB LOGÍSTICO -->
       <div class="business-card">
         <div style="width:100%;height:160px;overflow:hidden;border-radius:8px;margin-bottom:16px;background:rgba(0,0,0,.3)">
           <img src="https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&w=600"
@@ -544,11 +531,15 @@ if('serviceWorker' in navigator){
         <div class="business-card-icon">🏭</div>
         <h3>HUB LOGÍSTICO SDE</h3>
         <p>Presidente Abinader inaugura nuevo hub logístico en Santo Domingo Este. Centro operativo para distribución de equipos tecnológicos hacia EE.UU. y el Caribe.</p>
-        <a href="/cdn-cgi/l/email-protection#cea2a1a9a7bdbaa7adbd8eaba2a8afbca1a2afa2aaa7afe0ada1a3f1bdbbaca4abadbaf38da1a0bdbba2baafebfcfe86bbacebfcfe82a1a9eb8dfdeb8f8abdbaa7ada1ebfcfe9d8a8b" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
+        <a href="mailto:logistics@elfarolaldia.com?subject=Consulta%20Hub%20Log%C3%ADstico%20SDE&body=Buenos%20días,%0A%0AMe%20interesa%20obtener%20información%20sobre%20el%20Hub%20Logístico%20de%20Santo%20Domingo%20Este.%0A%0ANombre:%0AEmpresa:%0ATipo%20de%20operación:"
+           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700"
+           onmouseover="this.style.background='#FFC800';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.background='var(--dorado)';this.style.transform='none'">
           📧 CONTACTAR LOGÍSTICA
         </a>
       </div>
 
+      <!-- CARD 2: INFOTEP / TECH -->
       <div class="business-card">
         <div style="width:100%;height:160px;overflow:hidden;border-radius:8px;margin-bottom:16px;background:rgba(0,0,0,.3)">
           <img src="https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&w=600"
@@ -558,11 +549,15 @@ if('serviceWorker' in navigator){
         <div class="business-card-icon">💻</div>
         <h3>EQUIPAMIENTO PC & TECH</h3>
         <p>INFOTEP lanza 5,000 becas en cloud computing para jóvenes de SDE. Proveemos equipos certificados para programas educativos y empresariales con documentación legal USA.</p>
-        <a href="/cdn-cgi/l/email-protection#1f7e7c6e6a766c766b7670716c5f7a73797e6d70737e737b767e317c7072206c6a7d757a7c6b225e7b6e6a766c767c7670717a6c3a2d2f4a4c5e3a2d2f323a2d2f5a6e6a766f7e72767a716b703a2d2f4f5c" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
+        <a href="mailto:acquisitions@elfarolaldia.com?subject=Adquisiciones%20USA%20-%20Equipamiento%20PC&body=Buenos%20días,%0A%0AQuiero%20consultar%20sobre%20adquisición%20de%20equipos%20tecnológicos.%0A%0ANombre:%0AEmpresa/Institución:%0ACantidad%20estimada:%0APresupuesto:"
+           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700"
+           onmouseover="this.style.background='#FFC800';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.background='var(--dorado)';this.style.transform='none'">
           🇺🇸 ADQUISICIONES USA
         </a>
       </div>
 
+      <!-- CARD 3: DGA / IMPORTACIÓN -->
       <div class="business-card">
         <div style="width:100%;height:160px;overflow:hidden;border-radius:8px;margin-bottom:16px;background:rgba(0,0,0,.3)">
           <img src="https://images.pexels.com/photos/3943715/pexels-photo-3943715.jpeg?auto=compress&w=600"
@@ -572,12 +567,17 @@ if('serviceWorker' in navigator){
         <div class="business-card-icon">📋</div>
         <h3>MARCO LEGAL & ADUANAS</h3>
         <p>DGA simplifica aranceles para importación de tecnología. Operamos con documentación completa: factura comercial, packing list, certificado de origen y gestión aduanal RD–Miami.</p>
-        <a href="/cdn-cgi/l/email-protection#80ece5e7e1ecc0e5ece6e1f2efece1ece4e9e1aee3efedbff3f5e2eae5e3f4bdc3efeef3f5ecf4e1a5b2b0cce5e7e1eca5b2b0ada5b2b0c9edf0eff2f4e1e3e94333eea5b2b0d4e5e3eeefecefe7432de1" style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700">
+        <a href="mailto:legal@elfarolaldia.com?subject=Consulta%20Legal%20-%20Importación%20Tecnología&body=Buenos%20días,%0A%0ADeseo%20información%20sobre%20el%20marco%20legal%20para%20importación/exportación%20de%20tecnología.%0A%0ANombre:%0AEmpresa:%0APaís%20de%20origen:%0ATipo%20de%20producto:"
+           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700"
+           onmouseover="this.style.background='#FFC800';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.background='var(--dorado)';this.style.transform='none'">
           ⚖️ CONSULTA LEGAL
         </a>
       </div>
+
     </div>
 
+    <!-- FILA DE SERVICIOS -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px">
       <div style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:16px;text-align:center">
         <div style="font-size:22px;margin-bottom:6px">🚢</div>
@@ -596,14 +596,22 @@ if('serviceWorker' in navigator){
       </div>
     </div>
 
+    <!-- BOTÓN CONTACTO GENERAL -->
     <div style="text-align:center">
-      <a href="/cdn-cgi/l/email-protection#f89a8d8b91969d8b8bb89d949e998a979499949c9199d69b9795c78b8d9a929d9b8cc5bb97968b8d948c99ddcac8bf9d969d8a9994ddcac8d5ddcac8bd94ddcac8be998a9794ddcac8ba8d8b91969d8b8b" style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--dorado),#FFA500);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;padding:16px 36px;border-radius:30px;text-decoration:none;box-shadow:0 8px 24px rgba(255,215,0,.4);transition:all .2s;font-weight:700">
+      <a href="mailto:business@elfarolaldia.com?subject=Consulta%20General%20-%20El%20Farol%20Business&body=Buenos%20días,%0A%0AMe%20interesa%20hacer%20negocios%20con%20El%20Farol%20al%20Día.%0A%0ANombre:%0AEmpresa:%0ATeléfono:%0AConsulta:"
+         style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--dorado),#FFA500);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;padding:16px 36px;border-radius:30px;text-decoration:none;box-shadow:0 8px 24px rgba(255,215,0,.4);transition:all .2s;font-weight:700"
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 14px 32px rgba(255,215,0,.6)'"
+         onmouseout="this.style.transform='none';this.style.boxShadow='0 8px 24px rgba(255,215,0,.4)'">
         📧 CONTACTO GENERAL DE NEGOCIOS
       </a>
       <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-top:12px">
-        <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9dffe8eef4f3f8eeeeddf8f1fbfceff2f1fcf1f9f4fcb3fef2f0">[email&#160;protected]</a> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3b57545c52484f5258487b5e575d5a4954575a575f525a15585456">[email&#160;protected]</a> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4e2f2d3f3b273d273a2721203d0e2b22282f3c21222f222a272f602d2123">[email&#160;protected]</a>
+        business@elfarolaldia.com · logistics@elfarolaldia.com · acquisitions@elfarolaldia.com
       </p>
     </div>
+
+    <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.35);margin-top:20px;text-align:center">
+      Hub Tecnológico Santo Domingo Este · Zona Franca Itabo · <strong style="color:var(--dorado)">elfarolaldia.com</strong> · Operamos bajo las normativas de comercio electrónico de RD y las leyes de exportación de EE.UU.
+    </p>
   </div>
 </section>
 
@@ -621,55 +629,59 @@ if('serviceWorker' in navigator){
       <a href="/sitemap.xml">SITEMAP</a>
     </div>
 
-    <!-- EQUIPO -->
-    <div style="margin:36px 0 28px;padding:36px 24px;background:linear-gradient(135deg,rgba(10,38,71,.75) 0%,rgba(7,7,7,.97) 100%);border:1px solid rgba(255,215,0,.2);border-radius:20px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,215,0,.07) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
-      <div style="text-align:center;margin-bottom:30px;position:relative">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,215,0,.55);display:block;margin-bottom:8px">COLABORADORES & TECNOLOGÍA</span>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,4vw,30px);letter-spacing:4px;color:#fff;line-height:1">LAS MENTES DETRÁS DE <span style="color:var(--fuego)">EL FAROL</span></div>
-        <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#FF5500,transparent);margin:12px auto 0"></div>
-      </div>
+    <!-- ══════════════════════════════════════════════
+         EQUIPO & TECNOLOGÍA — El Farol al Día
+    ══════════════════════════════════════════════ -->
+    <div style="margin:36px 0 28px;padding:32px 24px;background:linear-gradient(135deg,rgba(255,85,0,.06) 0%,rgba(0,0,0,0) 50%,rgba(10,38,71,.15) 100%);border:1px solid rgba(255,255,255,.06);border-radius:16px;max-width:900px;margin-left:auto;margin-right:auto">
 
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--muted);margin-bottom:6px">COLABORADORES & TECNOLOGÍA</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--crema);margin-bottom:28px">LOS PILARES DE <span style="color:var(--fuego)">EL FAROL AL DÍA</span></div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+
         <!-- DIRECTOR -->
-        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden"
-             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FFD700,transparent)"></div>
-          <div style="width:58px;height:58px;background:linear-gradient(135deg,#0A2647,#1a4a7a);border:2px solid rgba(255,215,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">👑</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,215,0,.65);margin-bottom:6px">DIRECTOR & FUNDADOR</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#FFD700;line-height:1.25;margin-bottom:8px">JOSÉ GREGORIO<br>MAÑAN SANTANA</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Visión · Editorial<br>SDE · RD</div>
+        <div style="background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:20px 14px;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <div style="width:64px;height:64px;border-radius:50%;overflow:hidden;margin:0 auto 12px;border:2px solid #FFD700;box-shadow:0 0 20px rgba(255,215,0,.35)">
+            <img src="/static/director%20(1).jpg" alt="José Gregorio Apellio - Director El Farol al Día"
+              style="width:100%;height:100%;object-fit:cover;object-position:center top"
+              onerror="this.parentElement.innerHTML='<div style=\'width:64px;height:64px;background:linear-gradient(135deg,#0A2647,#FFD700);display:flex;align-items:center;justify-content:center;font-size:28px\'>🏮</div>'">
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:#FFD700;margin-bottom:6px">DIRECTOR & FUNDADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#fff;line-height:1.2;margin-bottom:4px">JOSÉ GREGORIO<br>MAÑAN SANTANA</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.5">Santo Domingo Este<br>República Dominicana</div>
         </div>
 
         <!-- GEMINI -->
-        <div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden"
-             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#4285F4,transparent)"></div>
-          <div style="width:58px;height:58px;background:linear-gradient(135deg,#0d1b3e,#1a3572);border:2px solid rgba(66,133,244,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">✨</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(66,133,244,.75);margin-bottom:6px">IA REDACCIÓN</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#4285F4;margin-bottom:2px">GEMINI</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Google · 2.5 Flash</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Noticias · E-E-A-T<br>SEO · Contexto</div>
+        <div style="background:rgba(66,133,244,.05);border:1px solid rgba(66,133,244,.2);border-radius:12px;padding:20px 14px;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <div style="width:52px;height:52px;background:linear-gradient(135deg,#1a73e8,#4285F4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 16px rgba(66,133,244,.3)">✨</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:#4285F4;margin-bottom:6px">IA ENCARGADO</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:4px">GEMINI</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.5">Google · 2.5 Flash<br>Redacción & SEO</div>
         </div>
 
         <!-- CLAUDE -->
-        <div style="background:rgba(255,85,0,.07);border:1px solid rgba(255,85,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden"
-             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FF5500,transparent)"></div>
-          <div style="width:58px;height:58px;background:linear-gradient(135deg,#1a0800,#3d1200);border:2px solid rgba(255,85,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">🏮</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,85,0,.8);margin-bottom:6px">IA DESARROLLADOR</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#FF5500;margin-bottom:2px">CLAUDE</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Anthropic · Sonnet</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Arquitectura · Server<br>AdSense · RSS</div>
+        <div style="background:rgba(255,85,0,.05);border:1px solid rgba(255,85,0,.2);border-radius:12px;padding:20px 14px;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <div style="width:52px;height:52px;background:linear-gradient(135deg,#CC4300,#FF5500);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 16px rgba(255,85,0,.35)">🤖</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:#FF5500;margin-bottom:6px">IA DESARROLLADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:4px">CLAUDE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.5">Anthropic · Sonnet<br>Arquitectura & Código</div>
         </div>
+
+        <!-- DEEPSEEK -->
+        <div style="background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:20px 14px;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <div style="width:52px;height:52px;background:linear-gradient(135deg,#065F46,#10B981);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 16px rgba(16,185,129,.3)">🧠</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:#10B981;margin-bottom:6px">IA ESPECIALISTA</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:4px">DEEPSEEK</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.5">DeepSeek AI<br>Datos & Análisis</div>
+        </div>
+
       </div>
 
-      <div style="text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.05)">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);letter-spacing:2px">
-          🏮 CONSTRUIDO EN SANTO DOMINGO ESTE · REPÚBLICA DOMINICANA · 2026
-        </span>
+      <div style="margin-top:20px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);letter-spacing:1px">
+        STACK: Node.js · PostgreSQL · Railway · Pexels · Wikipedia · Google AdSense · Facebook · Twitter/X
       </div>
     </div>
+    <!-- ══════════════════════════════════════════════ -->
 
     <div class="legal-footer">
       <p><strong>MARCO LEGAL:</strong> El Farol al Día opera bajo las normativas de comercio electrónico de la República Dominicana y las leyes de exportación de EE.UU. · Hub Tecnológico SDE ·
@@ -678,23 +690,107 @@ if('serviceWorker' in navigator){
       <a href="/cookies" style="color:var(--dorado)">Política de Cookies</a></p>
     </div>
 
+    <!-- ══════════════════════════════════════════════════════
+         🏆 COLABORADORES & TECNOLOGÍA — El Farol al Día
+    ══════════════════════════════════════════════════════ -->
+    <div style="margin:36px 0 28px;padding:36px 24px;background:linear-gradient(135deg,rgba(10,38,71,.75) 0%,rgba(7,7,7,.97) 100%);border:1px solid rgba(255,215,0,.2);border-radius:20px;position:relative;overflow:hidden">
+
+      <!-- Destellos decorativos -->
+      <div style="position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,215,0,.07) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
+      <div style="position:absolute;bottom:-50px;left:-50px;width:160px;height:160px;background:radial-gradient(circle,rgba(255,85,0,.05) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
+
+      <!-- Título -->
+      <div style="text-align:center;margin-bottom:30px;position:relative">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,215,0,.55);display:block;margin-bottom:8px">COLABORADORES & TECNOLOGÍA</span>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,4vw,30px);letter-spacing:4px;color:#fff;line-height:1">LAS MENTES DETRÁS DE <span style="color:var(--fuego)">EL FAROL</span></div>
+        <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#FF5500,transparent);margin:12px auto 0"></div>
+      </div>
+
+      <!-- Grid 4 tarjetas -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;position:relative">
+
+        <!-- DIRECTOR -->
+        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(255,215,0,.14)';this.style.borderColor='rgba(255,215,0,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(255,215,0,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FFD700,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#0A2647,#1a4a7a);border:2px solid rgba(255,215,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(255,215,0,.18)">👑</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,215,0,.65);margin-bottom:6px">DIRECTOR & FUNDADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#FFD700;line-height:1.25;margin-bottom:8px">JOSÉ GREGORIO<br>MAÑAN SANTANA</div>
+          <div style="width:30px;height:1px;background:rgba(255,215,0,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Visión · Editorial<br>SDE · RD</div>
+        </div>
+
+        <!-- GEMINI -->
+        <div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(66,133,244,.14)';this.style.borderColor='rgba(66,133,244,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(66,133,244,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#4285F4,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#0d1b3e,#1a3572);border:2px solid rgba(66,133,244,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(66,133,244,.18)">✨</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(66,133,244,.75);margin-bottom:6px">IA ENCARGADO</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#4285F4;margin-bottom:2px">GEMINI</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Google</div>
+          <div style="width:30px;height:1px;background:rgba(66,133,244,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Noticias · E-E-A-T<br>SEO · Contexto</div>
+        </div>
+
+        <!-- CLAUDE -->
+        <div style="background:rgba(255,85,0,.07);border:1px solid rgba(255,85,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(255,85,0,.14)';this.style.borderColor='rgba(255,85,0,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(255,85,0,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FF5500,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#1a0800,#3d1200);border:2px solid rgba(255,85,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(255,85,0,.18)">🏮</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,85,0,.8);margin-bottom:6px">IA DESARROLLADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#FF5500;margin-bottom:2px">CLAUDE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Anthropic</div>
+          <div style="width:30px;height:1px;background:rgba(255,85,0,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Arquitectura · Auth<br>AdSense · Server</div>
+        </div>
+
+        <!-- DEEPSEEK -->
+        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 14px 36px rgba(16,185,129,.14)';this.style.borderColor='rgba(16,185,129,.5)'"
+             onmouseout="this.style.transform='none';this.style.boxShadow='none';this.style.borderColor='rgba(16,185,129,.22)'">
+          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#10B981,transparent)"></div>
+          <div style="width:58px;height:58px;background:linear-gradient(135deg,#001a0d,#003320);border:2px solid rgba(16,185,129,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;box-shadow:0 0 18px rgba(16,185,129,.18)">🧠</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(16,185,129,.75);margin-bottom:6px">IA ESPECIALISTA</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#10B981;margin-bottom:2px">DEEPSEEK</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by DeepSeek AI</div>
+          <div style="width:30px;height:1px;background:rgba(16,185,129,.3);margin:0 auto 8px"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Datos · UI · Panel<br>Optimización</div>
+        </div>
+
+      </div>
+
+      <!-- Firma -->
+      <div style="text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.05)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);letter-spacing:2px">
+          🏮 CONSTRUIDO EN SANTO DOMINGO ESTE · REPÚBLICA DOMINICANA · 2026
+        </span>
+      </div>
+    </div>
+    <!-- FIN COLABORADORES & TECNOLOGÍA -->
+
     <div class="footer-copy">
       <p>© 2026 El Farol al Día · José Gregorio Mañan Santana · Todos los derechos reservados</p>
-      <p style="font-size:10px;margin-top:5px">Powered by Gemini 2.5 Flash · Claude (Anthropic) · Railway · PostgreSQL · Google AdSense</p>
+      <p style="font-size:10px;margin-top:5px">Powered by Gemini 2.5 Flash · Claude (Anthropic) · DeepSeek · Wikipedia · Pexels</p>
     </div>
   </div>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 const CONFIG = {
   CATS: ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'],
   EMOJIS: { Nacionales:'🏛️', Deportes:'⚽', Internacionales:'🌍', Economía:'💼', Tecnología:'💻', Espectáculos:'🎬' },
   MESES: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 };
 
+// Filtro desde menú sticky (sincronizado con el filtro de botones de categoría)
 function filtrarNav(cat, btn) {
+  // Actualizar activo en menú sticky
   document.querySelectorAll('.cat-nav-link[data-cat]').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
+  // Sincronizar con botones del hero
   document.querySelectorAll('.cat-btn').forEach(b => {
     b.classList.remove('active');
     if ((!cat && b.dataset.cat === 'null') || b.dataset.cat === cat) b.classList.add('active');
@@ -702,11 +798,13 @@ function filtrarNav(cat, btn) {
   categoriaActiva = cat;
   renderizar(cat ? todas.filter(n => n.seccion === cat) : todas);
   history.replaceState(null,'', cat ? `/?categoria=${encodeURIComponent(cat)}` : '/');
+  // Scroll al grid
   document.getElementById('grid')?.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 let todas = [], categoriaActiva = null, cargando = false;
 
+// Fecha
 function actualizarFecha() {
   const f = new Date();
   const el = document.getElementById('hero-fecha');
@@ -714,6 +812,7 @@ function actualizarFecha() {
   el.setAttribute('datetime', f.toISOString().split('T')[0]);
 }
 
+// Categorías
 function crearCats() {
   const c = document.getElementById('cats');
   let html = '<button class="cat-btn active" data-cat="null" aria-label="Todas las categorías">📰 TODAS</button>';
@@ -729,6 +828,7 @@ function crearCats() {
   });
 }
 
+// Filtrar
 function filtrar(cat, btn) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -737,6 +837,7 @@ function filtrar(cat, btn) {
   history.replaceState(null, '', cat ? `/?categoria=${encodeURIComponent(cat)}` : '/');
 }
 
+// Renderizar
 function renderizar(noticias) {
   const grid = document.getElementById('grid');
   if (!noticias?.length) {
@@ -754,7 +855,8 @@ function renderizar(noticias) {
           alt="${n.imagen_alt || n.titulo}"
           onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'"
           loading="${i < 3 ? 'eager' : 'lazy'}"
-          decoding="async" width="800" height="450">
+          decoding="async"
+          width="800" height="450">
       </div>
       <div class="card-body">
         <span class="card-seccion">${CONFIG.EMOJIS[n.seccion]||'📰'} ${n.seccion}</span>
@@ -770,27 +872,24 @@ function renderizar(noticias) {
   }).join('');
 }
 
-// Mostrar skeleton inmediatamente — UX de app nativa
-function mostrarSkeleton(n=6) {
-  const sk = Array(n).fill(0).map(()=>`
-    <div style="background:#111;border-radius:10px;overflow:hidden;animation:shimmer 1.5s infinite">
-      <div style="height:200px;background:linear-gradient(90deg,#111 25%,#1a1a1a 50%,#111 75%);background-size:200% 100%;animation:shimmer 1.5s infinite"></div>
-      <div style="padding:12px">
-        <div style="height:14px;background:#1a1a1a;border-radius:4px;margin-bottom:8px;width:90%"></div>
-        <div style="height:12px;background:#1a1a1a;border-radius:4px;width:60%"></div>
-      </div>
-    </div>`).join('');
-  const grid = document.getElementById('noticias-grid');
-  if(grid) grid.innerHTML = sk;
-}
-
-async function cargar() {
-  if (cargando) return;
+// Cargar noticias
+async function cargar(intento) {
+  intento = intento || 1;
+  if (cargando && intento === 1) return;
   cargando = true;
+
+  // Mostrar estado del intento
+  if (intento > 1) {
+    document.getElementById('grid').innerHTML = `
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <p>Reintentando conexión (${intento}/3)...</p>
+      </div>`;
+  }
+
   try {
     const ctrl = new AbortController();
-    mostrarSkeleton(); // mostrar skeleton mientras carga
-    const tm   = setTimeout(() => ctrl.abort(), 10000);
+    const tm   = setTimeout(() => ctrl.abort(), 40000); // 40s — Railway cold start
     const res  = await fetch('/api/noticias', { signal: ctrl.signal });
     clearTimeout(tm);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -798,9 +897,40 @@ async function cargar() {
     if (!data.success) throw new Error(data.error || 'Error');
     todas = data.noticias || [];
     renderizar(categoriaActiva ? todas.filter(n => n.seccion === categoriaActiva) : todas);
+    cargando = false;
   } catch(e) {
-    if (e.name !== 'AbortError') {
+    cargando = false;
+    if (intento < 3) {
+      // Reintento automático cada 5 segundos
+      setTimeout(() => cargar(intento + 1), 5000);
+    } else {
       document.getElementById('grid').innerHTML = `
         <div class="loading-wrap" role="alert">
-          <p style="color:#ff4444">❌ Error cargando noticias</p>
-          <p style="font-size:
+          <p style="color:#ff4444">⚠️ El servidor está tardando en responder</p>
+          <p style="font-size:13px;margin-top:10px;color:var(--muted)">El servidor de Railway puede estar iniciando. Espera 30 segundos.</p>
+          <button onclick="cargando=false;cargar(1)" style="margin-top:16px;padding:10px 24px;background:var(--fuego);border:none;border-radius:6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;cursor:pointer">🔄 REINTENTAR AHORA</button>
+        </div>`;
+    }
+  }
+}
+
+// Categoría desde URL
+function leerCatURL() {
+  const params = new URLSearchParams(window.location.search);
+  const cat = params.get('categoria');
+  if (cat) {
+    const btn = document.querySelector(`.cat-btn[data-cat="${cat}"]`);
+    if (btn) { categoriaActiva = cat; btn.click(); }
+  }
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  actualizarFecha();
+  crearCats();
+  cargar().then(leerCatURL);
+  setInterval(cargar, 60000); // Refresca cada 60s (sincronizado con caché del server)
+});
+</script>
+</body>
+</html>
