@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.61
+ * 🏮 EL FAROL AL DÍA — V34.51
  * Stack: Node.js · Express · PostgreSQL · Railway · Sharp · Gemini 2.5 Flash
  *
  * SISTEMA DE IMÁGENES:
@@ -31,16 +31,15 @@ const BROWSER_HEADERS = {
     'sec-fetch-site':  'cross-site',
 };
 
-const express     = require('express');
-const cors        = require('cors');
-const path        = require('path');
-const fs          = require('fs');
-const cron        = require('node-cron');
-const { Pool }    = require('pg');
-const sharp       = require('sharp');
-const RSSParser   = require('rss-parser');
-const crypto      = require('crypto');
-const zlib        = require('zlib');
+const express   = require('express');
+const cors      = require('cors');
+const path      = require('path');
+const fs        = require('fs');
+const cron      = require('node-cron');
+const { Pool }  = require('pg');
+const sharp     = require('sharp');
+const RSSParser = require('rss-parser');
+const crypto    = require('crypto');
 
 // ─── BASIC AUTH ───────────────────────────────────────────────────────────────
 function authMiddleware(req, res, next) {
@@ -176,12 +175,8 @@ const pool      = new Pool({
 const rssParser = new RSSParser({ timeout: 10000 });
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
-
-// Compresión desactivada — Railway maneja gzip a nivel de proxy
-// El gzip manual causaba crashes y lentitud
-
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ limit: '5mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/static', express.static(path.join(__dirname, 'static'), {
     setHeaders: (res) => res.setHeader('Cache-Control', 'public,max-age=2592000,immutable'),
 }));
@@ -263,144 +258,6 @@ async function buscarContextoWikipedia(titulo, categoria) {
         return `\nCONTEXTO REFERENCIA (no copiar):\n${txt}\n`;
     } catch (_) { return ''; }
 }
-
-// ─── APIS GRATUITAS — el sistema aprende del mundo ──────────────────────────
-// Todas sin API key, sin límites problemáticos, 100% gratuitas
-// El sistema las consulta para enriquecer noticias y aprender tendencias
-
-// ── 1. GOOGLE TRENDS RD — qué busca la gente ahora mismo ─────────────────────
-// pytrends no disponible en Node — usamos el RSS público de Google Trends
-async function obtenerTrendingRD() {
-    try {
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 8000);
-        // Google Trends RSS para República Dominicana
-        const r = await fetch(
-            'https://trends.google.com/trends/trendingsearches/daily/rss?geo=DO',
-            { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } }
-        ).finally(() => clearTimeout(tm));
-        if (!r.ok) return [];
-        const xml = await r.text();
-        // Extraer títulos de tendencias
-        const matches = [...xml.matchAll(/<title><!\[CDATA\[([^\]]+)\]\]><\/title>/g)];
-        const trending = matches.slice(1, 11).map(m => m[1].trim()); // top 10
-        console.log(`[Trends-RD] ${trending.length} tendencias: ${trending.slice(0,3).join(', ')}`);
-        return trending;
-    } catch (_) { return []; }
-}
-
-// ── 2. TIPO DE CAMBIO — dólar/peso dominicano en tiempo real ─────────────────
-// ExchangeRate-API — gratis sin key
-async function obtenerTipoCambio() {
-    try {
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 5000);
-        const r    = await fetch(
-            'https://api.exchangerate-api.com/v4/latest/USD',
-            { signal: ctrl.signal }
-        ).finally(() => clearTimeout(tm));
-        if (!r.ok) return null;
-        const d = await r.json();
-        const dop = d.rates?.DOP;
-        if (dop) console.log(`[Cambio] USD/DOP: ${dop}`);
-        return dop ? { usd_dop: dop, eur_dop: d.rates?.EUR ? (dop / d.rates.EUR) : null } : null;
-    } catch (_) { return null; }
-}
-
-// ── 3. CLIMA SANTO DOMINGO — Open-Meteo gratis ────────────────────────────────
-async function obtenerClimaSD() {
-    try {
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 5000);
-        // Santo Domingo: lat=18.4861, lon=-69.9312
-        const r = await fetch(
-            'https://api.open-meteo.com/v1/forecast?latitude=18.4861&longitude=-69.9312&current=temperature_2m,precipitation,wind_speed_10m,weather_code&timezone=America/Santo_Domingo',
-            { signal: ctrl.signal }
-        ).finally(() => clearTimeout(tm));
-        if (!r.ok) return null;
-        const d = await r.json();
-        const cur = d.current;
-        const clima = {
-            temperatura: cur.temperature_2m,
-            lluvia:      cur.precipitation > 0,
-            viento:      cur.wind_speed_10m,
-            codigo:      cur.weather_code,
-            descripcion: wmoToText(cur.weather_code),
-        };
-        console.log(`[Clima-SD] ${clima.temperatura}°C ${clima.descripcion}`);
-        return clima;
-    } catch (_) { return null; }
-}
-
-// Códigos WMO a texto en español
-function wmoToText(code) {
-    const m = {0:'Despejado',1:'Mayormente despejado',2:'Parcialmente nublado',3:'Nublado',
-               45:'Neblina',48:'Neblina con hielo',51:'Llovizna leve',53:'Llovizna',
-               61:'Lluvia leve',63:'Lluvia',65:'Lluvia intensa',80:'Chubascos',
-               81:'Chubascos moderados',82:'Chubascos fuertes',95:'Tormenta',
-               96:'Tormenta con granizo',99:'Tormenta severa'};
-    return m[code] || 'Variable';
-}
-
-// ── 4. GOOGLE NEWS RSS — noticias trending mundiales ─────────────────────────
-async function obtenerGoogleNewsRD() {
-    try {
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 8000);
-        // Google News en español para RD
-        const r = await fetch(
-            'https://news.google.com/rss/search?q=republica+dominicana&hl=es-419&gl=DO&ceid=DO:es-419',
-            { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } }
-        ).finally(() => clearTimeout(tm));
-        if (!r.ok) return [];
-        const xml  = await r.text();
-        const titulos = [...xml.matchAll(/<title>([^<]+)<\/title>/g)]
-            .slice(1, 8)
-            .map(m => m[1].replace(/&amp;/g,'&').replace(/&quot;/g,'"').trim());
-        console.log(`[GNews-RD] ${titulos.length} noticias trending`);
-        return titulos;
-    } catch (_) { return []; }
-}
-
-// ── 5. CACHE DE DATOS EXTERNOS ────────────────────────────────────────────────
-const CACHE_EXTERNO = {
-    trending: { data: [], fecha: 0 },
-    cambio:   { data: null, fecha: 0 },
-    clima:    { data: null, fecha: 0 },
-    gnews:    { data: [], fecha: 0 },
-};
-const TTL_EXTERNO = {
-    trending: 30 * 60 * 1000,  // 30 min — trends cambian cada media hora
-    cambio:   60 * 60 * 1000,  // 1 hora — tipo de cambio
-    clima:    15 * 60 * 1000,  // 15 min — clima
-    gnews:    20 * 60 * 1000,  // 20 min — noticias
-};
-
-async function getDatosExternos() {
-    const ahora = Date.now();
-    const promesas = [];
-
-    if (ahora - CACHE_EXTERNO.trending.fecha > TTL_EXTERNO.trending)
-        promesas.push(obtenerTrendingRD().then(d => { CACHE_EXTERNO.trending = { data: d, fecha: ahora }; }));
-    if (ahora - CACHE_EXTERNO.cambio.fecha > TTL_EXTERNO.cambio)
-        promesas.push(obtenerTipoCambio().then(d => { CACHE_EXTERNO.cambio = { data: d, fecha: ahora }; }));
-    if (ahora - CACHE_EXTERNO.clima.fecha > TTL_EXTERNO.clima)
-        promesas.push(obtenerClimaSD().then(d => { CACHE_EXTERNO.clima = { data: d, fecha: ahora }; }));
-    if (ahora - CACHE_EXTERNO.gnews.fecha > TTL_EXTERNO.gnews)
-        promesas.push(obtenerGoogleNewsRD().then(d => { CACHE_EXTERNO.gnews = { data: d, fecha: ahora }; }));
-
-    if (promesas.length) await Promise.allSettled(promesas);
-
-    return {
-        trending: CACHE_EXTERNO.trending.data,
-        cambio:   CACHE_EXTERNO.cambio.data,
-        clima:    CACHE_EXTERNO.clima.data,
-        gnews:    CACHE_EXTERNO.gnews.data,
-    };
-}
-
-// ── API PÚBLICA DE DATOS EXTERNOS ─────────────────────────────────────────────
-// El bot y el panel los consultan directamente
 
 // ─── WATERMARK (aplicación) ───────────────────────────────────────────────────
 async function aplicarMarcaDeAgua(urlImagen) {
@@ -547,32 +404,14 @@ async function aplicarMarcaDeAgua(urlImagen) {
 }
 
 app.get('/img/:nombre', (req, res) => {
-    const nombre = path.basename(req.params.nombre);
-    const ruta   = path.join('/tmp', nombre);
-    if (!fs.existsSync(ruta)) return res.status(404).send('No disponible');
-
-    try {
-        const stat  = fs.statSync(ruta);
-        const etag  = `"${stat.size}-${stat.mtimeMs}"`;
-        const since = req.headers['if-none-match'];
-
-        // 304 Not Modified — navegador usa su cache sin descargar nada
-        if (since === etag) {
-            return res.status(304).end();
-        }
-
-        res.setHeader('Content-Type',           'image/jpeg');
-        res.setHeader('Content-Length',         stat.size);
-        res.setHeader('Cache-Control',          'public,max-age=2592000,immutable'); // 30 días
-        res.setHeader('ETag',                   etag);
-        res.setHeader('Last-Modified',          stat.mtime.toUTCString());
+    const ruta = path.join('/tmp', path.basename(req.params.nombre));
+    if (fs.existsSync(ruta)) {
+        res.setHeader('Content-Type',   'image/jpeg');
+        res.setHeader('Cache-Control',  'public,max-age=604800,immutable');
         res.setHeader('X-Content-Type-Options', 'nosniff');
-
-        // Stream directo — no carga en RAM
-        fs.createReadStream(ruta).pipe(res);
-    } catch(_) {
-        res.status(404).send('No disponible');
+        return res.sendFile(ruta);
     }
+    res.status(404).send('No disponible');
 });
 
 // ─── CONFIG IA ────────────────────────────────────────────────────────────────
@@ -613,91 +452,6 @@ async function guardarConfigIA(cfg) {
 //           para que Node no mantenga el timer activo después de la respuesta.
 const GEMINI_MODEL   = 'gemini-2.5-flash';
 const GEMINI_TIMEOUT = 90000; // 90s — Gemini 2.5 Flash necesita más para artículos completos
-
-// ─── SISTEMA MULTIIDIOMA ──────────────────────────────────────────────────────
-// El Farol al Día habla con el mundo — detecta el idioma del visitante
-// y traduce el contenido automáticamente con Gemini
-// Idiomas soportados con su cultura periodística propia
-const IDIOMAS = {
-    'es': { nombre: 'Español',    locale: 'es-DO', gemini: 'español dominicano'      },
-    'en': { nombre: 'English',    locale: 'en-US', gemini: 'professional English'     },
-    'fr': { nombre: 'Français',   locale: 'fr-FR', gemini: 'français journalistique'  },
-    'pt': { nombre: 'Português',  locale: 'pt-BR', gemini: 'português brasileiro'     },
-    'it': { nombre: 'Italiano',   locale: 'it-IT', gemini: 'italiano giornalistico'   },
-    'de': { nombre: 'Deutsch',    locale: 'de-DE', gemini: 'professionelles Deutsch'  },
-    'zh': { nombre: '中文',        locale: 'zh-CN', gemini: '专业中文新闻'              },
-    'ar': { nombre: 'العربية',    locale: 'ar-SA', gemini: 'عربي صحفي احترافي'        },
-    'ru': { nombre: 'Русский',    locale: 'ru-RU', gemini: 'профессиональный русский' },
-    'ja': { nombre: '日本語',      locale: 'ja-JP', gemini: 'プロの日本語ニュース'       },
-    'ko': { nombre: '한국어',      locale: 'ko-KR', gemini: '전문 한국어 뉴스'          },
-    'hi': { nombre: 'हिन्दी',      locale: 'hi-IN', gemini: 'पेशेवर हिंदी समाचार'     },
-    'ht': { nombre: 'Kreyòl',     locale: 'ht-HT', gemini: 'kreyòl ayisyen'           },
-};
-
-// Cache de traducciones — evita traducir lo mismo dos veces
-const cacheTraduccion = new Map();
-const CACHE_TRAD_TTL  = 3600000; // 1 hora
-
-// Detectar idioma desde Accept-Language header
-function detectarIdioma(req) {
-    const al = req.headers['accept-language'] || '';
-    const preferidos = al.split(',').map(l => l.split(';')[0].trim().substring(0,2).toLowerCase());
-    for (const lang of preferidos) {
-        if (IDIOMAS[lang]) return lang;
-    }
-    return 'es'; // default español
-}
-
-// Traducir texto con Gemini — inteligente y cultural
-async function traducirConGemini(texto, idiomaDestino, contexto = 'noticia') {
-    if (idiomaDestino === 'es') return texto; // ya en español
-    if (!IDIOMAS[idiomaDestino]) return texto;
-
-    const cacheKey = `${idiomaDestino}:${texto.substring(0,50)}`;
-    const cached = cacheTraduccion.get(cacheKey);
-    if (cached && (Date.now() - cached.t) < CACHE_TRAD_TTL) return cached.v;
-
-    try {
-        const idioma = IDIOMAS[idiomaDestino];
-        const prompt = `Traduce este texto de un periódico dominicano al ${idioma.gemini}.
-
-REGLAS:
-- Mantén el tono periodístico profesional
-- Adapta culturalmente (no traduzcas literalmente)
-- Conserva nombres propios, lugares y siglas dominicanas
-- Para títulos: máximo 65 caracteres
-- Responde SOLO con la traducción, sin explicaciones
-
-TEXTO:
-${texto}`;
-
-        const { key } = getGeminiKey();
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 15000);
-        const res  = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: ctrl.signal,
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.3, maxOutputTokens: 1000 },
-                }),
-            }
-        ).finally(() => clearTimeout(tm));
-
-        if (!res.ok) return texto;
-        const data = await res.json();
-        const traducido = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (!traducido) return texto;
-
-        cacheTraduccion.set(cacheKey, { v: traducido, t: Date.now() });
-        return traducido;
-    } catch (_) {
-        return texto; // Si falla → texto original
-    }
-}
 const GS = { lastRequest: 0, resetTime: 0 };
 
 async function llamarGemini(prompt, reintentos = 3) {
@@ -1129,7 +883,7 @@ function metaTagsCompletos(n, url) {
 <meta name="news_keywords" content="ultimo minuto, santo domingo este, tendencias dominicanas, ${esc(k)}">
 <meta name="geo.region" content="DO-01"><meta name="geo.placename" content="Santo Domingo Este, Republica Dominicana">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<link rel="canonical" href="${ue}"><link rel="alternate" hreflang="es-DO" href="${ue}"><link rel="alternate" hreflang="es" href="${ue}"><link rel="alternate" hreflang="en" href="${ue}?lang=en"><link rel="alternate" hreflang="fr" href="${ue}?lang=fr"><link rel="alternate" hreflang="pt" href="${ue}?lang=pt"><link rel="alternate" hreflang="ht" href="${ue}?lang=ht"><link rel="alternate" hreflang="x-default" href="${ue}">
+<link rel="canonical" href="${ue}"><link rel="alternate" hreflang="es-DO" href="${ue}"><link rel="alternate" hreflang="es" href="${ue}">
 <meta property="og:type" content="article"><meta property="og:title" content="${t}"><meta property="og:description" content="${d}">
 <meta property="og:image" content="${img}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta property="og:url" content="${ue}"><meta property="og:site_name" content="El Farol al Dia - Ultimo Minuto RD"><meta property="og:locale" content="es_DO">
@@ -1201,7 +955,7 @@ function obtenerPerfilPeriodista(nombre) {
 }
 
 let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 60000; // 1 minuto — siempre fresco
+const CACHE_TTL = 600000; // 10 minutos — menos queries a la BD
 function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
 
 // ─── MEMORIA IA ───────────────────────────────────────────────────────────────
@@ -1543,10 +1297,6 @@ async function inicializarBase() {
                 fecha      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_comentarios_noticia ON comentarios(noticia_id,aprobado,fecha DESC)`).catch(() => {});
-        // Índices para queries más rápidas
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_estado_fecha ON noticias(estado,fecha DESC)`).catch(() => {});
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_slug ON noticias(slug)`).catch(() => {});
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_vistas ON noticias(vistas DESC)`).catch(() => {});
 
         const fix = await client.query(`
             UPDATE noticias
@@ -1560,7 +1310,6 @@ async function inicializarBase() {
         client.release();
     }
     await cargarConfigIA();
-    await cargarHorarios();
 }
 
 // ─── GENERACIÓN ───────────────────────────────────────────────────────────────
@@ -1573,30 +1322,11 @@ async function generarNoticia(categoria, comunicadoExterno = null, imagenRSSOver
             : categoria;
         const contextoWiki = await buscarContextoWikipedia(temaWiki, categoria);
 
-        // Inyectar datos del mundo en el prompt
-        if (contextoMundo) {
-            console.log(`   [Mundo] Datos externos: tipo cambio + clima + trending`);
-        }
-
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta noticia profesional basada en este comunicado. No copies textualmente.`
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para Republica Dominicana.`;
 
         const termCPC = ADSENSE_CPC[categoria] || 'prestamos, inversion inmobiliaria, seguros, banca digital';
-
-        // Usar datos externos del cache — NO hacer requests en tiempo real
-        // Los datos se refrescan en background cada 15-30 min sin bloquear
-        let contextoMundo = '';
-        const ce = CACHE_EXTERNO;
-        if (ce.cambio?.data?.usd_dop) {
-            contextoMundo += `\nTIPO DE CAMBIO: 1 USD = RD$${ce.cambio.data.usd_dop.toFixed(2)}`;
-        }
-        if (ce.clima?.data) {
-            contextoMundo += `\nCLIMA SD: ${ce.clima.data.temperatura}°C, ${ce.clima.data.descripcion}`;
-        }
-        if (ce.trending?.data?.length) {
-            contextoMundo += `\nTRENDING RD: ${ce.trending.data.slice(0,5).join(', ')}`;
-        }
 
         const redactor = elegirRedactor(categoria);
         const perfil   = obtenerPerfilPeriodista(redactor);
@@ -1622,7 +1352,7 @@ ${memoria}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-ÉNFASIS: ${CONFIG_IA.enfasis}${contextoMundo ? '\n\nDATO DEL MUNDO REAL (usar si es relevante para la noticia):' + contextoMundo : ''}
+ÉNFASIS: ${CONFIG_IA.enfasis}
 EVITAR: ${CONFIG_IA.evitar}
 
 ESTRUCTURA PERIODÍSTICA ÉLITE (pirámide invertida estricta):
@@ -2009,17 +1739,9 @@ function puntuarRelevancia(titulo, contenido = '') {
     }
 
     // +5 por cada palabra que el sistema APRENDIÓ que genera tráfico real
+    // Estas valen más porque vienen de datos reales, no de suposiciones
     for (const palabra of PALABRAS_APRENDIDAS) {
         if (texto.includes(palabra)) score += 5;
-    }
-
-    // +8 si la noticia está en Google Trends RD ahora mismo — oro puro
-    const trendingAhora = CACHE_EXTERNO.trending.data || [];
-    for (const trend of trendingAhora) {
-        if (texto.includes(trend.toLowerCase().substring(0, 8))) {
-            score += 8;
-            console.log(`   [Trend+8] "${trend}" detectado en: ${titulo.substring(0,40)}`);
-        }
     }
 
     // +5 si tiene cifras concretas
@@ -2560,17 +2282,12 @@ async function autoDiagnostico() {
     // BLOQUE 4 — BASE DE DATOS
     // ════════════════════════════════════════════════════════════════════════
 
-    // 4A. Conexión BD — auto-reconexión si falla
+    // 4A. Conexión BD
     try {
         await pool.query('SELECT 1');
     } catch (e) {
         problemas.push(`BD sin conexión: ${e.message}`);
-        try {
-            await pool.end().catch(() => {});
-            resueltos.push('✅ Pool BD reiniciado — reconectará en próximo ciclo');
-        } catch (_) {
-            acciones.push('⚠️ BD caída — Railway reiniciará automáticamente');
-        }
+        acciones.push('⚠️ Sin auto-fix para BD — Railway reiniciará automáticamente');
     }
 
     // 4B. Títulos duplicados
@@ -2628,52 +2345,6 @@ async function autoDiagnostico() {
     await refrescarPalabrasAprendidas().catch(() => {});
 
     // ════════════════════════════════════════════════════════════════════════
-    // BLOQUE 6 — SEGURIDAD Y ESTABILIDAD
-    // ════════════════════════════════════════════════════════════════════════
-
-    // 6A. /tmp lleno — borrar imágenes viejas
-    try {
-        const archivos = fs.readdirSync('/tmp').filter(f => f.startsWith('efd-') && f.endsWith('.jpg'));
-        if (archivos.length > 200) {
-            const conFecha = archivos.map(f => ({ f, t: fs.statSync(path.join('/tmp', f)).mtimeMs }))
-                                     .sort((a, b) => b.t - a.t);
-            const aBorrar = conFecha.slice(100);
-            aBorrar.forEach(({ f }) => { try { fs.unlinkSync(path.join('/tmp', f)); } catch (_) {} });
-            resueltos.push(`✅ /tmp limpiado — ${aBorrar.length} imágenes viejas borradas`);
-        }
-    } catch (_) {}
-
-    // 6B. Cache muy grande — optimizar
-    if (_cacheNoticias && _cacheNoticias.length > 50) {
-        _cacheNoticias = _cacheNoticias.slice(0, 30);
-        resueltos.push('✅ Cache optimizada');
-    }
-
-    // 6C. Sin noticias nuevas en 3 horas — forzar publicación
-    try {
-        const hora = new Date().getHours();
-        if (hora >= 6 && hora <= 23 && CONFIG_IA.enabled && !MODO_ESPEJO) {
-            const rec = await pool.query(`
-                SELECT COUNT(*) AS c FROM noticias
-                WHERE estado='publicada' AND fecha > NOW() - INTERVAL '3 hours'`);
-            if (parseInt(rec.rows[0].c) === 0 && !rssEnProceso) {
-                problemas.push('Sin noticias nuevas en 3 horas durante horario activo');
-                procesarRSS();
-                resueltos.push('✅ RSS forzado — portada necesita contenido fresco');
-            }
-        }
-    } catch (_) {}
-
-    // 6D. Health check interno
-    try {
-        const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 3000);
-        const r    = await fetch(`http://localhost:${PORT}/health`, { signal: ctrl.signal })
-                          .finally(() => clearTimeout(tm));
-        if (!r.ok) problemas.push(`Health check respondió ${r.status}`);
-    } catch (_) {}
-
-    // ════════════════════════════════════════════════════════════════════════
     // REPORTE FINAL
     // ════════════════════════════════════════════════════════════════════════
     const uptime = Math.round((ahora - SALUD.arranque) / 3600000);
@@ -2712,45 +2383,30 @@ async function autoDiagnostico() {
     } catch (_) {}
 }
 
-// Monitor de salud integrado directamente en generarNoticia y procesarRSS
+// ─── MONITOR DE SALUD EN PUBLICACIÓN ────────────────────────────────────────
+async function generarNoticiaConSalud(...args) {
+    const result = await generarNoticia(...args);
+    if (result.success) {
+        SALUD.ultimaPublicacion = Date.now();
+        SALUD.erroresGemini     = 0;
+        SALUD.erroresImagen     = 0;
+    } else {
+        const err = result.error || '';
+        if (err.includes('429') || err.includes('TIMEOUT') || err.includes('Gemini')) {
+            SALUD.erroresGemini++;
+        }
+        if (err.includes('imagen') || err.includes('foto') || err.includes('HTTP')) {
+            SALUD.erroresImagen++;
+        }
+    }
+    return result;
+}
 
 // ─── MODO ESPEJO ─────────────────────────────────────────────────────────────
 // Si MODO_ESPEJO=true → solo sirve el sitio, sin publicar ni escribir en BD
 // Usar en Render como servidor de respaldo/espejo de elfarolaldia.com
 // Railway sigue siendo el servidor principal que publica
 const MODO_ESPEJO = process.env.MODO_ESPEJO === 'true';
-
-// ─── CONFIGURACIÓN DE HORARIOS DINÁMICA ──────────────────────────────────────
-// Permite cambiar los horarios desde el panel sin tocar código
-// Se guarda en BD y persiste entre reinicios
-let HORARIO_CONFIG = {
-    manana_inicio:  6,   // hora de inicio mañana (0-23)
-    manana_fin:     20,  // hora de fin tarde
-    intervalo_pico: 10,  // minutos entre publicaciones en hora pico
-    intervalo_noche:20,  // minutos entre publicaciones en noche
-    intervalo_madrugada: 30, // minutos entre publicaciones en madrugada
-    publicar_madrugada: true, // publicar en madrugada
-    guardia_nocturna: true,   // generar noticia si pasan mucho sin publicar
-    guardia_minutos: 90,      // minutos sin publicar para activar guardia
-};
-
-async function cargarHorarioConfig() {
-    try {
-        const r = await pool.query("SELECT valor FROM memoria_ia WHERE tipo='horario_config' LIMIT 1");
-        if (r.rows.length) {
-            HORARIO_CONFIG = { ...HORARIO_CONFIG, ...JSON.parse(r.rows[0].valor) };
-            console.log('[Horario] Configuración cargada desde BD');
-        }
-    } catch (_) {}
-}
-
-async function guardarHorarioConfig() {
-    try {
-        const v = JSON.stringify(HORARIO_CONFIG);
-        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos) VALUES('horario_config',$1,'sistema',1) ON CONFLICT DO NOTHING", [v]);
-        await pool.query("UPDATE memoria_ia SET valor=$1,ultima_vez=NOW() WHERE tipo='horario_config'", [v]);
-    } catch (_) {}
-}
 
 if (MODO_ESPEJO) {
     console.log(`
@@ -2784,39 +2440,6 @@ cron.schedule('0 * * * *', () => {
     }
 });
 
-// ─── CONFIGURACIÓN DE HORARIOS — editable desde el panel ────────────────────
-// El director puede cambiar los horarios sin tocar el código
-let HORARIOS_CONFIG = {
-    manana_inicio:    6,   // hora inicio mañana
-    manana_fin:       20,  // hora fin tarde
-    noche_inicio:     20,  // hora inicio noche
-    noche_fin:        24,  // hora fin noche
-    intervalo_manana: 10,  // minutos entre publicaciones (mañana/tarde)
-    intervalo_noche:  20,  // minutos entre publicaciones (noche)
-    intervalo_madrugada: 30, // minutos entre publicaciones (madrugada)
-    madrugada_activa: true,  // publicar en madrugada
-    guardia_nocturna: true,  // generar noticia si +90min sin publicar
-};
-
-// Cargar horarios guardados en BD
-async function cargarHorarios() {
-    try {
-        const r = await pool.query("SELECT valor FROM memoria_ia WHERE tipo='horarios_config' ORDER BY ultima_vez DESC LIMIT 1");
-        if (r.rows.length) {
-            HORARIOS_CONFIG = { ...HORARIOS_CONFIG, ...JSON.parse(r.rows[0].valor) };
-            console.log('[Horarios] Config cargada desde BD');
-        }
-    } catch (_) {}
-}
-
-async function guardarHorarios() {
-    try {
-        const v = JSON.stringify(HORARIOS_CONFIG);
-        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos) VALUES('horarios_config',$1,'sistema',1) ON CONFLICT DO NOTHING", [v]);
-        await pool.query("UPDATE memoria_ia SET valor=$1,ultima_vez=NOW() WHERE tipo='horarios_config'", [v]);
-    } catch (_) {}
-}
-
 // ─── HORARIOS INTELIGENTES ───────────────────────────────────────────────────
 //
 // 🌅 MAÑANA FUERTE   6:00–11:59  → cada 10 min (6 noticias/hora)
@@ -2830,42 +2453,46 @@ async function guardarHorarios() {
 // ── PUBLICACIÓN — solo en servidor principal (no en espejo) ──────────────────
 if (!MODO_ESPEJO) {
 
-    // ── CICLO DINÁMICO — respeta HORARIO_CONFIG configurado desde el panel ──────
-    cron.schedule('* * * * *', async () => {
+    // MAÑANA & TARDE FUERTES (6am–8pm) — cada 10 min
+    cron.schedule('0 6-19 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Mañana/Tarde] ⚡ :00 Key-1');
+        procesarRSS();
+    });
+    cron.schedule('10 6-19 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Mañana/Tarde] ⚡ :10 Key-2');
+        procesarRSS();
+    });
+    cron.schedule('20 6-19 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Mañana/Tarde] ⚡ :20 Key-3');
+        procesarRSS();
+    });
+    cron.schedule('40 6-19 * * *', async () => {
         if (!CONFIG_IA.enabled || rssEnProceso) return;
-        const ahora  = new Date();
-        const hora   = ahora.getHours();
-        const minuto = ahora.getMinutes();
-        const cfg    = HORARIO_CONFIG;
-        const esPico      = hora >= cfg.manana_inicio && hora < cfg.manana_fin;
-        const esMadrugada = hora < cfg.manana_inicio;
-        const intervalo   = esPico ? cfg.intervalo_pico : esMadrugada ? cfg.intervalo_madrugada : cfg.intervalo_noche;
+        const cat = await obtenerCategoriaOptima();
+        console.log(`[Mañana/Tarde] 🏮 :40 IA propia — ${cat}`);
+        await generarNoticia(cat);
+    });
 
-        if (esMadrugada && !cfg.publicar_madrugada) return;
-        if (minuto % intervalo !== 0) return;
-
-        // Slot D — noticia propia en minuto 40 durante hora pico
-        if (esPico && minuto === 40) {
-            const cat = await obtenerCategoriaOptima();
-            console.log(`[Slot-D] 🏮 IA propia — ${cat} (${hora}:40)`);
-            await generarNoticia(cat);
-            return;
-        }
-
-        const tipo = esPico ? 'pico' : esMadrugada ? 'madrugada' : 'noche';
-        console.log(`[Ciclo] ⚡ ${hora}:${String(minuto).padStart(2,'0')} ${tipo} (c/${intervalo}min)`);
+    // NOCHE TRANQUILA (8pm–11pm) — cada 30 min
+    cron.schedule('0 20-23 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Noche] 🌙 :00 publicando...');
+        procesarRSS();
+    });
+    cron.schedule('30 20-23 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Noche] 🌙 :30 publicando...');
         procesarRSS();
     });
 
-    // GUARDIA — actúa si llevan demasiado sin publicar
-    cron.schedule('*/5 * * * *', async () => {
-        if (!CONFIG_IA.enabled || rssEnProceso || !HORARIO_CONFIG.guardia_nocturna) return;
-        const minSin = Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000);
-        if (minSin >= HORARIO_CONFIG.guardia_minutos) {
-            const cat = await obtenerCategoriaOptima();
-            console.log(`[Guardia] 🌙 ${minSin}min sin publicar → generando ${cat}`);
-            await generarNoticia(cat);
-        }
+    // MADRUGADA (12am–5am) — cada hora
+    cron.schedule('0 0-5 * * *', async () => {
+        if (rssEnProceso) return;
+        console.log('[Madrugada] 😴 Publicando mientras RD duerme...');
+        procesarRSS();
     });
 
 } else {
@@ -2873,11 +2500,8 @@ if (!MODO_ESPEJO) {
 }
 
 // ─── AUTO-DIAGNÓSTICO cada 30 minutos ───────────────────────────────────────
-// ─── INGENIERO — revisa TODO cada 15 minutos sin que nadie lo llame ──────────
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('*/30 * * * *', async () => {
     await autoDiagnostico();
-    // Refrescar datos externos en segundo plano
-    getDatosExternos().catch(() => {});
 });
 
 // ─── TAREAS DE MANTENIMIENTO — solo en servidor principal ────────────────────
@@ -2938,88 +2562,20 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 // ─── APRENDIZAJE — cada 4 horas ───────────────────────────────────────────────
+// Analiza vistas, aprende palabras y categorías que generan tráfico real
 cron.schedule('0 */4 * * *', async () => {
-    console.log('[Aprende] 📚 Analizando rendimiento...');
+    console.log('[Aprende] 📚 Analizando rendimiento para aprender...');
     await aprenderDeVistas();
     await refrescarPalabrasAprendidas();
-});
-
-// ─── REVISIÓN PROFUNDA — cada hora ───────────────────────────────────────────
-// El ingeniero revisa cosas que el diagnóstico rápido no cubre:
-// - Calidad del contenido publicado (títulos muy cortos, contenido vacío)
-// - Fotos sin watermark propio que se colaron
-// - Slugs duplicados que rompen rutas
-// - Noticias sin imagen que dañan el SEO
-cron.schedule('5 * * * *', async () => {
-    if (MODO_ESPEJO) return;
-    try {
-        let fixes = 0;
-
-        // 1. Noticias sin imagen — afectan SEO y AdSense
-        const sinImg = await pool.query(`
-            SELECT id, titulo, seccion FROM noticias
-            WHERE estado='publicada'
-            AND (imagen IS NULL OR imagen='' OR imagen LIKE '%undefined%')
-            LIMIT 5`);
-        for (const n of sinImg.rows) {
-            const sub  = FALLBACK_CAT[n.seccion] || 'politica-gobierno';
-            const url  = imgLocal(sub, n.seccion);
-            const res  = await aplicarMarcaDeAgua(url);
-            if (res.procesada) {
-                await pool.query(
-                    'UPDATE noticias SET imagen=$1, imagen_nombre=$2 WHERE id=$3',
-                    [`${BASE_URL}/img/${res.nombre}`, res.nombre, n.id]
-                );
-                fixes++;
-                console.log(`[Ingeniero] 🔧 Imagen faltante reparada: ID ${n.id}`);
-            }
-        }
-
-        // 2. Noticias con contenido muy corto (< 100 chars) — posible error Gemini
-        const cortas = await pool.query(`
-            SELECT id, titulo FROM noticias
-            WHERE estado='publicada'
-            AND LENGTH(contenido) < 100
-            AND fecha > NOW() - INTERVAL '24 hours'`);
-        for (const n of cortas.rows) {
-            await pool.query("UPDATE noticias SET estado='borrador' WHERE id=$1", [n.id]);
-            fixes++;
-            console.log(`[Ingeniero] 🔧 Noticia vacía ocultada: "${n.titulo.substring(0,40)}"`);
-        }
-
-        // 3. Títulos duplicados recientes
-        const dupes = await pool.query(`
-            SELECT titulo, COUNT(*) AS c FROM noticias
-            WHERE estado='publicada' AND fecha > NOW() - INTERVAL '6 hours'
-            GROUP BY titulo HAVING COUNT(*) > 1`);
-        for (const d of dupes.rows) {
-            await pool.query(`
-                DELETE FROM noticias WHERE titulo=$1
-                AND id NOT IN (SELECT id FROM noticias WHERE titulo=$1 ORDER BY fecha DESC LIMIT 1)
-            `, [d.titulo]).catch(() => {});
-            fixes++;
-            console.log(`[Ingeniero] 🔧 Duplicado limpiado: "${d.titulo.substring(0,40)}"`);
-        }
-
-        if (fixes > 0) {
-            invalidarCache();
-            console.log(`[Ingeniero] ✅ Revisión profunda: ${fixes} problema(s) corregido(s)`);
-        }
-
-    } catch (e) {
-        console.warn('[Ingeniero] Revisión profunda error: ' + e.message);
-    }
 });
 
 } // fin if(!MODO_ESPEJO) — mantenimiento
 
 // ─── RUTAS ESTÁTICAS ──────────────────────────────────────────────────────────
-app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.61', modelo: GEMINI_MODEL }));
+app.get('/health',    (_, res) => res.json({ status: 'OK', version: '34.51', modelo: GEMINI_MODEL }));
 app.get('/',          (_, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
-app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
-app.get('/ingeniero',  authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
-app.get('/panel',      authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'panel.html')));
+app.get('/monitor',    authMiddleware, (_, res) => res.sendFile(path.join(__dirname, 'client', 'monitor.html')));
 app.get('/ingeniero',  (req, res) => {
     // Panel de ingeniería — PIN en query o en sesión
     const pin = req.query.pin;
@@ -3055,7 +2611,7 @@ app.options('/api/noticias', (req, res) => {
 
 app.get('/api/noticias', async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public,max-age=60,stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public,max-age=300,stale-while-revalidate=600');
     res.setHeader('Content-Type',  'application/json');
     try {
         if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL)
@@ -3289,21 +2845,8 @@ app.get('/noticia/:slug', async (req, res) => {
             [req.params.slug, 'publicada']
         );
         if (!r.rows.length) return res.status(404).send('Noticia no encontrada');
-        let n = r.rows[0];
+        const n = r.rows[0];
         await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1', [n.id]);
-
-        // Detectar idioma del visitante — traducir si no es español
-        const lang = req.query.lang || detectarIdioma(req);
-        if (lang !== 'es' && IDIOMAS[lang]) {
-            try {
-                const [titulo, contenido] = await Promise.all([
-                    traducirConGemini(n.titulo, lang, 'titulo'),
-                    traducirConGemini(n.contenido.substring(0, 3000), lang, 'articulo'),
-                ]);
-                n = { ...n, titulo, contenido };
-                console.log(`[i18n] Noticia servida en ${IDIOMAS[lang].nombre}: "${titulo.substring(0,40)}"`);
-            } catch (_) {} // Si falla → español original
-        }
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
             const urlN  = `${BASE_URL}/noticia/${n.slug}`;
@@ -3320,50 +2863,13 @@ app.get('/noticia/:slug', async (req, res) => {
                 .replace(/{{SECCION}}/g,   esc(n.seccion))
                 .replace(/{{URL}}/g,       encodeURIComponent(urlN));
             res.setHeader('Content-Type',  'text/html;charset=utf-8');
-            res.setHeader('Cache-Control', 'public,max-age=3600,stale-while-revalidate=86400');
+            res.setHeader('Cache-Control', 'public,max-age=1800,stale-while-revalidate=3600');
             res.send(html);
         } catch (_) { res.json({ success: true, noticia: n }); }
     } catch (e) { res.status(500).send('Error interno'); }
 });
 
 // ─── SITEMAP / ROBOTS / ADS ───────────────────────────────────────────────────
-// ─── API MULTIIDIOMA ─────────────────────────────────────────────────────────
-// GET /api/noticias?lang=en  → devuelve noticias traducidas al inglés
-// GET /noticia/:slug?lang=fr → devuelve noticia en francés
-// Soporta: es, en, fr, pt, it, de, zh, ar, ru, ja, ko, hi, ht
-
-app.get('/api/idiomas', (req, res) => {
-    res.json({ success: true, idiomas: IDIOMAS });
-});
-
-app.get('/api/traducir/:id', async (req, res) => {
-    const lang = req.query.lang || detectarIdioma(req);
-    if (!IDIOMAS[lang]) return res.status(400).json({ error: 'Idioma no soportado' });
-
-    try {
-        const r = await pool.query('SELECT * FROM noticias WHERE id=$1 AND estado=$2', [req.params.id, 'publicada']);
-        if (!r.rows.length) return res.status(404).json({ error: 'No encontrada' });
-
-        const n = r.rows[0];
-        if (lang === 'es') return res.json({ success: true, noticia: n, idioma: 'es' });
-
-        // Traducir título, descripción y contenido en paralelo
-        const [titulo, descripcion, contenido] = await Promise.all([
-            traducirConGemini(n.titulo, lang, 'titulo'),
-            traducirConGemini(n.seo_description || '', lang, 'descripcion'),
-            traducirConGemini(n.contenido.substring(0, 2000), lang, 'articulo'),
-        ]);
-
-        res.json({
-            success: true,
-            idioma:  lang,
-            noticia: { ...n, titulo, seo_description: descripcion, contenido },
-        });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
 app.get('/sitemap.xml', async (req, res) => {
     try {
         const r   = await pool.query("SELECT slug,fecha FROM noticias WHERE estado='publicada' ORDER BY fecha DESC");
@@ -3383,13 +2889,6 @@ app.get('/sitemap.xml', async (req, res) => {
     } catch (e) { res.status(500).send('Error'); }
 });
 
-app.get('/sw.js', (_, res) => {
-    res.setHeader('Content-Type',  'application/javascript');
-    res.setHeader('Cache-Control', 'public,max-age=0'); // siempre fresco
-    res.setHeader('Service-Worker-Allowed', '/');
-    res.sendFile(path.join(__dirname, 'client', 'sw.js'));
-});
-
 app.get('/robots.txt', (_, res) => {
     res.header('Content-Type', 'text/plain');
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/admin\nDisallow: /redaccion\n\nUser-agent: Googlebot\nAllow: /\nCrawl-delay: 1\n\nSitemap: ${BASE_URL}/sitemap.xml`);
@@ -3406,7 +2905,7 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         res.json({
             status:         'OK',
-            version:        '34.61',
+            version:        '34.51',
             modelo_gemini:  GEMINI_MODEL,
             timeout_gemini: `${GEMINI_TIMEOUT / 1000}s`,
             noticias:       parseInt(r.rows[0].count),
@@ -3417,8 +2916,6 @@ app.get('/status', async (req, res) => {
             adsense:        'pub-5280872495839888',
             ia_activa:      CONFIG_IA.enabled,
             modo_espejo:    MODO_ESPEJO,
-            horarios:       HORARIOS_CONFIG,
-            horario:        HORARIO_CONFIG,
             rss_en_proceso: rssEnProceso,
             wm_en_proceso:  wmRegenEnProceso,
             salud: {
@@ -3428,196 +2925,6 @@ app.get('/status', async (req, res) => {
                 min_sin_publicar:    Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000),
             },
         });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ─── API CEREBRO — el bot lee el estado COMPLETO del servidor ────────────────
-// Todo lo que el ingeniero necesita para entender y razonar sobre el sistema
-app.get('/api/cerebro', authMiddleware, async (req, res) => {
-    try {
-        // Leer TODO en paralelo — máxima eficiencia
-        const [
-            statsNoticias,
-            statsRSS,
-            memoriaReciente,
-            noticiasRecientes,
-            topVistas,
-            erroresRecientes,
-            aprendizaje,
-        ] = await Promise.all([
-            pool.query(`SELECT COUNT(*) as total,
-                        SUM(vistas) as vistas,
-                        MAX(fecha) as ultima,
-                        AVG(vistas) as promedio
-                        FROM noticias WHERE estado='publicada'`),
-            pool.query(`SELECT COUNT(*) as total FROM rss_procesados
-                        WHERE fecha > NOW() - INTERVAL '24 hours'`),
-            pool.query(`SELECT tipo, valor, categoria, exitos, fallos, ultima_vez
-                        FROM memoria_ia ORDER BY ultima_vez DESC LIMIT 30`),
-            pool.query(`SELECT titulo, seccion, vistas, fecha, imagen
-                        FROM noticias WHERE estado='publicada'
-                        ORDER BY fecha DESC LIMIT 10`),
-            pool.query(`SELECT titulo, seccion, vistas
-                        FROM noticias WHERE estado='publicada'
-                        ORDER BY vistas DESC LIMIT 5`),
-            pool.query(`SELECT valor, fallos, categoria, ultima_vez
-                        FROM memoria_ia WHERE tipo='error'
-                        AND ultima_vez > NOW() - INTERVAL '24 hours'
-                        ORDER BY fallos DESC LIMIT 10`),
-            pool.query(`SELECT tipo, valor, exitos, categoria
-                        FROM memoria_ia
-                        WHERE tipo IN ('palabra_trending','palabra_publicada','rendimiento_categoria')
-                        ORDER BY exitos DESC LIMIT 20`),
-        ]);
-
-        // Analizar calidad de fotos
-        const fotosPropias = noticiasRecientes.rows.filter(n => n.imagen?.includes('/img/efd-')).length;
-        const fotosExternas = noticiasRecientes.rows.filter(n => !n.imagen?.includes('/img/efd-')).length;
-
-        // Estado del ingeniero interno
-        const uptime = Math.round((Date.now() - SALUD.arranque) / 3600000);
-
-        res.json({
-            // Estado en tiempo real
-            servidor: {
-                version:        '34.60',
-                uptime_horas:   uptime,
-                modelo_ia:      GEMINI_MODEL,
-                timeout_ia:     GEMINI_TIMEOUT / 1000,
-                keys_activas:   GEMINI_KEYS.length,
-                watermark:      WATERMARK_PATH ? path.basename(WATERMARK_PATH) : null,
-                google_cse:     !!(process.env.GOOGLE_CSE_KEY && process.env.GOOGLE_CSE_ID),
-                modo_espejo:    MODO_ESPEJO,
-                ia_habilitada:  CONFIG_IA.enabled,
-                rss_procesando: rssEnProceso,
-                fotos_regenerando: wmRegenEnProceso,
-            },
-
-            // Salud actual
-            salud: {
-                errores_gemini:    SALUD.erroresGemini,
-                timeouts_gemini:   SALUD.timeoutsGemini,
-                errores_imagen:    SALUD.erroresImagen,
-                rss_vacios:        SALUD.rssVaciosCiclos,
-                min_sin_publicar:  Math.round((Date.now() - SALUD.ultimaPublicacion) / 60000),
-                arranque:          new Date(SALUD.arranque).toISOString(),
-            },
-
-            // Métricas de contenido
-            contenido: {
-                total_noticias:   parseInt(statsNoticias.rows[0].total),
-                total_vistas:     parseInt(statsNoticias.rows[0].vistas) || 0,
-                vistas_promedio:  Math.round(parseFloat(statsNoticias.rows[0].promedio) || 0),
-                ultima_publicacion: statsNoticias.rows[0].ultima,
-                rss_hoy:          parseInt(statsRSS.rows[0].total),
-                fotos_propias:    fotosPropias,
-                fotos_externas:   fotosExternas,
-            },
-
-            // Últimas noticias
-            ultimas_noticias: noticiasRecientes.rows.map(n => ({
-                titulo:  n.titulo,
-                seccion: n.seccion,
-                vistas:  n.vistas,
-                fecha:   n.fecha,
-                foto_propia: n.imagen?.includes('/img/efd-') || false,
-            })),
-
-            // Top por vistas
-            top_vistas: topVistas.rows,
-
-            // Errores recientes
-            errores_recientes: erroresRecientes.rows.map(e => ({
-                error:     e.valor?.substring(0, 100),
-                fallos:    e.fallos,
-                categoria: e.categoria,
-                cuando:    e.ultima_vez,
-            })),
-
-            // Lo que aprendió el sistema
-            aprendizaje: {
-                palabras:    aprendizaje.rows.filter(x => x.tipo.includes('palabra')).slice(0, 10),
-                categorias:  aprendizaje.rows.filter(x => x.tipo === 'rendimiento_categoria'),
-            },
-
-            // Configuración IA activa
-            config_ia: {
-                tono:      CONFIG_IA.tono,
-                extension: CONFIG_IA.extension,
-                enfasis:   CONFIG_IA.enfasis?.substring(0, 100),
-            },
-
-            // Datos del mundo (desde cache — no bloquea)
-            mundo: { trending: CACHE_EXTERNO.trending.data, cambio: CACHE_EXTERNO.cambio.data, clima: CACHE_EXTERNO.clima.data, gnews: CACHE_EXTERNO.gnews.data },
-
-            // Horarios del sistema
-            horarios: {
-                manana_tarde: '6am-8pm cada 10min',
-                noche:        '8pm-12am cada 30min',
-                madrugada:    '12am-6am cada hora',
-                diagnostico:  'cada 15min',
-                aprendizaje:  'cada 4h',
-                limpieza:     '3am diario',
-            },
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// ─── API HORARIOS ────────────────────────────────────────────────────────────
-app.get('/api/horarios', authMiddleware, async (req, res) => {
-    res.json({ success: true, horarios: HORARIOS_CONFIG });
-});
-
-app.post('/api/horarios', authMiddleware, async (req, res) => {
-    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN' });
-    try {
-        const campos = [
-            'manana_inicio','manana_fin','intervalo_manana',
-            'intervalo_noche','intervalo_madrugada',
-            'madrugada_activa','guardia_nocturna'
-        ];
-        for (const campo of campos) {
-            if (req.body[campo] !== undefined) {
-                HORARIOS_CONFIG[campo] = req.body[campo];
-            }
-        }
-        await guardarHorarios();
-        console.log('[Horarios] Actualizados:', JSON.stringify(HORARIOS_CONFIG));
-        res.json({ success: true, horarios: HORARIOS_CONFIG });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ─── API DATOS EXTERNOS — trending, clima, cambio ────────────────────────────
-app.get('/api/mundo', authMiddleware, async (req, res) => {
-    try {
-        const datos = await getDatosExternos();
-        res.json({ success: true, ...datos });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ─── API HORARIOS — leer y configurar desde el panel ────────────────────────
-app.get('/api/horarios', authMiddleware, (req, res) => {
-    res.json({ success: true, config: HORARIO_CONFIG });
-});
-
-app.post('/api/horarios', authMiddleware, async (req, res) => {
-    if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN' });
-    try {
-        const campos = ['manana_inicio','manana_fin','intervalo_pico',
-                        'intervalo_noche','intervalo_madrugada',
-                        'publicar_madrugada','guardia_nocturna','guardia_minutos'];
-        for (const campo of campos) {
-            if (req.body[campo] !== undefined) {
-                HORARIO_CONFIG[campo] = typeof HORARIO_CONFIG[campo] === 'boolean'
-                    ? Boolean(req.body[campo])
-                    : Number(req.body[campo]);
-            }
-        }
-        await guardarHorarioConfig();
-        console.log('[Horario] Configuración actualizada:', HORARIO_CONFIG);
-        res.json({ success: true, config: HORARIO_CONFIG });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -3658,21 +2965,11 @@ app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html'))
 // ─── ARRANQUE ─────────────────────────────────────────────────────────────────
 async function iniciar() {
     await inicializarBase();
-    // Precalentar cache de noticias — primera visita instantánea
-    try {
-        const r = await pool.query(
-            `SELECT id,titulo,slug,seccion,imagen,fecha,vistas
-             FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 24`
-        );
-        _cacheNoticias = r.rows;
-        _cacheFecha    = Date.now();
-        console.log(`[Cache] ♨️  Precalentado con ${r.rows.length} noticias`);
-    } catch(_) {}
     app.listen(PORT, '0.0.0.0', () => {
         const wm = WATERMARK_PATH ? path.basename(WATERMARK_PATH) : 'NO ENCONTRADO — sin marca';
         console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║        🏮  EL FAROL AL DIA  —  V34.61               ║
+║        🏮  EL FAROL AL DIA  —  V34.51               ║
 ╠═══════════════════════════════════════════════════════╣
 ║  Puerto         : ${String(PORT).padEnd(35)}║
 ║  Modelo Gemini  : ${GEMINI_MODEL.padEnd(35)}║
@@ -3686,8 +2983,6 @@ async function iniciar() {
 ╚═══════════════════════════════════════════════════════╝`);
     });
 
-    // Cargar configuración de horarios guardada
-    await cargarHorarioConfig();
     // Cargar palabras aprendidas de sesiones anteriores
     setTimeout(refrescarPalabrasAprendidas, 3000);
 
