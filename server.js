@@ -1,9 +1,20 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.1
- * CAMBIOS vs V34.0:
- *   1. Rotación 2+2 de llaves Gemini: KEY1+KEY2 → texto | KEY3+KEY4 → imagen/alt
- *   2. Watermark blindado: usa process.cwd(), falla silenciosamente sin matar publicación
- *   3. Todo lo demás idéntico a V34.0
+ * 🏮 EL FAROL AL DÍA — V34.2
+ * CAMBIOS vs V34.1:
+ *   1. Rotación horaria de llaves Gemini:
+ *      - Horas PARES  → texto: KEY1+KEY2 | imagen: KEY3+KEY4
+ *      - Horas IMPARES → texto: KEY3+KEY4 | imagen: KEY1+KEY2
+ *      - Texto e imagen NUNCA compiten por las mismas llaves al mismo tiempo
+ *      - Grupo de rescate automático si el grupo activo falla por completo
+ *   2. Filtro autocrítico de imágenes:
+ *      - PALABRAS_BASURA: lista global de términos no periodísticos
+ *      - queryEsPeriodistica(): evalúa cada query antes de llamar a Pexels
+ *      - sanitizarQueryTecnologia(): fuerza términos técnicos visuales
+ *      - fallbackVisualInteligente(): prefiere Santo Domingo antes que imagen basura
+ *   3. Cron seguro: 1 noticia/hora (0 * * * *) con categoría rotativa por hora
+ *   4. RSS: minuto 30 de 7am, 1pm, 8pm (30 7,13,20 * * *)
+ *   5. Ráfaga inicial: 3 noticias, 20 minutos entre cada una
+ *   6. Todo lo demás idéntico a V34.1
  */
 
 const express   = require('express');
@@ -51,9 +62,7 @@ const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK — REPARADO V34.1
-// Usa process.cwd() compatible con Railway.
-// Si no existe, WATERMARK_PATH = null → aplícarMarcaDeAgua falla silenciosamente.
+// 🏮 WATERMARK — BLINDADO V34.1 (sin cambios)
 // ══════════════════════════════════════════════════════════
 const WATERMARK_PATH = (() => {
     const variantes = [
@@ -63,8 +72,6 @@ const WATERMARK_PATH = (() => {
         'watermark (1).png',
         'WATERMARK.png',
     ];
-    // Busca primero en process.cwd()/static (compatible Railway)
-    // luego en __dirname/static como fallback
     const bases = [
         path.join(process.cwd(), 'static'),
         path.join(__dirname, 'static'),
@@ -79,7 +86,7 @@ const WATERMARK_PATH = (() => {
         }
     }
     console.warn('⚠️  Watermark no encontrado — las fotos se publicarán sin marca de agua');
-    return null; // null = sin watermark, no falla
+    return null;
 })();
 
 const rssParser = new RSSParser({ timeout: 10000 });
@@ -114,7 +121,7 @@ app.use(cors({
 app.options('*', cors());
 
 // ══════════════════════════════════════════════════════════
-// ▶ WIKIPEDIA API
+// ▶ WIKIPEDIA API (sin cambios)
 // ══════════════════════════════════════════════════════════
 const WIKI_TERMINOS_RD = {
     'los mina':          'Los Mina Santo Domingo',
@@ -182,7 +189,7 @@ async function buscarContextoWikipedia(titulo, categoria) {
 }
 
 // ══════════════════════════════════════════════════════════
-// FACEBOOK
+// FACEBOOK (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
     if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
@@ -206,7 +213,7 @@ async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
 }
 
 // ══════════════════════════════════════════════════════════
-// TWITTER / X
+// TWITTER / X (sin cambios)
 // ══════════════════════════════════════════════════════════
 function generarOAuthHeader(method, url, params, consumerKey, consumerSecret, accessToken, tokenSecret) {
     const oauthParams = {
@@ -242,7 +249,7 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🤖 TELEGRAM BOT
+// 🤖 TELEGRAM BOT (sin cambios)
 // ══════════════════════════════════════════════════════════
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
 let   TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
@@ -299,19 +306,16 @@ async function bienvenidaTelegram() {
     try {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: `🏮 *El Farol al Día — Bot Activo*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`, parse_mode: 'Markdown' })
+            body: JSON.stringify({ chat_id: chatId, text: `🏮 *El Farol al Día — Bot Activo V34.2*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`, parse_mode: 'Markdown' })
         });
         console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
     } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 MARCA DE AGUA — BLINDADA V34.1
-// Si WATERMARK_PATH es null o el archivo desaparece en Railway,
-// retorna la imagen original sin watermark y sin lanzar error.
+// 🏮 MARCA DE AGUA — BLINDADA V34.1 (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
-    // Sin watermark configurado → imagen original, sin error
     if (!WATERMARK_PATH) {
         console.log('   ℹ️  Sin watermark — publicando imagen original');
         return { url: urlImagen, procesada: false };
@@ -321,7 +325,6 @@ async function aplicarMarcaDeAgua(urlImagen) {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const bufOrig = Buffer.from(await response.arrayBuffer());
 
-        // Verificación en tiempo real (por si Railway limpió /tmp pero el path global era correcto)
         if (!fs.existsSync(WATERMARK_PATH)) {
             console.warn('   ⚠️ Watermark desapareció en tiempo de ejecución — imagen sin marca');
             return { url: urlImagen, procesada: false };
@@ -343,7 +346,6 @@ async function aplicarMarcaDeAgua(urlImagen) {
         console.log(`   🏮 Watermark aplicado: ${nombre}`);
         return { url: urlImagen, nombre, procesada: true };
     } catch (err) {
-        // Cualquier error → imagen original, publicación NO se interrumpe
         console.warn(`   ⚠️ Watermark falló (${err.message}) — publicando sin marca`);
         return { url: urlImagen, procesada: false };
     }
@@ -364,7 +366,7 @@ app.get('/img/:nombre', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// CONFIG IA
+// CONFIG IA (sin cambios)
 // ══════════════════════════════════════════════════════════
 const CONFIG_IA_DEFAULT = {
     enabled: true,
@@ -395,34 +397,29 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🔑 GEMINI — ROTACIÓN 2+2 (NUEVO EN V34.1)
+// 🔑 GEMINI — ROTACIÓN HORARIA V34.2
 //
-//  LLAVES DE ESCRITURA (texto periodístico):
-//    Slot 0 → GEMINI_API_KEY
-//    Slot 1 → GEMINI_KEY_2
+//  HORAS PARES:
+//    Texto  → KEY1 (GEMINI_API_KEY) + KEY2 (GEMINI_KEY_2)
+//    Imagen → KEY3 (GEMINI_KEY_3)   + KEY4 (GEMINI_KEY_4)
 //
-//  LLAVES DE IMAGEN (query Pexels + alt SEO):
-//    Slot 0 → GEMINI_KEY_3
-//    Slot 1 → GEMINI_KEY_4
+//  HORAS IMPARES:
+//    Texto  → KEY3 (GEMINI_KEY_3)   + KEY4 (GEMINI_KEY_4)
+//    Imagen → KEY1 (GEMINI_API_KEY) + KEY2 (GEMINI_KEY_2)
 //
-//  Si una llave da 429 se salta a la siguiente del mismo grupo.
-//  Los contadores son independientes para cada grupo.
+//  Texto e imagen NUNCA compiten por las mismas llaves al mismo tiempo.
+//  Si el grupo activo falla por completo → grupo de rescate automático.
 // ══════════════════════════════════════════════════════════
 
-// ── Estado de throttle por llave ────────────────────────
-const GEMINI_STATE = {};   // { [keyIndex]: { lastRequest, resetTime } }
+const GEMINI_STATE = {};
 
 function getKeyState(keyIndex) {
     if (!GEMINI_STATE[keyIndex]) GEMINI_STATE[keyIndex] = { lastRequest: 0, resetTime: 0 };
     return GEMINI_STATE[keyIndex];
 }
 
-/**
- * Llama a la API de Gemini con una llave específica.
- * Respeta el rate-limit individual de esa llave.
- */
 async function _callGemini(apiKey, prompt, intentoGlobal) {
-    const st   = getKeyState(apiKey);
+    const st    = getKeyState(apiKey);
     const ahora = Date.now();
     if (ahora < st.resetTime) await new Promise(r => setTimeout(r, Math.min(st.resetTime - ahora, 10000)));
     const desde = Date.now() - st.lastRequest;
@@ -453,78 +450,103 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
 }
 
 /**
- * llamarGemini — usa KEY1 y KEY2 (escritura periodística).
- * Rota entre las dos si alguna da 429.
+ * llamarGemini — ROTACIÓN HORARIA V34.2
+ * Horas PARES   → texto: KEY1+KEY2
+ * Horas IMPARES → texto: KEY3+KEY4
+ * Si el grupo activo falla → rescate con el grupo alternativo.
  */
 async function llamarGemini(prompt, reintentos = 3) {
-    const llaves = [
-        process.env.GEMINI_API_KEY,
-        process.env.GEMINI_KEY_2,
+    const hora  = new Date().getHours();
+    const esPar = hora % 2 === 0;
+
+    const grupoActivo = [
+        esPar ? process.env.GEMINI_API_KEY : process.env.GEMINI_KEY_3,
+        esPar ? process.env.GEMINI_KEY_2   : process.env.GEMINI_KEY_4,
     ].filter(Boolean);
 
-    let intentoGlobal = 0;
-    for (let i = 0; i < reintentos; i++) {
-        for (const llave of llaves) {
-            try {
-                console.log(`   🤖 Gemini-texto (KEY${llaves.indexOf(llave)+1}, intento ${i+1})`);
-                const texto = await _callGemini(llave, prompt, intentoGlobal++);
-                console.log('   ✅ Gemini-texto OK');
-                return texto;
-            } catch (err) {
-                if (err.message === 'RATE_LIMIT_429') {
-                    console.warn(`   ⚡ KEY${llaves.indexOf(llave)+1} en 429 → rotando...`);
-                    continue; // probar siguiente llave del grupo
+    const grupoRescate = [
+        esPar ? process.env.GEMINI_KEY_3 : process.env.GEMINI_API_KEY,
+        esPar ? process.env.GEMINI_KEY_4 : process.env.GEMINI_KEY_2,
+    ].filter(Boolean);
+
+    console.log(`   🕐 Hora ${hora}h → texto grupo ${esPar ? 'PAR (KEY1+KEY2)' : 'IMPAR (KEY3+KEY4)'}`);
+
+    for (const grupo of [grupoActivo, grupoRescate]) {
+        if (!grupo.length) continue;
+        const etiqueta = grupo === grupoActivo ? 'activo' : 'RESCATE';
+
+        let intentoGlobal = 0;
+        for (let i = 0; i < reintentos; i++) {
+            for (const llave of grupo) {
+                try {
+                    const idx = grupo.indexOf(llave) + (grupo === grupoRescate && esPar ? 3 : grupo === grupoRescate ? 1 : esPar ? 1 : 3);
+                    console.log(`   🤖 Gemini-texto KEY${idx} [${etiqueta}] intento ${i + 1}`);
+                    const texto = await _callGemini(llave, prompt, intentoGlobal++);
+                    console.log(`   ✅ Gemini-texto OK`);
+                    return texto;
+                } catch (err) {
+                    if (err.message === 'RATE_LIMIT_429') {
+                        console.warn(`   ⚡ KEY en 429 → rotando dentro de grupo [${etiqueta}]...`);
+                        continue;
+                    }
+                    console.error(`   ❌ Error Gemini: ${err.message}`);
                 }
-                console.error(`   ❌ KEY${llaves.indexOf(llave)+1}: ${err.message}`);
             }
+            if (i < reintentos - 1) await new Promise(r => setTimeout(r, Math.pow(2, i) * 3000));
         }
-        // Todas las llaves del grupo fallaron en este intento
-        if (i < reintentos - 1) await new Promise(r => setTimeout(r, Math.pow(2, i) * 3000));
+        console.warn(`   ⚠️ Grupo [${etiqueta}] agotado → ${grupo === grupoActivo ? 'activando rescate' : 'sin más opciones'}`);
     }
-    throw new Error('Gemini-texto: todas las llaves fallaron');
+
+    throw new Error('Gemini-texto: todos los grupos fallaron');
 }
 
 /**
- * llamarGeminiImagen — usa KEY3 y KEY4 (apoyo visual: query Pexels + alt SEO).
- * Misma lógica de rotación, grupo independiente.
- * Si ambas claves fallan, retorna null (no interrumpe la publicación).
+ * llamarGeminiImagen — INVERTIDO respecto a llamarGemini.
+ * Horas PARES   → imagen: KEY3+KEY4
+ * Horas IMPARES → imagen: KEY1+KEY2
+ * Texto e imagen NUNCA compiten por las mismas llaves al mismo tiempo.
  */
 async function llamarGeminiImagen(prompt, reintentos = 2) {
+    const hora  = new Date().getHours();
+    const esPar = hora % 2 === 0;
+
+    // INVERTIDO: cuando texto usa PAR, imagen usa IMPAR y viceversa
     const llaves = [
-        process.env.GEMINI_KEY_3,
-        process.env.GEMINI_KEY_4,
+        esPar ? process.env.GEMINI_KEY_3   : process.env.GEMINI_API_KEY,
+        esPar ? process.env.GEMINI_KEY_4   : process.env.GEMINI_KEY_2,
     ].filter(Boolean);
 
-    // Si no hay llaves de imagen configuradas, retornar null silenciosamente
     if (!llaves.length) {
-        console.log('   🖼️  Sin KEY3/KEY4 — se usará query de imagen por defecto');
+        console.log('   🖼️  Sin llaves disponibles para imagen → usando fallback');
         return null;
     }
+
+    console.log(`   🖼️  Gemini-imagen → grupo ${esPar ? 'IMPAR-img (KEY3+KEY4)' : 'PAR-img (KEY1+KEY2)'}`);
 
     let intentoGlobal = 0;
     for (let i = 0; i < reintentos; i++) {
         for (const llave of llaves) {
             try {
-                console.log(`   🖼️  Gemini-imagen (KEY${llaves.indexOf(llave)+3}, intento ${i+1})`);
                 const texto = await _callGemini(llave, prompt, intentoGlobal++);
                 console.log('   ✅ Gemini-imagen OK');
                 return texto;
             } catch (err) {
                 if (err.message === 'RATE_LIMIT_429') {
-                    console.warn(`   ⚡ KEY${llaves.indexOf(llave)+3} imagen en 429 → rotando...`);
+                    console.warn(`   ⚡ Gemini-imagen 429 → rotando...`);
                     continue;
                 }
-                console.error(`   ❌ KEY${llaves.indexOf(llave)+3} imagen: ${err.message}`);
+                console.error(`   ❌ Gemini-imagen: ${err.message}`);
             }
         }
         if (i < reintentos - 1) await new Promise(r => setTimeout(r, Math.pow(2, i) * 2000));
     }
-    console.warn('   ⚠️ Gemini-imagen: todas las llaves fallaron — usando fallback');
-    return null; // No interrumpe la publicación
+
+    console.warn('   ⚠️ Gemini-imagen: todos fallaron → usando fallback visual');
+    return null;
 }
 
 // ══════════════════════════════════════════════════════════
-// ▶ MAPEO FORZADO DE IMÁGENES
+// ▶ MAPEO FORZADO DE IMÁGENES (sin cambios)
 // ══════════════════════════════════════════════════════════
 const MAPEO_IMAGENES = {
     'donald trump':     ['trump president podium microphone', 'trump white house press conference', 'american president speech flag'],
@@ -628,7 +650,7 @@ const QUERIES_PROHIBIDAS = [
 ];
 
 // ══════════════════════════════════════════════════════════
-// ▶ WIKIPEDIA IMÁGENES
+// ▶ WIKIPEDIA IMÁGENES (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function buscarImagenWikipedia(titulo) {
     try {
@@ -688,30 +710,186 @@ function esImagenValida(url) {
     return true;
 }
 
+// ══════════════════════════════════════════════════════════
+// 🆕 FILTRO AUTOCRÍTICO DE IMÁGENES V34.2
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Lista global de palabras no periodísticas.
+ * Si una query contiene alguna de estas, se descarta antes de llamar a Pexels.
+ */
+const PALABRAS_BASURA = [
+    // Comercial / Ventas
+    'sale', 'black friday', 'discount', 'offer', 'promo', 'deal', 'coupon',
+    'shopping cart', 'ecommerce', 'store front', 'retail', 'gift', 'present',
+    // Social / Romántico
+    'wedding', 'bride', 'groom', 'bridal', 'couple', 'romance', 'romantic',
+    'love', 'kiss', 'marriage', 'engagement', 'honeymoon', 'valentine',
+    // Abstracto / Decorativo
+    'abstract', 'wallpaper', 'background', 'texture', 'pattern', 'illustration',
+    'cartoon', '3d render', 'clipart', 'icon', 'logo', 'banner', 'infographic',
+    // Animales / Mascotas
+    'pet', 'dog', 'cat', 'puppy', 'kitten', 'animal', 'wildlife',
+    // Fiestas / Ocio
+    'birthday', 'party', 'celebration cake', 'balloon', 'confetti',
+    'fashion', 'model', 'runway', 'catwalk',
+    // Flores / Naturaleza decorativa
+    'flowers', 'bouquet', 'floral', 'roses',
+];
+
+/**
+ * Evalúa si una query pasaría el "test periodístico".
+ * Retorna true si la query es válida, false si debe descartarse.
+ */
+function queryEsPeriodistica(query) {
+    const q = query.toLowerCase();
+    if (PALABRAS_BASURA.some(p => q.includes(p))) {
+        console.log(`   🚫 Query bloqueada por filtro autocrítico: "${query}"`);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Para noticias de Tecnología: fuerza términos técnicos visuales.
+ * Si la query suena a e-commerce o abstracto, la reemplaza por
+ * una descripción de escena técnica real.
+ */
+function sanitizarQueryTecnologia(query, titulo) {
+    const tituloLower = titulo.toLowerCase();
+    const q = query.toLowerCase();
+
+    const esFibraOptica    = tituloLower.includes('fibra') || tituloLower.includes('cable') || tituloLower.includes('internet') || tituloLower.includes('telecomunicacion');
+    const esDataCenter     = tituloLower.includes('servidor') || tituloLower.includes('data center') || tituloLower.includes('nube') || tituloLower.includes('cloud');
+    const esIA             = tituloLower.includes('inteligencia artificial') || tituloLower.includes(' ia ') || tituloLower.includes('machine learning');
+    const esCiberseguridad = tituloLower.includes('ciberseguridad') || tituloLower.includes('hack') || tituloLower.includes('ciberataque');
+
+    if (!queryEsPeriodistica(q)) {
+        if (esFibraOptica)    return 'optical fiber cable installation technician';
+        if (esDataCenter)     return 'server room data center professional';
+        if (esIA)             return 'artificial intelligence technology computer professional';
+        if (esCiberseguridad) return 'cybersecurity professional computer network';
+        return 'technology infrastructure digital caribbean';
+    }
+    return query;
+}
+
+/**
+ * Fallback visual inteligente.
+ * Prefiere Santo Domingo / Caribe antes que imagen sin contexto.
+ * Orden: 1) SD cityscape → 2) gobierno caribeño → 3) banco local
+ */
+async function fallbackVisualInteligente(categoria, subtema) {
+    const queriesFallbackRD = [
+        'santo domingo dominican republic cityscape modern',
+        'dominican republic government building official',
+        'caribbean capital city aerial view',
+        'santo domingo este urban architecture',
+    ];
+
+    if (PEXELS_API_KEY) {
+        for (const q of queriesFallbackRD) {
+            try {
+                const url  = `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=5&orientation=landscape`;
+                const ctrl = new AbortController();
+                const tm   = setTimeout(() => ctrl.abort(), 5000);
+                const res  = await fetch(url, { headers: { Authorization: PEXELS_API_KEY }, signal: ctrl.signal }).finally(() => clearTimeout(tm));
+                if (!res.ok) continue;
+                const data = await res.json();
+                if (data.photos?.length) {
+                    const foto = data.photos[Math.floor(Math.random() * Math.min(3, data.photos.length))];
+                    console.log(`   🏙️  Fallback RD: "${q}" → foto ${foto.id}`);
+                    return foto.src.large2x || foto.src.large;
+                }
+            } catch { continue; }
+        }
+    }
+
+    console.log(`   📸 Banco local final (${subtema || categoria})`);
+    return imgLocal(subtema, categoria);
+}
+
+/**
+ * obtenerImagenInteligente V34.2 — con filtro autocrítico
+ *
+ * Flujo en cascada:
+ *   1. Mapeo forzado por nombre propio (Trump, Abinader, etc.)
+ *   2. Query de Gemini validada con filtro periodístico
+ *   3. Queries detectadas automáticamente, filtradas palabra por palabra
+ *   4. Wikipedia → validación esImagenValida()
+ *   5. Wikimedia Commons → validación
+ *   6. Fallback RD (Santo Domingo cityscape) antes que imagen basura
+ *   7. Banco local como último recurso absoluto
+ */
 async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA) {
     const tituloLower = titulo.toLowerCase();
+
+    // ── PASO 1: Mapeo forzado por nombre propio ──────────
     for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
-        if (typeof queries === 'object' && Array.isArray(queries) && tituloLower.includes(clave)) {
-            console.log(`   🎯 Mapeo forzado: "${clave}" → Pexels`);
-            const urlPexels = await buscarEnPexels(queries);
+        if (Array.isArray(queries) && tituloLower.includes(clave)) {
+            console.log(`   🎯 Mapeo forzado: "${clave}"`);
+            const queriesLimpias = queries.filter(queryEsPeriodistica);
+            const urlPexels = await buscarEnPexels(queriesLimpias);
             if (urlPexels) return urlPexels;
             const urlWiki = await buscarImagenWikipedia(clave);
             if (urlWiki && esImagenValida(urlWiki)) return urlWiki;
             break;
         }
     }
-    if (queryIA) { const urlQueryIA = await buscarEnPexels([queryIA]); if (urlQueryIA) { console.log(`   ✅ Pexels (Gemini query)`); return urlQueryIA; } }
-    const queries   = detectarQueriesPexels(titulo, categoria, null);
-    const urlPexels = await buscarEnPexels(queries);
-    if (urlPexels) { console.log(`   ✅ Pexels (queries detectadas)`); return urlPexels; }
+
+    // ── PASO 2: Query de Gemini validada ─────────────────
+    if (queryIA) {
+        const queryLimpia = categoria === 'Tecnología'
+            ? sanitizarQueryTecnologia(queryIA, titulo)
+            : queryIA;
+
+        if (queryEsPeriodistica(queryLimpia)) {
+            const urlQueryIA = await buscarEnPexels([queryLimpia]);
+            if (urlQueryIA) {
+                console.log(`   ✅ Pexels (Gemini query validada): "${queryLimpia}"`);
+                return urlQueryIA;
+            }
+        } else {
+            console.log(`   ⚠️  Query Gemini descartada — no periodística: "${queryIA}"`);
+        }
+    }
+
+    // ── PASO 3: Queries automáticas con filtro ────────────
+    const todasLasQueries   = detectarQueriesPexels(titulo, categoria, null);
+    const queriesFiltradas  = todasLasQueries.filter(queryEsPeriodistica);
+
+    if (queriesFiltradas.length < todasLasQueries.length) {
+        console.log(`   🧹 Filtro: ${todasLasQueries.length - queriesFiltradas.length} queries basura eliminadas`);
+    }
+
+    const urlPexels = await buscarEnPexels(queriesFiltradas);
+    if (urlPexels) {
+        console.log(`   ✅ Pexels (queries detectadas filtradas)`);
+        return urlPexels;
+    }
+
+    // ── PASO 4: Wikipedia ─────────────────────────────────
     const urlWiki = await buscarImagenWikipedia(titulo);
-    if (urlWiki && esImagenValida(urlWiki)) { console.log(`   ✅ Wikipedia (validada)`); return urlWiki; }
+    if (urlWiki && esImagenValida(urlWiki)) {
+        console.log(`   ✅ Wikipedia (validada)`);
+        return urlWiki;
+    }
+
+    // ── PASO 5: Wikimedia Commons ─────────────────────────
     const urlCommons = await buscarImagenWikimediaCommons(titulo);
-    if (urlCommons && esImagenValida(urlCommons)) { console.log(`   ✅ Wikimedia (validada)`); return urlCommons; }
-    console.log(`   📸 Banco local (${subtemaLocal || categoria})`);
-    return imgLocal(subtemaLocal, categoria);
+    if (urlCommons && esImagenValida(urlCommons)) {
+        console.log(`   ✅ Wikimedia (validada)`);
+        return urlCommons;
+    }
+
+    // ── PASO 6: Fallback RD — Santo Domingo antes que basura
+    console.log(`   🏙️  Activando fallback visual inteligente (RD primero)`);
+    return await fallbackVisualInteligente(categoria, subtemaLocal);
 }
 
+// ══════════════════════════════════════════════════════════
+// PEXELS (sin cambios en lógica, se agregó filtro en llamada)
+// ══════════════════════════════════════════════════════════
 const PEXELS_QUERIES_RD = {
     'los mina':           ['santo domingo urban street life', 'caribbean city neighborhood people', 'latin america urban community', 'dominican republic street market', 'caribbean urban daily life'],
     'invivienda':         ['social housing construction latin america', 'affordable housing caribbean', 'residential building construction workers', 'housing project urban development', 'latin america apartment building construction'],
@@ -770,6 +948,8 @@ const PEXELS_QUERIES_RD = {
     'inteligencia artificial': ['artificial intelligence technology computer', 'AI technology digital innovation', 'machine learning data technology', 'computer science AI research', 'technology AI digital transformation'],
     'internet':           ['internet technology digital connection', 'wifi network digital connectivity', 'online technology internet use', 'digital internet connected devices', 'technology internet connectivity people'],
     'ciberseguridad':     ['cybersecurity technology hacker computer', 'cyber security professional computer', 'digital security technology network', 'cybersecurity expert working computer', 'security technology digital protection'],
+    'fibra optica':       ['optical fiber cable installation technician', 'telecom technician working infrastructure', 'fiber optic network installation professional', 'internet cable infrastructure workers', 'telecommunications network technician'],
+    'telecomunicaciones': ['telecom tower antenna infrastructure', 'telecommunications workers equipment', 'communication tower workers maintenance', 'telecom infrastructure technician', 'network infrastructure workers caribbean'],
     'musica':             ['music concert performance stage lights', 'musicians performing concert crowd', 'music band performance stage', 'concert live music crowd fans', 'singer performing microphone stage'],
     'merengue':           ['latin music dance performance stage', 'caribbean music band performing', 'latin dance music concert crowd', 'tropical music festival performance', 'caribbean culture music dancing'],
     'carnaval':           ['carnival parade colorful costumes crowd', 'festive parade celebration costumes', 'carnival celebration people dancing costumes', 'street parade festival celebration', 'carnival festive celebration crowd'],
@@ -829,7 +1009,7 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
 }
 
 // ══════════════════════════════════════════════════════════
-// BANCO LOCAL DE IMÁGENES
+// BANCO LOCAL DE IMÁGENES (sin cambios)
 // ══════════════════════════════════════════════════════════
 const PB  = 'https://images.pexels.com/photos';
 const OPT = '?auto=compress&cs=tinysrgb&w=800';
@@ -874,7 +1054,7 @@ async function obtenerImagen(titulo, categoria, subtemaLocal, queryIA) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ALT SEO
+// ALT SEO (sin cambios)
 // ══════════════════════════════════════════════════════════
 function generarAltSEO(titulo, categoria, altIA, subtema) {
     if (altIA && altIA.length > 15) {
@@ -895,7 +1075,7 @@ function generarAltSEO(titulo, categoria, altIA, subtema) {
 }
 
 // ══════════════════════════════════════════════════════════
-// SEO META TAGS
+// SEO META TAGS (sin cambios)
 // ══════════════════════════════════════════════════════════
 const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -947,7 +1127,7 @@ function metaTagsCompletos(n, url) {
 }
 
 // ══════════════════════════════════════════════════════════
-// UTILS
+// UTILS (sin cambios)
 // ══════════════════════════════════════════════════════════
 function slugify(t) {
     return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').substring(0,80);
@@ -966,7 +1146,7 @@ function redactor(cat) {
 }
 
 // ══════════════════════════════════════════════════════════
-// INICIALIZAR BASE DE DATOS
+// INICIALIZAR BASE DE DATOS (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function inicializarBase() {
     const client = await pool.connect();
@@ -989,7 +1169,7 @@ async function inicializarBase() {
 }
 
 // ══════════════════════════════════════════════════════════
-// SISTEMA DE MEMORIA IA
+// SISTEMA DE MEMORIA IA (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function registrarQueryPexels(query, categoria, exito) {
     try {
@@ -1047,9 +1227,7 @@ async function regenerarWatermarksLostidos() {
 }
 
 // ══════════════════════════════════════════════════════════
-// ▶ GENERAR NOTICIA — INTEGRA llamarGeminiImagen (V34.1)
-// El prompt de texto usa KEY1/KEY2.
-// La query de imagen y el alt SEO usan KEY3/KEY4.
+// ▶ GENERAR NOTICIA (rotación horaria + filtro autocrítico)
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
@@ -1058,7 +1236,7 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
         const memoria = await construirMemoria(categoria);
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado. Reescribe con tu estilo periodístico, no copies textualmente.`
-            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana. Que sea un hecho real y relevante del contexto actual.`;
+            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana. Que sea un hecho real y relevante del contexto actual (año 2026).`;
 
         const temaParaWiki = comunicadoExterno
             ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i,'').trim() || categoria
@@ -1066,10 +1244,12 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
 
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
 
-        // ── PROMPT PRINCIPAL (KEY1 / KEY2) ───────────────
+        // ── PROMPT PRINCIPAL (rotación horaria via llamarGemini) ──
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
 ROL: Eres el editor jefe de El Farol al Día con 20 años de experiencia en periodismo dominicano. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes verificables, impacto real para el ciudadano dominicano. Periodismo serio, sin exageración ni sensacionalismo.
+
+MARCO TEMPORAL: Hoy es marzo de 2026. Cualquier referencia a eventos como "París 2024" o eventos anteriores a 2026 es historia, no noticia actual. Escribe sobre hechos del presente (2026).
 
 PENSAMIENTO CRÍTICO ANTES DE ESCRIBIR:
 Antes de redactar, respóndete internamente estas preguntas:
@@ -1097,7 +1277,7 @@ ESTRUCTURA OBLIGATORIA (pirámide invertida periodística):
 - Párrafo 4 — IMPACTO CIUDADANO: ¿Qué cambia concretamente para la gente en RD? ¿Precios, servicios, seguridad, empleos?
 - Párrafo 5 — CIERRE INFORMATIVO: Próximos pasos, fecha importante próxima, o contexto regional Caribe/LatAm.
 
-REGLAS SEO GOOGLE NEWS 2025:
+REGLAS SEO GOOGLE NEWS 2025-2026:
 TÍTULO:
 - Entre 10 y 110 caracteres (ideal 60-70)
 - PALABRAS DE ORO cuando aplique: "Último Minuto", "Santo Domingo Este"
@@ -1142,28 +1322,31 @@ CONTENIDO:
 
         console.log(`   📝 ${titulo}`);
 
-        // ── PROMPT DE IMAGEN (KEY3 / KEY4) — independiente ──
-        // Si falla, usa fallback automático sin detener la publicación
+        // ── PROMPT DE IMAGEN (grupo invertido via llamarGeminiImagen) ──
         let qi = '';
         let ai = '';
 
         const promptImagen = `Eres asistente de imagen para un periódico dominicano.
 Dado este titular de noticia: "${titulo}"
 Categoría: ${categoria}
+Marco temporal: Marzo 2026. Si la noticia menciona eventos históricos (ej. Paris 2024), busca imagen del contexto actual, no del evento pasado.
 
 Responde SOLO con este formato exacto (sin texto adicional):
-QUERY_IMAGEN: [3-5 palabras en inglés describiendo la escena fotográfica, sin bodas ni mascotas]
+QUERY_IMAGEN: [3-5 palabras en inglés describiendo una ESCENA FOTOGRÁFICA PERIODÍSTICA REAL — nunca objetos decorativos, regalos, parejas, logos o imágenes abstractas]
 ALT_IMAGEN: [15-20 palabras en español SEO: descripción visual + tema + República Dominicana]
 
-MAPEO:
-economía/finanzas → "latin america business finance professionals"
-seguridad/policía → "caribbean police officers law enforcement"
-política/gobierno → "dominican republic government building officials"
-béisbol → "dominican republic baseball player stadium"
-salud/hospital → "latin america hospital doctor medical staff"
-tecnología → "latin america technology digital innovation"
-turismo → "dominican republic beach resort tourism"
-construcción → "latin america construction workers building"`;
+REGLA CRÍTICA para QUERY_IMAGEN:
+- Tecnología/Fibra óptica → "optical fiber cable installation technician"
+- Seguridad/Policía → "caribbean police officers law enforcement patrol"
+- Política/Gobierno → "dominican republic government building officials"
+- Béisbol → "baseball player batting stadium crowd"
+- Salud/Hospital → "latin america hospital doctor medical staff"
+- Economía/Finanzas → "latin america business professionals meeting"
+- Turismo → "dominican republic beach resort tourists"
+- Construcción → "latin america construction workers building site"
+- Educación → "students classroom teacher caribbean"
+- Internacional → "world leaders conference summit diplomacy"
+PROHIBIDO en la query: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party, pet`;
 
         const respuestaImagen = await llamarGeminiImagen(promptImagen);
 
@@ -1175,7 +1358,7 @@ construcción → "latin america construction workers building"`;
             }
         }
 
-        // Imagen con lógica inteligente
+        // Imagen con lógica inteligente + filtro autocrítico
         const urlOrig    = await obtenerImagenInteligente(titulo, categoria, sub, qi);
         const imgResult  = await aplicarMarcaDeAgua(urlOrig);
         const urlFinal   = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
@@ -1196,7 +1379,7 @@ construcción → "latin america construction workers building"`;
 
         console.log(`\n✅ /noticia/${slFin}`);
         invalidarCache();
-        if (qi) registrarQueryPexels(qi, categoria, true);
+        if (qi && queryEsPeriodistica(qi)) registrarQueryPexels(qi, categoria, true);
 
         Promise.allSettled([
             publicarEnFacebook(titulo, slFin, urlFinal, desc),
@@ -1219,7 +1402,7 @@ construcción → "latin america construction workers building"`;
 }
 
 // ══════════════════════════════════════════════════════════
-// FUENTES RSS
+// FUENTES RSS (sin cambios)
 // ══════════════════════════════════════════════════════════
 const FUENTES_RSS = [
     { url: 'https://presidencia.gob.do/feed',           categoria: 'Nacionales',      nombre: 'Presidencia RD' },
@@ -1282,41 +1465,68 @@ async function procesarRSS() {
 }
 
 // ══════════════════════════════════════════════════════════
-// CRON
+// CRON V34.2 — Ritmo seguro anti-429
 // ══════════════════════════════════════════════════════════
 const CATS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 const ARRANQUE_TIME = Date.now();
 
+// Keepalive cada 5 minutos
 cron.schedule('*/5 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch(e) {}
 });
 
-cron.schedule('*/30 * * * *', async () => {
+// 1 noticia por hora — minuto 0, categoría rotativa por hora del día
+cron.schedule('0 * * * *', async () => {
     if (!CONFIG_IA.enabled) return;
-    if (Date.now() - ARRANQUE_TIME < 35 * 60 * 1000) return;
-    const cat = CATS[Math.floor(Math.random() * CATS.length)];
-    console.log(`⏰ Cron 30min → generando: ${cat}`);
+    if (Date.now() - ARRANQUE_TIME < 35 * 60 * 1000) {
+        console.log('⏰ Cron hora: dentro de ventana de arranque, omitiendo');
+        return;
+    }
+    const hora = new Date().getHours();
+    const cat  = CATS[hora % CATS.length];
+    console.log(`⏰ Cron ${hora}h → generando: ${cat}`);
     await generarNoticia(cat);
 });
 
-cron.schedule('0 7,13,20 * * *', async () => { await procesarRSS(); });
+// RSS: minuto 30 de las 7am, 1pm y 8pm
+cron.schedule('30 7,13,20 * * *', async () => {
+    await procesarRSS();
+});
 
+// ══════════════════════════════════════════════════════════
+// RÁFAGA INICIAL V34.2 — 3 noticias, 20 min entre cada una
+// ══════════════════════════════════════════════════════════
 async function rafagaInicial() {
-    if (!CONFIG_IA.enabled) { console.log('⚠️ IA desactivada — no se genera ráfaga inicial'); return; }
-    console.log('\n🚀 RÁFAGA INICIAL — generando 4 noticias (cada 2 min)...\n');
-    for (let i = 1; i <= 4; i++) {
-        if (i > 1) await new Promise(r => setTimeout(r, 2 * 60 * 1000));
-        try {
-            const cat = CATS[Math.floor(Math.random() * CATS.length)];
-            console.log(`📰 Ráfaga ${i}/4: ${cat}`);
-            await generarNoticia(cat);
-        } catch(e) { console.error(`Ráfaga ${i} error:`, e.message); }
+    if (!CONFIG_IA.enabled) {
+        console.log('⚠️ IA desactivada — no se genera ráfaga inicial');
+        return;
     }
-    console.log('\n✅ Ráfaga completa — descansando 30 min — luego ritmo normal (cada 30 min)\n');
+
+    const INTERVALO_MINUTOS = 20;
+    const TOTAL_NOTICIAS    = 3;
+
+    console.log(`\n🚀 RÁFAGA INICIAL V34.2 — ${TOTAL_NOTICIAS} noticias · ${INTERVALO_MINUTOS} min entre cada una\n`);
+
+    for (let i = 1; i <= TOTAL_NOTICIAS; i++) {
+        if (i > 1) {
+            console.log(`⏳ Esperando ${INTERVALO_MINUTOS} min antes de noticia ${i}/${TOTAL_NOTICIAS}...`);
+            await new Promise(r => setTimeout(r, INTERVALO_MINUTOS * 60 * 1000));
+        }
+        try {
+            // Nacionales → Deportes → Internacionales
+            const cat = CATS[i - 1] || CATS[Math.floor(Math.random() * CATS.length)];
+            console.log(`📰 Ráfaga ${i}/${TOTAL_NOTICIAS}: ${cat}`);
+            await generarNoticia(cat);
+        } catch(e) {
+            console.error(`❌ Ráfaga ${i} error: ${e.message}`);
+        }
+    }
+
+    console.log(`\n✅ Ráfaga completa — ritmo normal: 1 noticia/hora\n`);
 }
 
 // ══════════════════════════════════════════════════════════
-// RUTAS
+// RUTAS (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function analizarRendimiento(dias = 7) {
     try {
@@ -1352,7 +1562,7 @@ app.get('/cambiar-pais/:pais', (req, res) => {
     res.redirect(req.get('referer') || '/');
 });
 app.get('/api/pais-actual', (req, res) => res.json({ pais: req.cookies?.pais_seleccionado || 'es-do' }));
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.1' }));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.2' }));
 
 app.get('/api/telegram/status', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
@@ -1601,15 +1811,18 @@ app.get('/status', async (req, res) => {
         const errGemini = await pool.query(`SELECT COUNT(*) FROM memoria_ia WHERE tipo='error' AND ultima_vez > NOW() - INTERVAL '1 hour'`);
         const imgOk     = await pool.query(`SELECT COUNT(*) FROM memoria_ia WHERE tipo='pexels_query' AND exitos > 0 AND ultima_vez > NOW() - INTERVAL '24 hours'`);
         const geminiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_KEY_2, process.env.GEMINI_KEY_3, process.env.GEMINI_KEY_4].filter(Boolean).length;
+        const hora = new Date().getHours();
+        const esPar = hora % 2 === 0;
         res.json({
-            status: 'OK', version: '34.1',
+            status: 'OK', version: '34.2',
             noticias: parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
             min_sin_publicar: minSinPublicar,
             ultima_noticia: ultima.rows[0]?.titulo?.substring(0,60) || '—',
             gemini_keys: geminiKeys,
-            gemini_llaves_texto: 'KEY1 (GEMINI_API_KEY) + KEY2 (GEMINI_KEY_2)',
-            gemini_llaves_imagen: 'KEY3 (GEMINI_KEY_3) + KEY4 (GEMINI_KEY_4)',
+            gemini_hora_actual: `${hora}h → ${esPar ? 'PAR' : 'IMPAR'}`,
+            gemini_texto_ahora: esPar ? 'KEY1+KEY2' : 'KEY3+KEY4',
+            gemini_imagen_ahora: esPar ? 'KEY3+KEY4' : 'KEY1+KEY2',
             errores_gemini: parseInt(errGemini.rows[0].count),
             imagenes_ok_hoy: parseInt(imgOk.rows[0].count),
             facebook:    FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
@@ -1618,11 +1831,13 @@ app.get('/status', async (req, res) => {
             pexels_api:  PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
             wikipedia:   '✅ Activa',
             marca_de_agua: WATERMARK_PATH && fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Sin watermark — fotos publicándose sin marca',
+            filtro_autocritico: '✅ Activo — palabras basura bloqueadas antes de Pexels',
             ia_activa:   CONFIG_IA.enabled,
             adsense:     'pub-5280872495839888 ✅',
-            cron_30min:  '✅ Activo',
-            rss_3x_dia:  '✅ 7am · 1pm · 8pm',
-            sistema:     'PostgreSQL + Gemini 2+2 + Pexels + Wikipedia + Watermark blindado + AdSense + RSS 30 fuentes'
+            cron_1_hora: '✅ Activo (0 * * * *) — 1 noticia/hora',
+            rss_3x_dia:  '✅ 7:30am · 1:30pm · 8:30pm',
+            rafaga_inicial: '✅ 3 noticias · 20 min entre cada una',
+            sistema:     'PostgreSQL + Gemini rotación horaria + Pexels filtro autocrítico + Wikipedia + Watermark blindado + AdSense + RSS 30 fuentes'
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1635,14 +1850,20 @@ app.use((req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html'))
 async function iniciar() {
     await inicializarBase();
     app.listen(PORT, '0.0.0.0', () => {
+        const hora  = new Date().getHours();
+        const esPar = hora % 2 === 0;
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.1                                     ║
+║  🏮 EL FAROL AL DÍA — V34.2                                     ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ Gemini 2+2: KEY1/KEY2=texto | KEY3/KEY4=imagen              ║
-║  ✅ Watermark blindado: falla silenciosamente sin matar proceso  ║
+║  ✅ Rotación horaria: texto≠imagen NUNCA en la misma KEY        ║
+║  ✅ Filtro autocrítico: palabras basura bloqueadas antes Pexels  ║
+║  ✅ Fallback RD: SD cityscape antes que imagen sin contexto      ║
+║  ✅ Cron: 1 noticia/hora · RSS: 7:30 · 13:30 · 20:30            ║
+║  ✅ Ráfaga: 3 noticias · 20 min entre cada una                  ║
 ║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📱 Telegram · 📚 Wiki     ║
 ║                                                                  ║
+║  Hora actual: ${hora}h → ${esPar ? 'PAR ' : 'IMPAR'} | Texto: ${esPar ? 'KEY1+KEY2' : 'KEY3+KEY4'} | Imagen: ${esPar ? 'KEY3+KEY4' : 'KEY1+KEY2'}  ║
 ║  Facebook:    ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO              ' : '⚠️  Sin credenciales    '}║
 ║  Twitter:     ${TWITTER_API_KEY && TWITTER_ACCESS_TOKEN? '✅ ACTIVO              ' : '⚠️  Sin credenciales    '}║
 ║  Watermark:   ${WATERMARK_PATH && fs.existsSync(WATERMARK_PATH) ? '✅ ACTIVA              ' : '⚠️  Sin archivo (OK)    '}║
