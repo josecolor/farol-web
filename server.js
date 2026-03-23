@@ -2271,6 +2271,7 @@ app.post('/api/telegram/test', authMiddleware, async (req, res) => {
 });
 app.get('/',           (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
 app.get('/redaccion', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'redaccion.html')));
+app.get('/ingeniero', authMiddleware, (req, res) => res.sendFile(path.join(__dirname, 'client', 'ingeniero.html')));
 app.get('/contacto',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'contacto.html')));
 app.get('/nosotros',   (req, res) => res.sendFile(path.join(__dirname, 'client', 'nosotros.html')));
 app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'privacidad.html')));
