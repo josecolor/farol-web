@@ -1,17 +1,20 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.5
- * CAMBIOS vs V34.2:
- *   1. Sistema de imágenes con atribución profesional:
- *      - buscarImagenWikimediaConAtribucion(): autor real + licencia CC
- *      - buscarEnPexelsConAtribucion(): nombre del fotógrafo
- *      - obtenerImagenConAtribucion(): motor único con cascada completa
- *   2. Columnas BD: imagen_autor, imagen_licencia, imagen_url_original
- *   3. Caption automático: "Foto: [Autor] | El Farol al Día"
- *   4. HTML noticia: muestra atribución debajo de la imagen
- *   5. Watermark blindado: se mantiene sobre la imagen final
- *   6. Rotación horaria de llaves Gemini (sin cambios V34.2)
- *   7. Filtro autocrítico de imágenes (sin cambios V34.2)
- *   8. Todo lo demás idéntico a V34.2
+ * 🏮 EL FAROL AL DÍA — V34.2
+ * CAMBIOS vs V34.1:
+ *   1. Rotación horaria de llaves Gemini:
+ *      - Horas PARES  → texto: KEY1+KEY2 | imagen: KEY3+KEY4
+ *      - Horas IMPARES → texto: KEY3+KEY4 | imagen: KEY1+KEY2
+ *      - Texto e imagen NUNCA compiten por las mismas llaves al mismo tiempo
+ *      - Grupo de rescate automático si el grupo activo falla por completo
+ *   2. Filtro autocrítico de imágenes:
+ *      - PALABRAS_BASURA: lista global de términos no periodísticos
+ *      - queryEsPeriodistica(): evalúa cada query antes de llamar a Pexels
+ *      - sanitizarQueryTecnologia(): fuerza términos técnicos visuales
+ *      - fallbackVisualInteligente(): prefiere Santo Domingo antes que imagen basura
+ *   3. Cron seguro: 1 noticia/hora (0 * * * *) con categoría rotativa por hora
+ *   4. RSS: minuto 30 de 7am, 1pm, 8pm (30 7,13,20 * * *)
+ *   5. Ráfaga inicial: 3 noticias, 20 minutos entre cada una
+ *   6. Todo lo demás idéntico a V34.1
  */
 
 const express   = require('express');
@@ -23,7 +26,6 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
-const cookieParser = require('cookie-parser');
 
 // ══════════════════════════════════════════════════════════
 // 🔒 BASIC AUTH
@@ -60,12 +62,15 @@ const TWITTER_ACCESS_TOKEN  = process.env.TWITTER_ACCESS_TOKEN  || null;
 const TWITTER_ACCESS_SECRET = process.env.TWITTER_ACCESS_SECRET || null;
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK — BLINDADO
+// 🏮 WATERMARK — BLINDADO V34.1 (sin cambios)
 // ══════════════════════════════════════════════════════════
 const WATERMARK_PATH = (() => {
     const variantes = [
-        'watermark.png', 'WATERMARK(1).png', 'watermark(1).png',
-        'watermark (1).png', 'WATERMARK.png',
+        'watermark.png',
+        'WATERMARK(1).png',
+        'watermark(1).png',
+        'watermark (1).png',
+        'WATERMARK.png',
     ];
     const bases = [
         path.join(process.cwd(), 'static'),
@@ -96,7 +101,6 @@ const pool = new Pool({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(cookieParser());
 app.use('/static', express.static(path.join(__dirname, 'static'), {
     setHeaders: (res) => res.setHeader('Cache-Control', 'public,max-age=2592000,immutable')
 }));
@@ -108,6 +112,7 @@ app.use(express.static(path.join(__dirname, 'client'), {
             res.setHeader('Cache-Control', 'public,max-age=86400');
     }
 }));
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -116,7 +121,7 @@ app.use(cors({
 app.options('*', cors());
 
 // ══════════════════════════════════════════════════════════
-// WIKIPEDIA API
+// ▶ WIKIPEDIA API (sin cambios)
 // ══════════════════════════════════════════════════════════
 const WIKI_TERMINOS_RD = {
     'los mina':          'Los Mina Santo Domingo',
@@ -184,7 +189,7 @@ async function buscarContextoWikipedia(titulo, categoria) {
 }
 
 // ══════════════════════════════════════════════════════════
-// FACEBOOK
+// FACEBOOK (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
     if (!FB_PAGE_ID || !FB_PAGE_TOKEN) return false;
@@ -208,7 +213,7 @@ async function publicarEnFacebook(titulo, slug, urlImagen, descripcion) {
 }
 
 // ══════════════════════════════════════════════════════════
-// TWITTER / X
+// TWITTER / X (sin cambios)
 // ══════════════════════════════════════════════════════════
 function generarOAuthHeader(method, url, params, consumerKey, consumerSecret, accessToken, tokenSecret) {
     const oauthParams = {
@@ -244,7 +249,7 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🤖 TELEGRAM BOT
+// 🤖 TELEGRAM BOT (sin cambios)
 // ══════════════════════════════════════════════════════════
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || null;
 let   TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || null;
@@ -301,14 +306,14 @@ async function bienvenidaTelegram() {
     try {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: `🏮 *El Farol al Día — Bot Activo V34.5*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`, parse_mode: 'Markdown' })
+            body: JSON.stringify({ chat_id: chatId, text: `🏮 *El Farol al Día — Bot Activo V34.2*\n\n✅ El bot está conectado y listo.\nCada vez que se publique una noticia nueva, recibirás:\n📸 Imagen + Título + Descripción + Link\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)\n📍 Santo Domingo Este, RD`, parse_mode: 'Markdown' })
         });
         console.log('📱 Telegram: mensaje de bienvenida enviado ✅');
     } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 MARCA DE AGUA — BLINDADA
+// 🏮 MARCA DE AGUA — BLINDADA V34.1 (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     if (!WATERMARK_PATH) {
@@ -361,7 +366,7 @@ app.get('/img/:nombre', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// CONFIG IA
+// CONFIG IA (sin cambios)
 // ══════════════════════════════════════════════════════════
 const CONFIG_IA_DEFAULT = {
     enabled: true,
@@ -392,8 +397,20 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🔑 GEMINI — ROTACIÓN HORARIA V34.2 (sin cambios)
+// 🔑 GEMINI — ROTACIÓN HORARIA V34.2
+//
+//  HORAS PARES:
+//    Texto  → KEY1 (GEMINI_API_KEY) + KEY2 (GEMINI_KEY_2)
+//    Imagen → KEY3 (GEMINI_KEY_3)   + KEY4 (GEMINI_KEY_4)
+//
+//  HORAS IMPARES:
+//    Texto  → KEY3 (GEMINI_KEY_3)   + KEY4 (GEMINI_KEY_4)
+//    Imagen → KEY1 (GEMINI_API_KEY) + KEY2 (GEMINI_KEY_2)
+//
+//  Texto e imagen NUNCA compiten por las mismas llaves al mismo tiempo.
+//  Si el grupo activo falla por completo → grupo de rescate automático.
 // ══════════════════════════════════════════════════════════
+
 const GEMINI_STATE = {};
 
 function getKeyState(keyIndex) {
@@ -432,6 +449,12 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     return texto;
 }
 
+/**
+ * llamarGemini — ROTACIÓN HORARIA V34.2
+ * Horas PARES   → texto: KEY1+KEY2
+ * Horas IMPARES → texto: KEY3+KEY4
+ * Si el grupo activo falla → rescate con el grupo alternativo.
+ */
 async function llamarGemini(prompt, reintentos = 3) {
     const hora  = new Date().getHours();
     const esPar = hora % 2 === 0;
@@ -451,11 +474,13 @@ async function llamarGemini(prompt, reintentos = 3) {
     for (const grupo of [grupoActivo, grupoRescate]) {
         if (!grupo.length) continue;
         const etiqueta = grupo === grupoActivo ? 'activo' : 'RESCATE';
+
         let intentoGlobal = 0;
         for (let i = 0; i < reintentos; i++) {
             for (const llave of grupo) {
                 try {
-                    console.log(`   🤖 Gemini-texto [${etiqueta}] intento ${i + 1}`);
+                    const idx = grupo.indexOf(llave) + (grupo === grupoRescate && esPar ? 3 : grupo === grupoRescate ? 1 : esPar ? 1 : 3);
+                    console.log(`   🤖 Gemini-texto KEY${idx} [${etiqueta}] intento ${i + 1}`);
                     const texto = await _callGemini(llave, prompt, intentoGlobal++);
                     console.log(`   ✅ Gemini-texto OK`);
                     return texto;
@@ -471,13 +496,21 @@ async function llamarGemini(prompt, reintentos = 3) {
         }
         console.warn(`   ⚠️ Grupo [${etiqueta}] agotado → ${grupo === grupoActivo ? 'activando rescate' : 'sin más opciones'}`);
     }
+
     throw new Error('Gemini-texto: todos los grupos fallaron');
 }
 
+/**
+ * llamarGeminiImagen — INVERTIDO respecto a llamarGemini.
+ * Horas PARES   → imagen: KEY3+KEY4
+ * Horas IMPARES → imagen: KEY1+KEY2
+ * Texto e imagen NUNCA compiten por las mismas llaves al mismo tiempo.
+ */
 async function llamarGeminiImagen(prompt, reintentos = 2) {
     const hora  = new Date().getHours();
     const esPar = hora % 2 === 0;
 
+    // INVERTIDO: cuando texto usa PAR, imagen usa IMPAR y viceversa
     const llaves = [
         esPar ? process.env.GEMINI_KEY_3   : process.env.GEMINI_API_KEY,
         esPar ? process.env.GEMINI_KEY_4   : process.env.GEMINI_KEY_2,
@@ -507,12 +540,13 @@ async function llamarGeminiImagen(prompt, reintentos = 2) {
         }
         if (i < reintentos - 1) await new Promise(r => setTimeout(r, Math.pow(2, i) * 2000));
     }
+
     console.warn('   ⚠️ Gemini-imagen: todos fallaron → usando fallback visual');
     return null;
 }
 
 // ══════════════════════════════════════════════════════════
-// MAPEO FORZADO DE IMÁGENES
+// ▶ MAPEO FORZADO DE IMÁGENES (sin cambios)
 // ══════════════════════════════════════════════════════════
 const MAPEO_IMAGENES = {
     'donald trump':     ['trump president podium microphone', 'trump white house press conference', 'american president speech flag'],
@@ -552,7 +586,12 @@ const MAPEO_IMAGENES = {
     'estadio quisqueya':['baseball stadium night game', 'baseball field crowd lights', 'caribbean baseball stadium'],
     'mlb':              ['major league baseball stadium', 'mlb baseball game action', 'professional baseball player batting'],
     'messi':            ['soccer player dribbling ball', 'football player celebrating goal', 'professional soccer match action'],
+    'lionel messi':     ['soccer player ball control', 'football match professional player', 'soccer world cup action'],
     'ronaldo':          ['soccer player jumping heading', 'football professional player goal', 'soccer match celebration'],
+    'cristiano ronaldo':['soccer player celebrating goal', 'professional football match action', 'soccer star stadium crowd'],
+    'mbappé':           ['soccer player sprint dribble', 'professional football match speed', 'soccer young star action'],
+    'neymar':           ['soccer player skill dribbling', 'brazil football player action', 'professional soccer match play'],
+    'copa mundial':     ['soccer world cup trophy', 'football world cup stadium', 'world cup celebration fans'],
     'nfl':              ['american football game action', 'nfl quarterback passing stadium', 'football players game field'],
     'nba':              ['basketball game action arena', 'nba player dunk basket', 'professional basketball match crowd'],
     'inapa':            ['water treatment plant infrastructure', 'water pipe installation workers', 'clean water supply system caribbean'],
@@ -560,10 +599,41 @@ const MAPEO_IMAGENES = {
     'policía nacional': ['police officers patrol street', 'law enforcement officers uniform', 'police car lights patrol'],
     'policia nacional': ['police officers patrol street', 'law enforcement officers uniform', 'police patrol caribbean'],
     'mopc':             ['road construction highway workers', 'infrastructure bridge construction', 'road paving machinery workers'],
+    'ministerio':       ['government ministry building official', 'government officials meeting conference', 'latin america government office'],
+    'presidencia':      ['government official press conference', 'presidential palace latin america', 'government ceremony latin american'],
+    'procuraduria':     ['justice court law building', 'prosecutor official ceremony', 'legal system government officials'],
+    'banco central':    ['bank building financial district', 'central bank official building', 'financial institution economics'],
+    'mepyd':            ['economic development meeting officials', 'government economic planning', 'latin america economic conference'],
+    'invivienda':       ['social housing construction caribbean', 'residential building construction workers', 'affordable housing development latin'],
+    'remesas':          ['money transfer wire payment', 'financial transaction bank office', 'currency exchange money'],
+    'dólar':            ['us dollar bills currency', 'currency exchange money market', 'dollar bills financial'],
+    'inflación':        ['supermarket prices grocery store', 'consumer prices market shopping', 'economic inflation grocery'],
+    'turismo':          ['tourist beach resort caribbean', 'punta cana beach hotel pool', 'dominican republic resort tourism'],
+    'punta cana':       ['punta cana beach resort pool', 'caribbean beach resort palm trees', 'luxury hotel beach caribbean'],
+    'zona franca':      ['industrial park factory workers', 'manufacturing workers production line', 'free trade zone factory'],
+    'haití':            ['haiti dominican border crossing', 'haiti poverty urban scene', 'dominican haiti border fence'],
+    'migración':        ['migrants crossing border fence', 'immigration customs border patrol', 'refugee migrants group walking'],
+    'cuba':             ['cuba havana street cars', 'cuban street life scene', 'havana cuba architecture'],
+    'venezuela':        ['venezuela caracas city scene', 'latin america crisis protest', 'venezuela economy crisis'],
+    'china':            ['china beijing skyline city', 'chinese business meeting trade', 'china economy business district'],
+    'rusia':            ['russia moscow skyline', 'russia kremlin government', 'moscow city russia'],
+    'ucrania':          ['ukraine war conflict zone', 'ukraine soldiers military', 'ukraine city damage conflict'],
+    'israel':           ['israel conflict middle east', 'jerusalem city landmark', 'middle east conflict news'],
+    'palestina':        ['gaza conflict humanitarian', 'middle east conflict civilians', 'humanitarian crisis aid workers'],
+    'nato':             ['nato military alliance meeting', 'military alliance soldiers', 'nato headquarters building'],
+    'covid':            ['hospital doctors protective gear', 'medical workers ppe hospital', 'healthcare workers pandemic'],
+    'dengue':           ['mosquito prevention public health', 'health workers fumigation caribbean', 'mosquito control public health'],
+    'hospital':         ['hospital emergency room doctors', 'medical staff hospital corridor', 'healthcare facility doctors nurses'],
+    'vacuna':           ['vaccination clinic health worker', 'nurse giving injection patient', 'health campaign vaccination caribbean'],
+    'inteligencia artificial': ['artificial intelligence technology computer', 'ai machine learning digital', 'technology innovation digital future'],
+    'ia':               ['artificial intelligence digital technology', 'computer brain machine learning', 'ai technology innovation'],
+    'criptomoneda':     ['cryptocurrency bitcoin digital money', 'blockchain technology digital finance', 'crypto trading screen charts'],
+    'bitcoin':          ['bitcoin cryptocurrency digital', 'crypto market trading charts', 'digital currency bitcoin symbol'],
+    'starlink':         ['satellite internet technology space', 'internet satellite dish technology', 'space technology satellite orbit'],
     'huracán':          ['hurricane satellite view storm', 'tropical storm weather satellite', 'hurricane damage aftermath caribbean'],
     'terremoto':        ['earthquake damage buildings rubble', 'natural disaster rescue workers', 'earthquake destruction aftermath'],
-    'haití':            ['haiti dominican border crossing', 'haiti poverty urban scene', 'dominican haiti border fence'],
-    'bitcoin':          ['bitcoin cryptocurrency digital', 'crypto market trading charts', 'digital currency bitcoin symbol'],
+    'inundación':       ['flood water streets cars', 'flooding disaster rescue boats', 'heavy rain flood streets caribbean'],
+    'cambio climático': ['climate change drought cracked earth', 'environmental pollution factory smoke', 'climate activists protest sign'],
     'Nacionales':       ['dominican republic government building', 'santo domingo city street life', 'caribbean capital urban scene'],
     'Deportes':         ['dominican athlete sports competition', 'caribbean sports stadium crowd', 'latin american sports event'],
     'Internacionales':  ['international diplomacy meeting flags', 'world leaders conference summit', 'global news event press'],
@@ -572,22 +642,105 @@ const MAPEO_IMAGENES = {
     'Espectáculos':     ['latin music concert stage performance', 'dominican entertainment show lights', 'caribbean festival dancing crowd'],
 };
 
+const QUERIES_PROHIBIDAS = [
+    'wedding', 'bride', 'groom', 'bridal', 'couple', 'romance', 'romantic',
+    'fashion', 'model', 'flowers', 'bouquet', 'love', 'kiss', 'marriage',
+    'engagement', 'birthday', 'celebration cake', 'gift', 'pet', 'dog', 'cat',
+    'animal', 'abstract art', 'illustration', 'cartoon', '3d render'
+];
+
 // ══════════════════════════════════════════════════════════
-// 🆕 FILTRO AUTOCRÍTICO DE IMÁGENES V34.5
+// ▶ WIKIPEDIA IMÁGENES (sin cambios)
 // ══════════════════════════════════════════════════════════
+async function buscarImagenWikipedia(titulo) {
+    try {
+        const urlBusq = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(titulo)}&format=json&srlimit=1&origin=*`;
+        let res = await fetch(urlBusq, { headers: { 'User-Agent': 'ElFarolAlDia/1.0' } });
+        let data = await res.json();
+        let pageTitle = data.query?.search?.[0]?.title; let lang = 'es';
+        if (!pageTitle) {
+            const urlEn = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(titulo)}&format=json&srlimit=1&origin=*`;
+            res = await fetch(urlEn, { headers: { 'User-Agent': 'ElFarolAlDia/1.0' } });
+            data = await res.json(); pageTitle = data.query?.search?.[0]?.title; lang = 'en';
+        }
+        if (!pageTitle) return null;
+        const urlImg = `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(pageTitle)}&prop=pageimages&format=json&pithumbsize=800&origin=*`;
+        const resImg = await fetch(urlImg, { headers: { 'User-Agent': 'ElFarolAlDia/1.0' } });
+        const dataImg = await resImg.json();
+        const pages = dataImg.query?.pages;
+        const pid   = Object.keys(pages || {})[0];
+        const thumb = pages?.[pid]?.thumbnail?.source;
+        if (thumb) { console.log(`   ✅ Wikipedia imagen: ${pageTitle}`); return thumb; }
+        return null;
+    } catch(e) { return null; }
+}
+
+async function buscarImagenWikimediaCommons(titulo) {
+    try {
+        const urlBusq = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(titulo)}&format=json&srlimit=1&origin=*`;
+        let res = await fetch(urlBusq, { headers: { 'User-Agent': 'ElFarolAlDia/1.0' } });
+        let data = await res.json();
+        let pageTitle = data.query?.search?.[0]?.title;
+        if (!pageTitle) {
+            const urlEn = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(titulo)}&format=json&srlimit=1&origin=*`;
+            res = await fetch(urlEn, { headers: { 'User-Agent': 'ElFarolAlDia/1.0' } }); data = await res.json(); pageTitle = data.query?.search?.[0]?.title;
+        }
+        if (!pageTitle) return null;
+        const urlCommons = `https://commons.wikimedia.org/w/api.php?action=query&generator=images&titles=${encodeURIComponent(pageTitle)}&gimlimit=5&prop=imageinfo&iiprop=url|mime&format=json&origin=*`;
+        const resC = await fetch(urlCommons, { headers: { 'User-Agent': 'ElFarolAlDia/1.0' } });
+        const dataC = await resC.json();
+        for (const pid in (dataC.query?.pages || {})) {
+            const p = dataC.query.pages[pid];
+            if (p.imageinfo?.[0]?.mime?.startsWith('image/')) { console.log(`   ✅ Wikimedia Commons: ${p.title}`); return p.imageinfo[0].url; }
+        }
+        return null;
+    } catch(e) { return null; }
+}
+
+function esImagenValida(url) {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    if (!/(\.jpg|\.jpeg|\.png|\.webp)/i.test(u)) return false;
+    const invalidos = ['.svg','flag','logo','map','coat_of_arms','seal','emblem','icon','badge','crest','shield','blason','wikimedia-button','powered_by','commons-logo','wikidata','location_map','signature','symbol','insignia','stamp','medal','_bw','-bw','black_white','blackwhite','grayscale','circa_19','_189','_190','_191','_192','_193','_194','20px','30px','40px','50px','60px','70px','80px'];
+    if (invalidos.some(i => u.includes(i))) return false;
+    if (u.includes('commons.wikimedia.org')) {
+        const patronesViejos = ['portrait_of','painting_of','sketch_of','drawing_of','lithograph','engraving','illustration_of','woodcut','daguerreotype','photograph_circa','undated_photo'];
+        if (patronesViejos.some(p => u.includes(p))) return false;
+    }
+    return true;
+}
+
+// ══════════════════════════════════════════════════════════
+// 🆕 FILTRO AUTOCRÍTICO DE IMÁGENES V34.2
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Lista global de palabras no periodísticas.
+ * Si una query contiene alguna de estas, se descarta antes de llamar a Pexels.
+ */
 const PALABRAS_BASURA = [
+    // Comercial / Ventas
     'sale', 'black friday', 'discount', 'offer', 'promo', 'deal', 'coupon',
     'shopping cart', 'ecommerce', 'store front', 'retail', 'gift', 'present',
+    // Social / Romántico
     'wedding', 'bride', 'groom', 'bridal', 'couple', 'romance', 'romantic',
     'love', 'kiss', 'marriage', 'engagement', 'honeymoon', 'valentine',
+    // Abstracto / Decorativo
     'abstract', 'wallpaper', 'background', 'texture', 'pattern', 'illustration',
     'cartoon', '3d render', 'clipart', 'icon', 'logo', 'banner', 'infographic',
+    // Animales / Mascotas
     'pet', 'dog', 'cat', 'puppy', 'kitten', 'animal', 'wildlife',
+    // Fiestas / Ocio
     'birthday', 'party', 'celebration cake', 'balloon', 'confetti',
     'fashion', 'model', 'runway', 'catwalk',
+    // Flores / Naturaleza decorativa
     'flowers', 'bouquet', 'floral', 'roses',
 ];
 
+/**
+ * Evalúa si una query pasaría el "test periodístico".
+ * Retorna true si la query es válida, false si debe descartarse.
+ */
 function queryEsPeriodistica(query) {
     const q = query.toLowerCase();
     if (PALABRAS_BASURA.some(p => q.includes(p))) {
@@ -597,13 +750,20 @@ function queryEsPeriodistica(query) {
     return true;
 }
 
+/**
+ * Para noticias de Tecnología: fuerza términos técnicos visuales.
+ * Si la query suena a e-commerce o abstracto, la reemplaza por
+ * una descripción de escena técnica real.
+ */
 function sanitizarQueryTecnologia(query, titulo) {
     const tituloLower = titulo.toLowerCase();
     const q = query.toLowerCase();
+
     const esFibraOptica    = tituloLower.includes('fibra') || tituloLower.includes('cable') || tituloLower.includes('internet') || tituloLower.includes('telecomunicacion');
     const esDataCenter     = tituloLower.includes('servidor') || tituloLower.includes('data center') || tituloLower.includes('nube') || tituloLower.includes('cloud');
     const esIA             = tituloLower.includes('inteligencia artificial') || tituloLower.includes(' ia ') || tituloLower.includes('machine learning');
     const esCiberseguridad = tituloLower.includes('ciberseguridad') || tituloLower.includes('hack') || tituloLower.includes('ciberataque');
+
     if (!queryEsPeriodistica(q)) {
         if (esFibraOptica)    return 'optical fiber cable installation technician';
         if (esDataCenter)     return 'server room data center professional';
@@ -614,144 +774,10 @@ function sanitizarQueryTecnologia(query, titulo) {
     return query;
 }
 
-// ══════════════════════════════════════════════════════════
-// 📸 SISTEMA DE IMÁGENES V34.5 — ATRIBUCIÓN PROFESIONAL
-// ══════════════════════════════════════════════════════════
-
 /**
- * buscarImagenWikimediaConAtribucion()
- * Busca en Wikimedia Commons y retorna: url + autor + licencia.
- * Filtra por tamaño mínimo y mime válido.
- */
-async function buscarImagenWikimediaConAtribucion(query) {
-    try {
-        const urlBusq = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srnamespace=6&format=json&srlimit=8&origin=*`;
-        const ctrl    = new AbortController();
-        const tm      = setTimeout(() => ctrl.abort(), 7000);
-        const resBusq = await fetch(urlBusq, {
-            headers: { 'User-Agent': 'ElFarolAlDia/34.5 (https://elfarolaldia.com)' },
-            signal: ctrl.signal
-        }).finally(() => clearTimeout(tm));
-
-        if (!resBusq.ok) return null;
-        const dataBusq = await resBusq.json();
-        const items    = dataBusq?.query?.search;
-        if (!items?.length) return null;
-
-        for (const item of items.slice(0, 5)) {
-            try {
-                const titulo  = item.title;
-                const urlInfo = `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(titulo)}&prop=imageinfo&iiprop=url|extmetadata|mime|size&format=json&origin=*`;
-                const resInfo = await fetch(urlInfo, {
-                    headers: { 'User-Agent': 'ElFarolAlDia/34.5 (https://elfarolaldia.com)' }
-                });
-                if (!resInfo.ok) continue;
-                const dataInfo = await resInfo.json();
-                const pages    = dataInfo?.query?.pages;
-                const pid      = Object.keys(pages || {})[0];
-                const ii       = pages?.[pid]?.imageinfo?.[0];
-                if (!ii) continue;
-
-                // Solo jpg, png, webp
-                const mime = ii.mime || '';
-                if (!mime.startsWith('image/jpeg') && !mime.startsWith('image/png') && !mime.startsWith('image/webp')) continue;
-
-                // Tamaño mínimo 400px
-                const ancho = parseInt(ii.extmetadata?.ImageWidth?.value || ii.size?.width || 0);
-                if (ancho < 400) continue;
-
-                const urlImg = ii.url;
-                if (!urlImg || !esImagenValida(urlImg)) continue;
-
-                // Atribución
-                const meta = ii.extmetadata || {};
-                let autor  = meta.Artist?.value || meta.Credit?.value || '';
-                autor = autor.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().substring(0, 120);
-                if (!autor || autor.length < 2) autor = 'Wikimedia Commons';
-
-                const licencia = meta.LicenseShortName?.value || meta.License?.value || 'CC BY-SA';
-
-                console.log(`   ✅ Wikimedia: "${titulo.substring(0,50)}" | Autor: ${autor} | Lic: ${licencia}`);
-                return { url: urlImg, autor, licencia, fuente: 'wikimedia-commons' };
-            } catch(e) { continue; }
-        }
-        return null;
-    } catch(e) {
-        console.log(`   📷 Wikimedia: ${e.message}`);
-        return null;
-    }
-}
-
-/**
- * buscarEnPexelsConAtribucion()
- * Igual que buscarEnPexels pero retorna también el nombre del fotógrafo.
- */
-async function buscarEnPexelsConAtribucion(queries) {
-    if (!PEXELS_API_KEY) return null;
-    const BLOQUEADOS = ['wedding','bride','groom','bridal','couple','romance','romantic',
-        'fashion','model','party','celebration','flowers','love','kiss','marriage'];
-    const listaQueries = (Array.isArray(queries) ? queries : [queries])
-        .filter(q => !BLOQUEADOS.some(b => q.toLowerCase().includes(b)));
-    if (!listaQueries.length) return null;
-
-    for (const query of listaQueries) {
-        try {
-            const url  = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`;
-            const ctrl = new AbortController();
-            const tm   = setTimeout(() => ctrl.abort(), 5000);
-            const res  = await fetch(url, {
-                headers: { Authorization: PEXELS_API_KEY },
-                signal: ctrl.signal
-            }).finally(() => clearTimeout(tm));
-            if (!res.ok) continue;
-            const data = await res.json();
-            if (!data.photos?.length) continue;
-
-            const foto    = data.photos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, data.photos.length))];
-            const urlFoto = foto.src.large2x || foto.src.large || foto.src.original;
-            const autor   = foto.photographer || 'Pexels';
-
-            console.log(`   📸 Pexels: "${query}" → Foto ${foto.id} | Autor: ${autor}`);
-            registrarQueryPexels(query, 'general', true);
-
-            return { url: urlFoto, autor, licencia: 'Pexels License', fuente: 'pexels' };
-        } catch { continue; }
-    }
-    return null;
-}
-
-/**
- * buscarEnPexels() — compatibilidad con código existente
- */
-async function buscarEnPexels(queries) {
-    const r = await buscarEnPexelsConAtribucion(queries);
-    return r ? r.url : null;
-}
-
-/**
- * esImagenValida()
- */
-function esImagenValida(url) {
-    if (!url) return false;
-    const u = url.toLowerCase();
-    if (!/(\.jpg|\.jpeg|\.png|\.webp)/i.test(u)) return false;
-    const invalidos = ['.svg','flag','logo','map','coat_of_arms','seal','emblem','icon','badge','crest',
-        'shield','blason','wikimedia-button','powered_by','commons-logo','wikidata','location_map',
-        'signature','symbol','insignia','stamp','medal','_bw','-bw','black_white','blackwhite',
-        'grayscale','circa_19','_189','_190','_191','_192','_193','_194','20px','30px','40px',
-        '50px','60px','70px','80px'];
-    if (invalidos.some(i => u.includes(i))) return false;
-    if (u.includes('commons.wikimedia.org')) {
-        const patronesViejos = ['portrait_of','painting_of','sketch_of','drawing_of','lithograph',
-            'engraving','illustration_of','woodcut','daguerreotype','photograph_circa','undated_photo'];
-        if (patronesViejos.some(p => u.includes(p))) return false;
-    }
-    return true;
-}
-
-/**
- * fallbackVisualInteligente()
- * Prefiere Santo Domingo antes que imagen genérica.
+ * Fallback visual inteligente.
+ * Prefiere Santo Domingo / Caribe antes que imagen sin contexto.
+ * Orden: 1) SD cityscape → 2) gobierno caribeño → 3) banco local
  */
 async function fallbackVisualInteligente(categoria, subtema) {
     const queriesFallbackRD = [
@@ -760,6 +786,7 @@ async function fallbackVisualInteligente(categoria, subtema) {
         'caribbean capital city aerial view',
         'santo domingo este urban architecture',
     ];
+
     if (PEXELS_API_KEY) {
         for (const q of queriesFallbackRD) {
             try {
@@ -772,155 +799,200 @@ async function fallbackVisualInteligente(categoria, subtema) {
                 if (data.photos?.length) {
                     const foto = data.photos[Math.floor(Math.random() * Math.min(3, data.photos.length))];
                     console.log(`   🏙️  Fallback RD: "${q}" → foto ${foto.id}`);
-                    return {
-                        url: foto.src.large2x || foto.src.large,
-                        autor: foto.photographer || 'Pexels',
-                        licencia: 'Pexels License',
-                        fuente: 'pexels'
-                    };
+                    return foto.src.large2x || foto.src.large;
                 }
             } catch { continue; }
         }
     }
+
     console.log(`   📸 Banco local final (${subtema || categoria})`);
-    return { url: imgLocal(subtema, categoria), autor: 'El Farol al Día', licencia: 'Propio', fuente: 'banco-local' };
+    return imgLocal(subtema, categoria);
 }
 
 /**
- * obtenerImagenConAtribucion() — V34.5 MOTOR PRINCIPAL
+ * obtenerImagenInteligente V34.2 — con filtro autocrítico
  *
- * Cascada completa con atribución en cada paso:
- *   1. Mapeo forzado por nombre propio → Pexels+atrib
- *   2. Wikimedia Commons → autor+licencia real
- *   3. Pexels con query Gemini validada → fotógrafo
- *   4. Pexels con queries automáticas → fotógrafo
- *   5. Fallback RD (SD cityscape) → fotógrafo
- *   6. Banco local
- *
- * Siempre retorna: { url, autor, licencia, fuente }
+ * Flujo en cascada:
+ *   1. Mapeo forzado por nombre propio (Trump, Abinader, etc.)
+ *   2. Query de Gemini validada con filtro periodístico
+ *   3. Queries detectadas automáticamente, filtradas palabra por palabra
+ *   4. Wikipedia → validación esImagenValida()
+ *   5. Wikimedia Commons → validación
+ *   6. Fallback RD (Santo Domingo cityscape) antes que imagen basura
+ *   7. Banco local como último recurso absoluto
  */
-async function obtenerImagenConAtribucion(titulo, categoria, subtemaLocal, queryIA) {
+async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA) {
     const tituloLower = titulo.toLowerCase();
 
-    // ── PASO 1: Mapeo forzado ────────────────────────────
+    // ── PASO 1: Mapeo forzado por nombre propio ──────────
     for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
         if (Array.isArray(queries) && tituloLower.includes(clave)) {
             console.log(`   🎯 Mapeo forzado: "${clave}"`);
             const queriesLimpias = queries.filter(queryEsPeriodistica);
-            const r = await buscarEnPexelsConAtribucion(queriesLimpias);
-            if (r) return r;
-            // fallback wiki para el nombre propio
-            const wikiR = await buscarImagenWikimediaConAtribucion(clave);
-            if (wikiR) return wikiR;
+            const urlPexels = await buscarEnPexels(queriesLimpias);
+            if (urlPexels) return urlPexels;
+            const urlWiki = await buscarImagenWikipedia(clave);
+            if (urlWiki && esImagenValida(urlWiki)) return urlWiki;
             break;
         }
     }
 
-    // ── PASO 2: Wikimedia Commons con query inteligente ──
-    const queryWiki = queryIA || `${titulo} ${categoria}`;
-    if (queryEsPeriodistica(queryWiki)) {
-        const wikiR = await buscarImagenWikimediaConAtribucion(queryWiki);
-        if (wikiR) return wikiR;
-    }
-
-    // ── PASO 3: Query Gemini validada → Pexels ───────────
+    // ── PASO 2: Query de Gemini validada ─────────────────
     if (queryIA) {
         const queryLimpia = categoria === 'Tecnología'
             ? sanitizarQueryTecnologia(queryIA, titulo)
             : queryIA;
+
         if (queryEsPeriodistica(queryLimpia)) {
-            const r = await buscarEnPexelsConAtribucion([queryLimpia]);
-            if (r) {
+            const urlQueryIA = await buscarEnPexels([queryLimpia]);
+            if (urlQueryIA) {
                 console.log(`   ✅ Pexels (Gemini query validada): "${queryLimpia}"`);
-                return r;
+                return urlQueryIA;
             }
         } else {
             console.log(`   ⚠️  Query Gemini descartada — no periodística: "${queryIA}"`);
         }
     }
 
-    // ── PASO 4: Queries automáticas → Pexels ─────────────
-    const todasLasQueries  = detectarQueriesPexels(titulo, categoria, null);
-    const queriesFiltradas = todasLasQueries.filter(queryEsPeriodistica);
+    // ── PASO 3: Queries automáticas con filtro ────────────
+    const todasLasQueries   = detectarQueriesPexels(titulo, categoria, null);
+    const queriesFiltradas  = todasLasQueries.filter(queryEsPeriodistica);
+
     if (queriesFiltradas.length < todasLasQueries.length) {
         console.log(`   🧹 Filtro: ${todasLasQueries.length - queriesFiltradas.length} queries basura eliminadas`);
     }
-    const r4 = await buscarEnPexelsConAtribucion(queriesFiltradas);
-    if (r4) {
+
+    const urlPexels = await buscarEnPexels(queriesFiltradas);
+    if (urlPexels) {
         console.log(`   ✅ Pexels (queries detectadas filtradas)`);
-        return r4;
+        return urlPexels;
     }
 
-    // ── PASO 5: Fallback RD inteligente ──────────────────
+    // ── PASO 4: Wikipedia ─────────────────────────────────
+    const urlWiki = await buscarImagenWikipedia(titulo);
+    if (urlWiki && esImagenValida(urlWiki)) {
+        console.log(`   ✅ Wikipedia (validada)`);
+        return urlWiki;
+    }
+
+    // ── PASO 5: Wikimedia Commons ─────────────────────────
+    const urlCommons = await buscarImagenWikimediaCommons(titulo);
+    if (urlCommons && esImagenValida(urlCommons)) {
+        console.log(`   ✅ Wikimedia (validada)`);
+        return urlCommons;
+    }
+
+    // ── PASO 6: Fallback RD — Santo Domingo antes que basura
     console.log(`   🏙️  Activando fallback visual inteligente (RD primero)`);
     return await fallbackVisualInteligente(categoria, subtemaLocal);
 }
 
 // ══════════════════════════════════════════════════════════
-// QUERIES PEXELS (base)
+// PEXELS (sin cambios en lógica, se agregó filtro en llamada)
 // ══════════════════════════════════════════════════════════
 const PEXELS_QUERIES_RD = {
-    'los mina':           ['santo domingo urban street life','caribbean city neighborhood people','latin america urban community'],
-    'invivienda':         ['social housing construction latin america','affordable housing caribbean','residential building construction workers'],
-    'ensanche ozama':     ['santo domingo city architecture','caribbean urban district street','dominican republic city life'],
-    'santo domingo este': ['santo domingo dominican republic cityscape','caribbean capital city skyline','dominican republic urban life'],
-    'villa mella':        ['dominican republic suburb community','caribbean neighborhood street life','latin america residential area'],
-    'sabana perdida':     ['dominican republic community neighborhood','caribbean urban street','latin america city district'],
-    'presidente':         ['president speech podium government','latin america president official event','government leader press conference'],
-    'gobierno':           ['government building official meeting','latin america congress parliament','official government press conference'],
-    'congreso':           ['congress parliament building','legislators vote assembly hall','parliament session politicians'],
-    'senado':             ['senate chamber politicians','legislators assembly hall vote','government senate session'],
-    'elecciones':         ['election voting booth ballot','people voting democracy caribbean','election campaign rally crowd'],
-    'policia':            ['police patrol latin america street','law enforcement officer uniform','police investigation crime scene'],
-    'crimen':             ['police crime investigation scene','law enforcement detective investigation','police tape crime scene urban'],
-    'militar':            ['military soldiers uniform parade','armed forces military ceremony','soldiers military base training'],
-    'accidente':          ['traffic accident car crash road','emergency response accident scene','ambulance emergency response'],
-    'incendio':           ['fire emergency firefighters blaze','firefighters fighting building fire','fire truck emergency response fire'],
-    'economia':           ['business finance professionals meeting','stock market trading finance','bank building financial district'],
-    'banco':              ['bank building financial institution','bank teller customer service','modern bank interior lobby'],
-    'remesas':            ['money transfer wire payment','international money transfer service','financial services payment technology'],
-    'turismo':            ['punta cana beach resort luxury','caribbean beach turquoise water tourism','dominican republic resort hotel pool'],
-    'salud':              ['hospital doctors medical staff','doctor patient consultation clinic','medical team healthcare professionals'],
-    'hospital':           ['hospital building exterior entrance','hospital interior hallway medical staff','emergency room hospital doctors'],
-    'vacuna':             ['vaccination injection healthcare nurse','vaccine shot medical professional','vaccination campaign healthcare workers'],
-    'dengue':             ['mosquito prevention public health campaign','fumigation pest control workers','public health fumigation urban'],
-    'educacion':          ['students classroom learning school','teacher students lesson classroom','university students campus education'],
-    'escuela':            ['school building education children','classroom students teacher learning','elementary school children study'],
-    'infraestructura':    ['road construction workers equipment','highway infrastructure construction project','bridge construction engineering workers'],
-    'carretera':          ['road highway construction workers','new highway infrastructure latin america','road paving construction crew'],
-    'construccion':       ['construction workers building site','construction project architecture workers','building construction crane workers'],
-    'mopc':               ['road construction workers equipment caribbean','infrastructure government project workers','highway construction latin america'],
-    'agua':               ['water treatment plant infrastructure','water supply pipeline installation','water infrastructure workers construction'],
-    'electricidad':       ['power lines electricity infrastructure','electrical workers power lines installation','electricity power plant energy'],
-    'beisbol':            ['baseball game stadium fans crowd','baseball pitcher throwing stadium','baseball player batting home run'],
-    'béisbol':            ['baseball game stadium fans crowd','baseball pitcher throwing stadium','baseball player batting home run'],
-    'futbol':             ['soccer football match stadium crowd','football players game action','soccer team training practice field'],
-    'fútbol':             ['soccer football match stadium crowd','football players game action','soccer team training practice field'],
-    'boxeo':              ['boxing match ring fighters','boxer training punching bag gym','boxing fight professional arena'],
-    'atletismo':          ['athlete running track competition','track field athletics competition','runner athlete race stadium'],
-    'tecnologia':         ['technology innovation digital business','tech startup team working computers','software developer coding computer'],
-    'inteligencia artificial': ['artificial intelligence technology computer','AI technology digital innovation','machine learning data technology'],
-    'internet':           ['internet technology digital connection','wifi network digital connectivity','online technology internet use'],
-    'ciberseguridad':     ['cybersecurity technology hacker computer','cyber security professional computer','digital security technology network'],
-    'fibra optica':       ['optical fiber cable installation technician','telecom technician working infrastructure','fiber optic network installation professional'],
-    'telecomunicaciones': ['telecom tower antenna infrastructure','telecommunications workers equipment','communication tower workers maintenance'],
-    'musica':             ['music concert performance stage lights','musicians performing concert crowd','music band performance stage'],
-    'merengue':           ['latin music dance performance stage','caribbean music band performing','latin dance music concert crowd'],
-    'carnaval':           ['carnival parade colorful costumes crowd','festive parade celebration costumes','carnival celebration people dancing costumes'],
-    'medio ambiente':     ['nature environment conservation forest','environmental protection activists','deforestation environmental issue forest'],
-    'huracan':            ['hurricane storm damage destruction','tropical storm damage aftermath','hurricane flooding streets damage'],
-    'inundacion':         ['flood flooding water streets','flood disaster emergency response','flooding streets cars water'],
-    'haiti':              ['haiti dominican republic border crossing','haitian dominican diplomacy officials','border security latin america'],
-    'diplomacia':         ['diplomacy meeting international officials','diplomatic summit world leaders','international meeting conference table'],
-    'estados unidos':     ['united states government washington dc','us capitol building washington','american flag government building'],
-    'migracion':          ['immigration border crossing people','migrants border crossing','immigration officials border security'],
-    'Nacionales':         ['dominican republic government news','santo domingo city official event','dominican republic flag ceremony'],
-    'Deportes':           ['dominican republic athlete sports','caribbean sports competition athlete','sports game stadium crowd latin america'],
-    'Internacionales':    ['international news world leaders','global summit conference diplomacy','world news event international'],
-    'Economía':           ['latin america business finance economy','caribbean economic development','business professionals meeting economy'],
-    'Tecnología':         ['technology innovation digital latin america','tech professionals working computers','digital innovation startup team'],
-    'Espectáculos':       ['latin entertainment music show concert','caribbean cultural performance arts','entertainment show stage lights'],
+    'los mina':           ['santo domingo urban street life', 'caribbean city neighborhood people', 'latin america urban community', 'dominican republic street market', 'caribbean urban daily life'],
+    'invivienda':         ['social housing construction latin america', 'affordable housing caribbean', 'residential building construction workers', 'housing project urban development', 'latin america apartment building construction'],
+    'ensanche ozama':     ['santo domingo city architecture', 'caribbean urban district street', 'dominican republic city life', 'latin america urban infrastructure', 'caribbean neighborhood road'],
+    'santo domingo este': ['santo domingo dominican republic cityscape', 'caribbean capital city skyline', 'dominican republic urban life', 'santo domingo street photography', 'caribbean city architecture'],
+    'villa mella':        ['dominican republic suburb community', 'caribbean neighborhood street life', 'latin america residential area', 'dominican city outskirts', 'caribbean people community'],
+    'sabana perdida':     ['dominican republic community neighborhood', 'caribbean urban street', 'latin america city district', 'dominican republic daily life', 'caribbean working class neighborhood'],
+    'presidente':         ['president speech podium government', 'latin america president official event', 'government leader press conference', 'political leader official ceremony', 'president signing document desk'],
+    'gobierno':           ['government building official meeting', 'latin america congress parliament', 'official government press conference', 'politicians meeting boardroom', 'government officials ceremony'],
+    'congreso':           ['congress parliament building', 'legislators vote assembly hall', 'parliament session politicians', 'latin america congress building', 'government assembly debate'],
+    'senado':             ['senate chamber politicians', 'legislators assembly hall vote', 'government senate session', 'parliament chamber officials', 'politicians congressional session'],
+    'elecciones':         ['election voting booth ballot', 'people voting democracy caribbean', 'election campaign rally crowd', 'voting booth democracy latin america', 'election results announcement'],
+    'inauguracion':       ['inauguration ceremony official ribbon cutting', 'official opening ceremony government', 'latin america inauguration public event', 'government ribbon cutting ceremony', 'official ceremony crowd applause'],
+    'policia':            ['police patrol latin america street', 'law enforcement officer uniform', 'police investigation crime scene', 'caribbean police officers patrol', 'police arrest handcuffs law enforcement'],
+    'crimen':             ['police crime investigation scene', 'law enforcement detective investigation', 'police tape crime scene urban', 'criminal investigation police work', 'security forces operation urban'],
+    'narcotráfico':       ['drug enforcement police operation', 'anti-narcotics law enforcement operation', 'police seizure drugs operation', 'security forces drug interdiction', 'police anti-drug operation press conference'],
+    'militar':            ['military soldiers uniform parade', 'armed forces military ceremony', 'soldiers military base training', 'latin america military defense', 'military officers uniform ceremony'],
+    'procuraduria':       ['attorney general office courthouse', 'prosecutor press conference podium', 'justice courthouse building', 'legal system courtroom lawyers', 'justice department officials meeting'],
+    'prision':            ['prison correctional facility security', 'jail bars cell incarceration', 'correctional facility guards', 'justice system incarceration', 'prison facility exterior security'],
+    'accidente':          ['traffic accident car crash road', 'emergency response accident scene', 'ambulance emergency response', 'accident highway first responders', 'car crash police accident investigation'],
+    'incendio':           ['fire emergency firefighters blaze', 'firefighters fighting building fire', 'fire truck emergency response fire', 'fire flames building emergency', 'firefighters rescue operation'],
+    'economia':           ['business finance professionals meeting', 'stock market trading finance', 'bank building financial district', 'business executives boardroom discussion', 'economic growth financial chart data'],
+    'banco':              ['bank building financial institution', 'bank teller customer service', 'modern bank interior lobby', 'financial institution banking', 'bank facade exterior architecture'],
+    'remesas':            ['money transfer wire payment', 'international money transfer service', 'financial services payment technology', 'currency exchange money transfer', 'bank wire transfer international'],
+    'mercado':            ['market vendors selling products', 'outdoor market trade commerce', 'latin america market people buying', 'caribbean market fresh produce', 'street market vendors commerce'],
+    'comercio':           ['business commerce trade professionals', 'retail store shopping commerce', 'business meeting commerce deal', 'trade commerce handshake deal', 'small business owner shop'],
+    'inversion':          ['business investment meeting professionals', 'investment finance growth chart', 'businesspeople handshake deal investment', 'financial investment strategy meeting', 'business growth investment success'],
+    'inflacion':          ['grocery store prices inflation', 'supermarket shopping prices consumer', 'food prices market inflation', 'consumer prices shopping cart', 'inflation prices market economic'],
+    'turismo':            ['punta cana beach resort luxury', 'caribbean beach turquoise water tourism', 'dominican republic resort hotel pool', 'tourists beach vacation caribbean', 'tropical beach resort tourism travel'],
+    'salud':              ['hospital doctors medical staff', 'doctor patient consultation clinic', 'medical team healthcare professionals', 'hospital ward nurses doctors', 'healthcare medical professionals'],
+    'hospital':           ['hospital building exterior entrance', 'hospital interior hallway medical staff', 'emergency room hospital doctors', 'hospital patients medical care', 'healthcare facility medical workers'],
+    'medicina':           ['medical doctors surgery operation', 'doctor examining patient stethoscope', 'medical professionals hospital team', 'surgeon operating room procedure', 'medicine healthcare professionals working'],
+    'vacuna':             ['vaccination injection healthcare nurse', 'vaccine shot medical professional', 'vaccination campaign healthcare workers', 'immunization vaccine health clinic', 'vaccine dose syringe medical'],
+    'epidemia':           ['public health medical response team', 'epidemiology health workers protective equipment', 'medical team public health response', 'healthcare workers protective masks', 'disease prevention public health'],
+    'dengue':             ['mosquito prevention public health campaign', 'fumigation pest control workers', 'public health fumigation urban', 'health workers fumigation community', 'vector control mosquito prevention'],
+    'educacion':          ['students classroom learning school', 'teacher students lesson classroom', 'university students campus education', 'school children learning books', 'education classroom latin america'],
+    'escuela':            ['school building education children', 'classroom students teacher learning', 'elementary school children study', 'school kids education classroom', 'school building entrance students'],
+    'universidad':        ['university campus students college', 'college students campus buildings', 'university lecture hall students', 'higher education students graduation', 'university library students studying'],
+    'maestro':            ['teacher classroom instruction students', 'teacher explaining lesson school', 'educator students whiteboard class', 'teacher children learning primary school', 'teaching education class children'],
+    'infraestructura':    ['road construction workers equipment', 'highway infrastructure construction project', 'bridge construction engineering workers', 'urban infrastructure development workers', 'road repair construction equipment'],
+    'carretera':          ['road highway construction workers', 'new highway infrastructure latin america', 'road paving construction crew', 'highway project construction equipment', 'road infrastructure development latin america'],
+    'construccion':       ['construction workers building site', 'construction project architecture workers', 'building construction crane workers', 'construction site safety workers', 'urban development construction project'],
+    'mopc':               ['road construction workers equipment caribbean', 'infrastructure government project workers', 'highway construction latin america', 'public works construction project', 'road infrastructure workers construction'],
+    'vivienda':           ['housing construction workers project', 'residential homes construction site', 'affordable housing project community', 'housing development construction workers', 'new homes construction residential'],
+    'agua':               ['water treatment plant infrastructure', 'water supply pipeline installation', 'water infrastructure workers construction', 'drinking water facility treatment', 'water system installation workers'],
+    'electricidad':       ['power lines electricity infrastructure', 'electrical workers power lines installation', 'electricity power plant energy', 'electrical infrastructure workers', 'power grid energy electricity workers'],
+    'beisbol':            ['baseball game stadium fans crowd', 'baseball pitcher throwing stadium', 'baseball player batting home run', 'baseball team dugout players', 'dominican republic baseball stadium'],
+    'béisbol':            ['baseball game stadium fans crowd', 'baseball pitcher throwing stadium', 'baseball player batting home run', 'baseball team dugout players', 'baseball minor league players practice'],
+    'futbol':             ['soccer football match stadium crowd', 'football players game action', 'soccer team training practice field', 'football game crowd stadium', 'soccer players game action sports'],
+    'fútbol':             ['soccer football match stadium crowd', 'football players game action', 'soccer team training practice field', 'football game crowd stadium', 'soccer players game action sports'],
+    'boxeo':              ['boxing match ring fighters', 'boxer training punching bag gym', 'boxing fight professional arena', 'boxers sparring training gym', 'boxing championship match ring'],
+    'atletismo':          ['athlete running track competition', 'track field athletics competition', 'runner athlete race stadium', 'athletics training professional athlete', 'sprinter race competition track'],
+    'natacion':           ['swimmer pool competition race', 'swimming championship athlete pool', 'competitive swimmer race lane', 'swimmer training pool laps', 'swimming competition athletes pool'],
+    'olimpiadas':         ['olympic games athletes competition', 'olympic stadium athletes ceremony', 'olympic torch ceremony athletes', 'olympic games sports competition', 'athletes olympic competition medal'],
+    'tecnologia':         ['technology innovation digital business', 'tech startup team working computers', 'software developer coding computer', 'digital technology innovation lab', 'technology professionals working office'],
+    'inteligencia artificial': ['artificial intelligence technology computer', 'AI technology digital innovation', 'machine learning data technology', 'computer science AI research', 'technology AI digital transformation'],
+    'internet':           ['internet technology digital connection', 'wifi network digital connectivity', 'online technology internet use', 'digital internet connected devices', 'technology internet connectivity people'],
+    'ciberseguridad':     ['cybersecurity technology hacker computer', 'cyber security professional computer', 'digital security technology network', 'cybersecurity expert working computer', 'security technology digital protection'],
+    'fibra optica':       ['optical fiber cable installation technician', 'telecom technician working infrastructure', 'fiber optic network installation professional', 'internet cable infrastructure workers', 'telecommunications network technician'],
+    'telecomunicaciones': ['telecom tower antenna infrastructure', 'telecommunications workers equipment', 'communication tower workers maintenance', 'telecom infrastructure technician', 'network infrastructure workers caribbean'],
+    'musica':             ['music concert performance stage lights', 'musicians performing concert crowd', 'music band performance stage', 'concert live music crowd fans', 'singer performing microphone stage'],
+    'merengue':           ['latin music dance performance stage', 'caribbean music band performing', 'latin dance music concert crowd', 'tropical music festival performance', 'caribbean culture music dancing'],
+    'carnaval':           ['carnival parade colorful costumes crowd', 'festive parade celebration costumes', 'carnival celebration people dancing costumes', 'street parade festival celebration', 'carnival festive celebration crowd'],
+    'cine':               ['film cinema movie production', 'movie theater cinema audience', 'film production director actors set', 'cinema audience movie theater', 'film set production camera crew'],
+    'arte':               ['art gallery exhibition artist', 'contemporary art museum exhibition', 'artist painting studio creating', 'art exhibition gallery visitors', 'artistic performance culture'],
+    'medio ambiente':     ['nature environment conservation forest', 'environmental protection activists', 'deforestation environmental issue forest', 'clean energy solar panels environment', 'environmental conservation activists nature'],
+    'clima':              ['climate change storm weather extreme', 'climate environmental weather impact', 'storm hurricane extreme weather', 'climate change environmental protest', 'weather storm flooding climate'],
+    'huracan':            ['hurricane storm damage destruction', 'tropical storm damage aftermath', 'hurricane flooding streets damage', 'tropical cyclone storm destruction', 'disaster relief hurricane aftermath'],
+    'inundacion':         ['flood flooding water streets', 'flood disaster emergency response', 'flooding streets cars water', 'flood damage homes community', 'flood emergency rescue workers'],
+    'haiti':              ['haiti dominican republic border crossing', 'haitian dominican diplomacy officials', 'border security latin america', 'diplomatic meeting caribbean officials', 'humanitarian aid border caribbean'],
+    'diplomacia':         ['diplomacy meeting international officials', 'diplomatic summit world leaders', 'international meeting conference table', 'diplomats officials handshake meeting', 'international summit conference officials'],
+    'estados unidos':     ['united states government washington dc', 'us capitol building washington', 'american flag government building', 'washington dc government official', 'united states diplomacy official'],
+    'migracion':          ['immigration border crossing people', 'migrants border crossing', 'immigration officials border security', 'refugee migrants humanitarian', 'border crossing immigration control'],
+    'Nacionales':         ['dominican republic government news', 'santo domingo city official event', 'dominican republic flag ceremony', 'caribbean government officials press', 'latin america news event crowd'],
+    'Deportes':           ['dominican republic athlete sports', 'caribbean sports competition athlete', 'sports game stadium crowd latin america', 'athlete competition professional sports', 'sports training professional athlete'],
+    'Internacionales':    ['international news world leaders', 'global summit conference diplomacy', 'world news event international', 'latin america international relations', 'caribbean diplomacy international meeting'],
+    'Economía':           ['latin america business finance economy', 'caribbean economic development', 'business professionals meeting economy', 'financial district bank economy', 'economy market trade latin america'],
+    'Tecnología':         ['technology innovation digital latin america', 'tech professionals working computers', 'digital innovation startup team', 'technology conference professionals', 'digital transformation business tech'],
+    'Espectáculos':       ['latin entertainment music show concert', 'caribbean cultural performance arts', 'entertainment show stage lights', 'celebrity artist performance concert', 'latin music culture entertainment'],
 };
+
+async function buscarEnPexels(queries) {
+    if (!PEXELS_API_KEY) return null;
+    const BLOQUEADOS = ['wedding', 'bride', 'groom', 'bridal', 'couple', 'romance', 'romantic', 'fashion', 'model', 'party', 'celebration', 'flowers', 'love', 'kiss', 'marriage'];
+    const listaQueries = (Array.isArray(queries) ? queries : [queries]).filter(q => !BLOQUEADOS.some(b => q.toLowerCase().includes(b)));
+    if (!listaQueries.length) { console.log('   📸 Todas las queries bloqueadas → banco local'); return null; }
+    for (const query of listaQueries) {
+        try {
+            const url  = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`;
+            const ctrl = new AbortController();
+            const tm   = setTimeout(() => ctrl.abort(), 5000);
+            const res  = await fetch(url, { headers: { Authorization: PEXELS_API_KEY }, signal: ctrl.signal }).finally(() => clearTimeout(tm));
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (!data.photos?.length) continue;
+            const foto = data.photos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, data.photos.length))];
+            console.log(`   📸 Pexels: "${query}" → ${foto.id}`);
+            registrarQueryPexels(query, 'general', true);
+            return foto.src.large2x || foto.src.large || foto.src.original;
+        } catch { continue; }
+    }
+    return null;
+}
 
 function detectarQueriesPexels(titulo, categoria, queryIA) {
     const tituloLower = titulo.toLowerCase();
@@ -932,34 +1004,34 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
         if (tituloLower.includes(clave.toLowerCase())) queries.push(...qs);
     }
     if (PEXELS_QUERIES_RD[categoria]) queries.push(...PEXELS_QUERIES_RD[categoria]);
-    queries.push('dominican republic news event','caribbean latin america people','santo domingo dominican republic');
+    queries.push('dominican republic news event', 'caribbean latin america people', 'santo domingo dominican republic');
     return [...new Set(queries)].slice(0, 12);
 }
 
 // ══════════════════════════════════════════════════════════
-// BANCO LOCAL DE IMÁGENES
+// BANCO LOCAL DE IMÁGENES (sin cambios)
 // ══════════════════════════════════════════════════════════
 const PB  = 'https://images.pexels.com/photos';
 const OPT = '?auto=compress&cs=tinysrgb&w=800';
 
 const BANCO_LOCAL = {
-    'politica-gobierno':          [`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${PB}/290595/pexels-photo-290595.jpeg${OPT}`,`${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,`${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`],
-    'seguridad-policia':          [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`,`${PB}/5699456/pexels-photo-5699456.jpeg${OPT}`,`${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,`${PB}/6980997/pexels-photo-6980997.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`],
-    'relaciones-internacionales': [`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`,`${PB}/358319/pexels-photo-358319.jpeg${OPT}`,`${PB}/3407617/pexels-photo-3407617.jpeg${OPT}`,`${PB}/3997992/pexels-photo-3997992.jpeg${OPT}`,`${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`],
-    'economia-mercado':           [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`,`${PB}/6772070/pexels-photo-6772070.jpeg${OPT}`,`${PB}/3532557/pexels-photo-3532557.jpeg${OPT}`,`${PB}/6801648/pexels-photo-6801648.jpeg${OPT}`,`${PB}/210607/pexels-photo-210607.jpeg${OPT}`],
-    'infraestructura':            [`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`,`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`,`${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,`${PB}/159306/pexels-photo-159306.jpeg${OPT}`],
-    'salud-medicina':             [`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`,`${PB}/40568/pexels-photo-40568.jpeg${OPT}`,`${PB}/4386467/pexels-photo-4386467.jpeg${OPT}`,`${PB}/1170979/pexels-photo-1170979.jpeg${OPT}`,`${PB}/5327580/pexels-photo-5327580.jpeg${OPT}`],
-    'deporte-beisbol':            [`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`,`${PB}/209977/pexels-photo-209977.jpeg${OPT}`,`${PB}/248318/pexels-photo-248318.jpeg${OPT}`,`${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,`${PB}/163452/pexels-photo-163452.jpeg${OPT}`],
-    'deporte-futbol':             [`${PB}/46798/pexels-photo-46798.jpeg${OPT}`,`${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,`${PB}/3873098/pexels-photo-3873098.jpeg${OPT}`,`${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,`${PB}/274422/pexels-photo-274422.jpeg${OPT}`],
-    'deporte-general':            [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`,`${PB}/936094/pexels-photo-936094.jpeg${OPT}`,`${PB}/2526878/pexels-photo-2526878.jpeg${OPT}`,`${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,`${PB}/1552252/pexels-photo-1552252.jpeg${OPT}`],
-    'tecnologia':                 [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`,`${PB}/2582937/pexels-photo-2582937.jpeg${OPT}`,`${PB}/5632399/pexels-photo-5632399.jpeg${OPT}`,`${PB}/3932499/pexels-photo-3932499.jpeg${OPT}`,`${PB}/1181244/pexels-photo-1181244.jpeg${OPT}`],
-    'educacion':                  [`${PB}/256490/pexels-photo-256490.jpeg${OPT}`,`${PB}/289737/pexels-photo-289737.jpeg${OPT}`,`${PB}/1205651/pexels-photo-1205651.jpeg${OPT}`,`${PB}/4143791/pexels-photo-4143791.jpeg${OPT}`,`${PB}/301926/pexels-photo-301926.jpeg${OPT}`],
-    'cultura-musica':             [`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`,`${PB}/1540406/pexels-photo-1540406.jpeg${OPT}`,`${PB}/3651308/pexels-photo-3651308.jpeg${OPT}`,`${PB}/2521317/pexels-photo-2521317.jpeg${OPT}`,`${PB}/1047442/pexels-photo-1047442.jpeg${OPT}`],
-    'medio-ambiente':             [`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`,`${PB}/1366919/pexels-photo-1366919.jpeg${OPT}`,`${PB}/2559941/pexels-photo-2559941.jpeg${OPT}`,`${PB}/414612/pexels-photo-414612.jpeg${OPT}`,`${PB}/247599/pexels-photo-247599.jpeg${OPT}`],
-    'turismo':                    [`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`,`${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`,`${PB}/3601425/pexels-photo-3601425.jpeg${OPT}`,`${PB}/2104152/pexels-photo-2104152.jpeg${OPT}`,`${PB}/237272/pexels-photo-237272.jpeg${OPT}`],
-    'emergencia':                 [`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`,`${PB}/263402/pexels-photo-263402.jpeg${OPT}`,`${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,`${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,`${PB}/3259629/pexels-photo-3259629.jpeg${OPT}`],
-    'vivienda-social':            [`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`,`${PB}/2102587/pexels-photo-2102587.jpeg${OPT}`,`${PB}/1370704/pexels-photo-1370704.jpeg${OPT}`,`${PB}/259588/pexels-photo-259588.jpeg${OPT}`],
-    'transporte-vial':            [`${PB}/93398/pexels-photo-93398.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,`${PB}/1494277/pexels-photo-1494277.jpeg${OPT}`,`${PB}/210182/pexels-photo-210182.jpeg${OPT}`,`${PB}/2199293/pexels-photo-2199293.jpeg${OPT}`],
+    'politica-gobierno': [`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${PB}/290595/pexels-photo-290595.jpeg${OPT}`,`${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,`${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,`${PB}/2990644/pexels-photo-2990644.jpeg${OPT}`,`${PB}/3184418/pexels-photo-3184418.jpeg${OPT}`,`${PB}/5668481/pexels-photo-5668481.jpeg${OPT}`,`${PB}/3182812/pexels-photo-3182812.jpeg${OPT}`,`${PB}/4427611/pexels-photo-4427611.jpeg${OPT}`],
+    'seguridad-policia': [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`,`${PB}/5699456/pexels-photo-5699456.jpeg${OPT}`,`${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,`${PB}/6980997/pexels-photo-6980997.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,`${PB}/7491987/pexels-photo-7491987.jpeg${OPT}`,`${PB}/8761572/pexels-photo-8761572.jpeg${OPT}`,`${PB}/5699859/pexels-photo-5699859.jpeg${OPT}`,`${PB}/6289059/pexels-photo-6289059.jpeg${OPT}`,`${PB}/6044266/pexels-photo-6044266.jpeg${OPT}`],
+    'relaciones-internacionales': [`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`,`${PB}/358319/pexels-photo-358319.jpeg${OPT}`,`${PB}/3407617/pexels-photo-3407617.jpeg${OPT}`,`${PB}/3997992/pexels-photo-3997992.jpeg${OPT}`,`${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`,`${PB}/3184339/pexels-photo-3184339.jpeg${OPT}`,`${PB}/3183150/pexels-photo-3183150.jpeg${OPT}`,`${PB}/7948035/pexels-photo-7948035.jpeg${OPT}`,`${PB}/3184292/pexels-photo-3184292.jpeg${OPT}`],
+    'economia-mercado': [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`,`${PB}/6772070/pexels-photo-6772070.jpeg${OPT}`,`${PB}/3532557/pexels-photo-3532557.jpeg${OPT}`,`${PB}/6801648/pexels-photo-6801648.jpeg${OPT}`,`${PB}/210607/pexels-photo-210607.jpeg${OPT}`,`${PB}/1602726/pexels-photo-1602726.jpeg${OPT}`,`${PB}/3943723/pexels-photo-3943723.jpeg${OPT}`,`${PB}/7567443/pexels-photo-7567443.jpeg${OPT}`,`${PB}/6120214/pexels-photo-6120214.jpeg${OPT}`,`${PB}/5849559/pexels-photo-5849559.jpeg${OPT}`],
+    'infraestructura': [`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`,`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`,`${PB}/3183197/pexels-photo-3183197.jpeg${OPT}`,`${PB}/159306/pexels-photo-159306.jpeg${OPT}`,`${PB}/1463917/pexels-photo-1463917.jpeg${OPT}`,`${PB}/2760241/pexels-photo-2760241.jpeg${OPT}`,`${PB}/247763/pexels-photo-247763.jpeg${OPT}`,`${PB}/1134166/pexels-photo-1134166.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`],
+    'salud-medicina': [`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`,`${PB}/40568/pexels-photo-40568.jpeg${OPT}`,`${PB}/4386467/pexels-photo-4386467.jpeg${OPT}`,`${PB}/1170979/pexels-photo-1170979.jpeg${OPT}`,`${PB}/5327580/pexels-photo-5327580.jpeg${OPT}`,`${PB}/3993212/pexels-photo-3993212.jpeg${OPT}`,`${PB}/4021775/pexels-photo-4021775.jpeg${OPT}`,`${PB}/3985163/pexels-photo-3985163.jpeg${OPT}`,`${PB}/5214958/pexels-photo-5214958.jpeg${OPT}`,`${PB}/4226219/pexels-photo-4226219.jpeg${OPT}`],
+    'deporte-beisbol': [`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`,`${PB}/209977/pexels-photo-209977.jpeg${OPT}`,`${PB}/248318/pexels-photo-248318.jpeg${OPT}`,`${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,`${PB}/163452/pexels-photo-163452.jpeg${OPT}`,`${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,`${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,`${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,`${PB}/186077/pexels-photo-186077.jpeg${OPT}`,`${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`],
+    'deporte-futbol': [`${PB}/46798/pexels-photo-46798.jpeg${OPT}`,`${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,`${PB}/3873098/pexels-photo-3873098.jpeg${OPT}`,`${PB}/1884574/pexels-photo-1884574.jpeg${OPT}`,`${PB}/274422/pexels-photo-274422.jpeg${OPT}`,`${PB}/1171084/pexels-photo-1171084.jpeg${OPT}`,`${PB}/1618200/pexels-photo-1618200.jpeg${OPT}`,`${PB}/2277981/pexels-photo-2277981.jpeg${OPT}`,`${PB}/3041176/pexels-photo-3041176.jpeg${OPT}`,`${PB}/114296/pexels-photo-114296.jpeg${OPT}`],
+    'deporte-general': [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`,`${PB}/936094/pexels-photo-936094.jpeg${OPT}`,`${PB}/2526878/pexels-photo-2526878.jpeg${OPT}`,`${PB}/3621943/pexels-photo-3621943.jpeg${OPT}`,`${PB}/1552252/pexels-photo-1552252.jpeg${OPT}`,`${PB}/3764014/pexels-photo-3764014.jpeg${OPT}`,`${PB}/2294353/pexels-photo-2294353.jpeg${OPT}`,`${PB}/1752757/pexels-photo-1752757.jpeg${OPT}`,`${PB}/4761671/pexels-photo-4761671.jpeg${OPT}`,`${PB}/3621517/pexels-photo-3621517.jpeg${OPT}`],
+    'tecnologia': [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`,`${PB}/2582937/pexels-photo-2582937.jpeg${OPT}`,`${PB}/5632399/pexels-photo-5632399.jpeg${OPT}`,`${PB}/3932499/pexels-photo-3932499.jpeg${OPT}`,`${PB}/1181244/pexels-photo-1181244.jpeg${OPT}`,`${PB}/574071/pexels-photo-574071.jpeg${OPT}`,`${PB}/3861969/pexels-photo-3861969.jpeg${OPT}`,`${PB}/4050315/pexels-photo-4050315.jpeg${OPT}`,`${PB}/5926382/pexels-photo-5926382.jpeg${OPT}`,`${PB}/7988086/pexels-photo-7988086.jpeg${OPT}`],
+    'educacion': [`${PB}/256490/pexels-photo-256490.jpeg${OPT}`,`${PB}/289737/pexels-photo-289737.jpeg${OPT}`,`${PB}/1205651/pexels-photo-1205651.jpeg${OPT}`,`${PB}/4143791/pexels-photo-4143791.jpeg${OPT}`,`${PB}/301926/pexels-photo-301926.jpeg${OPT}`,`${PB}/5905559/pexels-photo-5905559.jpeg${OPT}`,`${PB}/3769021/pexels-photo-3769021.jpeg${OPT}`,`${PB}/4491461/pexels-photo-4491461.jpeg${OPT}`,`${PB}/4145197/pexels-photo-4145197.jpeg${OPT}`,`${PB}/8617816/pexels-photo-8617816.jpeg${OPT}`],
+    'cultura-musica': [`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`,`${PB}/1540406/pexels-photo-1540406.jpeg${OPT}`,`${PB}/3651308/pexels-photo-3651308.jpeg${OPT}`,`${PB}/2521317/pexels-photo-2521317.jpeg${OPT}`,`${PB}/1047442/pexels-photo-1047442.jpeg${OPT}`,`${PB}/167636/pexels-photo-167636.jpeg${OPT}`,`${PB}/995301/pexels-photo-995301.jpeg${OPT}`,`${PB}/2191013/pexels-photo-2191013.jpeg${OPT}`,`${PB}/1105666/pexels-photo-1105666.jpeg${OPT}`,`${PB}/1769280/pexels-photo-1769280.jpeg${OPT}`],
+    'medio-ambiente': [`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`,`${PB}/1366919/pexels-photo-1366919.jpeg${OPT}`,`${PB}/2559941/pexels-photo-2559941.jpeg${OPT}`,`${PB}/414612/pexels-photo-414612.jpeg${OPT}`,`${PB}/247599/pexels-photo-247599.jpeg${OPT}`,`${PB}/1666012/pexels-photo-1666012.jpeg${OPT}`,`${PB}/572897/pexels-photo-572897.jpeg${OPT}`,`${PB}/1021142/pexels-photo-1021142.jpeg${OPT}`,`${PB}/3225517/pexels-photo-3225517.jpeg${OPT}`,`${PB}/1423600/pexels-photo-1423600.jpeg${OPT}`],
+    'turismo': [`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`,`${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`,`${PB}/3601425/pexels-photo-3601425.jpeg${OPT}`,`${PB}/2104152/pexels-photo-2104152.jpeg${OPT}`,`${PB}/237272/pexels-photo-237272.jpeg${OPT}`,`${PB}/1450360/pexels-photo-1450360.jpeg${OPT}`,`${PB}/3601453/pexels-photo-3601453.jpeg${OPT}`,`${PB}/994605/pexels-photo-994605.jpeg${OPT}`,`${PB}/1268855/pexels-photo-1268855.jpeg${OPT}`,`${PB}/3155666/pexels-photo-3155666.jpeg${OPT}`],
+    'emergencia': [`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`,`${PB}/263402/pexels-photo-263402.jpeg${OPT}`,`${PB}/3807517/pexels-photo-3807517.jpeg${OPT}`,`${PB}/3616480/pexels-photo-3616480.jpeg${OPT}`,`${PB}/3259629/pexels-photo-3259629.jpeg${OPT}`,`${PB}/4386396/pexels-photo-4386396.jpeg${OPT}`,`${PB}/6129049/pexels-photo-6129049.jpeg${OPT}`,`${PB}/5726825/pexels-photo-5726825.jpeg${OPT}`,`${PB}/7541956/pexels-photo-7541956.jpeg${OPT}`,`${PB}/6129113/pexels-photo-6129113.jpeg${OPT}`],
+    'vivienda-social': [`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`,`${PB}/2102587/pexels-photo-2102587.jpeg${OPT}`,`${PB}/1370704/pexels-photo-1370704.jpeg${OPT}`,`${PB}/259588/pexels-photo-259588.jpeg${OPT}`,`${PB}/1029599/pexels-photo-1029599.jpeg${OPT}`,`${PB}/280229/pexels-photo-280229.jpeg${OPT}`,`${PB}/534151/pexels-photo-534151.jpeg${OPT}`,`${PB}/1080721/pexels-photo-1080721.jpeg${OPT}`,`${PB}/2724749/pexels-photo-2724749.jpeg${OPT}`],
+    'transporte-vial': [`${PB}/93398/pexels-photo-93398.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,`${PB}/1494277/pexels-photo-1494277.jpeg${OPT}`,`${PB}/210182/pexels-photo-210182.jpeg${OPT}`,`${PB}/2199293/pexels-photo-2199293.jpeg${OPT}`,`${PB}/3806978/pexels-photo-3806978.jpeg${OPT}`,`${PB}/1838640/pexels-photo-1838640.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`,`${PB}/3802510/pexels-photo-3802510.jpeg${OPT}`,`${PB}/163786/pexels-photo-163786.jpeg${OPT}`],
 };
 
 const FALLBACK_CAT = {
@@ -973,8 +1045,16 @@ function imgLocal(sub, cat) {
     return banco[Math.floor(Math.random() * banco.length)];
 }
 
+async function obtenerImagen(titulo, categoria, subtemaLocal, queryIA) {
+    const queries   = detectarQueriesPexels(titulo, categoria, queryIA);
+    const urlPexels = await buscarEnPexels(queries);
+    if (urlPexels) return urlPexels;
+    console.log(`   📸 Pexels sin resultado → banco local (${subtemaLocal || 'general'})`);
+    return imgLocal(subtemaLocal, categoria);
+}
+
 // ══════════════════════════════════════════════════════════
-// ALT SEO
+// ALT SEO (sin cambios)
 // ══════════════════════════════════════════════════════════
 function generarAltSEO(titulo, categoria, altIA, subtema) {
     if (altIA && altIA.length > 15) {
@@ -995,7 +1075,7 @@ function generarAltSEO(titulo, categoria, altIA, subtema) {
 }
 
 // ══════════════════════════════════════════════════════════
-// SEO META TAGS
+// SEO META TAGS (sin cambios)
 // ══════════════════════════════════════════════════════════
 const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -1047,7 +1127,7 @@ function metaTagsCompletos(n, url) {
 }
 
 // ══════════════════════════════════════════════════════════
-// UTILS
+// UTILS (sin cambios)
 // ══════════════════════════════════════════════════════════
 function slugify(t) {
     return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').substring(0,80);
@@ -1066,60 +1146,30 @@ function redactor(cat) {
 }
 
 // ══════════════════════════════════════════════════════════
-// INICIALIZAR BASE DE DATOS — V34.5 (agrega columnas autor/licencia)
+// INICIALIZAR BASE DE DATOS (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function inicializarBase() {
     const client = await pool.connect();
     try {
-        await client.query(`CREATE TABLE IF NOT EXISTS noticias(
-            id SERIAL PRIMARY KEY,
-            titulo VARCHAR(255) NOT NULL,
-            slug VARCHAR(255) UNIQUE,
-            seccion VARCHAR(100),
-            contenido TEXT,
-            seo_description VARCHAR(160),
-            seo_keywords VARCHAR(255),
-            redactor VARCHAR(100),
-            imagen TEXT,
-            imagen_alt VARCHAR(255),
-            imagen_caption TEXT,
-            imagen_nombre VARCHAR(100),
-            imagen_fuente VARCHAR(50),
-            vistas INTEGER DEFAULT 0,
-            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            estado VARCHAR(50) DEFAULT 'publicada'
-        )`);
-
-        // Columnas estándar V34.2
+        await client.query(`CREATE TABLE IF NOT EXISTS noticias(id SERIAL PRIMARY KEY,titulo VARCHAR(255) NOT NULL,slug VARCHAR(255) UNIQUE,seccion VARCHAR(100),contenido TEXT,seo_description VARCHAR(160),seo_keywords VARCHAR(255),redactor VARCHAR(100),imagen TEXT,imagen_alt VARCHAR(255),imagen_caption TEXT,imagen_nombre VARCHAR(100),imagen_fuente VARCHAR(50),vistas INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,estado VARCHAR(50) DEFAULT 'publicada')`);
         for (const col of ['imagen_alt','imagen_caption','imagen_nombre','imagen_fuente','imagen_original']) {
             await client.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END $$;`).catch(()=>{});
         }
-
-        // 🆕 Columnas V34.5 — atribución profesional
-        for (const col of [
-            { name: 'imagen_autor',       type: 'VARCHAR(255)' },
-            { name: 'imagen_licencia',    type: 'VARCHAR(100)' },
-            { name: 'imagen_url_original', type: 'TEXT' },
-        ]) {
-            await client.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col.name}') THEN ALTER TABLE noticias ADD COLUMN ${col.name} ${col.type}; END IF; END $$;`).catch(()=>{});
-        }
-
         await client.query(`CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_memoria_tipo ON memoria_ia(tipo, categoria)`).catch(()=>{});
         await client.query(`CREATE TABLE IF NOT EXISTS comentarios(id SERIAL PRIMARY KEY,noticia_id INTEGER NOT NULL REFERENCES noticias(id) ON DELETE CASCADE,nombre VARCHAR(80) NOT NULL,texto TEXT NOT NULL,aprobado BOOLEAN DEFAULT true,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_comentarios_noticia ON comentarios(noticia_id, aprobado, fecha DESC)`).catch(()=>{});
-
         const fix = await client.query(`UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}', imagen_fuente='pexels' WHERE imagen LIKE '%/images/cache/%' OR imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
         if (fix.rowCount > 0) console.log(`🔧 Imágenes reparadas: ${fix.rowCount}`);
-        console.log('✅ BD lista (V34.5 — columnas atribución agregadas)');
+        console.log('✅ BD lista');
     } catch (e) { console.error('❌ BD:', e.message); }
     finally { client.release(); }
     await cargarConfigIA();
 }
 
 // ══════════════════════════════════════════════════════════
-// SISTEMA DE MEMORIA IA
+// SISTEMA DE MEMORIA IA (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function registrarQueryPexels(query, categoria, exito) {
     try {
@@ -1177,7 +1227,7 @@ async function regenerarWatermarksLostidos() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA V34.5
+// ▶ GENERAR NOTICIA (rotación horaria + filtro autocrítico)
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
@@ -1194,52 +1244,62 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
 
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
 
+        // ── PROMPT PRINCIPAL (rotación horaria via llamarGemini) ──
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
-ROL: Eres el editor jefe de El Farol al Día con 20 años de experiencia en periodismo dominicano. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes verificables, impacto real para el ciudadano dominicano.
+ROL: Eres el editor jefe de El Farol al Día con 20 años de experiencia en periodismo dominicano. Escribes exactamente como el Listín Diario o Diario Libre: datos concretos, fuentes verificables, impacto real para el ciudadano dominicano. Periodismo serio, sin exageración ni sensacionalismo.
 
-MARCO TEMPORAL: Hoy es marzo de 2026.
+MARCO TEMPORAL: Hoy es marzo de 2026. Cualquier referencia a eventos como "París 2024" o eventos anteriores a 2026 es historia, no noticia actual. Escribe sobre hechos del presente (2026).
 
 PENSAMIENTO CRÍTICO ANTES DE ESCRIBIR:
-1. ¿Quién se ve afectado en República Dominicana?
-2. ¿Qué dato concreto hace esta noticia creíble?
-3. ¿Cuál es el ángulo local para Santo Domingo Este / Los Mina / Invivienda?
-4. ¿Qué fuente oficial respalda la información?
-5. ¿Qué cambia para el lector dominicano?
+Antes de redactar, respóndete internamente estas preguntas:
+1. ¿Quién se ve afectado por esta noticia en República Dominicana?
+2. ¿Qué dato concreto (cifra, fecha, nombre de institución) hace esta noticia creíble?
+3. ¿Cuál es el ángulo local para Santo Domingo Este / Los Mina / Invivienda si aplica?
+4. ¿Qué fuente oficial o institución respalda la información?
+5. ¿Qué cambia para el lector dominicano después de leer esto?
+Solo procede a escribir cuando tengas respuesta a estas 5 preguntas.
 
 ${memoria}
 ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-TONO: ${CONFIG_IA.tono} — periodismo profesional E-E-A-T
-EXTENSIÓN: 400-500 palabras en 5 párrafos
+TONO: ${CONFIG_IA.tono} — periodismo profesional E-E-A-T (Experiencia, Experticia, Autoridad, Confianza)
+EXTENSIÓN: 400-500 palabras en 5 párrafos estructurados
 EVITAR: ${CONFIG_IA.evitar}
 ÉNFASIS LOCAL: ${CONFIG_IA.enfasis}
 
-ESTRUCTURA (pirámide invertida):
-- P1: LEAD (5W) en máximo 3 líneas
-- P2: CONTEXTO con datos concretos y cifras
-- P3: FUENTES con verbos de atribución
-- P4: IMPACTO CIUDADANO en RD
-- P5: CIERRE con próximos pasos o contexto regional
+ESTRUCTURA OBLIGATORIA (pirámide invertida periodística):
+- Párrafo 1 — LEAD (las 5W): QUÉ + QUIÉN + CUÁNDO + DÓNDE + POR QUÉ en máximo 3 líneas. El dato más importante va primero.
+- Párrafo 2 — CONTEXTO: Antecedentes con datos concretos (cifras reales, porcentajes, fechas verificables de RD). Sin este párrafo la noticia no tiene credibilidad.
+- Párrafo 3 — FUENTES: Citar institución o declaración oficial (Presidencia, ministerio, policía, banco, experto). Usar verbos de atribución: "informó", "confirmó", "según", "declaró".
+- Párrafo 4 — IMPACTO CIUDADANO: ¿Qué cambia concretamente para la gente en RD? ¿Precios, servicios, seguridad, empleos?
+- Párrafo 5 — CIERRE INFORMATIVO: Próximos pasos, fecha importante próxima, o contexto regional Caribe/LatAm.
 
-SEO GOOGLE NEWS:
-TÍTULO: 60-70 chars, hecho concreto + actor + contexto RD
-DESCRIPCIÓN SEO: 150-160 caracteres exactos
-KEYWORDS: 5 palabras clave, primera "república dominicana"
+REGLAS SEO GOOGLE NEWS 2025-2026:
+TÍTULO:
+- Entre 10 y 110 caracteres (ideal 60-70)
+- PALABRAS DE ORO cuando aplique: "Último Minuto", "Santo Domingo Este"
+- Debe incluir: hecho concreto + actor + contexto RD
+- PROHIBIDO: fechas en el título, números al inicio, clickbait puro
 
-RESPONDE CON ESTE FORMATO EXACTO:
-TITULO: [texto]
-DESCRIPCION: [texto]
-PALABRAS: [keywords]
+DESCRIPCIÓN SEO: Exactamente 150-160 caracteres
+
+KEYWORDS: 5 palabras clave, primera siempre "república dominicana"
+
+RESPONDE EXACTAMENTE CON ESTE FORMATO:
+TITULO: [60-70 chars]
+DESCRIPCION: [150-160 chars exactos]
+PALABRAS: [5 keywords]
 SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
-[400-500 palabras, 5 párrafos]`;
+[400-500 palabras, 5 párrafos, pirámide invertida]`;
 
         console.log(`\n📰 Generando: ${categoria}${comunicadoExterno ? ' (RSS)' : ''}`);
         const textoGemini = await llamarGemini(promptTexto);
 
+        // Parsear respuesta de texto
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
         let titulo = '', desc = '', pals = '', sub = '', contenido = '';
         let enContenido = false;
@@ -1262,28 +1322,34 @@ CONTENIDO:
 
         console.log(`   📝 ${titulo}`);
 
-        // ── Prompt imagen (grupo invertido) ──
+        // ── PROMPT DE IMAGEN (grupo invertido via llamarGeminiImagen) ──
+        let qi = '';
+        let ai = '';
+
         const promptImagen = `Eres asistente de imagen para un periódico dominicano.
-Titular: "${titulo}"
+Dado este titular de noticia: "${titulo}"
 Categoría: ${categoria}
-Marco: Marzo 2026.
+Marco temporal: Marzo 2026. Si la noticia menciona eventos históricos (ej. Paris 2024), busca imagen del contexto actual, no del evento pasado.
 
-Responde SOLO con este formato:
-QUERY_IMAGEN: [3-5 palabras inglés — escena fotográfica periodística real]
-ALT_IMAGEN: [15-20 palabras español SEO]
+Responde SOLO con este formato exacto (sin texto adicional):
+QUERY_IMAGEN: [3-5 palabras en inglés describiendo una ESCENA FOTOGRÁFICA PERIODÍSTICA REAL — nunca objetos decorativos, regalos, parejas, logos o imágenes abstractas]
+ALT_IMAGEN: [15-20 palabras en español SEO: descripción visual + tema + República Dominicana]
 
-REGLAS QUERY:
-- Tecnología/Fibra → "optical fiber cable installation technician"
-- Seguridad → "caribbean police officers law enforcement patrol"
-- Política → "dominican republic government building officials"
+REGLA CRÍTICA para QUERY_IMAGEN:
+- Tecnología/Fibra óptica → "optical fiber cable installation technician"
+- Seguridad/Policía → "caribbean police officers law enforcement patrol"
+- Política/Gobierno → "dominican republic government building officials"
 - Béisbol → "baseball player batting stadium crowd"
-- Salud → "latin america hospital doctor medical staff"
-- Economía → "latin america business professionals meeting"
+- Salud/Hospital → "latin america hospital doctor medical staff"
+- Economía/Finanzas → "latin america business professionals meeting"
 - Turismo → "dominican republic beach resort tourists"
-PROHIBIDO: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party, pet`;
+- Construcción → "latin america construction workers building site"
+- Educación → "students classroom teacher caribbean"
+- Internacional → "world leaders conference summit diplomacy"
+PROHIBIDO en la query: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party, pet`;
 
         const respuestaImagen = await llamarGeminiImagen(promptImagen);
-        let qi = '', ai = '';
+
         if (respuestaImagen) {
             for (const linea of respuestaImagen.split('\n')) {
                 const t = linea.trim();
@@ -1292,43 +1358,26 @@ PROHIBIDO: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party,
             }
         }
 
-        // ── Obtener imagen CON ATRIBUCIÓN ──
-        const imgData   = await obtenerImagenConAtribucion(titulo, categoria, sub, qi);
-        const imgResult = await aplicarMarcaDeAgua(imgData.url);
-        const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : imgData.url;
-        const altFinal  = generarAltSEO(titulo, categoria, ai, sub);
+        // Imagen con lógica inteligente + filtro autocrítico
+        const urlOrig    = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+        const imgResult  = await aplicarMarcaDeAgua(urlOrig);
+        const urlFinal   = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
+        const altFinal   = generarAltSEO(titulo, categoria, ai, sub);
 
-        // Caption con atribución profesional
-        const captionFinal = `Foto: ${imgData.autor} | El Farol al Día`;
-
-        // ── Guardar en BD con atribución ──
+        // Guardar en BD
         const sl     = slugify(titulo);
         const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
         const slFin  = existe.rows.length ? `${sl}-${Date.now()}` : sl;
 
         await pool.query(
-            `INSERT INTO noticias(
-                titulo, slug, seccion, contenido, seo_description, seo_keywords,
-                redactor, imagen, imagen_alt, imagen_caption, imagen_nombre,
-                imagen_fuente, imagen_original, imagen_autor, imagen_licencia,
-                imagen_url_original, estado
-            ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-            [
-                titulo.substring(0,255), slFin, categoria,
-                contenido.substring(0,10000), desc.substring(0,160), (pals||categoria).substring(0,255),
-                redactor(categoria), urlFinal, altFinal.substring(0,255),
-                captionFinal,                          // "Foto: [Autor] | El Farol al Día"
-                imgResult.nombre || 'efd.jpg',
-                imgData.fuente || 'el-farol',          // wikimedia-commons / pexels / banco-local
-                imgData.url,                           // URL original antes de watermark
-                imgData.autor || 'El Farol al Día',    // nombre del autor/fotógrafo
-                imgData.licencia || 'Uso Editorial',   // licencia CC / Pexels License / etc
-                imgData.url,                           // imagen_url_original para referencia
-                'publicada'
-            ]
+            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+            [titulo.substring(0,255), slFin, categoria, contenido.substring(0,10000), desc.substring(0,160),
+             (pals||categoria).substring(0,255), redactor(categoria), urlFinal,
+             altFinal.substring(0,255), `Fotografía periodística: ${titulo}`,
+             imgResult.nombre||'efd.jpg', 'el-farol', urlOrig, 'publicada']
         );
 
-        console.log(`\n✅ /noticia/${slFin} | Foto: ${imgData.autor} (${imgData.licencia})`);
+        console.log(`\n✅ /noticia/${slFin}`);
         invalidarCache();
         if (qi && queryEsPeriodistica(qi)) registrarQueryPexels(qi, categoria, true);
 
@@ -1343,7 +1392,7 @@ PROHIBIDO: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party,
             console.log(`   Redes: ${fb} ${tw} ${tg}`);
         });
 
-        return { success: true, slug: slFin, titulo, alt: altFinal, autor_foto: imgData.autor, licencia_foto: imgData.licencia, mensaje: '✅ Publicada en web + redes' };
+        return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada en web + redes' };
 
     } catch (error) {
         console.error('❌', error.message);
@@ -1353,7 +1402,7 @@ PROHIBIDO: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party,
 }
 
 // ══════════════════════════════════════════════════════════
-// FUENTES RSS
+// FUENTES RSS (sin cambios)
 // ══════════════════════════════════════════════════════════
 const FUENTES_RSS = [
     { url: 'https://presidencia.gob.do/feed',           categoria: 'Nacionales',      nombre: 'Presidencia RD' },
@@ -1379,6 +1428,7 @@ const FUENTES_RSS = [
     { url: 'https://www.reuters.com/arc/outboundfeeds/rss/category/latam/?outputType=xml', categoria: 'Internacionales', nombre: 'Reuters LatAm' },
     { url: 'https://feeds.bbci.co.uk/mundo/rss.xml',   categoria: 'Internacionales', nombre: 'BBC Mundo' },
     { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', categoria: 'Internacionales', nombre: 'NYT World' },
+    { url: 'https://www.elnuevoherald.com/ultimas-noticias/?widgetName=rssfeed&widgetContentId=725095&getXmlFeed=true', categoria: 'Internacionales', nombre: 'El Nuevo Herald' },
     { url: 'https://feeds.feedburner.com/TechCrunch',  categoria: 'Tecnología',      nombre: 'TechCrunch' },
     { url: 'https://www.wired.com/feed/rss',           categoria: 'Tecnología',      nombre: 'Wired' },
     { url: 'https://feeds.bloomberg.com/markets/news.rss', categoria: 'Economía',   nombre: 'Bloomberg Markets' },
@@ -1415,15 +1465,17 @@ async function procesarRSS() {
 }
 
 // ══════════════════════════════════════════════════════════
-// CRON V34.5
+// CRON V34.2 — Ritmo seguro anti-429
 // ══════════════════════════════════════════════════════════
 const CATS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 const ARRANQUE_TIME = Date.now();
 
+// Keepalive cada 5 minutos
 cron.schedule('*/5 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch(e) {}
 });
 
+// 1 noticia por hora — minuto 0, categoría rotativa por hora del día
 cron.schedule('0 * * * *', async () => {
     if (!CONFIG_IA.enabled) return;
     if (Date.now() - ARRANQUE_TIME < 35 * 60 * 1000) {
@@ -1436,27 +1488,32 @@ cron.schedule('0 * * * *', async () => {
     await generarNoticia(cat);
 });
 
+// RSS: minuto 30 de las 7am, 1pm y 8pm
 cron.schedule('30 7,13,20 * * *', async () => {
     await procesarRSS();
 });
 
 // ══════════════════════════════════════════════════════════
-// RÁFAGA INICIAL — 3 noticias, 20 min entre cada una
+// RÁFAGA INICIAL V34.2 — 3 noticias, 20 min entre cada una
 // ══════════════════════════════════════════════════════════
 async function rafagaInicial() {
     if (!CONFIG_IA.enabled) {
         console.log('⚠️ IA desactivada — no se genera ráfaga inicial');
         return;
     }
+
     const INTERVALO_MINUTOS = 20;
     const TOTAL_NOTICIAS    = 3;
-    console.log(`\n🚀 RÁFAGA INICIAL V34.5 — ${TOTAL_NOTICIAS} noticias · ${INTERVALO_MINUTOS} min entre cada una\n`);
+
+    console.log(`\n🚀 RÁFAGA INICIAL V34.2 — ${TOTAL_NOTICIAS} noticias · ${INTERVALO_MINUTOS} min entre cada una\n`);
+
     for (let i = 1; i <= TOTAL_NOTICIAS; i++) {
         if (i > 1) {
             console.log(`⏳ Esperando ${INTERVALO_MINUTOS} min antes de noticia ${i}/${TOTAL_NOTICIAS}...`);
             await new Promise(r => setTimeout(r, INTERVALO_MINUTOS * 60 * 1000));
         }
         try {
+            // Nacionales → Deportes → Internacionales
             const cat = CATS[i - 1] || CATS[Math.floor(Math.random() * CATS.length)];
             console.log(`📰 Ráfaga ${i}/${TOTAL_NOTICIAS}: ${cat}`);
             await generarNoticia(cat);
@@ -1464,11 +1521,12 @@ async function rafagaInicial() {
             console.error(`❌ Ráfaga ${i} error: ${e.message}`);
         }
     }
+
     console.log(`\n✅ Ráfaga completa — ritmo normal: 1 noticia/hora\n`);
 }
 
 // ══════════════════════════════════════════════════════════
-// RUTAS
+// RUTAS (sin cambios)
 // ══════════════════════════════════════════════════════════
 async function analizarRendimiento(dias = 7) {
     try {
@@ -1504,8 +1562,7 @@ app.get('/cambiar-pais/:pais', (req, res) => {
     res.redirect(req.get('referer') || '/');
 });
 app.get('/api/pais-actual', (req, res) => res.json({ pais: req.cookies?.pais_seleccionado || 'es-do' }));
-
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.5' }));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.2' }));
 
 app.get('/api/telegram/status', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
@@ -1515,7 +1572,7 @@ app.get('/api/telegram/status', authMiddleware, async (req, res) => {
 
 app.post('/api/telegram/test', authMiddleware, async (req, res) => {
     if (req.body.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    const ok = await publicarEnTelegram('🏮 El Farol al Día — Prueba V34.5','',`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,'El bot está activo. Atribución profesional activada.','Nacionales');
+    const ok = await publicarEnTelegram('🏮 El Farol al Día — Prueba de conexión','',`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,'El bot está activo. ¡Listo para Último Minuto en Santo Domingo Este y toda RD!','Nacionales');
     res.json({ success: ok, mensaje: ok ? '✅ Mensaje enviado a Telegram' : '❌ Error' });
 });
 
@@ -1548,7 +1605,7 @@ app.get('/api/noticias', async (req, res) => {
     res.setHeader('Content-Type','application/json');
     try {
         if (_cacheNoticias && (Date.now() - _cacheFecha) < CACHE_TTL) return res.json({ success: true, noticias: _cacheNoticias, cached: true });
-        const r = await pool.query(`SELECT id,titulo,slug,seccion,imagen,imagen_alt,imagen_caption,imagen_autor,imagen_licencia,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`, ['publicada']);
+        const r = await pool.query(`SELECT id,titulo,slug,seccion,imagen,imagen_alt,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`, ['publicada']);
         _cacheNoticias = r.rows; _cacheFecha = Date.now();
         res.json({ success: true, noticias: r.rows });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
@@ -1636,20 +1693,12 @@ app.get('/api/wikipedia', async (req, res) => {
     res.json({ success: true, longitud: contexto.length, contexto });
 });
 
-// ══════════════════════════════════════════════════════════
-// 📄 RUTA NOTICIA — V34.5 con caption de atribución
-// ══════════════════════════════════════════════════════════
 app.get('/noticia/:slug', async (req, res) => {
     try {
         const r = await pool.query('SELECT * FROM noticias WHERE slug=$1 AND estado=$2', [req.params.slug, 'publicada']);
         if (!r.rows.length) return res.status(404).send('No encontrada');
         const n = r.rows[0];
         await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1', [n.id]);
-
-        // Caption con atribución profesional
-        const captionDisplay = n.imagen_caption
-            || (n.imagen_autor ? `Foto: ${n.imagen_autor} | El Farol al Día` : 'El Farol al Día');
-
         try {
             let html = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
             const urlN  = `${BASE_URL}/noticia/${n.slug}`;
@@ -1661,9 +1710,6 @@ app.get('/noticia/:slug', async (req, res) => {
                 .replace(/{{FECHA}}/g,     new Date(n.fecha).toLocaleDateString('es-DO', { year:'numeric', month:'long', day:'numeric' }))
                 .replace(/{{IMAGEN}}/g,    n.imagen)
                 .replace(/{{ALT}}/g,       esc(n.imagen_alt || n.titulo))
-                .replace(/{{CAPTION}}/g,   esc(captionDisplay))
-                .replace(/{{AUTOR_FOTO}}/g, esc(n.imagen_autor || 'El Farol al Día'))
-                .replace(/{{LICENCIA_FOTO}}/g, esc(n.imagen_licencia || ''))
                 .replace(/{{VISTAS}}/g,    n.vistas)
                 .replace(/{{REDACTOR}}/g,  esc(n.redactor))
                 .replace(/{{SECCION}}/g,   esc(n.seccion))
@@ -1733,7 +1779,7 @@ app.post('/api/publicar', express.json(), async (req, res) => {
         const sl  = slugify(titulo);
         const e   = await pool.query('SELECT id FROM noticias WHERE slug=$1', [sl]);
         const slF = e.rows.length ? `${sl}-${Date.now()}` : sl;
-        await pool.query(`INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_autor,imagen_licencia,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, [titulo, slF, seccion, contenido, red||'Manual', `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`, `${titulo} - noticias República Dominicana El Farol al Día`, `Foto: El Farol al Día | El Farol al Día`, 'efd.jpg', 'el-farol', 'El Farol al Día', 'Uso Editorial', 'publicada']);
+        await pool.query(`INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [titulo, slF, seccion, contenido, red||'Manual', `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`, `${titulo} - noticias República Dominicana El Farol al Día`, `Fotografía: ${titulo}`, 'efd.jpg', 'el-farol', 'publicada']);
         res.json({ success: true, slug: slF });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
@@ -1768,7 +1814,7 @@ app.get('/status', async (req, res) => {
         const hora = new Date().getHours();
         const esPar = hora % 2 === 0;
         res.json({
-            status: 'OK', version: '34.5',
+            status: 'OK', version: '34.2',
             noticias: parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
             min_sin_publicar: minSinPublicar,
@@ -1784,17 +1830,14 @@ app.get('/status', async (req, res) => {
             telegram:    TELEGRAM_TOKEN ? '✅ Activo' : '⚠️ Sin token',
             pexels_api:  PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
             wikipedia:   '✅ Activa',
-            wikimedia_commons: '✅ Activa con atribución',
-            marca_de_agua: WATERMARK_PATH && fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Sin watermark',
-            atribucion_fotos: '✅ Activa — autor + licencia guardados en BD',
-            caption_automatico: '✅ "Foto: [Autor] | El Farol al Día"',
-            filtro_autocritico: '✅ Activo — palabras basura bloqueadas',
+            marca_de_agua: WATERMARK_PATH && fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Sin watermark — fotos publicándose sin marca',
+            filtro_autocritico: '✅ Activo — palabras basura bloqueadas antes de Pexels',
             ia_activa:   CONFIG_IA.enabled,
             adsense:     'pub-5280872495839888 ✅',
-            cron_1_hora: '✅ Activo (0 * * * *)',
+            cron_1_hora: '✅ Activo (0 * * * *) — 1 noticia/hora',
             rss_3x_dia:  '✅ 7:30am · 1:30pm · 8:30pm',
             rafaga_inicial: '✅ 3 noticias · 20 min entre cada una',
-            sistema: 'PostgreSQL + Gemini rotación horaria + Pexels+atrib + Wikimedia Commons+atrib + Watermark + AdSense + RSS 29 fuentes'
+            sistema:     'PostgreSQL + Gemini rotación horaria + Pexels filtro autocrítico + Wikipedia + Watermark blindado + AdSense + RSS 30 fuentes'
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1811,17 +1854,14 @@ async function iniciar() {
         const esPar = hora % 2 === 0;
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.5                                     ║
+║  🏮 EL FAROL AL DÍA — V34.2                                     ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ Wikimedia Commons con atribución real (autor + licencia CC)  ║
-║  ✅ Pexels con nombre del fotógrafo                              ║
-║  ✅ Caption automático: "Foto: [Autor] | El Farol al Día"        ║
-║  ✅ BD: imagen_autor + imagen_licencia + imagen_url_original     ║
-║  ✅ Watermark blindado sobre imagen final                        ║
-║  ✅ Rotación horaria Gemini: texto≠imagen en misma KEY           ║
-║  ✅ Filtro autocrítico: palabras basura bloqueadas               ║
+║  ✅ Rotación horaria: texto≠imagen NUNCA en la misma KEY        ║
+║  ✅ Filtro autocrítico: palabras basura bloqueadas antes Pexels  ║
+║  ✅ Fallback RD: SD cityscape antes que imagen sin contexto      ║
 ║  ✅ Cron: 1 noticia/hora · RSS: 7:30 · 13:30 · 20:30            ║
 ║  ✅ Ráfaga: 3 noticias · 20 min entre cada una                  ║
+║  🌐 Web · 📘 Facebook · 🐦 Twitter · 📱 Telegram · 📚 Wiki     ║
 ║                                                                  ║
 ║  Hora actual: ${hora}h → ${esPar ? 'PAR ' : 'IMPAR'} | Texto: ${esPar ? 'KEY1+KEY2' : 'KEY3+KEY4'} | Imagen: ${esPar ? 'KEY3+KEY4' : 'KEY1+KEY2'}  ║
 ║  Facebook:    ${FB_PAGE_ID && FB_PAGE_TOKEN            ? '✅ ACTIVO              ' : '⚠️  Sin credenciales    '}║
