@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>🏮 Monitor V34.5 — El Farol al Día</title>
+<title>🏮 Monitor — El Farol al Día</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#07070d;color:#EDE8DF;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;padding:12px;max-width:600px;margin:0 auto}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #1a1a2e}
 header h1{font-size:16px;color:#FF5500}
-.ref-btn{background:none;border:1px solid #1a1a2e;color:#555;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .2s}
+.ref-btn{background:none;border:1px solid #1a1a2e;color:#555;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer}
 .ref-btn:hover{border-color:#FF5500;color:#FF5500}
-#semaforo{display:flex;align-items:center;gap:12px;background:#0f0f1a;border:1px solid #1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;cursor:pointer;transition:border-color .3s}
-#semaforo:hover{border-color:#FF5500}
+#semaforo{display:flex;align-items:center;gap:12px;background:#0f0f1a;border:1px solid #1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;cursor:pointer}
 #sluz{width:16px;height:16px;border-radius:50%;flex-shrink:0}
 .verde{background:#22c55e;box-shadow:0 0 12px #22c55e88;animation:pulso 2s infinite}
 .rojo{background:#ef4444;box-shadow:0 0 12px #ef444488}
@@ -28,7 +27,7 @@ header h1{font-size:16px;color:#FF5500}
 .met-sub{font-size:9px;color:#444;margin-top:3px}
 .ok{color:#22c55e!important}.warn{color:#f59e0b!important}.err{color:#ef4444!important}
 .tabs{display:flex;gap:4px;margin-bottom:10px}
-.tab{flex:1;padding:7px;text-align:center;font-size:11px;border-radius:6px;cursor:pointer;border:1px solid #1a1a2e;color:#555;background:transparent;transition:all .2s}
+.tab{flex:1;padding:7px;text-align:center;font-size:11px;border-radius:6px;cursor:pointer;border:1px solid #1a1a2e;color:#555;background:transparent}
 .tab.active{background:#FF5500;color:#fff;border-color:#FF5500}
 .tc{display:none}.tc.active{display:block}
 .sec{background:#0f0f1a;border:1px solid #1a1a2e;border-radius:10px;padding:14px;margin-bottom:10px}
@@ -37,70 +36,49 @@ header h1{font-size:16px;color:#FF5500}
 .chk{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #13131f;font-size:12px}
 .chk:last-child{border-bottom:none;padding-bottom:0}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dv{background:#22c55e}.dr{background:#ef4444}.da{background:#f59e0b}.dg{background:#3b3b5c}
+.dv{background:#22c55e}.dr{background:#ef4444}.da{background:#f59e0b}
 .lbl{flex:1;color:#bbb}
-.cv{font-size:11px}.cok{color:#22c55e}.cwn{color:#f59e0b}.cer{color:#ef4444}.cgr{color:#3b3b5c}
-/* Keys grid */
+.cv{font-size:11px}.cok{color:#22c55e}.cwn{color:#f59e0b}.cer{color:#ef4444}
 .keys-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
 .key-card{background:#13131f;border:1px solid #1a1a2e;border-radius:8px;padding:10px 6px;text-align:center}
-/* Rotación horaria */
-.rot-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.rot-card{background:#13131f;border-radius:8px;padding:10px;text-align:center}
-.rot-lbl{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.rot-val{font-size:13px;font-weight:700}
-/* Botones */
 .bgrid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px}
 .bgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
-.btn{background:#13131f;border:1px solid #22223a;color:#CCC;padding:12px 8px;border-radius:8px;font-size:12px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;transition:all .2s}
+.btn{background:#13131f;border:1px solid #22223a;color:#CCC;padding:12px 8px;border-radius:8px;font-size:12px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
 .btn:hover{background:#1a1a2e;border-color:#FF5500;color:#fff}
 .btn:active{transform:scale(.96)}
 .bi{font-size:18px}
 .btn.sok:hover{border-color:#22c55e;background:#0a1a0a}
 .btn.sng:hover{border-color:#ef4444;background:#1a0a0a}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-/* Noticias */
 .nrow{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #13131f;cursor:pointer}
 .nrow:last-child{border-bottom:none}
 .nrow:hover .ntit{color:#FF5500}
 .nnum{font-size:10px;color:#444;min-width:16px;margin-top:2px}
-.ntit{font-size:12px;color:#CCC;line-height:1.35;margin-bottom:3px;transition:color .2s}
-.nmeta{font-size:10px;color:#555;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ntit{font-size:12px;color:#CCC;line-height:1.35;margin-bottom:3px}
+.nmeta{font-size:10px;color:#555;display:flex;gap:6px;flex-wrap:wrap}
 .ntag{background:#1a1a2e;color:#FF5500;padding:1px 5px;border-radius:3px;font-size:9px}
-.nauthor{color:#3b3b5c;font-style:italic}
-/* Log */
-#logbox{background:#070710;border:1px solid #1a1a2e;border-radius:8px;padding:10px;font-family:monospace;font-size:10px;color:#22c55e;max-height:200px;overflow-y:auto;line-height:1.7}
-.lw{color:#f59e0b}.le{color:#ef4444}.li{color:#60a5fa}.ls{color:#a78bfa}
-/* Barra de progreso */
+#logbox{background:#070710;border:1px solid #1a1a2e;border-radius:8px;padding:10px;font-family:monospace;font-size:10px;color:#22c55e;max-height:180px;overflow-y:auto;line-height:1.6}
+.lw{color:#f59e0b}.le{color:#ef4444}.li{color:#60a5fa}
 .prog-wrap{height:6px;background:#1a1a2e;border-radius:3px;overflow:hidden;margin-top:6px}
-.prog-fill{height:100%;border-radius:3px;transition:width .6s ease}
-/* Última noticia */
+.prog-fill{height:100%;border-radius:3px;transition:width .5s}
 .ultima{background:linear-gradient(135deg,rgba(255,85,0,.1),rgba(255,85,0,.03));border:1px solid rgba(255,85,0,.2);border-radius:8px;padding:10px 12px;margin-bottom:12px}
-/* Atribución V34.5 */
-.attr-pill{display:inline-flex;align-items:center;gap:4px;background:#13131f;border:1px solid #22223a;border-radius:20px;padding:3px 8px;font-size:9px;color:#777;margin-top:4px}
-.attr-pill span{color:#FF5500}
-/* Toast */
-#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid #FF5500;color:#EDE8DF;padding:10px 18px;border-radius:8px;font-size:12px;display:none;z-index:999;max-width:88vw;text-align:center;animation:toastin .2s ease}
-@keyframes toastin{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-/* Utilidades */
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid #FF5500;color:#EDE8DF;padding:10px 18px;border-radius:8px;font-size:12px;display:none;z-index:999;max-width:88vw;text-align:center}
 .loader{display:inline-block;width:10px;height:10px;border:2px solid #222;border-top-color:#FF5500;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .carg{display:flex;justify-content:center;padding:16px}
 .pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;animation:ring 2s infinite}
 @keyframes ring{0%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
-.divider{border:none;border-top:1px solid #13131f;margin:10px 0}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🏮 Monitor V34.5 — El Farol al Día</h1>
+  <h1>🏮 Monitor — El Farol al Día</h1>
   <div style="display:flex;gap:6px;align-items:center">
     <span id="upd" style="font-size:10px;color:#555">—</span>
     <button class="ref-btn" onclick="cargarTodo()">↻ Actualizar</button>
   </div>
 </header>
 
-<!-- SEMÁFORO -->
 <div id="semaforo" onclick="cargarTodo()">
   <div id="sluz" class="amarillo"></div>
   <div style="flex:1">
@@ -110,14 +88,12 @@ header h1{font-size:16px;color:#FF5500}
   <div id="sver">—</div>
 </div>
 
-<!-- ÚLTIMA NOTICIA -->
 <div class="ultima" id="ultima" style="display:none">
   <div style="font-size:9px;letter-spacing:2px;color:#FF5500;margin-bottom:4px">ÚLTIMA NOTICIA</div>
   <div id="u-tit" style="font-size:12px;color:#CCC;line-height:1.4">—</div>
   <div id="u-meta" style="font-size:10px;color:#555;margin-top:4px">—</div>
 </div>
 
-<!-- MÉTRICAS -->
 <div class="grid4">
   <div class="met"><div class="met-lbl">Noticias</div><div class="met-val" id="mn">—</div><div class="met-sub">publicadas</div></div>
   <div class="met"><div class="met-lbl">Vistas</div><div class="met-val" id="mv">—</div><div class="met-sub">totales</div></div>
@@ -125,7 +101,6 @@ header h1{font-size:16px;color:#FF5500}
   <div class="met"><div class="met-lbl">Keys IA</div><div class="met-val" id="mk">—</div><div class="met-sub">Gemini</div></div>
 </div>
 
-<!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="tab('salud')">🩺 Salud</button>
   <button class="tab" onclick="tab('gemini')">🤖 IA</button>
@@ -134,84 +109,53 @@ header h1{font-size:16px;color:#FF5500}
   <button class="tab" onclick="tab('logs')">📋 Logs</button>
 </div>
 
-<!-- ══════ TAB: SALUD ══════ -->
+<!-- SALUD -->
 <div id="tc-salud" class="tc active">
-
   <div class="sec">
     <div class="sec-tit">Estado del sistema <span class="badge" id="bp" style="color:#FF5500">Verificando</span></div>
     <div id="checks"><div class="carg"><div class="loader"></div></div></div>
   </div>
-
-  <div class="sec">
-    <div class="sec-tit">Fuentes de imagen V34.5 <span class="badge" style="color:#22c55e">Atribución activa</span></div>
-    <div id="img-fuentes"><div class="carg"><div class="loader"></div></div></div>
-  </div>
-
   <div class="sec">
     <div class="sec-tit">Automatización activa <span class="pulse"></span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Publica automáticamente</span><span class="cv cok">1 noticia/hora (cron)</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Ráfaga al arrancar</span><span class="cv cok">3 noticias · 20 min entre c/u</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Procesa RSS noticias</span><span class="cv cok">7:30am · 1:30pm · 8:30pm</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Publica automáticamente</span><span class="cv cok">Cada 30 minutos</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Procesa RSS noticias</span><span class="cv cok">7am · 1pm · 8pm</span></div>
     <div class="chk"><div class="dot dv"></div><span class="lbl">Keep-alive Railway</span><span class="cv cok">Ping cada 5 min</span></div>
     <div class="chk"><div class="dot dv"></div><span class="lbl">Watermarks automáticos</span><span class="cv cok">Al arrancar el servidor</span></div>
     <div class="chk"><div class="dot dv"></div><span class="lbl">AdSense monetización</span><span class="cv cok">pub-5280872495839888</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Caption automático foto</span><span class="cv cok">Foto: [Autor] | El Farol al Día</span></div>
   </div>
-
 </div>
 
-<!-- ══════ TAB: IA / GEMINI ══════ -->
+<!-- GEMINI / IA -->
 <div id="tc-gemini" class="tc">
-
   <div class="sec">
-    <div class="sec-tit">Rotación horaria de llaves V34.5</div>
-    <div class="rot-grid" id="rot-grid">
-      <div class="rot-card"><div class="rot-lbl">Hora actual</div><div class="rot-val" id="rot-hora" style="color:#FF5500">—</div></div>
-      <div class="rot-card"><div class="rot-lbl">Turno</div><div class="rot-val" id="rot-turno">—</div></div>
-      <div class="rot-card"><div class="rot-lbl">Texto usa</div><div class="rot-val" id="rot-texto" style="color:#22c55e">—</div></div>
-      <div class="rot-card"><div class="rot-lbl">Imagen usa</div><div class="rot-val" id="rot-imagen" style="color:#60a5fa">—</div></div>
-    </div>
+    <div class="sec-tit">Llaves de Gemini 2.5 Flash</div>
     <div class="keys-grid" id="keys-grid"><div class="carg" style="grid-column:1/-1"><div class="loader"></div></div></div>
     <div style="font-size:10px;color:#444;margin-top:8px;line-height:1.6">
-      Texto e imagen <strong style="color:#FF5500">nunca compiten</strong> por las mismas llaves al mismo tiempo. Si el grupo activo falla → rescate automático con el grupo opuesto.
+      Gemini escribe las noticias con E-E-A-T SEO. Pexels provee las fotos reales de prensa con watermark automático. Si agregas GEMINI_KEY_2/3/4 en Railway, el sistema rota entre ellas para nunca detenerse.
     </div>
   </div>
-
   <div class="sec">
-    <div class="sec-tit">Fuentes de imagen en cascada</div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">1. Mapeo forzado (Trump, Abinader...)</span><span class="cv cok">Pexels directo</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">2. Wikimedia Commons + atribución</span><span class="cv cok" id="wiki-st">✅ Activa (CC)</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">3. Pexels query Gemini validada</span><span class="cv cok" id="pexels-st">—</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">4. Pexels queries automáticas</span><span class="cv cok">✅ 29 categorías RD</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">5. Fallback RD (SD cityscape)</span><span class="cv cok">✅ Santo Domingo primero</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">6. Banco local 85 fotos</span><span class="cv cok">✅ 17 categorías</span></div>
+    <div class="sec-tit">Fuentes de imágenes</div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Pexels API — fotos reales</span><span class="cv cok" id="pexels-st">—</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Wikipedia/Wikimedia</span><span class="cv cok">✅ Activa (pública)</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Banco local 170 fotos</span><span class="cv cok">✅ 17 categorías</span></div>
     <div style="margin-top:10px">
       <div style="font-size:10px;color:#555;margin-bottom:6px">Rendimiento Pexels hoy</div>
       <div id="img-stats"><div class="carg"><div class="loader"></div></div></div>
     </div>
   </div>
-
-  <div class="sec">
-    <div class="sec-tit">Filtro autocrítico V34.5</div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Palabras basura bloqueadas</span><span class="cv cok">wedding · sale · cartoon · pet...</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Sanitización Tecnología</span><span class="cv cok">Fuerza términos técnicos reales</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">queryEsPeriodistica()</span><span class="cv cok">Evalúa antes de llamar Pexels</span></div>
-  </div>
-
   <div class="sec">
     <div class="sec-tit">Errores recientes de IA</div>
     <div id="errores-ia"><div class="carg"><div class="loader"></div></div></div>
   </div>
-
 </div>
 
-<!-- ══════ TAB: ACCIONES ══════ -->
+<!-- ACCIONES -->
 <div id="tc-acciones" class="tc">
-
   <div class="sec">
     <div class="sec-tit">Publicar ahora</div>
     <div class="bgrid2">
-      <button class="btn sok" onclick="acc('rss')"><span class="bi">📡</span>Procesar RSS (29 fuentes)</button>
+      <button class="btn sok" onclick="acc('rss')"><span class="bi">📡</span>Procesar RSS</button>
       <button class="btn sok" onclick="acc('generar')"><span class="bi">✍️</span>Generar Noticia</button>
     </div>
     <div class="bgrid3">
@@ -223,29 +167,20 @@ header h1{font-size:16px;color:#FF5500}
       <button class="btn" onclick="gen('Espectáculos')"><span class="bi">🎭</span>Espectác.</button>
     </div>
   </div>
-
   <div class="sec">
     <div class="sec-tit">Control IA</div>
     <div class="bgrid2">
       <button class="btn sok" onclick="ia(true)"><span class="bi">🟢</span>Activar IA</button>
       <button class="btn sng" onclick="ia(false)"><span class="bi">🔴</span>Pausar IA</button>
     </div>
-    <div id="ia-estado" style="font-size:11px;color:#555;text-align:center;padding-top:4px">—</div>
   </div>
-
   <div class="sec">
     <div class="sec-tit">Redes sociales</div>
     <div id="redes-st"><div class="carg"><div class="loader"></div></div></div>
-    <hr class="divider">
-    <div class="bgrid2" style="margin-top:10px">
-      <button class="btn" onclick="testTelegram()"><span class="bi">📱</span>Test Telegram</button>
-      <button class="btn" onclick="window.open('/status','_blank')"><span class="bi">🔍</span>Ver /status</button>
-    </div>
   </div>
-
 </div>
 
-<!-- ══════ TAB: NOTICIAS ══════ -->
+<!-- NOTICIAS -->
 <div id="tc-noticias" class="tc">
   <div class="sec">
     <div class="sec-tit">Últimas publicadas <span class="badge" id="bn" style="color:#FF5500">—</span></div>
@@ -253,384 +188,233 @@ header h1{font-size:16px;color:#FF5500}
   </div>
 </div>
 
-<!-- ══════ TAB: LOGS ══════ -->
+<!-- LOGS -->
 <div id="tc-logs" class="tc">
-
   <div class="sec">
     <div class="sec-tit">Actividad en vivo <span style="display:inline-flex;align-items:center;gap:4px"><span class="pulse"></span><span style="font-size:9px;color:#22c55e">EN VIVO</span></span></div>
     <div id="logbox"><span style="color:#333">Sin actividad aún.</span></div>
   </div>
-
   <div class="sec">
     <div class="sec-tit">Errores en base de datos</div>
     <div id="bd-err"><div class="carg"><div class="loader"></div></div></div>
   </div>
-
   <div class="sec">
-    <div class="sec-tit">Mejores queries Pexels</div>
+    <div class="sec-tit">Mejores queries de imagen</div>
     <div id="best-q"><div class="carg"><div class="loader"></div></div></div>
   </div>
-
-  <div class="sec">
-    <div class="sec-tit">Info técnica V34.5</div>
-    <div id="tech-info"><div class="carg"><div class="loader"></div></div></div>
-  </div>
-
 </div>
 
 <div id="toast"></div>
 
 <script>
-const PIN = '311';
-const AUTH = 'Basic ' + btoa('director:311');
-let tabActual = 'salud';
-let datosStatus = null;
-let generando = false;
+const PIN='311';
+const AUTH='Basic '+btoa('director:311');
+let tabActual='salud';
+let datosStatus=null;
 
-// ── Utilidades ──────────────────────────────────────────
-function toast(msg, ms = 3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(t._to);
-  t._to = setTimeout(() => t.style.display = 'none', ms);
+function toast(msg,ms=3000){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',ms);}
+
+function log(msg,tipo=''){
+  const box=document.getElementById('logbox');
+  if(box.querySelector('span'))box.innerHTML='';
+  const d=new Date().toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const cls=tipo==='warn'?'lw':tipo==='error'?'le':tipo==='info'?'li':'';
+  box.innerHTML+=`<div class="${cls}">[${d}] ${msg}</div>`;
+  box.scrollTop=box.scrollHeight;
 }
 
-function log(msg, tipo = '') {
-  const box = document.getElementById('logbox');
-  const placeholder = box.querySelector('span');
-  if (placeholder) box.innerHTML = '';
-  const d = new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const cls = tipo === 'warn' ? 'lw' : tipo === 'error' ? 'le' : tipo === 'info' ? 'li' : tipo === 'success' ? 'ls' : '';
-  box.innerHTML += `<div class="${cls}">[${d}] ${msg}</div>`;
-  box.scrollTop = box.scrollHeight;
-}
-
-async function api(ep, method = 'GET', body = null) {
-  try {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': AUTH } };
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(ep, opts);
+async function api(ep,method='GET',body=null){
+  try{
+    const opts={method,headers:{'Content-Type':'application/json','Authorization':AUTH}};
+    if(body)opts.body=JSON.stringify(body);
+    const r=await fetch(ep,opts);
     return await r.json();
-  } catch (e) { return { error: e.message }; }
+  }catch(e){return{error:e.message};}
 }
 
-function tab(t) {
-  tabActual = t;
-  const nombres = ['salud', 'gemini', 'acciones', 'noticias', 'logs'];
-  document.querySelectorAll('.tab').forEach((b, i) => b.classList.toggle('active', nombres[i] === t));
-  document.querySelectorAll('.tc').forEach(c => c.classList.remove('active'));
-  document.getElementById('tc-' + t).classList.add('active');
-  if (t === 'noticias') cargarNoticias();
-  if (t === 'logs') cargarLogs();
-  if (t === 'gemini') cargarGemini();
-  if (t === 'acciones') cargarRedes();
+function tab(t){
+  tabActual=t;
+  document.querySelectorAll('.tab').forEach((b,i)=>{
+    b.classList.toggle('active',['salud','gemini','acciones','noticias','logs'][i]===t);
+  });
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tc-'+t).classList.add('active');
+  if(t==='noticias')cargarNoticias();
+  if(t==='logs')cargarLogs();
+  if(t==='gemini')cargarGemini();
+  if(t==='acciones')cargarRedes();
 }
 
-function tiempo(fecha) {
-  const min = Math.round((Date.now() - new Date(fecha)) / 60000);
-  if (min < 1) return 'ahora mismo';
-  if (min < 60) return 'hace ' + min + 'min';
-  const h = Math.floor(min / 60), m = min % 60;
-  return m > 0 ? 'hace ' + h + 'h ' + m + 'min' : 'hace ' + h + 'h';
+function tiempo(fecha){
+  const min=Math.round((Date.now()-new Date(fecha))/60000);
+  if(min<1)return'ahora mismo';
+  if(min<60)return'hace '+min+'min';
+  const h=Math.floor(min/60),m=min%60;
+  return m>0?'hace '+h+'h '+m+'min':'hace '+h+'h';
 }
 
-function numFmt(v) {
-  if (v >= 1000000) return (v / 1000000).toFixed(1) + 'M';
-  if (v >= 1000) return (v / 1000).toFixed(1) + 'k';
-  return v;
-}
-
-// ── CARGAR STATUS ────────────────────────────────────────
-async function cargarStatus() {
-  const d = await api('/status');
-  datosStatus = d;
-
-  if (d.error || !d.version) {
-    document.getElementById('sluz').className = 'rojo';
-    document.getElementById('stit').textContent = 'Servidor no responde';
-    document.getElementById('ssub').textContent = d.error || 'Sin respuesta de Railway';
-    document.getElementById('sver').textContent = '—';
-    log('SERVIDOR CAÍDO: ' + (d.error || 'sin respuesta'), 'error');
+async function cargarStatus(){
+  const d=await api('/status');
+  datosStatus=d;
+  if(d.error||!d.version){
+    document.getElementById('sluz').className='rojo';
+    document.getElementById('stit').textContent='Servidor no responde';
+    document.getElementById('ssub').textContent=d.error||'Sin respuesta de Railway';
+    log('SERVIDOR CAIDO: '+(d.error||'sin respuesta'),'error');
     return;
   }
+  const min=d.min_sin_publicar||0;
+  const critico=d.errores_gemini>=3||min>120;
+  const alerta=min>60||!d.ia_activa;
+  document.getElementById('sluz').className=critico?'rojo':alerta?'amarillo':'verde';
+  document.getElementById('stit').textContent=critico?'Problema critico detectado':alerta?'Sistema con alertas':'Sistema operando perfectamente';
+  document.getElementById('ssub').textContent=d.noticias+' noticias · '+d.rss_procesados+' RSS · ultima hace '+min+'min';
+  document.getElementById('sver').textContent='V'+d.version;
 
-  const min = d.min_sin_publicar || 0;
-  // Cron = 1/hora → crítico si >120min, alerta si >75min
-  const critico = d.errores_gemini >= 3 || min > 120;
-  const alerta  = min > 75 || !d.ia_activa;
-
-  document.getElementById('sluz').className = critico ? 'rojo' : alerta ? 'amarillo' : 'verde';
-  document.getElementById('stit').textContent = critico
-    ? 'Problema crítico detectado'
-    : alerta ? 'Sistema con alertas'
-    : 'Sistema operando perfectamente';
-  document.getElementById('ssub').textContent =
-    d.noticias + ' noticias · ' + d.rss_procesados + ' RSS · última hace ' + min + 'min';
-  document.getElementById('sver').textContent = 'V' + d.version;
-
-  // Última noticia
-  if (d.ultima_noticia && d.ultima_noticia !== '—') {
-    document.getElementById('ultima').style.display = 'block';
-    document.getElementById('u-tit').textContent = d.ultima_noticia;
-    const proxima = 60 - (min % 60);
-    document.getElementById('u-meta').textContent =
-      'Hace ' + min + ' minutos · Próxima en ~' + proxima + ' min (cron hora)';
+  if(d.ultima_noticia&&d.ultima_noticia!=='—'){
+    document.getElementById('ultima').style.display='block';
+    document.getElementById('u-tit').textContent=d.ultima_noticia;
+    document.getElementById('u-meta').textContent='Hace '+min+' minutos · Proxima en ~'+(30-(min%30))+' min';
   }
 
-  // Métricas
-  const mMin = document.getElementById('mm');
-  mMin.textContent = min;
-  mMin.className = 'met-val' + (min > 120 ? ' err' : min > 75 ? ' warn' : ' ok');
-  document.getElementById('mn').textContent = d.noticias;
-  document.getElementById('mk').textContent = d.gemini_keys || 1;
-  document.getElementById('pexels-st').textContent = d.pexels_api || '—';
+  const mMin=document.getElementById('mm');
+  mMin.textContent=min;
+  mMin.className='met-val'+(min>120?' err':min>60?' warn':' ok');
+  document.getElementById('mn').textContent=d.noticias;
+  document.getElementById('mk').textContent=d.gemini_keys||1;
+  document.getElementById('pexels-st').textContent=d.pexels_api||'—';
 
-  // Rotación horaria (tab Gemini)
-  document.getElementById('rot-hora').textContent  = d.gemini_hora_actual || '—';
-  document.getElementById('rot-turno').textContent = d.gemini_hora_actual?.includes('PAR') ? 'PAR' : 'IMPAR';
-  document.getElementById('rot-turno').style.color = d.gemini_hora_actual?.includes('PAR') ? '#22c55e' : '#f59e0b';
-  document.getElementById('rot-texto').textContent  = d.gemini_texto_ahora  || '—';
-  document.getElementById('rot-imagen').textContent = d.gemini_imagen_ahora || '—';
-
-  // Estado IA (tab acciones)
-  document.getElementById('ia-estado').textContent = d.ia_activa
-    ? '✅ IA activa — generando noticias automáticamente'
-    : '🔴 IA pausada manualmente';
-  document.getElementById('ia-estado').style.color = d.ia_activa ? '#22c55e' : '#ef4444';
-
-  // Checks de salud
-  const checks = [
-    { dot: d.ia_activa ? 'dv' : 'dr', l: 'Inteligencia Artificial', v: d.ia_activa ? 'Activa y generando' : 'PAUSADA manualmente', c: d.ia_activa ? 'cok' : 'cer' },
-    { dot: d.errores_gemini >= 3 ? 'dr' : d.errores_gemini > 0 ? 'da' : 'dv', l: 'Gemini — errores última hora', v: d.errores_gemini === 0 ? 'Sin errores' : d.errores_gemini + ' errores recientes', c: d.errores_gemini >= 3 ? 'cer' : d.errores_gemini > 0 ? 'cwn' : 'cok' },
-    { dot: min > 120 ? 'dr' : min > 75 ? 'da' : 'dv', l: 'Cadencia publicación (1/hora)', v: min > 120 ? 'SIN PUBLICAR ' + min + ' MIN ⚠️' : min > 75 ? min + ' min sin publicar' : 'OK — última hace ' + min + 'min', c: min > 120 ? 'cer' : min > 75 ? 'cwn' : 'cok' },
-    { dot: d.marca_de_agua?.includes('✅') ? 'dv' : 'dr', l: 'Watermark en imágenes', v: d.marca_de_agua?.includes('✅') ? 'WATERMARK(1).png activa' : 'No encontrada', c: d.marca_de_agua?.includes('✅') ? 'cok' : 'cer' },
-    { dot: d.atribucion_fotos?.includes('✅') ? 'dv' : 'da', l: 'Atribución fotos V34.5', v: d.atribucion_fotos || '—', c: d.atribucion_fotos?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.caption_automatico?.includes('✅') ? 'dv' : 'da', l: 'Caption automático', v: d.caption_automatico || '—', c: d.caption_automatico?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.filtro_autocritico?.includes('✅') ? 'dv' : 'da', l: 'Filtro autocrítico imágenes', v: d.filtro_autocritico || '—', c: d.filtro_autocritico?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.pexels_api?.includes('✅') ? 'dv' : 'da', l: 'Pexels API', v: d.pexels_api || 'Sin configurar', c: d.pexels_api?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: 'dv', l: 'Wikipedia / Wikimedia Commons', v: (d.wikimedia_commons || d.wikipedia || '✅ Activa'), c: 'cok' },
-    { dot: 'dv', l: 'PostgreSQL base de datos', v: 'Online — noticias intactas', c: 'cok' },
-    { dot: d.facebook?.includes('✅') ? 'dv' : 'da', l: 'Facebook', v: d.facebook || '—', c: d.facebook?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.twitter?.includes('✅') ? 'dv' : 'da', l: 'Twitter / X', v: d.twitter || '—', c: d.twitter?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.telegram?.includes('✅') ? 'dv' : 'da', l: 'Telegram Bot', v: d.telegram || '—', c: d.telegram?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: 'dv', l: 'AdSense monetización', v: d.adsense || 'pub-5280872495839888 ✅', c: 'cok' },
+  const checks=[
+    {dot:d.ia_activa?'dv':'dr',l:'Inteligencia Artificial',v:d.ia_activa?'Activa y generando':'PAUSADA manualmente',c:d.ia_activa?'cok':'cer'},
+    {dot:d.errores_gemini>=3?'dr':d.errores_gemini>0?'da':'dv',l:'Gemini — errores hora',v:d.errores_gemini===0?'Sin errores':d.errores_gemini+' errores recientes',c:d.errores_gemini>=3?'cer':d.errores_gemini>0?'cwn':'cok'},
+    {dot:min>120?'dr':min>60?'da':'dv',l:'Cadencia publicacion',v:min>120?'SIN PUBLICAR '+min+' MIN':min>60?min+' min sin publicar':'OK — ultima hace '+min+'min',c:min>120?'cer':min>60?'cwn':'cok'},
+    {dot:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'dv':'dr',l:'Watermark en imagenes',v:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'WATERMARK(1).png activa':'No encontrada',c:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'cok':'cer'},
+    {dot:d.pexels_api&&d.pexels_api.includes('✅')?'dv':'da',l:'Pexels API',v:d.pexels_api||'Sin configurar',c:d.pexels_api&&d.pexels_api.includes('✅')?'cok':'cwn'},
+    {dot:'dv',l:'PostgreSQL base de datos',v:'Online — noticias intactas',c:'cok'},
+    {dot:d.facebook&&d.facebook.includes('✅')?'dv':'da',l:'Facebook',v:d.facebook||'—',c:d.facebook&&d.facebook.includes('✅')?'cok':'cwn'},
+    {dot:d.twitter&&d.twitter.includes('✅')?'dv':'da',l:'Twitter / X',v:d.twitter||'—',c:d.twitter&&d.twitter.includes('✅')?'cok':'cwn'},
+    {dot:d.telegram&&d.telegram.includes('✅')?'dv':'da',l:'Telegram Bot',v:d.telegram||'—',c:d.telegram&&d.telegram.includes('✅')?'cok':'cwn'},
   ];
-  const nA = checks.filter(c => c.dot !== 'dv').length;
-  const bp = document.getElementById('bp');
-  bp.textContent = nA > 0 ? nA + ' alerta' + (nA > 1 ? 's' : '') : 'Todo OK';
-  bp.style.color = nA > 0 ? '#f59e0b' : '#22c55e';
-  document.getElementById('checks').innerHTML = checks.map(c =>
-    '<div class="chk"><div class="dot ' + c.dot + '"></div><span class="lbl">' + c.l + '</span><span class="cv ' + c.c + '">' + c.v + '</span></div>'
-  ).join('');
-
-  // Fuentes imagen (tab salud)
-  document.getElementById('img-fuentes').innerHTML = [
-    { dot: 'dv', l: 'Wikimedia Commons', v: d.wikimedia_commons || '✅ Activa con atribución', c: 'cok' },
-    { dot: d.pexels_api?.includes('✅') ? 'dv' : 'da', l: 'Pexels API', v: d.pexels_api || '⚠️ Sin key', c: d.pexels_api?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: 'dv', l: 'Banco local 85 fotos', v: '✅ 17 categorías', c: 'cok' },
-    { dot: d.atribucion_fotos?.includes('✅') ? 'dv' : 'da', l: 'Autor guardado en BD', v: d.atribucion_fotos || '—', c: d.atribucion_fotos?.includes('✅') ? 'cok' : 'cwn' },
-  ].map(c =>
-    '<div class="chk"><div class="dot ' + c.dot + '"></div><span class="lbl">' + c.l + '</span><span class="cv ' + c.c + '">' + c.v + '</span></div>'
-  ).join('');
-
-  log('Status OK V' + d.version + ' — ' + d.noticias + ' noticias · ' + min + 'min sin publicar · Gemini ' + (d.gemini_texto_ahora || '?'), 'info');
+  const nA=checks.filter(c=>c.dot!=='dv').length;
+  const bp=document.getElementById('bp');
+  bp.textContent=nA>0?nA+' alerta'+(nA>1?'s':''):'Todo OK';
+  bp.style.color=nA>0?'#f59e0b':'#22c55e';
+  document.getElementById('checks').innerHTML=checks.map(c=>'<div class="chk"><div class="dot '+c.dot+'"></div><span class="lbl">'+c.l+'</span><span class="cv '+c.c+'">'+c.v+'</span></div>').join('');
+  log('Status OK — '+d.noticias+' noticias · '+min+'min sin publicar','info');
 }
 
-// ── ESTADÍSTICAS ─────────────────────────────────────────
-async function cargarEstadisticas() {
-  const d = await api('/api/estadisticas');
-  if (d.totalVistas !== undefined) {
-    document.getElementById('mv').textContent = numFmt(d.totalVistas);
+async function cargarEstadisticas(){
+  const d=await api('/api/estadisticas');
+  if(d.totalVistas!==undefined){
+    const v=d.totalVistas;
+    document.getElementById('mv').textContent=v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(1)+'k':v;
   }
 }
 
-// ── TAB GEMINI ────────────────────────────────────────────
-async function cargarGemini() {
-  const keys = datosStatus?.gemini_keys || 1;
-  let html = '';
-  for (let i = 1; i <= 4; i++) {
-    const activa = i <= keys;
-    const esTexto  = datosStatus?.gemini_texto_ahora?.includes('KEY' + i);
-    const esImagen = datosStatus?.gemini_imagen_ahora?.includes('KEY' + i);
-    const color = activa ? (esTexto ? '#22c55e' : esImagen ? '#60a5fa' : '#f59e0b') : '#333';
-    const label = activa ? (esTexto ? 'Texto' : esImagen ? 'Imagen' : 'Rescate') : '—';
-    html += '<div class="key-card" style="border-color:' + (activa ? 'rgba(255,85,0,.3)' : '#1a1a2e') + '">'
-      + '<div style="font-size:20px;font-weight:700;color:' + color + '">K' + i + '</div>'
-      + '<div style="font-size:9px;color:#555;margin:2px 0">KEY ' + i + '</div>'
-      + '<div style="font-size:10px;color:' + color + '">' + label + '</div>'
-      + '</div>';
+async function cargarGemini(){
+  const keys=datosStatus?.gemini_keys||1;
+  let html='';
+  for(let i=1;i<=4;i++){
+    const activa=i<=keys;
+    html+='<div class="key-card" style="border-color:'+(activa?'rgba(34,197,94,.3)':'#1a1a2e')+'">'
+      +'<div style="font-size:20px;font-weight:700;color:'+(activa?'#22c55e':'#333')+'">K'+i+'</div>'
+      +'<div style="font-size:9px;color:#555;margin:2px 0">KEY '+i+'</div>'
+      +'<div style="font-size:10px;color:'+(activa?'#22c55e':'#333')+'">'+(activa?'Activa':'—')+'</div>'
+      +'</div>';
   }
-  document.getElementById('keys-grid').innerHTML = html;
+  document.getElementById('keys-grid').innerHTML=html;
 
-  const d = await api('/api/memoria?pin=311');
-  if (d.registros) {
-    const total    = d.registros.filter(r => r.tipo === 'pexels_query').length;
-    const exitosas = d.registros.filter(r => r.tipo === 'pexels_query' && r.exitos > 0).length;
-    const pct = total > 0 ? Math.round((exitosas / total) * 100) : 0;
-    document.getElementById('img-stats').innerHTML =
-      '<div class="chk"><div class="dot dv"></div><span class="lbl">Queries exitosas</span><span class="cv cok">' + exitosas + ' de ' + total + '</span></div>'
-      + '<div class="chk"><div class="dot ' + (pct > 70 ? 'dv' : 'da') + '"></div><span class="lbl">Tasa de éxito</span><span class="cv ' + (pct > 70 ? 'cok' : 'cwn') + '">' + pct + '%</span></div>'
-      + '<div class="prog-wrap"><div class="prog-fill" style="width:' + pct + '%;background:' + (pct > 70 ? '#22c55e' : '#f59e0b') + '"></div></div>';
-    const errores = d.registros.filter(r => r.tipo === 'error').slice(0, 5);
-    document.getElementById('errores-ia').innerHTML = errores.length
-      ? errores.map(e => '<div class="chk"><div class="dot dr"></div><span class="lbl" style="font-size:11px">' + e.valor.substring(0, 50) + '</span><span class="cv cer">' + e.fallos + 'x</span></div>').join('')
-      : '<div style="color:#22c55e;font-size:12px;padding:4px 0">✅ Sin errores recientes</div>';
+  const d=await api('/api/memoria?pin=311');
+  if(d.registros){
+    const total=d.registros.filter(r=>r.tipo==='pexels_query').length;
+    const exitosas=d.registros.filter(r=>r.tipo==='pexels_query'&&r.exitos>0).length;
+    const pct=total>0?Math.round((exitosas/total)*100):0;
+    document.getElementById('img-stats').innerHTML=
+      '<div class="chk"><div class="dot dv"></div><span class="lbl">Queries exitosas</span><span class="cv cok">'+exitosas+' de '+total+'</span></div>'
+      +'<div class="chk"><div class="dot '+(pct>70?'dv':'da')+'"></div><span class="lbl">Tasa de exito</span><span class="cv '+(pct>70?'cok':'cwn')+'">'+pct+'%</span></div>'
+      +'<div class="prog-wrap"><div class="prog-fill" style="width:'+pct+'%;background:'+(pct>70?'#22c55e':'#f59e0b')+'"></div></div>';
+    const errores=d.registros.filter(r=>r.tipo==='error').slice(0,5);
+    document.getElementById('errores-ia').innerHTML=errores.length
+      ?errores.map(e=>'<div class="chk"><div class="dot dr"></div><span class="lbl" style="font-size:11px">'+e.valor.substring(0,50)+'</span><span class="cv cer">'+e.fallos+'x</span></div>').join('')
+      :'<div style="color:#22c55e;font-size:12px;padding:4px 0">Sin errores recientes</div>';
   }
 }
 
-// ── TAB ACCIONES ──────────────────────────────────────────
-async function cargarRedes() {
-  if (!datosStatus) return;
-  const d = datosStatus;
-  document.getElementById('redes-st').innerHTML = [
-    { dot: d.facebook?.includes('✅') ? 'dv' : 'da', l: 'Facebook', v: d.facebook || '—', c: d.facebook?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.twitter?.includes('✅') ? 'dv' : 'da', l: 'Twitter / X', v: d.twitter || '—', c: d.twitter?.includes('✅') ? 'cok' : 'cwn' },
-    { dot: d.telegram?.includes('✅') ? 'dv' : 'da', l: 'Telegram Bot', v: d.telegram || '—', c: d.telegram?.includes('✅') ? 'cok' : 'cwn' },
-  ].map(c =>
-    '<div class="chk"><div class="dot ' + c.dot + '"></div><span class="lbl">' + c.l + '</span><span class="cv ' + c.c + '">' + c.v + '</span></div>'
+async function cargarRedes(){
+  if(!datosStatus)return;
+  const d=datosStatus;
+  document.getElementById('redes-st').innerHTML=
+    '<div class="chk"><div class="dot '+(d.facebook&&d.facebook.includes('✅')?'dv':'da')+'"></div><span class="lbl">Facebook</span><span class="cv '+(d.facebook&&d.facebook.includes('✅')?'cok':'cwn')+'">'+( d.facebook||'—')+'</span></div>'
+    +'<div class="chk"><div class="dot '+(d.twitter&&d.twitter.includes('✅')?'dv':'da')+'"></div><span class="lbl">Twitter / X</span><span class="cv '+(d.twitter&&d.twitter.includes('✅')?'cok':'cwn')+'">'+( d.twitter||'—')+'</span></div>'
+    +'<div class="chk"><div class="dot '+(d.telegram&&d.telegram.includes('✅')?'dv':'da')+'"></div><span class="lbl">Telegram Bot</span><span class="cv '+(d.telegram&&d.telegram.includes('✅')?'cok':'cwn')+'">'+( d.telegram||'—')+'</span></div>';
+}
+
+async function cargarNoticias(){
+  const d=await api('/api/noticias');
+  if(!d.noticias||!d.noticias.length){document.getElementById('lista-n').innerHTML='<p style="color:#444;font-size:12px;padding:8px 0">Sin noticias aun</p>';document.getElementById('bn').textContent='0';return;}
+  document.getElementById('bn').textContent=d.noticias.length;
+  document.getElementById('lista-n').innerHTML=d.noticias.slice(0,15).map((n,i)=>
+    '<div class="nrow" onclick="window.open(\'/noticia/'+n.slug+'\',\'_blank\')">'
+    +'<div class="nnum">'+(i+1)+'</div>'
+    +'<div style="flex:1"><div class="ntit">'+n.titulo+'</div>'
+    +'<div class="nmeta"><span class="ntag">'+n.seccion+'</span><span>'+tiempo(n.fecha)+'</span><span style="color:#22c55e">'+n.vistas+' vistas</span></div></div></div>'
   ).join('');
 }
 
-// ── TAB NOTICIAS ──────────────────────────────────────────
-async function cargarNoticias() {
-  const d = await api('/api/noticias');
-  if (!d.noticias?.length) {
-    document.getElementById('lista-n').innerHTML = '<p style="color:#444;font-size:12px;padding:8px 0">Sin noticias aún</p>';
-    document.getElementById('bn').textContent = '0';
+async function cargarLogs(){
+  const d=await api('/api/memoria?pin=311');
+  if(!d.registros||!d.registros.length){
+    document.getElementById('bd-err').innerHTML='<p style="color:#22c55e;font-size:12px">Sin errores en BD</p>';
+    document.getElementById('best-q').innerHTML='<p style="color:#444;font-size:12px">Sin datos aun</p>';
     return;
   }
-  document.getElementById('bn').textContent = d.noticias.length;
-  document.getElementById('lista-n').innerHTML = d.noticias.slice(0, 20).map((n, i) => {
-    const autor = n.imagen_autor ? '<span class="nauthor">📷 ' + n.imagen_autor + '</span>' : '';
-    return '<div class="nrow" onclick="window.open(\'/noticia/' + n.slug + '\',\'_blank\')">'
-      + '<div class="nnum">' + (i + 1) + '</div>'
-      + '<div style="flex:1">'
-      + '<div class="ntit">' + n.titulo + '</div>'
-      + '<div class="nmeta"><span class="ntag">' + n.seccion + '</span><span>' + tiempo(n.fecha) + '</span><span style="color:#22c55e">' + n.vistas + ' vistas</span>' + autor + '</div>'
-      + '</div></div>';
-  }).join('');
+  const errores=d.registros.filter(r=>r.tipo==='error').slice(0,8);
+  document.getElementById('bd-err').innerHTML=errores.length
+    ?errores.map(e=>'<div class="chk"><div class="dot dr"></div><div style="flex:1"><div style="font-size:11px;color:#bbb">'+e.valor.substring(0,55)+'</div><div style="font-size:10px;color:#444">'+e.categoria+' · '+new Date(e.ultima_vez).toLocaleDateString('es-DO')+'</div></div><span class="cv cer">'+e.fallos+'x</span></div>').join('')
+    :'<p style="color:#22c55e;font-size:12px">Sin errores</p>';
+  const queries=d.registros.filter(r=>r.tipo==='pexels_query'&&r.exitos>0).sort((a,b)=>b.exitos-a.exitos).slice(0,6);
+  document.getElementById('best-q').innerHTML=queries.length
+    ?queries.map(q=>'<div class="chk"><div class="dot dv"></div><span class="lbl" style="font-size:11px">'+q.valor.substring(0,40)+'</span><span class="cv cok">'+q.exitos+'✓</span></div>').join('')
+    :'<p style="color:#444;font-size:12px">Sin datos de queries aun</p>';
 }
 
-// ── TAB LOGS ─────────────────────────────────────────────
-async function cargarLogs() {
-  const d = await api('/api/memoria?pin=311');
-  if (!d.registros?.length) {
-    document.getElementById('bd-err').innerHTML = '<p style="color:#22c55e;font-size:12px">Sin errores en BD</p>';
-    document.getElementById('best-q').innerHTML = '<p style="color:#444;font-size:12px">Sin datos aún</p>';
-    document.getElementById('tech-info').innerHTML = '<p style="color:#444;font-size:12px">—</p>';
-    return;
-  }
-  const errores = d.registros.filter(r => r.tipo === 'error').slice(0, 8);
-  document.getElementById('bd-err').innerHTML = errores.length
-    ? errores.map(e =>
-      '<div class="chk"><div class="dot dr"></div><div style="flex:1"><div style="font-size:11px;color:#bbb">' + e.valor.substring(0, 55) + '</div>'
-      + '<div style="font-size:10px;color:#444">' + e.categoria + ' · ' + new Date(e.ultima_vez).toLocaleDateString('es-DO') + '</div></div>'
-      + '<span class="cv cer">' + e.fallos + 'x</span></div>'
-    ).join('')
-    : '<p style="color:#22c55e;font-size:12px">✅ Sin errores</p>';
-
-  const queries = d.registros.filter(r => r.tipo === 'pexels_query' && r.exitos > 0)
-    .sort((a, b) => b.exitos - a.exitos).slice(0, 8);
-  document.getElementById('best-q').innerHTML = queries.length
-    ? queries.map(q =>
-      '<div class="chk"><div class="dot dv"></div><span class="lbl" style="font-size:11px">' + q.valor.substring(0, 42) + '</span>'
-      + '<span class="cv cok">' + q.exitos + '✓</span></div>'
-    ).join('')
-    : '<p style="color:#444;font-size:12px">Sin datos de queries aún</p>';
-
-  // Info técnica
-  if (datosStatus) {
-    const d2 = datosStatus;
-    document.getElementById('tech-info').innerHTML =
-      '<div class="chk"><div class="dot dv"></div><span class="lbl">Versión servidor</span><span class="cv cok">V' + d2.version + '</span></div>'
-      + '<div class="chk"><div class="dot dv"></div><span class="lbl">RSS procesados</span><span class="cv cok">' + d2.rss_procesados + ' items</span></div>'
-      + '<div class="chk"><div class="dot dv"></div><span class="lbl">Imágenes ok hoy</span><span class="cv cok">' + d2.imagenes_ok_hoy + ' queries</span></div>'
-      + '<div class="chk"><div class="dot dv"></div><span class="lbl">Cron publicación</span><span class="cv cok">' + (d2.cron_1_hora || '—') + '</span></div>'
-      + '<div class="chk"><div class="dot dv"></div><span class="lbl">RSS 3x día</span><span class="cv cok">' + (d2.rss_3x_dia || '—') + '</span></div>'
-      + '<div class="chk"><div class="dot dv"></div><span class="lbl">Ráfaga inicial</span><span class="cv cok">' + (d2.rafaga_inicial || '—') + '</span></div>'
-      + '<div class="chk"><div class="dot dv"></div><span class="lbl">Sistema</span><span class="cv cgr" style="font-size:10px;color:#555">' + (d2.sistema || '—').substring(0, 55) + '</span></div>';
-  }
+async function acc(tipo){
+  const map={rss:['/api/procesar-rss','POST',{pin:PIN}],generar:['/api/generar-noticia','POST',{pin:PIN,categoria:'Nacionales'}]};
+  const[url,method,body]=map[tipo];
+  toast('Ejecutando...');log('Ejecutando: '+tipo,'info');
+  const r=await api(url,method,body);
+  if(r.success||r.mensaje){const msg=r.titulo?'OK: "'+r.titulo.substring(0,35)+'..."':'OK: '+(r.mensaje||'Listo');toast(msg,4000);log(msg);}
+  else{toast('Error: '+(r.error||'desconocido'),4000);log('ERROR: '+r.error,'error');}
+  setTimeout(cargarTodo,2000);
 }
 
-// ── ACCIONES ─────────────────────────────────────────────
-async function acc(tipo) {
-  if (generando) { toast('Ya hay una operación en curso...'); return; }
-  generando = true;
-  const map = {
-    rss:     ['/api/procesar-rss',      'POST', { pin: PIN }],
-    generar: ['/api/generar-noticia',   'POST', { pin: PIN, categoria: 'Nacionales' }]
-  };
-  const [url, method, body] = map[tipo];
-  toast('Ejecutando ' + tipo + '...');
-  log('Ejecutando: ' + tipo, 'info');
-  const r = await api(url, method, body);
-  generando = false;
-  if (r.success || r.mensaje) {
-    const msg = r.titulo ? '✅ "' + r.titulo.substring(0, 35) + '..."' : '✅ ' + (r.mensaje || 'Listo');
-    toast(msg, 4000);
-    log(msg, 'success');
-  } else {
-    toast('Error: ' + (r.error || 'desconocido'), 4000);
-    log('ERROR: ' + r.error, 'error');
-  }
-  setTimeout(cargarTodo, 2000);
+async function gen(cat){
+  toast('Generando '+cat+'...');log('Generando: '+cat,'info');
+  const r=await api('/api/generar-noticia','POST',{pin:PIN,categoria:cat});
+  if(r.success){toast('OK: "'+r.titulo.substring(0,35)+'..."',5000);log('OK: '+r.titulo.substring(0,50));}
+  else{toast('Error: '+r.error,4000);log('ERROR: '+r.error,'error');}
+  setTimeout(cargarTodo,2000);
 }
 
-async function gen(cat) {
-  if (generando) { toast('Ya hay una operación en curso...'); return; }
-  generando = true;
-  toast('Generando ' + cat + '...');
-  log('Generando: ' + cat, 'info');
-  const r = await api('/api/generar-noticia', 'POST', { pin: PIN, categoria: cat });
-  generando = false;
-  if (r.success) {
-    const msg = '✅ "' + r.titulo.substring(0, 40) + '"';
-    if (r.autor_foto) log('📷 Foto: ' + r.autor_foto + ' (' + (r.licencia_foto || '?') + ')', 'success');
-    toast(msg, 5000);
-    log(msg, 'success');
-  } else {
-    toast('Error: ' + r.error, 4000);
-    log('ERROR: ' + r.error, 'error');
-  }
-  setTimeout(cargarTodo, 2000);
+async function ia(activar){
+  const r=await api('/api/admin/config','POST',{pin:PIN,enabled:activar});
+  if(r.success){toast(activar?'IA activada':'IA pausada');log('IA '+(activar?'activada':'pausada'),activar?'info':'warn');setTimeout(cargarTodo,1000);}
+  else toast('Error al cambiar IA');
 }
 
-async function ia(activar) {
-  const r = await api('/api/admin/config', 'POST', { pin: PIN, enabled: activar });
-  if (r.success) {
-    toast(activar ? '🟢 IA activada' : '🔴 IA pausada');
-    log('IA ' + (activar ? 'activada' : 'pausada'), activar ? 'success' : 'warn');
-    setTimeout(cargarTodo, 1000);
-  } else {
-    toast('Error al cambiar IA');
-  }
-}
-
-async function testTelegram() {
-  toast('Enviando mensaje de prueba...');
-  log('Test Telegram...', 'info');
-  const r = await api('/api/telegram/test', 'POST', { pin: PIN });
-  if (r.success) { toast('📱 Telegram: ' + r.mensaje, 4000); log('Telegram OK', 'success'); }
-  else { toast('Telegram error', 3000); log('Telegram ERROR: ' + (r.error || r.mensaje), 'error'); }
-}
-
-// ── CARGA TOTAL ───────────────────────────────────────────
-async function cargarTodo() {
-  document.getElementById('upd').textContent =
-    new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+async function cargarTodo(){
+  document.getElementById('upd').textContent=new Date().toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   await cargarStatus();
   await cargarEstadisticas();
-  if (tabActual === 'noticias') await cargarNoticias();
-  if (tabActual === 'logs')    await cargarLogs();
-  if (tabActual === 'gemini')  await cargarGemini();
-  if (tabActual === 'acciones') await cargarRedes();
+  if(tabActual==='noticias')await cargarNoticias();
+  if(tabActual==='logs')await cargarLogs();
+  if(tabActual==='gemini')await cargarGemini();
+  if(tabActual==='acciones')await cargarRedes();
 }
 
-// ── INICIO ────────────────────────────────────────────────
 cargarTodo();
-log('Monitor V34.5 iniciado — El Farol al Día', 'info');
-setInterval(cargarTodo, 60000);
+log('Monitor iniciado — El Farol al Dia','info');
+setInterval(cargarTodo,60000);
 </script>
 </body>
 </html>
