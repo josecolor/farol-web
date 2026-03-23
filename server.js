@@ -23,6 +23,7 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
+const cookieParser = require('cookie-parser');
 
 // ══════════════════════════════════════════════════════════
 // 🔒 BASIC AUTH
@@ -95,6 +96,7 @@ const pool = new Pool({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cookieParser());
 app.use('/static', express.static(path.join(__dirname, 'static'), {
     setHeaders: (res) => res.setHeader('Cache-Control', 'public,max-age=2592000,immutable')
 }));
@@ -1494,6 +1496,14 @@ app.get('/api/coach', async (req, res) => {
     if (pin !== '311') return res.json({ success: true, periodo: analisis.periodo, total_noticias: analisis.total_noticias, total_vistas: analisis.total_vistas, categorias: Object.entries(analisis.categorias).map(([n,d]) => ({ nombre: n, vistas_promedio: d.vistas_promedio, rendimiento: d.rendimiento })) });
     res.json(analisis);
 });
+
+app.get('/cambiar-pais/:pais', (req, res) => {
+    const permitidos = ['es-do','es-us','es-es','en-us','fr','pt'];
+    if (!permitidos.includes(req.params.pais)) return res.status(400).send('País no válido');
+    res.cookie('pais_seleccionado', req.params.pais, { maxAge: 30*24*60*60*1000, httpOnly: true });
+    res.redirect(req.get('referer') || '/');
+});
+app.get('/api/pais-actual', (req, res) => res.json({ pais: req.cookies?.pais_seleccionado || 'es-do' }));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', version: '34.5' }));
 
