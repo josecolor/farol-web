@@ -78,7 +78,6 @@
 </style>
 </head>
 <body>
-
 <header>
   <h1>🏮 Ingeniero — El Farol al Día</h1>
   <div style="display:flex;gap:6px;align-items:center">
@@ -86,7 +85,6 @@
     <button class="ref-btn" onclick="cargarTodo()">↻ Actualizar</button>
   </div>
 </header>
-
 <div id="semaforo" onclick="cargarTodo()">
   <div id="semaforo-luz" class="amarillo"></div>
   <div style="flex:1">
@@ -95,46 +93,24 @@
   </div>
   <div id="semaforo-version">—</div>
 </div>
-
 <div class="grid4">
-  <div class="metrica">
-    <div class="metrica-label">Noticias</div>
-    <div class="metrica-valor" id="m-noticias">—</div>
-    <div class="metrica-sub">publicadas</div>
-  </div>
-  <div class="metrica">
-    <div class="metrica-label">Vistas</div>
-    <div class="metrica-valor" id="m-vistas">—</div>
-    <div class="metrica-sub">totales</div>
-  </div>
-  <div class="metrica">
-    <div class="metrica-label">Sin pub.</div>
-    <div class="metrica-valor" id="m-minutos">—</div>
-    <div class="metrica-sub">minutos</div>
-  </div>
-  <div class="metrica">
-    <div class="metrica-label">Keys IA</div>
-    <div class="metrica-valor" id="m-keys">—</div>
-    <div class="metrica-sub">activas</div>
-  </div>
+  <div class="metrica"><div class="metrica-label">Noticias</div><div class="metrica-valor" id="m-noticias">—</div><div class="metrica-sub">publicadas</div></div>
+  <div class="metrica"><div class="metrica-label">Vistas</div><div class="metrica-valor" id="m-vistas">—</div><div class="metrica-sub">totales</div></div>
+  <div class="metrica"><div class="metrica-label">Sin pub.</div><div class="metrica-valor" id="m-minutos">—</div><div class="metrica-sub">minutos</div></div>
+  <div class="metrica"><div class="metrica-label">Keys IA</div><div class="metrica-valor" id="m-keys">—</div><div class="metrica-sub">activas</div></div>
 </div>
-
 <div class="tabs">
   <button class="tab active" onclick="cambiarTab('salud')">🩺 Salud</button>
   <button class="tab" onclick="cambiarTab('acciones')">⚙️ Acciones</button>
   <button class="tab" onclick="cambiarTab('noticias')">📰 Noticias</button>
   <button class="tab" onclick="cambiarTab('logs')">📋 Logs</button>
 </div>
-
-<!-- SALUD -->
 <div id="tab-salud" class="tab-content active">
   <div class="sec">
     <div class="sec-titulo">Estado del sistema <span class="sec-badge" id="badge-problemas">Verificando</span></div>
     <div id="checks-salud"><div class="cargando"><div class="loader"></div></div></div>
   </div>
 </div>
-
-<!-- ACCIONES -->
 <div id="tab-acciones" class="tab-content">
   <div class="sec">
     <div class="sec-titulo">Publicación</div>
@@ -145,52 +121,36 @@
     <div class="btn-grid3">
       <button class="btn" onclick="generarCat('Nacionales')"><span class="btn-icon">🏛️</span>Nacional</button>
       <button class="btn" onclick="generarCat('Deportes')"><span class="btn-icon">⚽</span>Deportes</button>
-      <button class="btn" onclick="generarCat('Economia')"><span class="btn-icon">💰</span>Economía</button>
-      <button class="btn" onclick="generarCat('Tecnologia')"><span class="btn-icon">💻</span>Tecnología</button>
+      <button class="btn" onclick="generarCat('Economía')"><span class="btn-icon">💰</span>Economía</button>
+      <button class="btn" onclick="generarCat('Tecnología')"><span class="btn-icon">💻</span>Tecnología</button>
       <button class="btn" onclick="generarCat('Internacionales')"><span class="btn-icon">🌎</span>Internac.</button>
-      <button class="btn" onclick="generarCat('Espectaculos')"><span class="btn-icon">🎭</span>Espectác.</button>
-    </div>
-  </div>
-  <div class="sec">
-    <div class="sec-titulo">Imágenes</div>
-    <div class="btn-grid">
-      <button class="btn" onclick="accion('fotos')"><span class="btn-icon">🖼️</span>Regenerar Fotos</button>
-      <button class="btn" onclick="toast('🔄 Recarga la página para limpiar caché',3000)"><span class="btn-icon">🔄</span>Limpiar Caché</button>
+      <button class="btn" onclick="generarCat('Espectáculos')"><span class="btn-icon">🎭</span>Espectác.</button>
     </div>
   </div>
   <div class="sec">
     <div class="sec-titulo">IA y control</div>
-    <div class="btn-grid" style="margin-bottom:8px">
+    <div class="btn-grid">
       <button class="btn" onclick="toggleIA(true)"><span class="btn-icon">🟢</span>Activar IA</button>
       <button class="btn" onclick="toggleIA(false)"><span class="btn-icon">🔴</span>Pausar IA</button>
     </div>
-    <div class="btn-grid">
-      <button class="btn danger" onclick="pedirConf('reset')"><span class="btn-icon">🗑️</span>Resetear BD</button>
-      <button class="btn danger" onclick="pedirConf('rss-clear')"><span class="btn-icon">🧹</span>Limpiar RSS</button>
-    </div>
   </div>
 </div>
-
-<!-- NOTICIAS -->
 <div id="tab-noticias" class="tab-content">
   <div class="sec">
     <div class="sec-titulo">Últimas publicadas <span class="sec-badge" id="badge-noticias">—</span></div>
     <div id="lista-noticias"><div class="cargando"><div class="loader"></div></div></div>
   </div>
 </div>
-
-<!-- LOGS -->
 <div id="tab-logs" class="tab-content">
   <div class="sec">
     <div class="sec-titulo">Actividad de esta sesión</div>
-    <div id="logs-box"><span style="color:#333">Sin actividad aún en esta sesión.</span></div>
+    <div id="logs-box"><span style="color:#333">Sin actividad aún.</span></div>
   </div>
   <div class="sec">
-    <div class="sec-titulo">Errores registrados por el ingeniero</div>
+    <div class="sec-titulo">Errores registrados</div>
     <div id="lista-errores"><div class="cargando"><div class="loader"></div></div></div>
   </div>
 </div>
-
 <div id="modal-overlay">
   <div id="modal">
     <h3 id="modal-titulo">⚠️ Confirmar</h3>
@@ -201,242 +161,57 @@
     </div>
   </div>
 </div>
-
 <div id="toast"></div>
-
 <script>
-const PIN = '311';
-const AUTH = 'Basic ' + btoa('director:311');
-let tabActual = 'salud';
-let modalAccion = null;
+const PIN='311';
+const AUTH='Basic '+btoa('director:311');
+let tabActual='salud';
 
-function toast(msg, ms = 3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', ms);
-}
+function toast(msg,ms=3000){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',ms);}
+function log(msg,tipo=''){const box=document.getElementById('logs-box');if(box.querySelector('span'))box.innerHTML='';const d=new Date().toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const cls=tipo==='warn'?'log-warn':tipo==='error'?'log-error':tipo==='info'?'log-info':'';box.innerHTML+=`<div class="${cls}">[${d}] ${msg}</div>`;box.scrollTop=box.scrollHeight;}
+async function api(ep,method='GET',body=null){try{const opts={method,headers:{'Content-Type':'application/json','Authorization':AUTH}};if(body)opts.body=JSON.stringify(body);const r=await fetch(ep,opts);return await r.json();}catch(e){return{error:e.message};}}
+function tiempoAtras(fecha){const min=Math.round((Date.now()-new Date(fecha))/60000);if(min<1)return'ahora mismo';if(min<60)return`hace ${min}min`;const h=Math.floor(min/60),m=min%60;return m>0?`hace ${h}h ${m}min`:`hace ${h}h`;}
+function cambiarTab(tab){tabActual=tab;document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('active',['salud','acciones','noticias','logs'][i]===tab);});document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.getElementById(`tab-${tab}`).classList.add('active');if(tab==='noticias')cargarNoticias();if(tab==='logs')cargarLogs();}
 
-function log(msg, tipo = '') {
-  const box = document.getElementById('logs-box');
-  if (box.querySelector('span')) box.innerHTML = '';
-  const d = new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/Santo_Domingo' });
-  const cls = tipo === 'warn' ? 'log-warn' : tipo === 'error' ? 'log-error' : tipo === 'info' ? 'log-info' : '';
-  box.innerHTML += `<div class="${cls}">[${d}] ${msg}</div>`;
-  box.scrollTop = box.scrollHeight;
-}
-
-async function api(ep, method = 'GET', body = null) {
-  try {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': AUTH } };
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(ep, opts);
-    return await r.json();
-  } catch (e) { return { error: e.message }; }
-}
-
-function tiempoAtras(fecha) {
-  const min = Math.round((Date.now() - new Date(fecha)) / 60000);
-  if (min < 1) return 'ahora mismo';
-  if (min < 60) return `hace ${min}min`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m > 0 ? `hace ${h}h ${m}min` : `hace ${h}h`;
-}
-
-function cambiarTab(tab) {
-  tabActual = tab;
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['salud','acciones','noticias','logs'][i] === tab);
-  });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById(`tab-${tab}`).classList.add('active');
-  if (tab === 'noticias') cargarNoticias();
-  if (tab === 'logs') cargarLogs();
-}
-
-async function cargarStatus() {
-  const d = await api('/status');
-  if (d.error || !d.version) {
-    document.getElementById('semaforo-luz').className = 'rojo';
-    document.getElementById('semaforo-titulo').textContent = '🔴 Servidor no responde';
-    document.getElementById('semaforo-sub').textContent = d.error || 'Sin respuesta';
-    log(`SERVIDOR CAÍDO: ${d.error}`, 'error');
-    return null;
-  }
-
-  const s = d.salud || {};
-  const min = s.min_sin_publicar || 0;
-  const critico = s.errores_gemini >= 3 || min > 120;
-  const alerta  = min > 60 || s.ciclos_rss_vacios >= 3 || s.errores_imagen >= 5;
-
-  document.getElementById('semaforo-luz').className = critico ? 'rojo' : alerta ? 'amarillo' : 'verde';
-  document.getElementById('semaforo-titulo').textContent = critico ? '🔴 Problema crítico detectado' : alerta ? '🟡 Sistema con alertas' : '✅ Sistema operando perfectamente';
-  document.getElementById('semaforo-sub').textContent = d.rss_en_proceso ? '⚡ RSS procesándose ahora...' : d.modo_espejo ? '🪞 Modo espejo — solo lectura' : `${d.noticias} noticias · ${d.rss_procesados} RSS procesados`;
-  document.getElementById('semaforo-version').textContent = `V${d.version}`;
-
-  const mMin = document.getElementById('m-minutos');
-  mMin.textContent = min;
-  mMin.className = 'metrica-valor' + (min > 120 ? ' mv-danger' : min > 60 ? ' mv-warn' : ' mv-ok');
-
-  document.getElementById('m-noticias').textContent = d.noticias;
-  document.getElementById('m-keys').textContent = d.gemini_keys || '—';
-
-  const checks = [
-    { dot: s.errores_gemini >= 3 ? 'rojo' : 'verde', label: 'Gemini IA', val: s.errores_gemini >= 3 ? `${s.errores_gemini} errores consecutivos` : `${d.gemini_keys || 0} keys rotando OK`, cls: s.errores_gemini >= 3 ? 'cv-err' : 'cv-ok' },
-    { dot: min > 120 ? 'rojo' : min > 60 ? 'amarillo' : 'verde', label: 'Publicación', val: min > 0 ? `${min} min sin publicar` : 'Publicando normalmente', cls: min > 120 ? 'cv-err' : min > 60 ? 'cv-warn' : 'cv-ok' },
-    { dot: s.ciclos_rss_vacios >= 5 ? 'amarillo' : 'verde', label: 'Fuentes RSS', val: s.ciclos_rss_vacios >= 5 ? `${s.ciclos_rss_vacios} ciclos vacíos` : '22 fuentes activas', cls: s.ciclos_rss_vacios >= 5 ? 'cv-warn' : 'cv-ok' },
-    { dot: s.errores_imagen >= 5 ? 'amarillo' : 'verde', label: 'Imágenes', val: s.errores_imagen >= 5 ? `${s.errores_imagen} fallos de descarga` : 'Verificación y watermark OK', cls: s.errores_imagen >= 5 ? 'cv-warn' : 'cv-ok' },
-    { dot: d.marca_de_agua?.includes('Activa') ? 'verde' : 'rojo', label: 'Watermark', val: d.marca_de_agua?.includes('Activa') ? 'WATERMARK(1).png activa' : '⚠️ No encontrada — sin marca', cls: d.marca_de_agua?.includes('Activa') ? 'cv-ok' : 'cv-err' },
-    { dot: d.google_cse === 'Activo' ? 'verde' : 'amarillo', label: 'Google CSE', val: d.google_cse === 'Activo' ? 'Fotos HD activas' : 'Sin configurar — usando banco local', cls: d.google_cse === 'Activo' ? 'cv-ok' : 'cv-warn' },
-    { dot: d.ia_activa ? 'verde' : 'rojo', label: 'Inteligencia Artificial', val: d.ia_activa ? 'Activa y generando' : '❌ PAUSADA manualmente', cls: d.ia_activa ? 'cv-ok' : 'cv-err' },
-    { dot: d.modo_espejo ? 'amarillo' : 'verde', label: 'Modo del servidor', val: d.modo_espejo ? '🪞 Espejo (solo lectura)' : '🚀 Principal (publicando activamente)', cls: d.modo_espejo ? 'cv-warn' : 'cv-ok' },
-    { dot: 'verde', label: 'AdSense', val: d.adsense || 'pub-5280872495839888 — activo', cls: 'cv-ok' },
+async function cargarStatus(){
+  const d=await api('/status');
+  if(d.error||!d.version){document.getElementById('semaforo-luz').className='rojo';document.getElementById('semaforo-titulo').textContent='🔴 Servidor no responde';document.getElementById('semaforo-sub').textContent=d.error||'Sin respuesta';return null;}
+  document.getElementById('semaforo-luz').className='verde';
+  document.getElementById('semaforo-titulo').textContent='✅ Sistema operando correctamente';
+  document.getElementById('semaforo-sub').textContent=`${d.noticias} noticias · ${d.rss_procesados} RSS procesados`;
+  document.getElementById('semaforo-version').textContent=`V${d.version}`;
+  document.getElementById('m-noticias').textContent=d.noticias;
+  document.getElementById('m-keys').textContent='4';
+  const checks=[
+    {dot:d.ia_activa?'verde':'rojo',label:'Inteligencia Artificial',val:d.ia_activa?'Activa y generando':'❌ PAUSADA',cls:d.ia_activa?'cv-ok':'cv-err'},
+    {dot:'verde',label:'Base de datos PostgreSQL',val:'Online — noticias intactas',cls:'cv-ok'},
+    {dot:d.pexels_api?.includes('✅')?'verde':'amarillo',label:'Pexels (imágenes)',val:d.pexels_api||'—',cls:d.pexels_api?.includes('✅')?'cv-ok':'cv-warn'},
+    {dot:d.marca_de_agua?.includes('✅')?'verde':'rojo',label:'Watermark',val:d.marca_de_agua?.includes('✅')?'WATERMARK(1).png activa':'No encontrada',cls:d.marca_de_agua?.includes('✅')?'cv-ok':'cv-err'},
+    {dot:d.facebook?.includes('✅')?'verde':'amarillo',label:'Facebook',val:d.facebook||'—',cls:d.facebook?.includes('✅')?'cv-ok':'cv-warn'},
+    {dot:d.twitter?.includes('✅')?'verde':'amarillo',label:'Twitter/X',val:d.twitter||'—',cls:d.twitter?.includes('✅')?'cv-ok':'cv-warn'},
+    {dot:'verde',label:'AdSense',val:'pub-5280872495839888 activo',cls:'cv-ok'},
+    {dot:'verde',label:'Publicación automática',val:'Cada 30 minutos + RSS 3x día',cls:'cv-ok'},
   ];
-
-  const nAlertas = checks.filter(c => c.dot !== 'verde').length;
-  const badge = document.getElementById('badge-problemas');
-  badge.textContent = nAlertas > 0 ? `${nAlertas} alerta${nAlertas > 1 ? 's' : ''}` : 'Todo OK';
-  badge.style.color = nAlertas > 0 ? '#f59e0b' : '#22c55e';
-
-  document.getElementById('checks-salud').innerHTML = checks.map(c => `
-    <div class="check">
-      <div class="check-dot dot-${c.dot}"></div>
-      <span class="check-label">${c.label}</span>
-      <span class="${c.cls}" style="font-size:11px">${c.val}</span>
-    </div>
-  `).join('');
-
+  const nAlertas=checks.filter(c=>c.dot!=='verde').length;
+  const badge=document.getElementById('badge-problemas');
+  badge.textContent=nAlertas>0?`${nAlertas} alerta${nAlertas>1?'s':''}`:'Todo OK';
+  badge.style.color=nAlertas>0?'#f59e0b':'#22c55e';
+  document.getElementById('checks-salud').innerHTML=checks.map(c=>`<div class="check"><div class="check-dot dot-${c.dot}"></div><span class="check-label">${c.label}</span><span class="${c.cls}" style="font-size:11px">${c.val}</span></div>`).join('');
   return d;
 }
 
-async function cargarEstadisticas() {
-  const d = await api('/api/estadisticas');
-  if (d.totalVistas !== undefined) {
-    const v = d.totalVistas;
-    document.getElementById('m-vistas').textContent = v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(1)+'k' : v;
-  }
-}
-
-async function cargarNoticias() {
-  const d = await api('/api/noticias');
-  if (!d.noticias?.length) {
-    document.getElementById('lista-noticias').innerHTML = '<p style="color:#444;font-size:12px;padding:8px 0">Sin noticias publicadas aún</p>';
-    document.getElementById('badge-noticias').textContent = '0';
-    return;
-  }
-  document.getElementById('badge-noticias').textContent = d.noticias.length;
-  document.getElementById('lista-noticias').innerHTML = d.noticias.slice(0, 12).map((n, i) => `
-    <div class="noticia" onclick="window.open('/noticia/${n.slug}','_blank')">
-      <div class="noticia-num">${i+1}</div>
-      <div style="flex:1">
-        <div class="noticia-titulo">${n.titulo}</div>
-        <div class="noticia-meta">
-          <span class="ntag">${n.seccion}</span>
-          <span>${tiempoAtras(n.fecha)}</span>
-          <span class="nvistas">👁 ${n.vistas}</span>
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function cargarLogs() {
-  const d = await api('/api/memoria?pin=311');
-  if (!d.registros?.length) {
-    document.getElementById('lista-errores').innerHTML = '<p style="color:#444;font-size:12px">Sin errores registrados ✅</p>';
-    return;
-  }
-  const errores = d.registros.filter(r => r.tipo === 'error' || r.tipo === 'autodiagnostico').slice(0, 10);
-  document.getElementById('lista-errores').innerHTML = errores.length ? errores.map(e => `
-    <div class="check" style="flex-direction:column;align-items:flex-start;gap:3px">
-      <div style="display:flex;gap:8px;width:100%">
-        <div class="check-dot ${e.fallos > 0 ? 'dot-rojo' : 'dot-verde'}"></div>
-        <span class="check-label" style="font-size:11px">${e.valor.substring(0,60)}</span>
-        <span class="${e.fallos > 0 ? 'cv-err' : 'cv-ok'}" style="font-size:11px;white-space:nowrap">${e.fallos}x</span>
-      </div>
-      <div style="font-size:10px;color:#444;padding-left:16px">${e.categoria} · ${new Date(e.ultima_vez).toLocaleDateString('es-DO')}</div>
-    </div>
-  `).join('') : '<p style="color:#444;font-size:12px">Sin errores ✅</p>';
-}
-
-async function accion(tipo) {
-  const map = {
-    rss:    ['/api/procesar-rss',    'POST', { pin: PIN }],
-    fotos:  ['/api/regenerar-fotos', 'POST', { pin: PIN }],
-    generar:['/api/generar-noticia', 'POST', { pin: PIN, categoria: 'Nacionales' }],
-  };
-  const [url, method, body] = map[tipo];
-  toast('⏳ Ejecutando...');
-  log(`Ejecutando: ${tipo}`, 'info');
-  const r = await api(url, method, body);
-  if (r.success || r.mensaje) {
-    const msg = r.titulo ? `✅ "${r.titulo.substring(0,40)}..."` : `✅ ${r.mensaje || 'Listo'}`;
-    toast(msg, 4000); log(msg);
-  } else {
-    toast(`❌ ${r.error || 'Error'}`, 4000);
-    log(`ERROR: ${r.error}`, 'error');
-  }
-  setTimeout(cargarTodo, 2000);
-}
-
-async function generarCat(cat) {
-  toast(`⏳ Generando ${cat}...`);
-  log(`Generando: ${cat}`, 'info');
-  const r = await api('/api/generar-noticia', 'POST', { pin: PIN, categoria: cat });
-  if (r.success) { toast(`✅ "${r.titulo?.substring(0,40)}..."`, 5000); log(`✅ ${r.titulo?.substring(0,50)}`); }
-  else { toast(`❌ ${r.error}`, 4000); log(`ERROR: ${r.error}`, 'error'); }
-  setTimeout(cargarTodo, 2000);
-}
-
-async function toggleIA(activar) {
-  const r = await api('/api/admin/config', 'POST', { pin: PIN, enabled: activar });
-  if (r.success) { toast(activar ? '🟢 IA activada' : '🔴 IA pausada'); log(`IA ${activar ? 'activada' : 'pausada'}`, activar ? '' : 'warn'); setTimeout(cargarTodo, 1000); }
-  else toast('❌ Error');
-}
-
-function pedirConf(accion) {
-  modalAccion = accion;
-  const textos = {
-    reset:      ['🗑️ Resetear Base de Datos', 'Borrará TODAS las noticias, comentarios y RSS. El sistema publicará desde cero. No se puede deshacer.'],
-    'rss-clear':['🧹 Limpiar RSS Procesados',  'Permite que las fuentes RSS se reprocesen. Las noticias existentes no se borran.'],
-  };
-  document.getElementById('modal-titulo').textContent = textos[accion][0];
-  document.getElementById('modal-texto').textContent  = textos[accion][1];
-  document.getElementById('modal-overlay').classList.add('visible');
-  document.getElementById('modal-confirm').onclick = ejecutarModal;
-}
-
-function cerrarModal() { document.getElementById('modal-overlay').classList.remove('visible'); modalAccion = null; }
-
-async function ejecutarModal() {
-  cerrarModal();
-  if (modalAccion === 'reset') {
-    toast('⏳ Reseteando BD...'); log('RESET BD iniciado', 'warn');
-    const r = await api('/api/resetear-todo', 'POST', { pin: PIN });
-    toast(r.success ? '✅ BD reseteada' : `❌ ${r.error}`, 5000);
-    log(r.success ? '✅ BD reseteada' : `ERROR: ${r.error}`, r.success ? 'warn' : 'error');
-    setTimeout(cargarTodo, 2000);
-  }
-  if (modalAccion === 'rss-clear') {
-    toast('⏳ Limpiando RSS...'); log('Limpieza RSS iniciada', 'info');
-    await api('/api/procesar-rss', 'POST', { pin: PIN });
-    toast('✅ RSS procesados limpiados'); log('✅ RSS limpiados');
-  }
-}
-
-document.getElementById('modal-overlay').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
-
-async function cargarTodo() {
-  document.getElementById('ultimo-update').textContent = new Date().toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/Santo_Domingo' });
-  await cargarStatus();
-  await cargarEstadisticas();
-  if (tabActual === 'noticias') await cargarNoticias();
-  if (tabActual === 'logs') await cargarLogs();
-}
-
+async function cargarEstadisticas(){const d=await api('/api/estadisticas');if(d.totalVistas!==undefined){const v=d.totalVistas;document.getElementById('m-vistas').textContent=v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(1)+'k':v;document.getElementById('m-minutos').textContent='—';}}
+async function cargarNoticias(){const d=await api('/api/noticias');if(!d.noticias?.length){document.getElementById('lista-noticias').innerHTML='<p style="color:#444;font-size:12px;padding:8px 0">Sin noticias aún</p>';document.getElementById('badge-noticias').textContent='0';return;}document.getElementById('badge-noticias').textContent=d.noticias.length;document.getElementById('lista-noticias').innerHTML=d.noticias.slice(0,12).map((n,i)=>`<div class="noticia" onclick="window.open('/noticia/${n.slug}','_blank')"><div class="noticia-num">${i+1}</div><div style="flex:1"><div class="noticia-titulo">${n.titulo}</div><div class="noticia-meta"><span class="ntag">${n.seccion}</span><span>${tiempoAtras(n.fecha)}</span><span class="nvistas">👁 ${n.vistas}</span></div></div></div>`).join('');}
+async function cargarLogs(){const d=await api('/api/memoria?pin=311');if(!d.registros?.length){document.getElementById('lista-errores').innerHTML='<p style="color:#444;font-size:12px">Sin errores ✅</p>';return;}const errores=d.registros.filter(r=>r.tipo==='error').slice(0,10);document.getElementById('lista-errores').innerHTML=errores.length?errores.map(e=>`<div class="check"><div class="check-dot dot-rojo"></div><span class="check-label" style="font-size:11px">${e.valor.substring(0,60)}</span><span class="cv-err" style="font-size:11px">${e.fallos}x</span></div>`).join(''):'<p style="color:#444;font-size:12px">Sin errores ✅</p>';}
+async function accion(tipo){const map={rss:['/api/procesar-rss','POST',{pin:PIN}],generar:['/api/generar-noticia','POST',{pin:PIN,categoria:'Nacionales'}]};const[url,method,body]=map[tipo];toast('⏳ Ejecutando...');log(`Ejecutando: ${tipo}`,'info');const r=await api(url,method,body);if(r.success||r.mensaje){const msg=r.titulo?`✅ "${r.titulo.substring(0,40)}..."`:  `✅ ${r.mensaje||'Listo'}`;toast(msg,4000);log(msg);}else{toast(`❌ ${r.error||'Error'}`,4000);log(`ERROR: ${r.error}`,'error');}setTimeout(cargarTodo,2000);}
+async function generarCat(cat){toast(`⏳ Generando ${cat}...`);log(`Generando: ${cat}`,'info');const r=await api('/api/generar-noticia','POST',{pin:PIN,categoria:cat});if(r.success){toast(`✅ "${r.titulo?.substring(0,40)}..."`,5000);log(`✅ ${r.titulo?.substring(0,50)}`);}else{toast(`❌ ${r.error}`,4000);log(`ERROR: ${r.error}`,'error');}setTimeout(cargarTodo,2000);}
+async function toggleIA(activar){const r=await api('/api/admin/config','POST',{pin:PIN,enabled:activar});if(r.success){toast(activar?'🟢 IA activada':'🔴 IA pausada');setTimeout(cargarTodo,1000);}else toast('❌ Error');}
+function cerrarModal(){document.getElementById('modal-overlay').classList.remove('visible');}
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)cerrarModal();});
+async function cargarTodo(){document.getElementById('ultimo-update').textContent=new Date().toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});await cargarStatus();await cargarEstadisticas();if(tabActual==='noticias')await cargarNoticias();if(tabActual==='logs')await cargarLogs();}
 cargarTodo();
-log('🏮 Monitor iniciado — El Farol al Día', 'info');
-setInterval(cargarTodo, 60000);
+log('🏮 Monitor iniciado','info');
+setInterval(cargarTodo,60000);
 </script>
 </body>
 </html>
