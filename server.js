@@ -2589,17 +2589,54 @@ app.get('/status', async (req, res) => {
     try {
         const r   = await pool.query('SELECT COUNT(*) FROM noticias WHERE estado=$1', ['publicada']);
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
+
+        // Última noticia publicada
+        const ultima = await pool.query(
+            `SELECT fecha, titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1`
+        );
+        const minSinPublicar = ultima.rows.length
+            ? Math.round((Date.now() - new Date(ultima.rows[0].fecha)) / 60000)
+            : 9999;
+
+        // Errores recientes de Gemini
+        const errGemini = await pool.query(
+            `SELECT COUNT(*) FROM memoria_ia WHERE tipo='error' AND ultima_vez > NOW() - INTERVAL '1 hour'`
+        );
+
+        // Queries de imagen exitosas hoy
+        const imgOk = await pool.query(
+            `SELECT COUNT(*) FROM memoria_ia WHERE tipo='pexels_query' AND exitos > 0 AND ultima_vez > NOW() - INTERVAL '24 hours'`
+        );
+
+        // Conteo de keys Gemini disponibles
+        const geminiKeys = [
+            process.env.GEMINI_API_KEY,
+            process.env.GEMINI_KEY_2,
+            process.env.GEMINI_KEY_3,
+            process.env.GEMINI_KEY_4,
+        ].filter(Boolean).length;
+
         res.json({
-            status: 'OK', version: '34.0',
-            noticias:       parseInt(r.rows[0].count),
-            rss_procesados: parseInt(rss.rows[0].count),
-            facebook:       FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
-            twitter:        TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
-            pexels_api:     PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
-            wikipedia:      '✅ Activa (API pública, sin key)',
-            marca_de_agua:  fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
-            ia_activa:      CONFIG_IA.enabled,
-            sistema:        'Web + Facebook + Twitter + Telegram + RSS 30 fuentes + Wikipedia + Watermark + SEO E-E-A-T + CORS Abierto Blogger'
+            status:          'OK',
+            version:         '34.0',
+            noticias:        parseInt(r.rows[0].count),
+            rss_procesados:  parseInt(rss.rows[0].count),
+            min_sin_publicar: minSinPublicar,
+            ultima_noticia:  ultima.rows[0]?.titulo?.substring(0, 60) || '—',
+            gemini_keys:     geminiKeys,
+            errores_gemini:  parseInt(errGemini.rows[0].count),
+            imagenes_ok_hoy: parseInt(imgOk.rows[0].count),
+            facebook:        FB_PAGE_ID && FB_PAGE_TOKEN    ? '✅ Activo' : '⚠️ Sin credenciales',
+            twitter:         TWITTER_API_KEY && TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            telegram:        TELEGRAM_TOKEN ? '✅ Activo' : '⚠️ Sin token',
+            pexels_api:      PEXELS_API_KEY ? '✅ Activa' : '⚠️ Sin key',
+            wikipedia:       '✅ Activa',
+            marca_de_agua:   fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Falta watermark.png',
+            ia_activa:       CONFIG_IA.enabled,
+            adsense:         'pub-5280872495839888 ✅',
+            cron_30min:      '✅ Activo',
+            rss_3x_dia:      '✅ 7am · 1pm · 8pm',
+            sistema:         'PostgreSQL + Gemini + Pexels + Wikipedia + Watermark + AdSense + RSS 30 fuentes'
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
