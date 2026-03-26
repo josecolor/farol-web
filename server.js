@@ -1,16 +1,16 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.5-FINAL (ESTABLE)
- * CORRECCIONES:
- *   1. Manejo robusto de errores de PostgreSQL
- *   2. Timeouts adecuados para Railway
- *   3. Puerto correcto (process.env.PORT)
+ * 🏮 EL FAROL AL DÍA — V34.6-RAILWAY-STABLE
+ * OPTIMIZACIONES:
+ *   1. Inicio sincrónico inmediato
+ *   2. Health check prioritario
+ *   3. Conexión DB asíncrona sin bloquear
+ *   4. Eliminado keep-alive que causaba bucles
  */
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { Pool } = require('pg');
-const sharp = require('sharp');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -34,26 +34,21 @@ function authMiddleware(req, res, next) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🗄️ BASE DE DATOS - CONFIGURACIÓN ROBUSTA
+// 🗄️ BASE DE DATOS - CONFIGURACIÓN MÍNIMA
 // ══════════════════════════════════════════════════════════
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    max: 5, // Reducido para evitar sobrecarga
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 5000,
-});
-
-// Manejar errores de conexión sin que caiga el servidor
-pool.on('error', (err) => {
-    console.error('❌ Error inesperado en PostgreSQL:', err.message);
+    ssl: { rejectUnauthorized: false },
+    max: 3,
+    idleTimeoutMillis: 5000,
+    connectionTimeoutMillis: 3000,
 });
 
 // ══════════════════════════════════════════════════════════
-// 🚀 MIDDLEWARE
+// 🚀 MIDDLEWARE - INICIO INMEDIATO
 // ══════════════════════════════════════════════════════════
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'client')));
 app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use(cors());
@@ -61,51 +56,19 @@ app.use(cors());
 const IMAGEN_FALLBACK = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800';
 
 // ══════════════════════════════════════════════════════════
-// 🖼️ PROXY DE IMÁGENES
+// 🏥 HEALTH CHECK - PRIORIDAD MÁXIMA (RESPONDE INMEDIATO)
 // ══════════════════════════════════════════════════════════
-app.get('/api/imagen', async (req, res) => {
-    const { url } = req.query;
-    if (!url) return res.status(400).send('URL requerida');
-    
-    try {
-        const response = await fetch(url, { 
-            signal: AbortSignal.timeout(8000),
-            headers: { 'User-Agent': 'ElFarolAlDia/1.0' }
-        });
-        if (!response.ok) throw new Error('Error fetching');
-        const buffer = Buffer.from(await response.arrayBuffer());
-        
-        try {
-            const webp = await sharp(buffer)
-                .resize(800, null, { withoutEnlargement: true })
-                .webp({ quality: 75 })
-                .toBuffer();
-            res.setHeader('Content-Type', 'image/webp');
-            res.setHeader('Cache-Control', 'public, max-age=86400');
-            return res.send(webp);
-        } catch (sharpError) {
-            res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
-            return res.send(buffer);
-        }
-    } catch (e) {
-        console.error('❌ /api/imagen error:', e.message);
-        res.redirect(IMAGEN_FALLBACK);
-    }
-});
-
-// ══════════════════════════════════════════════════════════
-// 📡 RUTAS - CON MANEJO DE ERRORES
-// ══════════════════════════════════════════════════════════
-
-// Health check (debe responder rápido)
 app.get('/health', (req, res) => {
-    res.json({ 
+    res.status(200).json({ 
         status: 'OK', 
-        version: '34.5-FINAL',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime()
+        version: '34.6',
+        timestamp: Date.now()
     });
 });
+
+// ══════════════════════════════════════════════════════════
+// 📡 RUTAS PRINCIPALES
+// ══════════════════════════════════════════════════════════
 
 // Listar noticias
 app.get('/api/noticias', async (req, res) => {
@@ -118,7 +81,7 @@ app.get('/api/noticias', async (req, res) => {
         `);
         res.json({ success: true, noticias: result.rows || [] });
     } catch (e) {
-        console.error('❌ /api/noticias error:', e.message);
+        console.error('❌ /api/noticias:', e.message);
         res.json({ success: true, noticias: [] });
     }
 });
@@ -165,12 +128,12 @@ app.post('/api/publicar', authMiddleware, async (req, res) => {
         
         res.json({ success: true, slug: result.rows[0]?.slug });
     } catch (e) {
-        console.error('❌ /api/publicar error:', e.message);
+        console.error('❌ /api/publicar:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// Generar con IA
+// Generar con IA (simplificado)
 app.post('/api/generar', authMiddleware, async (req, res) => {
     try {
         const { categoria } = req.body;
@@ -178,10 +141,8 @@ app.post('/api/generar', authMiddleware, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Categoría requerida' });
         }
         
-        // Noticia de ejemplo (puedes reemplazar con Gemini después)
         const titulo = `Actualidad en ${categoria} - ${new Date().toLocaleDateString('es-DO')}`;
-        const contenido = `Noticia generada para la categoría ${categoria}. 
-        Contenido de ejemplo mientras se configura la API de Gemini.`;
+        const contenido = `Noticia generada para ${categoria}. Contenido de ejemplo.`;
         const slug = titulo.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-6);
         
         await pool.query(`
@@ -189,9 +150,9 @@ app.post('/api/generar', authMiddleware, async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, 0, NOW())
         `, [titulo, slug, categoria, contenido, IMAGEN_FALLBACK]);
         
-        res.json({ success: true, mensaje: `Generando noticia de ${categoria}...`, titulo });
+        res.json({ success: true, mensaje: `Generando noticia de ${categoria}...` });
     } catch (e) {
-        console.error('❌ /api/generar error:', e.message);
+        console.error('❌ /api/generar:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
@@ -207,7 +168,7 @@ app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Configuración IA (simplificada)
+// Configuración IA (mock)
 app.get('/api/admin/config', authMiddleware, (req, res) => {
     res.json({ enabled: true, instruccion_principal: '', enfasis: '', tono: 'profesional', extension: 'media', evitar: '' });
 });
@@ -216,12 +177,12 @@ app.post('/api/admin/config', authMiddleware, (req, res) => {
     res.json({ success: true });
 });
 
-// Memoria IA
+// Memoria IA (mock)
 app.get('/api/memoria', authMiddleware, (req, res) => {
     res.json({ success: true, registros: [] });
 });
 
-// Coach
+// Coach (mock)
 app.get('/api/coach', authMiddleware, (req, res) => {
     res.json({ success: true, categorias: {} });
 });
@@ -231,13 +192,11 @@ app.get('/status', async (req, res) => {
     try {
         const noticias = await pool.query(`SELECT COUNT(*) FROM noticias`);
         res.json({
-            version: '34.5-FINAL',
-            noticias: parseInt(noticias.rows[0]?.count || 0),
-            sharp: 'enabled',
-            webp: '800px/75q'
+            version: '34.6',
+            noticias: parseInt(noticias.rows[0]?.count || 0)
         });
     } catch (e) {
-        res.json({ version: '34.5-FINAL', error: e.message });
+        res.json({ version: '34.6', error: e.message });
     }
 });
 
@@ -249,7 +208,7 @@ app.get('/noticia/:slug', async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).send('Noticia no encontrada');
         }
-        await pool.query(`UPDATE noticias SET vistas = vistas + 1 WHERE slug = $1`, [slug]).catch(() => {});
+        pool.query(`UPDATE noticias SET vistas = vistas + 1 WHERE slug = $1`, [slug]).catch(() => {});
         res.sendFile(path.join(__dirname, 'client', 'index.html'));
     } catch (e) {
         res.status(500).send('Error cargando noticia');
@@ -294,29 +253,43 @@ app.get('*', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// 🚀 INICIO DEL SERVIDOR
+// 🚀 INICIO DEL SERVIDOR - SIN BLOQUEOS
 // ══════════════════════════════════════════════════════════
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🏮 EL FAROL AL DÍA — V34.5-FINAL`);
+    console.log(`\n🏮 EL FAROL AL DÍA — V34.6`);
     console.log(`   Puerto: ${PORT}`);
     console.log(`   URL: ${BASE_URL}`);
-    console.log(`   Sharp: WebP 800px / 75% calidad`);
     console.log(`🏮 ══════════════════════════════════════════\n`);
+    
+    // Crear tabla noticias si no existe (sin bloquear)
+    pool.query(`
+        CREATE TABLE IF NOT EXISTS noticias (
+            id SERIAL PRIMARY KEY,
+            titulo TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            seccion TEXT NOT NULL,
+            contenido TEXT NOT NULL,
+            seo_description TEXT,
+            imagen TEXT,
+            vistas INTEGER DEFAULT 0,
+            fecha TIMESTAMP DEFAULT NOW()
+        )
+    `).catch(e => console.error('Error creando tabla:', e.message));
 });
 
-// Manejo de señales para evitar que Railway mate el proceso
+// Manejo de señales para Railway
 process.on('SIGTERM', () => {
-    console.log('⚠️ Recibido SIGTERM, cerrando servidor...');
+    console.log('⚠️ SIGTERM recibido, cerrando...');
     server.close(() => {
-        console.log('✅ Servidor cerrado');
+        console.log('✅ Cerrado');
         process.exit(0);
     });
 });
 
 process.on('SIGINT', () => {
-    console.log('⚠️ Recibido SIGINT, cerrando servidor...');
+    console.log('⚠️ SIGINT recibido, cerrando...');
     server.close(() => {
-        console.log('✅ Servidor cerrado');
+        console.log('✅ Cerrado');
         process.exit(0);
     });
 });
