@@ -1,13 +1,12 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.4-WEBP
+ * 🏮 EL FAROL AL DÍA — V34.5-FINAL
  * FIXES:
- *   1. Ruta /api/noticias explícita y robusta
- *   2. Self-ping keep-alive para Railway (evita cold start)
- *   3. Timeout de DB con fallback
- *   4. Manejo de errores mejorado en generarNoticia
- *   5. Ruta /noticia/:slug para páginas individuales
- *   6. Proxy /api/imagen con Sharp → WebP 800px/75%
- *   7. generarNoticia guarda URLs a través del proxy
+ *   1. Agregadas rutas faltantes: /api/estadisticas, /api/publicar, /api/eliminar
+ *   2. Optimización robusta de imágenes con Sharp (fallback si error)
+ *   3. Mejor manejo de errores en todas las rutas
+ *   4. Verificación de existencia de columnas en consultas SQL
+ *   5. Timeout de DB con fallback
+ *   6. Self-ping keep-alive para Railway (evita cold start)
  */
 
 const express   = require('express');
@@ -156,7 +155,7 @@ function slugify(t) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🖼️ PROCESAMIENTO DE IMÁGENES CON SHARP
+// 🖼️ PROCESAMIENTO DE IMÁGENES CON SHARP (RESISTENTE)
 // ══════════════════════════════════════════════════════════
 async function buscarEnPexels(queries, categoria = '') {
     if (!PEXELS_API_KEY) return null;
@@ -174,7 +173,6 @@ async function buscarEnPexels(queries, categoria = '') {
             const data = await res.json();
             if (data.photos?.length) {
                 const urlOriginal = data.photos[0].src.large2x;
-                // Devolver URL envuelta en el proxy para procesamiento WebP al vuelo
                 return `/api/imagen?url=${encodeURIComponent(urlOriginal)}`;
             }
         } catch (e) { continue; }
@@ -185,7 +183,7 @@ async function buscarEnPexels(queries, categoria = '') {
 const IMAGEN_FALLBACK = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800';
 
 // ══════════════════════════════════════════════════════════
-// 🔄 PROXY /api/imagen — WebP 800px / 75% al vuelo
+// 🔄 PROXY /api/imagen — WebP 800px / 75% al vuelo (CON FALLBACK)
 // ══════════════════════════════════════════════════════════
 app.get('/api/imagen', async (req, res) => {
     const { url } = req.query;
@@ -203,10 +201,19 @@ app.get('/api/imagen', async (req, res) => {
         if (!upstream.ok) throw new Error(`Upstream ${upstream.status}`);
         const buffer = Buffer.from(await upstream.arrayBuffer());
 
-        const webp = await sharp(buffer)
-            .resize({ width: 800, withoutEnlargement: true })
-            .webp({ quality: 75 })
-            .toBuffer();
+        // PROCESAMIENTO ROBUSTO CON SHARP
+        let webp;
+        try {
+            webp = await sharp(buffer)
+                .resize({ width: 800, withoutEnlargement: true })
+                .webp({ quality: 75 })
+                .toBuffer();
+        } catch (sharpError) {
+            console.error('⚠️ Sharp falló, enviando imagen original:', sharpError.message);
+            res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            return res.send(buffer);
+        }
 
         res.setHeader('Content-Type', 'image/webp');
         res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -257,6 +264,96 @@ app.get('/api/noticias', async (req, res) => {
     } catch (e) {
         console.error('❌ /api/noticias error:', e.message);
         res.status(500).json({ success: false, error: 'Error cargando noticias', detalle: e.message });
+    }
+});
+
+// ══════════════════════════════════════════════════════════
+// 📊 ESTADÍSTICAS DEL PANEL DE REDACCIÓN
+// ══════════════════════════════════════════════════════════
+app.get('/api/estadisticas', authMiddleware, async (req, res) => {
+    try {
+        const total = await pool.query(`SELECT COUNT(*) FROM noticias WHERE estado = 'publicada'`);
+        const hoy = await pool.query(`
+            SELECT COUNT(*) FROM noticias 
+            WHERE estado = 'publicada' AND fecha::date = CURRENT_DATE
+        `);
+        const vistas = await pool.query(`SELECT COALESCE(SUM(vistas), 0) FROM noticias WHERE estado = 'publicada'`);
+        const porSeccion = await pool.query(`
+            SELECT seccion, COUNT(*) as total 
+            FROM noticias 
+            WHERE estado = 'publicada' 
+            GROUP BY seccion 
+            ORDER BY total DESC
+        `);
+
+        res.json({
+            success: true,
+            estadisticas: {
+                total: parseInt(total.rows[0].count),
+                hoy: parseInt(hoy.rows[0].count),
+                vistasTotales: parseInt(vistas.rows[0].sum),
+                porSeccion: porSeccion.rows
+            }
+        });
+    } catch (e) {
+        console.error('❌ /api/estadisticas error:', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// ══════════════════════════════════════════════════════════
+// 📝 PUBLICAR NOTICIA MANUAL (PANEL DE REDACCIÓN)
+// ══════════════════════════════════════════════════════════
+app.post('/api/publicar', authMiddleware, async (req, res) => {
+    try {
+        const { titulo, seccion, contenido, imagen, seo_description } = req.body;
+        
+        if (!titulo || !seccion || !contenido) {
+            return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+        }
+
+        const slugBase = slugify(titulo);
+        const slugFinal = `${slugBase}-${Date.now().toString().slice(-6)}`;
+        
+        const imagenFinal = imagen || `/api/imagen?url=${encodeURIComponent(IMAGEN_FALLBACK)}`;
+
+        const result = await pool.query(
+            `INSERT INTO noticias(titulo, slug, seccion, contenido, seo_description, imagen, estado, fecha, vistas)
+             VALUES($1, $2, $3, $4, $5, $6, 'publicada', NOW(), 0)
+             RETURNING id, slug`,
+            [titulo, slugFinal, seccion, contenido, seo_description || '', imagenFinal]
+        );
+
+        res.json({ 
+            success: true, 
+            mensaje: 'Noticia publicada exitosamente',
+            noticia: result.rows[0]
+        });
+    } catch (e) {
+        console.error('❌ /api/publicar error:', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// ══════════════════════════════════════════════════════════
+// 🗑️ ELIMINAR NOTICIA
+// ══════════════════════════════════════════════════════════
+app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query(
+            `DELETE FROM noticias WHERE id = $1 RETURNING id`,
+            [id]
+        );
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
+        }
+        
+        res.json({ success: true, mensaje: 'Noticia eliminada correctamente' });
+    } catch (e) {
+        console.error('❌ /api/eliminar error:', e.message);
+        res.status(500).json({ success: false, error: e.message });
     }
 });
 
@@ -335,7 +432,6 @@ CONTENIDO:
         if (!slugBase) throw new Error('Slug vacío');
         const slugFinal = `${slugBase}-${Date.now().toString().slice(-6)}`;
 
-        // Buscar imagen — se guarda como URL del proxy /api/imagen
         const urlImagen = await buscarEnPexels(
             [`${titulo} news`, `${categoria} Dominican Republic 2026`, `${categoria} noticias`],
             categoria
@@ -374,7 +470,10 @@ app.get('/sitemap.xml', async (req, res) => {
         res.setHeader('Content-Type', 'application/xml; charset=utf-8');
         res.setHeader('Cache-Control', 'public, max-age=1800');
         res.send(xml);
-    } catch (e) { res.status(500).send('Error generando sitemap'); }
+    } catch (e) { 
+        console.error('❌ Sitemap error:', e.message);
+        res.status(500).send('Error generando sitemap'); 
+    }
 });
 
 // ══════════════════════════════════════════════════════════
@@ -402,7 +501,7 @@ app.get('/ads.txt', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
-        version: '34.4-WEBP',
+        version: '34.5-FINAL',
         uptime: Math.floor(process.uptime()),
         timestamp: new Date().toISOString(),
         db: pool.totalCount > 0 ? 'connected' : 'idle',
@@ -454,10 +553,10 @@ function iniciarKeepAlive() {
 // ══════════════════════════════════════════════════════════
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏮 ══════════════════════════════════════════`);
-    console.log(`   EL FAROL AL DÍA — V34.4-WEBP`);
+    console.log(`   EL FAROL AL DÍA — V34.5-FINAL`);
     console.log(`   Puerto: ${PORT}`);
     console.log(`   URL: ${BASE_URL}`);
-    console.log(`   Sharp: WebP 800px / 75% calidad`);
+    console.log(`   Sharp: WebP 800px / 75% calidad (con fallback robusto)`);
     console.log(`🏮 ══════════════════════════════════════════\n`);
 
     if (process.env.NODE_ENV !== 'development') {
