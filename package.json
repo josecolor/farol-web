@@ -1,20 +1,13 @@
 {
   "name": "el-farol-al-dia",
-  "version": "34.2.0",
-  "description": "Periódico Digital Dominicano con IA, Rotación de Keys y Filtro Autocrítico de Imágenes",
+  "version": "34.2.1",
+  "description": "Periódico Digital Dominicano — Gemini 2.5-Flash + Rotación Horaria + Filtro Autocrítico + Anti-404",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": [
-    "news",
-    "dominican-republic",
-    "ia",
-    "gemini",
-    "automation",
-    "rss"
-  ],
+  "keywords": ["news", "dominican-republic", "ia", "gemini", "automation", "rss", "periodico"],
   "author": "José Gregorio Mañan Santana",
   "license": "ISC",
   "dependencies": {
