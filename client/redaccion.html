@@ -5,73 +5,448 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción 🏮 El Farol al Día</title>
     <style>
-        body { background: #0a0a0a; color: #fff; font-family: sans-serif; padding: 20px; text-align: center; }
-        .card { background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #ff5500; max-width: 400px; margin: auto; box-shadow: 0 0 20px rgba(255,85,0,0.2); }
-        h1 { color: #ff5500; font-size: 24px; }
-        select, button { width: 100%; padding: 12px; margin-top: 15px; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; }
-        select { background: #333; color: white; }
-        button { background: #ff5500; color: white; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #cc4400; transform: scale(1.02); }
-        button:disabled { background: #555; cursor: not-allowed; }
-        #status { margin-top: 20px; font-size: 14px; color: #aaa; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #ff5500; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 15px auto; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        :root { --naranja:#FF5500; --fondo:#070707; --tarjeta:#141418; --texto:#EDE8DF; --borde:#222228; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--fondo); color:var(--texto); font-family:Arial,sans-serif; min-height:100vh; }
+
+        header {
+            background:#000;
+            border-bottom:3px solid var(--naranja);
+            padding:15px 20px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+        }
+        header h1 { color:var(--naranja); font-size:20px; letter-spacing:2px; }
+        header a { color:#666; font-size:12px; text-decoration:none; }
+        header a:hover { color:var(--naranja); }
+
+        .main { max-width:1100px; margin:0 auto; padding:24px 15px; display:grid; grid-template-columns:340px 1fr; gap:24px; }
+
+        /* Panel izquierdo */
+        .panel { background:var(--tarjeta); border:1px solid var(--borde); border-radius:10px; padding:24px; }
+        .panel h2 { font-size:14px; color:var(--naranja); text-transform:uppercase; letter-spacing:1px; margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--borde); }
+
+        label { display:block; font-size:12px; color:#888; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px; }
+
+        select, input[type=text], textarea {
+            width:100%;
+            background:#0d0d0d;
+            border:1px solid var(--borde);
+            border-radius:6px;
+            color:var(--texto);
+            padding:10px 12px;
+            font-size:14px;
+            font-family:Arial,sans-serif;
+            margin-bottom:14px;
+            transition:border-color 0.2s;
+        }
+        select:focus, input:focus, textarea:focus { outline:none; border-color:var(--naranja); }
+        textarea { min-height:100px; resize:vertical; }
+
+        .btn {
+            width:100%;
+            padding:13px;
+            background:var(--naranja);
+            color:#fff;
+            border:none;
+            border-radius:8px;
+            font-size:15px;
+            font-weight:bold;
+            cursor:pointer;
+            letter-spacing:0.5px;
+            transition:background 0.2s, transform 0.1s;
+        }
+        .btn:hover { background:#CC4400; }
+        .btn:active { transform:scale(0.98); }
+        .btn:disabled { background:#444; cursor:not-allowed; }
+        .btn-sec {
+            background:transparent;
+            border:1px solid var(--borde);
+            color:#888;
+            margin-top:8px;
+        }
+        .btn-sec:hover { border-color:var(--naranja); color:var(--naranja); background:transparent; }
+
+        .spinner {
+            width:24px; height:24px;
+            border:3px solid #333;
+            border-top:3px solid var(--naranja);
+            border-radius:50%;
+            animation:spin 0.8s linear infinite;
+            display:none;
+            margin:12px auto 0;
+        }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        #status {
+            margin-top:14px;
+            font-size:13px;
+            color:#888;
+            text-align:center;
+            line-height:1.5;
+            min-height:40px;
+        }
+
+        /* Panel derecho — lista de noticias */
+        .panel-lista { overflow:hidden; }
+
+        .lista-header {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            margin-bottom:18px;
+            padding-bottom:10px;
+            border-bottom:1px solid var(--borde);
+        }
+        .lista-header h2 { font-size:14px; color:var(--naranja); text-transform:uppercase; letter-spacing:1px; }
+        .lista-header span { font-size:12px; color:#555; }
+
+        .filtros { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+        .filtros button {
+            padding:5px 12px;
+            background:transparent;
+            border:1px solid var(--borde);
+            border-radius:4px;
+            color:#666;
+            font-size:11px;
+            font-weight:bold;
+            cursor:pointer;
+            text-transform:uppercase;
+            letter-spacing:0.5px;
+            transition:0.2s;
+        }
+        .filtros button:hover, .filtros button.activo { background:var(--naranja); border-color:var(--naranja); color:#fff; }
+
+        .noticia-item {
+            display:flex;
+            gap:14px;
+            align-items:flex-start;
+            padding:14px 0;
+            border-bottom:1px solid var(--borde);
+            transition:background 0.2s;
+        }
+        .noticia-item:last-child { border-bottom:none; }
+
+        .noticia-item img {
+            width:80px;
+            height:60px;
+            object-fit:cover;
+            border-radius:6px;
+            flex-shrink:0;
+            background:#222;
+        }
+
+        .noticia-item-info { flex:1; min-width:0; }
+        .noticia-item-info .badge {
+            display:inline-block;
+            background:var(--naranja);
+            color:#fff;
+            font-size:9px;
+            font-weight:bold;
+            padding:2px 7px;
+            border-radius:3px;
+            text-transform:uppercase;
+            letter-spacing:0.5px;
+            margin-bottom:5px;
+        }
+        .noticia-item-info h3 {
+            font-size:13px;
+            line-height:1.35;
+            color:#fff;
+            margin-bottom:5px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            display:-webkit-box;
+            -webkit-line-clamp:2;
+            -webkit-box-orient:vertical;
+        }
+        .noticia-item-meta { font-size:11px; color:#555; }
+
+        .noticia-acciones { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+        .btn-accion {
+            padding:5px 10px;
+            font-size:10px;
+            font-weight:bold;
+            border:none;
+            border-radius:4px;
+            cursor:pointer;
+            text-transform:uppercase;
+            letter-spacing:0.5px;
+            transition:0.2s;
+        }
+        .btn-ver    { background:#1a3a1a; color:#4caf50; }
+        .btn-ver:hover { background:#2a4a2a; }
+        .btn-borrar { background:#3a1a1a; color:#f44336; }
+        .btn-borrar:hover { background:#4a2a2a; }
+
+        /* Stats */
+        .stats-row {
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:12px;
+            margin-bottom:20px;
+        }
+        .stat-card {
+            background:#0d0d0d;
+            border:1px solid var(--borde);
+            border-radius:8px;
+            padding:14px;
+            text-align:center;
+        }
+        .stat-card .num { font-size:26px; font-weight:900; color:var(--naranja); }
+        .stat-card .lab { font-size:10px; color:#555; text-transform:uppercase; letter-spacing:1px; margin-top:3px; }
+
+        /* RSS */
+        .rss-status { font-size:11px; color:#555; margin-top:8px; text-align:center; }
+
+        @media (max-width: 900px) {
+            .main { grid-template-columns:1fr; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>🏮 Panel de Redacción</h1>
-        <p>Elige una categoría para el Toro:</p>
-        
-        <select id="categoria">
-            <option value="Nacionales">Nacionales (SDE / RD)</option>
-            <option value="Deportes">Deportes (LIDOM / MLB)</option>
-            <option value="Economía">Economía</option>
-            <option value="Internacionales">Internacionales</option>
-            <option value="Tecnología">Tecnología</option>
-        </select>
+<header>
+    <h1>🏮 PANEL DE REDACCIÓN</h1>
+    <a href="/">← Volver al periódico</a>
+</header>
 
-        <button id="btnGenerar" onclick="generarNoticia()">⚡ GENERAR NOTICIA</button>
-        
-        <div id="loader" class="loader"></div>
-        <div id="status">Esperando órdenes, socio...</div>
-    </div>
+<div class="main">
 
-    <script>
-        async function generarNoticia() {
-            const btn = document.getElementById('btnGenerar');
-            const status = document.getElementById('status');
-            const loader = document.getElementById('loader');
-            const cat = document.getElementById('categoria').value;
+    <!-- Panel de Generación -->
+    <aside>
+        <div class="panel">
+            <h2>⚡ Generar Noticia</h2>
 
-            // Bloquear botón y mostrar carga
-            btn.disabled = true;
-            loader.style.display = 'block';
-            status.innerText = `Generando noticia de ${cat}...`;
+            <label>Categoría</label>
+            <select id="categoria">
+                <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
+                <option value="Deportes">⚽ Deportes (LIDOM / MLB)</option>
+                <option value="Economía">💰 Economía</option>
+                <option value="Internacionales">🌍 Internacionales</option>
+                <option value="Tecnología">💻 Tecnología</option>
+                <option value="Espectáculos">🎬 Espectáculos</option>
+            </select>
 
-            try {
-                const res = await fetch('/api/generar-noticia', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ categoria: cat })
-                });
+            <button class="btn" id="btnGenerar" onclick="generarNoticia()">⚡ GENERAR CON IA</button>
+            <button class="btn btn-sec" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
 
-                const data = await res.json();
+            <div class="spinner" id="spinner"></div>
+            <div id="status">Esperando órdenes, socio...</div>
 
-                if (data.success) {
-                    status.innerHTML = `<b style="color:#00ff00;">✅ ¡LISTO!</b><br>${data.titulo}`;
-                } else {
-                    status.innerHTML = `<b style="color:#ff3333;">❌ ERROR:</b><br>${data.error}`;
-                }
-            } catch (err) {
-                status.innerHTML = `<b style="color:#ff3333;">❌ FALLO DE CONEXIÓN</b>`;
-            } finally {
-                btn.disabled = false;
-                loader.style.display = 'none';
+            <div class="rss-status" id="rss-status"></div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <h2>✍️ Publicar Manual</h2>
+
+            <label>Título</label>
+            <input type="text" id="manual-titulo" placeholder="Título de la noticia...">
+
+            <label>Sección</label>
+            <select id="manual-seccion">
+                <option value="Nacionales">Nacionales</option>
+                <option value="Deportes">Deportes</option>
+                <option value="Economía">Economía</option>
+                <option value="Internacionales">Internacionales</option>
+                <option value="Tecnología">Tecnología</option>
+                <option value="Espectáculos">Espectáculos</option>
+            </select>
+
+            <label>Contenido</label>
+            <textarea id="manual-contenido" placeholder="Escribe aquí el contenido de la noticia..."></textarea>
+
+            <button class="btn btn-sec" onclick="publicarManual()">📝 PUBLICAR MANUAL</button>
+            <div id="manual-status" style="margin-top:10px;font-size:12px;text-align:center;color:#888;"></div>
+        </div>
+    </aside>
+
+    <!-- Panel derecho -->
+    <section class="panel panel-lista">
+        <div class="lista-header">
+            <h2>📰 Noticias Publicadas</h2>
+            <span id="total-label">Cargando...</span>
+        </div>
+
+        <div class="stats-row" id="stats-row">
+            <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lab">Noticias</div></div>
+            <div class="stat-card"><div class="num" id="stat-vistas">—</div><div class="lab">Vistas</div></div>
+            <div class="stat-card"><div class="num" id="stat-hoy">—</div><div class="lab">Hoy</div></div>
+        </div>
+
+        <div class="filtros" id="filtros">
+            <button class="activo" onclick="filtrar('')">Todas</button>
+            <button onclick="filtrar('Nacionales')">Nacionales</button>
+            <button onclick="filtrar('Deportes')">Deportes</button>
+            <button onclick="filtrar('Economía')">Economía</button>
+            <button onclick="filtrar('Internacionales')">Internacionales</button>
+            <button onclick="filtrar('Tecnología')">Tecnología</button>
+            <button onclick="filtrar('Espectáculos')">Espectáculos</button>
+        </div>
+
+        <div id="lista-noticias">
+            <p style="text-align:center;color:#555;padding:40px;">Cargando noticias...</p>
+        </div>
+    </section>
+</div>
+
+<script>
+    const PIN = '311';
+    let todasLasNoticias = [];
+    let categoriaFiltro = '';
+
+    async function generarNoticia() {
+        const btn    = document.getElementById('btnGenerar');
+        const status = document.getElementById('status');
+        const spin   = document.getElementById('spinner');
+        const cat    = document.getElementById('categoria').value;
+
+        btn.disabled = true;
+        spin.style.display = 'block';
+        status.innerHTML = `<span style="color:#aaa">Generando noticia de <b>${cat}</b>...</span><br><small style="color:#555">Puede tomar hasta 30 segundos</small>`;
+
+        try {
+            const res  = await fetch('/api/generar-noticia', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
+                body:JSON.stringify({ categoria:cat })
+            });
+            const data = await res.json();
+            if (data.success) {
+                status.innerHTML = `<span style="color:#4caf50">✅ ¡PUBLICADA!</span><br><small>${data.titulo}</small><br><a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja);font-size:11px;">Ver noticia →</a>`;
+                await cargarNoticias();
+            } else {
+                status.innerHTML = `<span style="color:#f44336">❌ Error:</span><br><small style="color:#888">${data.error}</small>`;
             }
+        } catch(err) {
+            status.innerHTML = `<span style="color:#f44336">❌ Error de conexión</span>`;
+        } finally {
+            btn.disabled = false;
+            spin.style.display = 'none';
         }
-    </script>
+    }
 
+    async function procesarRSS() {
+        const el = document.getElementById('rss-status');
+        el.textContent = '📡 Procesando RSS... (puede tardar varios minutos)';
+        try {
+            await fetch('/api/procesar-rss', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
+                body:JSON.stringify({ pin:PIN })
+            });
+            el.textContent = '✅ RSS iniciado en segundo plano';
+            setTimeout(() => cargarNoticias(), 10000);
+        } catch(e) {
+            el.textContent = '❌ Error al iniciar RSS';
+        }
+    }
+
+    async function publicarManual() {
+        const titulo    = document.getElementById('manual-titulo').value.trim();
+        const seccion   = document.getElementById('manual-seccion').value;
+        const contenido = document.getElementById('manual-contenido').value.trim();
+        const el        = document.getElementById('manual-status');
+
+        if (!titulo || !contenido) { el.style.color='#f44336'; el.textContent='❌ Completa título y contenido'; return; }
+        el.style.color='#888'; el.textContent='Publicando...';
+
+        try {
+            const res  = await fetch('/api/publicar', {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
+                body:JSON.stringify({ pin:PIN, titulo, seccion, contenido, redactor:'Editor Manual' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                el.style.color='#4caf50';
+                el.innerHTML = `✅ Publicada — <a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja)">Ver noticia →</a>`;
+                document.getElementById('manual-titulo').value = '';
+                document.getElementById('manual-contenido').value = '';
+                await cargarNoticias();
+            } else {
+                el.style.color='#f44336'; el.textContent='❌ ' + data.error;
+            }
+        } catch(e) {
+            el.style.color='#f44336'; el.textContent='❌ Error de conexión';
+        }
+    }
+
+    async function eliminarNoticia(id) {
+        if (!confirm('¿Eliminar esta noticia? Esta acción no se puede deshacer.')) return;
+        try {
+            const res  = await fetch(`/api/eliminar/${id}`, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
+                body:JSON.stringify({ pin:PIN })
+            });
+            const data = await res.json();
+            if (data.success) { await cargarNoticias(); }
+            else { alert('Error al eliminar: ' + data.error); }
+        } catch(e) { alert('Error de conexión'); }
+    }
+
+    function filtrar(cat) {
+        categoriaFiltro = cat;
+        document.querySelectorAll('.filtros button').forEach(b => b.classList.remove('activo'));
+        const btn = Array.from(document.querySelectorAll('.filtros button')).find(b => b.textContent === (cat||'Todas'));
+        if (btn) btn.classList.add('activo');
+        renderLista(cat ? todasLasNoticias.filter(n => n.seccion===cat) : todasLasNoticias);
+    }
+
+    function renderLista(noticias) {
+        const el = document.getElementById('lista-noticias');
+        if (!noticias.length) { el.innerHTML='<p style="text-align:center;color:#555;padding:30px;">No hay noticias en esta sección.</p>'; return; }
+
+        el.innerHTML = noticias.slice(0,50).map(n => {
+            const img = n.imagen && n.imagen.startsWith('http') ? n.imagen : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200';
+            const fecha = new Date(n.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+            return `
+            <div class="noticia-item">
+                <img src="${img}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200'">
+                <div class="noticia-item-info">
+                    <span class="badge">${n.seccion}</span>
+                    <h3>${n.titulo}</h3>
+                    <div class="noticia-item-meta">📅 ${fecha} · 👁️ ${n.vistas||0} vistas · ✍️ ${n.redactor||'Redacción'}</div>
+                </div>
+                <div class="noticia-acciones">
+                    <button class="btn-accion btn-ver" onclick="window.open('/noticia/${n.slug}','_blank')">👁️ Ver</button>
+                    <button class="btn-accion btn-borrar" onclick="eliminarNoticia(${n.id})">🗑️ Borrar</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function cargarNoticias() {
+        try {
+            const [resN, resE] = await Promise.all([
+                fetch('/api/noticias', {headers:{'Authorization':'Basic ' + btoa('director:311')}}),
+                fetch('/api/estadisticas')
+            ]);
+            const dataN = await resN.json();
+            const dataE = await resE.json();
+
+            if (dataN.success) {
+                todasLasNoticias = dataN.noticias;
+                document.getElementById('total-label').textContent = `${dataN.noticias.length} noticias`;
+                const hoy = new Date().toDateString();
+                const noticiasHoy = dataN.noticias.filter(n => new Date(n.fecha).toDateString()===hoy).length;
+                document.getElementById('stat-hoy').textContent = noticiasHoy;
+                renderLista(categoriaFiltro ? dataN.noticias.filter(n=>n.seccion===categoriaFiltro) : dataN.noticias);
+            }
+            if (dataE.success) {
+                document.getElementById('stat-total').textContent = dataE.totalNoticias||0;
+                const v = dataE.totalVistas||0;
+                document.getElementById('stat-vistas').textContent = v > 999 ? (v/1000).toFixed(1)+'k' : v;
+            }
+        } catch(e) {
+            document.getElementById('lista-noticias').innerHTML = '<p style="text-align:center;color:#f44336;padding:30px;">Error al cargar las noticias.</p>';
+        }
+    }
+
+    cargarNoticias();
+    setInterval(cargarNoticias, 60000);
+</script>
 </body>
 </html>
