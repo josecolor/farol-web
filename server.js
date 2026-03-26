@@ -1,11 +1,13 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.3-FIXED
+ * 🏮 EL FAROL AL DÍA — V34.4-WEBP
  * FIXES:
  *   1. Ruta /api/noticias explícita y robusta
  *   2. Self-ping keep-alive para Railway (evita cold start)
  *   3. Timeout de DB con fallback
  *   4. Manejo de errores mejorado en generarNoticia
  *   5. Ruta /noticia/:slug para páginas individuales
+ *   6. Proxy /api/imagen con Sharp → WebP 800px/75%
+ *   7. generarNoticia guarda URLs a través del proxy
  */
 
 const express   = require('express');
@@ -52,7 +54,6 @@ const pool = new Pool({
     connectionTimeoutMillis: 10000,
 });
 
-// Test de conexión al arrancar
 pool.connect((err, client, release) => {
     if (err) {
         console.error('❌ Error conectando a PostgreSQL:', err.message);
@@ -154,17 +155,28 @@ function slugify(t) {
     return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[ñ]/g,'n').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').substring(0, 75);
 }
 
+// ══════════════════════════════════════════════════════════
+// 🖼️ PROCESAMIENTO DE IMÁGENES CON SHARP
+// ══════════════════════════════════════════════════════════
 async function buscarEnPexels(queries, categoria = '') {
     if (!PEXELS_API_KEY) return null;
-    const lista = CATEGORIAS_ALTO_CPM.includes(categoria) ? PALABRAS_BASURA_REDUCIDO : PALABRAS_BASURA_COMPLETO;
+    const lista = CATEGORIAS_ALTO_CPM.includes(categoria)
+        ? PALABRAS_BASURA_REDUCIDO
+        : PALABRAS_BASURA_COMPLETO;
+
     for (const q of queries) {
         if (lista.some(p => q.toLowerCase().includes(p))) continue;
         try {
-            const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=5&orientation=landscape`, {
-                headers: { Authorization: PEXELS_API_KEY }
-            });
+            const res = await fetch(
+                `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=5&orientation=landscape`,
+                { headers: { Authorization: PEXELS_API_KEY } }
+            );
             const data = await res.json();
-            if (data.photos?.length) return data.photos[0].src.large2x;
+            if (data.photos?.length) {
+                const urlOriginal = data.photos[0].src.large2x;
+                // Devolver URL envuelta en el proxy para procesamiento WebP al vuelo
+                return `/api/imagen?url=${encodeURIComponent(urlOriginal)}`;
+            }
         } catch (e) { continue; }
     }
     return null;
@@ -173,7 +185,41 @@ async function buscarEnPexels(queries, categoria = '') {
 const IMAGEN_FALLBACK = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800';
 
 // ══════════════════════════════════════════════════════════
-// ✅ FIX #1 — RUTA /api/noticias ROBUSTA
+// 🔄 PROXY /api/imagen — WebP 800px / 75% al vuelo
+// ══════════════════════════════════════════════════════════
+app.get('/api/imagen', async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).send('URL requerida');
+
+    const permitidos = ['pexels.com', 'images.pexels.com', 'upload.wikimedia.org', 'cdn.pixabay.com'];
+    const esPermitido = permitidos.some(d => url.includes(d));
+    if (!esPermitido) return res.status(403).send('Dominio no permitido');
+
+    try {
+        const upstream = await fetch(url, {
+            signal: AbortSignal.timeout(15000),
+            headers: { 'User-Agent': 'ElFarolAlDia/1.0' }
+        });
+        if (!upstream.ok) throw new Error(`Upstream ${upstream.status}`);
+        const buffer = Buffer.from(await upstream.arrayBuffer());
+
+        const webp = await sharp(buffer)
+            .resize({ width: 800, withoutEnlargement: true })
+            .webp({ quality: 75 })
+            .toBuffer();
+
+        res.setHeader('Content-Type', 'image/webp');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.setHeader('X-Optimized', 'sharp-webp-800px-75q');
+        res.send(webp);
+    } catch (e) {
+        console.error('❌ /api/imagen error:', e.message);
+        res.redirect(url);
+    }
+});
+
+// ══════════════════════════════════════════════════════════
+// ✅ RUTA /api/noticias ROBUSTA
 // ══════════════════════════════════════════════════════════
 app.get('/api/noticias', async (req, res) => {
     try {
@@ -199,10 +245,9 @@ app.get('/api/noticias', async (req, res) => {
 
         const result = await pool.query(query, params);
 
-        // Asegurar imagen en cada noticia
         const noticias = result.rows.map(n => ({
             ...n,
-            imagen: n.imagen || IMAGEN_FALLBACK,
+            imagen: n.imagen || `/api/imagen?url=${encodeURIComponent(IMAGEN_FALLBACK)}`,
             vistas: n.vistas || 0,
         }));
 
@@ -227,10 +272,8 @@ app.get('/noticia/:slug', async (req, res) => {
         );
         if (!r.rows.length) return res.status(404).sendFile(path.join(__dirname, 'client', '404.html'));
 
-        // Incrementar vistas
         pool.query(`UPDATE noticias SET vistas = COALESCE(vistas,0) + 1 WHERE slug = $1`, [slug]).catch(() => {});
 
-        // Servir la página (el frontend maneja el render por slug)
         res.sendFile(path.join(__dirname, 'client', 'index.html'));
     } catch (e) {
         console.error('❌ /noticia/:slug error:', e.message);
@@ -247,7 +290,12 @@ app.get('/api/noticia/:slug', async (req, res) => {
             [slug]
         );
         if (!r.rows.length) return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
-        res.json({ success: true, noticia: { ...r.rows[0], imagen: r.rows[0].imagen || IMAGEN_FALLBACK } });
+
+        const noticia = {
+            ...r.rows[0],
+            imagen: r.rows[0].imagen || `/api/imagen?url=${encodeURIComponent(IMAGEN_FALLBACK)}`
+        };
+        res.json({ success: true, noticia });
     } catch (e) {
         res.status(500).json({ success: false, error: e.message });
     }
@@ -287,11 +335,11 @@ CONTENIDO:
         if (!slugBase) throw new Error('Slug vacío');
         const slugFinal = `${slugBase}-${Date.now().toString().slice(-6)}`;
 
-        // Buscar imagen en Pexels
+        // Buscar imagen — se guarda como URL del proxy /api/imagen
         const urlImagen = await buscarEnPexels(
             [`${titulo} news`, `${categoria} Dominican Republic 2026`, `${categoria} noticias`],
             categoria
-        ) || IMAGEN_FALLBACK;
+        ) || `/api/imagen?url=${encodeURIComponent(IMAGEN_FALLBACK)}`;
 
         await pool.query(
             `INSERT INTO noticias(titulo, slug, seccion, contenido, seo_description, imagen, estado, fecha, vistas)
@@ -354,10 +402,12 @@ app.get('/ads.txt', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
-        version: '34.3-FIXED',
+        version: '34.4-WEBP',
         uptime: Math.floor(process.uptime()),
         timestamp: new Date().toISOString(),
-        db: pool.totalCount > 0 ? 'connected' : 'idle'
+        db: pool.totalCount > 0 ? 'connected' : 'idle',
+        sharp: 'enabled',
+        webp: '800px/75q'
     });
 });
 
@@ -374,7 +424,6 @@ app.get('*', (req, res) => {
 // ══════════════════════════════════════════════════════════
 // ⏰ CRON JOBS
 // ══════════════════════════════════════════════════════════
-// Generar 1 noticia por hora rotando categorías
 const CATS_CRON = ['Economía','Nacionales','Tecnología','Deportes','Internacionales','Espectáculos'];
 let cronIndex = 0;
 cron.schedule('0 * * * *', () => {
@@ -385,10 +434,10 @@ cron.schedule('0 * * * *', () => {
 });
 
 // ══════════════════════════════════════════════════════════
-// ✅ FIX #2 — SELF-PING KEEP-ALIVE (evita Railway cold start)
+// ✅ SELF-PING KEEP-ALIVE (evita Railway cold start)
 // ══════════════════════════════════════════════════════════
 function iniciarKeepAlive() {
-    const INTERVALO = 4 * 60 * 1000; // cada 4 minutos
+    const INTERVALO = 4 * 60 * 1000;
     setInterval(async () => {
         try {
             const res = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(10000) });
@@ -405,12 +454,12 @@ function iniciarKeepAlive() {
 // ══════════════════════════════════════════════════════════
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏮 ══════════════════════════════════════════`);
-    console.log(`   EL FAROL AL DÍA — V34.3-FIXED`);
+    console.log(`   EL FAROL AL DÍA — V34.4-WEBP`);
     console.log(`   Puerto: ${PORT}`);
     console.log(`   URL: ${BASE_URL}`);
+    console.log(`   Sharp: WebP 800px / 75% calidad`);
     console.log(`🏮 ══════════════════════════════════════════\n`);
 
-    // Activar keep-alive solo en producción
     if (process.env.NODE_ENV !== 'development') {
         iniciarKeepAlive();
     }
