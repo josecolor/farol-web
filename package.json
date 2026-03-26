@@ -1,7 +1,7 @@
 {
   "name": "el-farol-al-dia",
-  "version": "34.4.0",
-  "description": "Periodico Digital Dominicano con Optimizacion WebP",
+  "version": "34.5.0",
+  "description": "Periodico Digital Dominicano con Sharp",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
