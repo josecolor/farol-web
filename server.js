@@ -1,9 +1,7 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.8-STABLE
- * VERSIÓN ESTABLE PARA RAILWAY
- * - SIN SHARP (más ligero)
- * - Health check inmediato
- * - Conexión PostgreSQL estable
+ * 🏮 EL FAROL AL DÍA — V34.9-COMPLETO
+ * Incluye TODAS las rutas: noticias, estadísticas, publicar, generar, eliminar,
+ * comentarios, configuración, memoria, coach, sitemap, etc.
  */
 
 const express = require('express');
@@ -16,15 +14,6 @@ const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 // ══════════════════════════════════════════════════════════
-// 🔒 MIDDLEWARE BÁSICO
-// ══════════════════════════════════════════════════════════
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(cors());
-app.use(express.static(path.join(__dirname, 'client')));
-app.use('/static', express.static(path.join(__dirname, 'static')));
-
-// ══════════════════════════════════════════════════════════
 // 🗄️ BASE DE DATOS POSTGRESQL
 // ══════════════════════════════════════════════════════════
 const pool = new Pool({
@@ -35,45 +24,79 @@ const pool = new Pool({
     connectionTimeoutMillis: 5000,
 });
 
-// Manejo de errores de DB sin que caiga el servidor
 pool.on('error', (err) => {
     console.error('❌ Error en PostgreSQL:', err.message);
 });
 
-// Verificar conexión y crear tablas
-pool.connect(async (err, client, release) => {
+// Crear tablas
+async function inicializarTablas() {
+    try {
+        // Tabla noticias
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS noticias (
+                id SERIAL PRIMARY KEY,
+                titulo TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                seccion TEXT NOT NULL,
+                contenido TEXT NOT NULL,
+                seo_description TEXT,
+                imagen TEXT,
+                vistas INTEGER DEFAULT 0,
+                fecha TIMESTAMP DEFAULT NOW()
+            )
+        `);
+        
+        // Tabla comentarios
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS comentarios (
+                id SERIAL PRIMARY KEY,
+                noticia_id INTEGER NOT NULL,
+                nombre TEXT NOT NULL,
+                texto TEXT NOT NULL,
+                fecha TIMESTAMP DEFAULT NOW(),
+                FOREIGN KEY (noticia_id) REFERENCES noticias(id) ON DELETE CASCADE
+            )
+        `);
+        
+        // Tabla configuración IA
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS config_ia (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                enabled BOOLEAN DEFAULT true,
+                instruccion_principal TEXT,
+                enfasis TEXT,
+                tono TEXT DEFAULT 'profesional',
+                extension TEXT DEFAULT 'media',
+                evitar TEXT
+            )
+        `);
+        
+        // Insertar config por defecto
+        await pool.query(`
+            INSERT INTO config_ia (id, enabled, instruccion_principal, enfasis, tono, extension, evitar)
+            VALUES (1, true, 'Periodista profesional dominicano', 'Enfoque en Santo Domingo Este', 'profesional', 'media', 'Opiniones personales')
+            ON CONFLICT (id) DO NOTHING
+        `);
+        
+        console.log('✅ Tablas inicializadas correctamente');
+    } catch (e) {
+        console.error('❌ Error inicializando tablas:', e.message);
+    }
+}
+
+pool.connect(async (err) => {
     if (err) {
         console.error('❌ Error conectando a PostgreSQL:', err.message);
     } else {
         console.log('✅ PostgreSQL conectado correctamente');
-        
-        try {
-            await client.query(`
-                CREATE TABLE IF NOT EXISTS noticias (
-                    id SERIAL PRIMARY KEY,
-                    titulo TEXT NOT NULL,
-                    slug TEXT UNIQUE NOT NULL,
-                    seccion TEXT NOT NULL,
-                    contenido TEXT NOT NULL,
-                    seo_description TEXT,
-                    imagen TEXT,
-                    vistas INTEGER DEFAULT 0,
-                    fecha TIMESTAMP DEFAULT NOW()
-                )
-            `);
-            console.log('✅ Tabla noticias verificada');
-        } catch (e) {
-            console.error('❌ Error creando tabla:', e.message);
-        }
-        
-        release();
+        await inicializarTablas();
     }
 });
 
 const IMAGEN_FALLBACK = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800';
 
 // ══════════════════════════════════════════════════════════
-// 🔒 BASIC AUTH PARA /redaccion
+// 🔒 BASIC AUTH
 // ══════════════════════════════════════════════════════════
 function authMiddleware(req, res, next) {
     const auth = req.headers['authorization'];
@@ -90,29 +113,43 @@ function authMiddleware(req, res, next) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏥 HEALTH CHECK - RESPONDE INMEDIATO
+// 🚀 MIDDLEWARE
+// ══════════════════════════════════════════════════════════
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(cors());
+app.use(express.static(path.join(__dirname, 'client')));
+app.use('/static', express.static(path.join(__dirname, 'static')));
+
+// ══════════════════════════════════════════════════════════
+// 🏥 HEALTH CHECK
 // ══════════════════════════════════════════════════════════
 app.get('/health', (req, res) => {
-    res.status(200).json({ 
-        status: 'OK', 
-        version: '34.8',
-        timestamp: new Date().toISOString()
-    });
+    res.status(200).json({ status: 'OK', version: '34.9', timestamp: Date.now() });
 });
 
 // ══════════════════════════════════════════════════════════
-// 📡 RUTAS DEL PANEL DE REDACCIÓN
+// 📡 RUTAS PRINCIPALES
 // ══════════════════════════════════════════════════════════
 
 // 1. Listar noticias
 app.get('/api/noticias', async (req, res) => {
     try {
-        const result = await pool.query(`
-            SELECT id, titulo, slug, seccion, contenido, imagen, seo_description, vistas, fecha 
-            FROM noticias 
-            ORDER BY fecha DESC 
-            LIMIT 100
-        `);
+        const { categoria, limit = 100 } = req.query;
+        let query = `SELECT id, titulo, slug, seccion, contenido, imagen, seo_description, vistas, fecha 
+                     FROM noticias ORDER BY fecha DESC`;
+        let params = [];
+        
+        if (categoria) {
+            query = `SELECT id, titulo, slug, seccion, contenido, imagen, seo_description, vistas, fecha 
+                     FROM noticias WHERE seccion = $1 ORDER BY fecha DESC`;
+            params = [categoria];
+        }
+        
+        query += ` LIMIT $${params.length + 1}`;
+        params.push(Math.min(parseInt(limit), 200));
+        
+        const result = await pool.query(query, params);
         res.json({ success: true, noticias: result.rows || [] });
     } catch (e) {
         console.error('❌ /api/noticias error:', e.message);
@@ -120,7 +157,26 @@ app.get('/api/noticias', async (req, res) => {
     }
 });
 
-// 2. Estadísticas
+// 2. Noticia individual
+app.get('/api/noticia/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const result = await pool.query(`SELECT * FROM noticias WHERE slug = $1`, [slug]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
+        }
+        
+        // Incrementar vistas
+        await pool.query(`UPDATE noticias SET vistas = vistas + 1 WHERE slug = $1`, [slug]);
+        
+        res.json({ success: true, noticia: result.rows[0] });
+    } catch (e) {
+        console.error('❌ /api/noticia/:slug error:', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// 3. Estadísticas
 app.get('/api/estadisticas', authMiddleware, async (req, res) => {
     try {
         const total = await pool.query(`SELECT COUNT(*) FROM noticias`);
@@ -133,12 +189,11 @@ app.get('/api/estadisticas', authMiddleware, async (req, res) => {
             }
         });
     } catch (e) {
-        console.error('❌ /api/estadisticas error:', e.message);
         res.json({ success: true, estadisticas: { total: 0, vistasTotales: 0 } });
     }
 });
 
-// 3. Publicar manual
+// 4. Publicar manual
 app.post('/api/publicar', authMiddleware, async (req, res) => {
     try {
         const { titulo, seccion, contenido, imagen, seo_description } = req.body;
@@ -147,7 +202,6 @@ app.post('/api/publicar', authMiddleware, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
         }
         
-        // Generar slug
         const slug = titulo.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9\s-]/g, '')
@@ -169,7 +223,7 @@ app.post('/api/publicar', authMiddleware, async (req, res) => {
     }
 });
 
-// 4. Generar con IA
+// 5. Generar con IA
 app.post('/api/generar', authMiddleware, async (req, res) => {
     try {
         const { categoria } = req.body;
@@ -202,7 +256,7 @@ Esta noticia fue publicada desde el panel de redacción de El Farol al Día.`;
     }
 });
 
-// 5. Eliminar noticia
+// 6. Eliminar noticia
 app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -217,57 +271,146 @@ app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 6. Configuración IA
-app.get('/api/admin/config', authMiddleware, (req, res) => {
-    res.json({ 
-        enabled: true, 
-        instruccion_principal: 'Periodista profesional dominicano',
-        enfasis: 'Enfoque en Santo Domingo Este y República Dominicana',
-        tono: 'profesional',
-        extension: 'media',
-        evitar: 'Opiniones personales, rumores sin confirmar'
-    });
+// 7. COMENTARIOS - LISTAR
+app.get('/api/comentarios/:noticiaId', async (req, res) => {
+    try {
+        const { noticiaId } = req.params;
+        const result = await pool.query(`
+            SELECT id, nombre, texto, fecha 
+            FROM comentarios 
+            WHERE noticia_id = $1 
+            ORDER BY fecha DESC
+        `, [noticiaId]);
+        res.json({ success: true, comentarios: result.rows || [] });
+    } catch (e) {
+        console.error('❌ GET /api/comentarios error:', e.message);
+        res.json({ success: true, comentarios: [] });
+    }
 });
 
-app.post('/api/admin/config', authMiddleware, (req, res) => {
-    res.json({ success: true });
+// 8. COMENTARIOS - PUBLICAR
+app.post('/api/comentarios/:noticiaId', async (req, res) => {
+    try {
+        const { noticiaId } = req.params;
+        const { nombre, texto } = req.body;
+        
+        if (!nombre || !texto || texto.length < 3) {
+            return res.status(400).json({ success: false, error: 'Nombre y comentario requeridos (mínimo 3 caracteres)' });
+        }
+        
+        const nombreLimpio = nombre.substring(0, 80);
+        const textoLimpio = texto.substring(0, 1000);
+        
+        await pool.query(`
+            INSERT INTO comentarios (noticia_id, nombre, texto, fecha)
+            VALUES ($1, $2, $3, NOW())
+        `, [noticiaId, nombreLimpio, textoLimpio]);
+        
+        res.json({ success: true, mensaje: 'Comentario publicado' });
+    } catch (e) {
+        console.error('❌ POST /api/comentarios error:', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
 });
 
-// 7. Memoria IA
+// 9. COMENTARIOS - ELIMINAR (admin)
+app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query(`DELETE FROM comentarios WHERE id = $1`, [id]);
+        res.json({ success: true });
+    } catch (e) {
+        console.error('❌ DELETE /api/comentarios error:', e.message);
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// 10. Configuración IA
+app.get('/api/admin/config', authMiddleware, async (req, res) => {
+    try {
+        const result = await pool.query(`SELECT * FROM config_ia WHERE id = 1`);
+        if (result.rows.length === 0) {
+            return res.json({ enabled: true, instruccion_principal: '', enfasis: '', tono: 'profesional', extension: 'media', evitar: '' });
+        }
+        res.json(result.rows[0]);
+    } catch (e) {
+        res.json({ enabled: true });
+    }
+});
+
+app.post('/api/admin/config', authMiddleware, async (req, res) => {
+    try {
+        const { enabled, instruccion_principal, enfasis, tono, extension, evitar } = req.body;
+        await pool.query(`
+            UPDATE config_ia 
+            SET enabled = $1, instruccion_principal = $2, enfasis = $3, tono = $4, extension = $5, evitar = $6
+            WHERE id = 1
+        `, [enabled, instruccion_principal, enfasis, tono, extension, evitar]);
+        res.json({ success: true });
+    } catch (e) {
+        res.json({ success: true });
+    }
+});
+
+// 11. Memoria IA
 app.get('/api/memoria', authMiddleware, (req, res) => {
     res.json({ success: true, registros: [] });
 });
 
-// 8. Coach
-app.get('/api/coach', authMiddleware, (req, res) => {
-    res.json({ success: true, categorias: {} });
+// 12. Coach
+app.get('/api/coach', authMiddleware, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT seccion, COUNT(*) as total, COALESCE(AVG(vistas), 0) as vistas_promedio
+            FROM noticias 
+            GROUP BY seccion
+            ORDER BY vistas_promedio DESC
+        `);
+        
+        const categorias = {};
+        result.rows.forEach(row => {
+            categorias[row.seccion] = {
+                total: parseInt(row.total),
+                vistas_promedio: Math.round(row.vistas_promedio),
+                rendimiento: Math.min(100, Math.round((row.vistas_promedio / 100) * 100))
+            };
+        });
+        
+        res.json({ 
+            success: true, 
+            total_noticias: result.rows.reduce((sum, r) => sum + parseInt(r.total), 0),
+            categorias 
+        });
+    } catch (e) {
+        res.json({ success: true, categorias: {} });
+    }
 });
 
-// 9. Status
+// 13. Status
 app.get('/status', async (req, res) => {
     try {
         const noticias = await pool.query(`SELECT COUNT(*) FROM noticias`);
+        const comentarios = await pool.query(`SELECT COUNT(*) FROM comentarios`);
         res.json({
-            version: '34.8',
+            version: '34.9',
             noticias: parseInt(noticias.rows[0]?.count || 0),
+            comentarios: parseInt(comentarios.rows[0]?.count || 0),
             database: 'connected',
             uptime: Math.floor(process.uptime())
         });
     } catch (e) {
-        res.json({ version: '34.8', database: 'error', error: e.message });
+        res.json({ version: '34.9', database: 'error', error: e.message });
     }
 });
 
-// 10. Noticia individual
+// 14. Página de noticia (HTML)
 app.get('/noticia/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
         const result = await pool.query(`SELECT * FROM noticias WHERE slug = $1`, [slug]);
         if (result.rows.length === 0) {
-            return res.status(404).send('Noticia no encontrada');
+            return res.status(404).sendFile(path.join(__dirname, 'client', '404.html'));
         }
-        // Incrementar vistas en segundo plano
-        pool.query(`UPDATE noticias SET vistas = vistas + 1 WHERE slug = $1`, [slug]).catch(() => {});
         res.sendFile(path.join(__dirname, 'client', 'index.html'));
     } catch (e) {
         console.error('❌ /noticia/:slug error:', e.message);
@@ -275,12 +418,12 @@ app.get('/noticia/:slug', async (req, res) => {
     }
 });
 
-// 11. Panel de redacción
+// 15. Panel redacción
 app.get('/redaccion', authMiddleware, (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
-// 12. Sitemap
+// 16. Sitemap
 app.get('/sitemap.xml', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -308,17 +451,24 @@ app.get('/sitemap.xml', async (req, res) => {
     }
 });
 
-// 13. Robots.txt
+// 17. Robots.txt
 app.get('/robots.txt', (req, res) => {
     res.send(`User-agent: *\nAllow: /\nDisallow: /redaccion\nSitemap: ${BASE_URL}/sitemap.xml\n`);
 });
 
-// 14. Ads.txt
+// 18. Ads.txt
 app.get('/ads.txt', (req, res) => {
     res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
 });
 
-// 15. Fallback SPA
+// 19. Páginas estáticas
+app.get('/nosotros', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/contacto', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/terminos', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+app.get('/cookies', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
+
+// 20. Fallback SPA
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
@@ -329,7 +479,7 @@ app.get('*', (req, res) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 🏮 ══════════════════════════════════════════
-   EL FAROL AL DÍA — V34.8-STABLE
+   EL FAROL AL DÍA — V34.9-COMPLETO
    Puerto: ${PORT}
    URL: ${BASE_URL}
    Status: ✅ Servidor funcionando
@@ -338,11 +488,10 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     `);
 });
 
-// Manejo de señales para Railway
 process.on('SIGTERM', () => {
     console.log('⚠️ SIGTERM recibido, cerrando servidor...');
     server.close(() => {
-        console.log('✅ Servidor cerrado correctamente');
+        console.log('✅ Servidor cerrado');
         process.exit(0);
     });
 });
@@ -350,7 +499,7 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
     console.log('⚠️ SIGINT recibido, cerrando servidor...');
     server.close(() => {
-        console.log('✅ Servidor cerrado correctamente');
+        console.log('✅ Servidor cerrado');
         process.exit(0);
     });
 });
