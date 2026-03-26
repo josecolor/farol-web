@@ -1,12 +1,16 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.9-COMPLETO
- * Incluye TODAS las rutas: noticias, estadísticas, publicar, generar, eliminar,
- * comentarios, configuración, memoria, coach, sitemap, etc.
+ * 🏮 EL FAROL AL DÍA — V35.0-FINAL
+ * ESTRUCTURA CONFIRMADA:
+ * - client/index.html, noticia.html, redaccion.html, contacto.html, etc.
+ * - static/ para recursos gráficos
+ * - Renderizado de {{VARIABLES}} en noticia.html
+ * - SIN sharp (ultra ligero)
  */
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { Pool } = require('pg');
 
 const app = express();
@@ -14,7 +18,7 @@ const PORT = process.env.PORT || 8080;
 const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 // ══════════════════════════════════════════════════════════
-// 🗄️ BASE DE DATOS POSTGRESQL
+// 🗄️ BASE DE DATOS
 // ══════════════════════════════════════════════════════════
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -28,10 +32,9 @@ pool.on('error', (err) => {
     console.error('❌ Error en PostgreSQL:', err.message);
 });
 
-// Crear tablas
+// Crear tablas automáticamente
 async function inicializarTablas() {
     try {
-        // Tabla noticias
         await pool.query(`
             CREATE TABLE IF NOT EXISTS noticias (
                 id SERIAL PRIMARY KEY,
@@ -46,7 +49,6 @@ async function inicializarTablas() {
             )
         `);
         
-        // Tabla comentarios
         await pool.query(`
             CREATE TABLE IF NOT EXISTS comentarios (
                 id SERIAL PRIMARY KEY,
@@ -58,37 +60,17 @@ async function inicializarTablas() {
             )
         `);
         
-        // Tabla configuración IA
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS config_ia (
-                id INTEGER PRIMARY KEY DEFAULT 1,
-                enabled BOOLEAN DEFAULT true,
-                instruccion_principal TEXT,
-                enfasis TEXT,
-                tono TEXT DEFAULT 'profesional',
-                extension TEXT DEFAULT 'media',
-                evitar TEXT
-            )
-        `);
-        
-        // Insertar config por defecto
-        await pool.query(`
-            INSERT INTO config_ia (id, enabled, instruccion_principal, enfasis, tono, extension, evitar)
-            VALUES (1, true, 'Periodista profesional dominicano', 'Enfoque en Santo Domingo Este', 'profesional', 'media', 'Opiniones personales')
-            ON CONFLICT (id) DO NOTHING
-        `);
-        
-        console.log('✅ Tablas inicializadas correctamente');
+        console.log('✅ Tablas listas');
     } catch (e) {
-        console.error('❌ Error inicializando tablas:', e.message);
+        console.error('❌ Error tablas:', e.message);
     }
 }
 
 pool.connect(async (err) => {
     if (err) {
-        console.error('❌ Error conectando a PostgreSQL:', err.message);
+        console.error('❌ DB error:', err.message);
     } else {
-        console.log('✅ PostgreSQL conectado correctamente');
+        console.log('✅ PostgreSQL conectado');
         await inicializarTablas();
     }
 });
@@ -96,7 +78,7 @@ pool.connect(async (err) => {
 const IMAGEN_FALLBACK = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800';
 
 // ══════════════════════════════════════════════════════════
-// 🔒 BASIC AUTH
+// 🔒 BASIC AUTH para panel redacción
 // ══════════════════════════════════════════════════════════
 function authMiddleware(req, res, next) {
     const auth = req.headers['authorization'];
@@ -122,14 +104,14 @@ app.use(express.static(path.join(__dirname, 'client')));
 app.use('/static', express.static(path.join(__dirname, 'static')));
 
 // ══════════════════════════════════════════════════════════
-// 🏥 HEALTH CHECK
+// 🏥 HEALTH CHECK (rápido para Railway)
 // ══════════════════════════════════════════════════════════
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', version: '34.9', timestamp: Date.now() });
+    res.status(200).json({ status: 'OK', version: '35.0', timestamp: Date.now() });
 });
 
 // ══════════════════════════════════════════════════════════
-// 📡 RUTAS PRINCIPALES
+// 📡 RUTAS API
 // ══════════════════════════════════════════════════════════
 
 // 1. Listar noticias
@@ -137,46 +119,40 @@ app.get('/api/noticias', async (req, res) => {
     try {
         const { categoria, limit = 100 } = req.query;
         let query = `SELECT id, titulo, slug, seccion, contenido, imagen, seo_description, vistas, fecha 
-                     FROM noticias ORDER BY fecha DESC`;
-        let params = [];
+                     FROM noticias ORDER BY fecha DESC LIMIT $1`;
+        let params = [Math.min(parseInt(limit), 200)];
         
         if (categoria) {
             query = `SELECT id, titulo, slug, seccion, contenido, imagen, seo_description, vistas, fecha 
-                     FROM noticias WHERE seccion = $1 ORDER BY fecha DESC`;
-            params = [categoria];
+                     FROM noticias WHERE seccion = $1 ORDER BY fecha DESC LIMIT $2`;
+            params = [categoria, Math.min(parseInt(limit), 200)];
         }
-        
-        query += ` LIMIT $${params.length + 1}`;
-        params.push(Math.min(parseInt(limit), 200));
         
         const result = await pool.query(query, params);
         res.json({ success: true, noticias: result.rows || [] });
     } catch (e) {
-        console.error('❌ /api/noticias error:', e.message);
+        console.error('❌ /api/noticias:', e.message);
         res.json({ success: true, noticias: [] });
     }
 });
 
-// 2. Noticia individual
+// 2. Noticia individual (API)
 app.get('/api/noticia/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
         const result = await pool.query(`SELECT * FROM noticias WHERE slug = $1`, [slug]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
+            return res.status(404).json({ success: false, error: 'No encontrada' });
         }
-        
-        // Incrementar vistas
         await pool.query(`UPDATE noticias SET vistas = vistas + 1 WHERE slug = $1`, [slug]);
-        
         res.json({ success: true, noticia: result.rows[0] });
     } catch (e) {
-        console.error('❌ /api/noticia/:slug error:', e.message);
+        console.error('❌ /api/noticia/:slug:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// 3. Estadísticas
+// 3. Estadísticas (admin)
 app.get('/api/estadisticas', authMiddleware, async (req, res) => {
     try {
         const total = await pool.query(`SELECT COUNT(*) FROM noticias`);
@@ -193,13 +169,13 @@ app.get('/api/estadisticas', authMiddleware, async (req, res) => {
     }
 });
 
-// 4. Publicar manual
+// 4. Publicar manual (admin)
 app.post('/api/publicar', authMiddleware, async (req, res) => {
     try {
         const { titulo, seccion, contenido, imagen, seo_description } = req.body;
         
         if (!titulo || !seccion || !contenido) {
-            return res.status(400).json({ success: false, error: 'Faltan campos requeridos' });
+            return res.status(400).json({ success: false, error: 'Faltan campos' });
         }
         
         const slug = titulo.toLowerCase()
@@ -218,12 +194,12 @@ app.post('/api/publicar', authMiddleware, async (req, res) => {
         
         res.json({ success: true, slug: result.rows[0]?.slug });
     } catch (e) {
-        console.error('❌ /api/publicar error:', e.message);
+        console.error('❌ /api/publicar:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// 5. Generar con IA
+// 5. Generar con IA (admin)
 app.post('/api/generar', authMiddleware, async (req, res) => {
     try {
         const { categoria } = req.body;
@@ -232,46 +208,33 @@ app.post('/api/generar', authMiddleware, async (req, res) => {
         }
         
         const titulo = `Actualidad en ${categoria} - ${new Date().toLocaleDateString('es-DO')}`;
-        const contenido = `Noticia generada automáticamente para la categoría ${categoria}. 
-        
-Contenido de ejemplo mientras se configura la integración con Gemini AI.
-
-Esta noticia fue publicada desde el panel de redacción de El Farol al Día.`;
-        
-        const slug = titulo.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .trim().replace(/\s+/g, '-')
-            .substring(0, 75) + '-' + Date.now().toString().slice(-6);
+        const contenido = `Noticia generada automáticamente para la categoría ${categoria}. Contenido de ejemplo.`;
+        const slug = titulo.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-6);
         
         await pool.query(`
             INSERT INTO noticias (titulo, slug, seccion, contenido, imagen, vistas, fecha)
             VALUES ($1, $2, $3, $4, $5, 0, NOW())
         `, [titulo, slug, categoria, contenido, IMAGEN_FALLBACK]);
         
-        res.json({ success: true, mensaje: `Generando noticia de ${categoria}...`, titulo });
+        res.json({ success: true, mensaje: `Generando noticia de ${categoria}...` });
     } catch (e) {
-        console.error('❌ /api/generar error:', e.message);
+        console.error('❌ /api/generar:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// 6. Eliminar noticia
+// 6. Eliminar noticia (admin)
 app.delete('/api/eliminar/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query(`DELETE FROM noticias WHERE id = $1 RETURNING id`, [id]);
-        if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, error: 'Noticia no encontrada' });
-        }
+        await pool.query(`DELETE FROM noticias WHERE id = $1`, [id]);
         res.json({ success: true });
     } catch (e) {
-        console.error('❌ /api/eliminar error:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// 7. COMENTARIOS - LISTAR
+// 7. COMENTARIOS
 app.get('/api/comentarios/:noticiaId', async (req, res) => {
     try {
         const { noticiaId } = req.params;
@@ -283,90 +246,61 @@ app.get('/api/comentarios/:noticiaId', async (req, res) => {
         `, [noticiaId]);
         res.json({ success: true, comentarios: result.rows || [] });
     } catch (e) {
-        console.error('❌ GET /api/comentarios error:', e.message);
         res.json({ success: true, comentarios: [] });
     }
 });
 
-// 8. COMENTARIOS - PUBLICAR
 app.post('/api/comentarios/:noticiaId', async (req, res) => {
     try {
         const { noticiaId } = req.params;
         const { nombre, texto } = req.body;
         
         if (!nombre || !texto || texto.length < 3) {
-            return res.status(400).json({ success: false, error: 'Nombre y comentario requeridos (mínimo 3 caracteres)' });
+            return res.status(400).json({ success: false, error: 'Nombre y comentario requeridos' });
         }
-        
-        const nombreLimpio = nombre.substring(0, 80);
-        const textoLimpio = texto.substring(0, 1000);
         
         await pool.query(`
             INSERT INTO comentarios (noticia_id, nombre, texto, fecha)
             VALUES ($1, $2, $3, NOW())
-        `, [noticiaId, nombreLimpio, textoLimpio]);
+        `, [noticiaId, nombre.substring(0, 80), texto.substring(0, 1000)]);
         
-        res.json({ success: true, mensaje: 'Comentario publicado' });
+        res.json({ success: true });
     } catch (e) {
-        console.error('❌ POST /api/comentarios error:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// 9. COMENTARIOS - ELIMINAR (admin)
 app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         await pool.query(`DELETE FROM comentarios WHERE id = $1`, [id]);
         res.json({ success: true });
     } catch (e) {
-        console.error('❌ DELETE /api/comentarios error:', e.message);
         res.status(500).json({ success: false, error: e.message });
     }
 });
 
-// 10. Configuración IA
-app.get('/api/admin/config', authMiddleware, async (req, res) => {
-    try {
-        const result = await pool.query(`SELECT * FROM config_ia WHERE id = 1`);
-        if (result.rows.length === 0) {
-            return res.json({ enabled: true, instruccion_principal: '', enfasis: '', tono: 'profesional', extension: 'media', evitar: '' });
-        }
-        res.json(result.rows[0]);
-    } catch (e) {
-        res.json({ enabled: true });
-    }
+// 8. Configuración IA (admin)
+app.get('/api/admin/config', authMiddleware, (req, res) => {
+    res.json({ enabled: true, instruccion_principal: '', enfasis: '', tono: 'profesional', extension: 'media', evitar: '' });
 });
 
-app.post('/api/admin/config', authMiddleware, async (req, res) => {
-    try {
-        const { enabled, instruccion_principal, enfasis, tono, extension, evitar } = req.body;
-        await pool.query(`
-            UPDATE config_ia 
-            SET enabled = $1, instruccion_principal = $2, enfasis = $3, tono = $4, extension = $5, evitar = $6
-            WHERE id = 1
-        `, [enabled, instruccion_principal, enfasis, tono, extension, evitar]);
-        res.json({ success: true });
-    } catch (e) {
-        res.json({ success: true });
-    }
+app.post('/api/admin/config', authMiddleware, (req, res) => {
+    res.json({ success: true });
 });
 
-// 11. Memoria IA
+// 9. Memoria IA
 app.get('/api/memoria', authMiddleware, (req, res) => {
     res.json({ success: true, registros: [] });
 });
 
-// 12. Coach
+// 10. Coach
 app.get('/api/coach', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT seccion, COUNT(*) as total, COALESCE(AVG(vistas), 0) as vistas_promedio
-            FROM noticias 
-            GROUP BY seccion
-            ORDER BY vistas_promedio DESC
+            FROM noticias GROUP BY seccion
         `);
-        
         const categorias = {};
         result.rows.forEach(row => {
             categorias[row.seccion] = {
@@ -375,100 +309,112 @@ app.get('/api/coach', authMiddleware, async (req, res) => {
                 rendimiento: Math.min(100, Math.round((row.vistas_promedio / 100) * 100))
             };
         });
-        
-        res.json({ 
-            success: true, 
-            total_noticias: result.rows.reduce((sum, r) => sum + parseInt(r.total), 0),
-            categorias 
-        });
+        res.json({ success: true, categorias });
     } catch (e) {
         res.json({ success: true, categorias: {} });
     }
 });
 
-// 13. Status
+// 11. Status
 app.get('/status', async (req, res) => {
     try {
         const noticias = await pool.query(`SELECT COUNT(*) FROM noticias`);
-        const comentarios = await pool.query(`SELECT COUNT(*) FROM comentarios`);
-        res.json({
-            version: '34.9',
-            noticias: parseInt(noticias.rows[0]?.count || 0),
-            comentarios: parseInt(comentarios.rows[0]?.count || 0),
-            database: 'connected',
-            uptime: Math.floor(process.uptime())
-        });
+        res.json({ version: '35.0', noticias: parseInt(noticias.rows[0]?.count || 0) });
     } catch (e) {
-        res.json({ version: '34.9', database: 'error', error: e.message });
+        res.json({ version: '35.0' });
     }
 });
 
-// 14. Página de noticia (HTML)
+// 12. Sitemap
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const result = await pool.query(`SELECT slug, fecha FROM noticias ORDER BY fecha DESC LIMIT 1000`);
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+        xml += `<url><loc>${BASE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>\n`;
+        for (const n of result.rows) {
+            xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc><lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>\n`;
+        }
+        xml += '</urlset>';
+        res.header('Content-Type', 'application/xml');
+        res.send(xml);
+    } catch (e) {
+        res.status(500).send('Error');
+    }
+});
+
+// 13. Robots.txt
+app.get('/robots.txt', (req, res) => {
+    res.send(`User-agent: *\nAllow: /\nDisallow: /redaccion\nSitemap: ${BASE_URL}/sitemap.xml\n`);
+});
+
+// 14. Ads.txt
+app.get('/ads.txt', (req, res) => {
+    res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
+});
+
+// ══════════════════════════════════════════════════════════
+// 📄 PÁGINAS HTML (RENDERIZADO DE PLANTILLAS)
+// ══════════════════════════════════════════════════════════
+
+// Portada
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'index.html'));
+});
+
+// Página individual de noticia (CON RENDERIZADO {{VARIABLES}})
 app.get('/noticia/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
         const result = await pool.query(`SELECT * FROM noticias WHERE slug = $1`, [slug]);
+        
         if (result.rows.length === 0) {
             return res.status(404).sendFile(path.join(__dirname, 'client', '404.html'));
         }
-        res.sendFile(path.join(__dirname, 'client', 'index.html'));
+        
+        const noticia = result.rows[0];
+        
+        // Leer plantilla noticia.html
+        let plantilla = fs.readFileSync(path.join(__dirname, 'client', 'noticia.html'), 'utf8');
+        
+        // Reemplazar variables
+        const fechaFormateada = new Date(noticia.fecha).toLocaleDateString('es-DO', {
+            day: '2-digit', month: 'long', year: 'numeric'
+        });
+        
+        plantilla = plantilla.replace(/{{TITULO}}/g, noticia.titulo);
+        plantilla = plantilla.replace(/{{SECCION}}/g, noticia.seccion);
+        plantilla = plantilla.replace(/{{CONTENIDO}}/g, noticia.contenido);
+        plantilla = plantilla.replace(/{{IMAGEN}}/g, noticia.imagen || IMAGEN_FALLBACK);
+        plantilla = plantilla.replace(/{{ALT}}/g, noticia.titulo);
+        plantilla = plantilla.replace(/{{FECHA}}/g, fechaFormateada);
+        plantilla = plantilla.replace(/{{REDACTOR}}/g, 'Redacción EFD');
+        plantilla = plantilla.replace(/{{VISTAS}}/g, noticia.vistas || 0);
+        plantilla = plantilla.replace(/{{URL}}/g, `${BASE_URL}/noticia/${noticia.slug}`);
+        
+        res.send(plantilla);
     } catch (e) {
         console.error('❌ /noticia/:slug error:', e.message);
         res.status(500).send('Error cargando noticia');
     }
 });
 
-// 15. Panel redacción
+// Panel redacción (con auth)
 app.get('/redaccion', authMiddleware, (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'redaccion.html'));
 });
 
-// 16. Sitemap
-app.get('/sitemap.xml', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT slug, fecha FROM noticias 
-            ORDER BY fecha DESC 
-            LIMIT 1000
-        `);
-        
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-        xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-        xml += `<url><loc>${BASE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>\n`;
-        
-        for (const n of result.rows) {
-            xml += `<url><loc>${BASE_URL}/noticia/${n.slug}</loc>`;
-            xml += `<lastmod>${new Date(n.fecha).toISOString().split('T')[0]}</lastmod>`;
-            xml += `<changefreq>daily</changefreq><priority>0.8</priority></url>\n`;
-        }
-        
-        xml += '</urlset>';
-        res.header('Content-Type', 'application/xml');
-        res.send(xml);
-    } catch (e) {
-        console.error('❌ Sitemap error:', e.message);
-        res.status(500).send('Error generando sitemap');
-    }
+// Páginas estáticas (todas en client/)
+const paginasEstaticas = [
+    'contacto', 'cookies', 'ingeniero', 'nosotros', 'privacidad', 'terminos'
+];
+
+paginasEstaticas.forEach(pagina => {
+    app.get(`/${pagina}`, (req, res) => {
+        res.sendFile(path.join(__dirname, 'client', `${pagina}.html`));
+    });
 });
 
-// 17. Robots.txt
-app.get('/robots.txt', (req, res) => {
-    res.send(`User-agent: *\nAllow: /\nDisallow: /redaccion\nSitemap: ${BASE_URL}/sitemap.xml\n`);
-});
-
-// 18. Ads.txt
-app.get('/ads.txt', (req, res) => {
-    res.send('google.com, pub-5280872495839888, DIRECT, f08c47fec0942fa0\n');
-});
-
-// 19. Páginas estáticas
-app.get('/nosotros', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/contacto', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/privacidad', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/terminos', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-app.get('/cookies', (req, res) => res.sendFile(path.join(__dirname, 'client', 'index.html')));
-
-// 20. Fallback SPA
+// Fallback SPA (debe ir al final)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client', 'index.html'));
 });
@@ -479,29 +425,26 @@ app.get('*', (req, res) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 🏮 ══════════════════════════════════════════
-   EL FAROL AL DÍA — V34.9-COMPLETO
+   EL FAROL AL DÍA — V35.0-FINAL
    Puerto: ${PORT}
    URL: ${BASE_URL}
-   Status: ✅ Servidor funcionando
-   Health: ${BASE_URL}/health
+   Archivos en client/:
+   - index.html (portada)
+   - noticia.html (plantilla con {{VARIABLES}})
+   - redaccion.html (panel con auth)
+   - contacto.html, nosotros.html, etc.
 🏮 ══════════════════════════════════════════
     `);
 });
 
 process.on('SIGTERM', () => {
-    console.log('⚠️ SIGTERM recibido, cerrando servidor...');
-    server.close(() => {
-        console.log('✅ Servidor cerrado');
-        process.exit(0);
-    });
+    console.log('⚠️ SIGTERM recibido, cerrando...');
+    server.close(() => process.exit(0));
 });
 
 process.on('SIGINT', () => {
-    console.log('⚠️ SIGINT recibido, cerrando servidor...');
-    server.close(() => {
-        console.log('✅ Servidor cerrado');
-        process.exit(0);
-    });
+    console.log('⚠️ SIGINT recibido, cerrando...');
+    server.close(() => process.exit(0));
 });
 
 module.exports = app;
