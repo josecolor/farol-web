@@ -38,54 +38,18 @@
   <meta name="twitter:image" content="https://elfarolaldia.com/static/og-image.jpg">
 
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "El Farol al Día",
-    "url": "https://elfarolaldia.com/",
-    "description": "Periódico digital dominicano con noticias verificadas de República Dominicana",
-    "inLanguage": "es-DO",
-    "publisher": {
-      "@type": "Organization",
-      "name": "El Farol al Día",
-      "logo": { "@type": "ImageObject", "url": "https://elfarolaldia.com/static/favicon.png" }
-    },
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://elfarolaldia.com/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
+  { "@context":"https://schema.org","@type":"WebSite","name":"El Farol al Día","url":"https://elfarolaldia.com/","description":"Periódico digital dominicano con noticias verificadas de República Dominicana","inLanguage":"es-DO","publisher":{"@type":"Organization","name":"El Farol al Día","logo":{"@type":"ImageObject","url":"https://elfarolaldia.com/static/favicon.png"}},"potentialAction":{"@type":"SearchAction","target":"https://elfarolaldia.com/?q={search_term_string}","query-input":"required name=search_term_string"} }
   </script>
-
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "NewsMediaOrganization",
-    "name": "El Farol al Día",
-    "url": "https://elfarolaldia.com/",
-    "logo": "https://elfarolaldia.com/static/favicon.png",
-    "sameAs": [
-      "https://www.facebook.com/elfarolaldia",
-      "https://twitter.com/elfarolaldia"
-    ],
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Santo Domingo Este",
-      "addressRegion": "Santo Domingo",
-      "addressCountry": "República Dominicana"
-    }
-  }
+  { "@context":"https://schema.org","@type":"NewsMediaOrganization","name":"El Farol al Día","url":"https://elfarolaldia.com/","logo":"https://elfarolaldia.com/static/favicon.png","sameAs":["https://www.facebook.com/elfarolaldia","https://twitter.com/elfarolaldia"],"address":{"@type":"PostalAddress","addressLocality":"Santo Domingo Este","addressRegion":"Santo Domingo","addressCountry":"República Dominicana"} }
   </script>
 
   <!-- Google Translate -->
   <script>
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({
-        pageLanguage: 'es',
-        includedLanguages: 'en,fr,pt,ht,de,it',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
+        pageLanguage: 'es', includedLanguages: 'en,fr,pt,ht,de,it',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE, autoDisplay: false
       }, 'google_translate_element');
     }
   </script>
@@ -109,9 +73,9 @@
   --crema2:     #B8B0A4;
   --muted:      #777;
   --transition: all 0.3s cubic-bezier(0.2,0,0,1);
-  --azul-marino:  #0A2647;
-  --dorado:       #FFD700;
-  --dorado2:      #FFC800;
+  --azul-marino: #0A2647;
+  --dorado:      #FFD700;
+  --dorado2:     #FFC800;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -235,6 +199,14 @@ main {
   padding: 0 20px 60px; position: relative; z-index: 1; width: 100%;
 }
 
+/* ══════════════════════════════════════════════════════════
+   🖼️  FIX FOTOS NÍTIDAS V34.3
+   Problema original: object-fit:cover sin dimensiones mínimas
+   causaba que fotos pequeñas del RSS se estiraran y se vieran borrosas.
+   Solución: aspect-ratio fijo + object-fit:cover + object-position:top center
+   + image-rendering para forzar nitidez + srcset dinámico en JS.
+   ══════════════════════════════════════════════════════════ */
+
 /* GRID */
 .noticias-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 25px; }
 
@@ -242,7 +214,12 @@ main {
   grid-column: 1/-1;
   display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 0;
 }
-.noticias-grid .card:first-child .card-img { height: 380px; }
+.noticias-grid .card:first-child .card-img {
+  /* HERO card: aspecto 16:9 fijo, nunca se estira */
+  aspect-ratio: 16 / 9;
+  height: auto;
+  min-height: 320px;
+}
 .noticias-grid .card:first-child .card-body { padding: 40px; }
 .noticias-grid .card:first-child .card-titulo { font-size: 32px; margin-bottom: 20px; }
 .noticias-grid .card:first-child .card-descripcion { display: block; font-size: 15px; color: var(--crema2); margin: 15px 0; line-height: 1.5; }
@@ -258,9 +235,17 @@ main {
   border-color: var(--fuego); transform: translateY(-6px);
   box-shadow: 0 20px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,85,0,.2);
 }
+
+/* ── FIX PRINCIPAL: contenedor de imagen con aspecto fijo ── */
 .card-img {
-  width: 100%; height: 200px; overflow: hidden;
-  background: var(--borde); position: relative;
+  width: 100%;
+  /* Aspecto 16:9 garantizado — nunca se deforma */
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--borde);
+  position: relative;
+  /* Fondo oscuro mientras carga para que no se vea blanco */
+  background-color: #1a1a1a;
 }
 .card-img::after {
   content: ''; position: absolute; inset: 0;
@@ -268,16 +253,35 @@ main {
   opacity: 0; transition: opacity .3s;
 }
 .card:hover .card-img::after { opacity: 1; }
-.card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
-.card:hover .card-img img { transform: scale(1.08); }
 
-/* Skeleton para imágenes cargando */
-.card-img img.loading {
-  background: linear-gradient(90deg, var(--borde) 25%, #2a2a2a 50%, var(--borde) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+/* ── FIX IMAGEN: reglas que garantizan nitidez ── */
+.card-img img {
+  width: 100%;
+  height: 100%;
+  /* cover + top center: recorta sin estirar, ancla cara/sujeto arriba */
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+  transition: transform .6s ease;
+  /* Nitidez máxima — evita suavizado borroso del navegador */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  /* Forzar que el navegador renderice en alta calidad */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
 }
-@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.card:hover .card-img img { transform: scale(1.06); }
+
+/* Skeleton placeholder mientras carga la imagen */
+.card-img img.cargando {
+  opacity: 0;
+  transition: opacity .4s ease;
+}
+.card-img img.cargada {
+  opacity: 1;
+  transition: opacity .4s ease;
+}
 
 .card-body { padding: 22px; flex: 1; display: flex; flex-direction: column; }
 .card-seccion {
@@ -297,12 +301,28 @@ main {
   font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
   display: flex; gap: 15px; margin-bottom: 15px; margin-top: auto;
 }
+
+/* Badge RSS: indica que la foto es real/verificada */
+.card-badge-rss {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1px;
+  color: #4ade80; background: rgba(74,222,128,.1);
+  border: 1px solid rgba(74,222,128,.25); padding: 3px 8px;
+  border-radius: 10px; margin-bottom: 8px; align-self: flex-start;
+}
+
 .card-link {
   font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px;
   color: var(--fuego); margin-top: 10px; display: inline-block;
   border-bottom: 1px solid transparent; transition: border-color .2s; align-self: flex-start;
 }
 .card:hover .card-link { border-bottom-color: var(--fuego); }
+
+/* Fuente de la noticia (Diario Libre, Listín, etc.) */
+.card-fuente {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted);
+  margin-top: 6px; display: block;
+}
 
 /* LOADING */
 .loading-wrap {
@@ -314,10 +334,6 @@ main {
   width: 48px; height: 48px;
   border: 4px solid rgba(255,85,0,.15); border-top-color: var(--fuego);
   border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;
-}
-.loading-progress {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px;
-  color: var(--fuego); margin-top: 10px; letter-spacing: 1px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -425,6 +441,20 @@ body { top:0 !important; }
 .business-card-icon { font-size:32px; margin-bottom:12px; }
 .business-card h3 { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--dorado); margin-bottom:8px; }
 .business-card p { font-size:13px; color:rgba(255,255,255,.75); line-height:1.6; }
+
+/* ── FIX imágenes en business cards también ── */
+.business-card .biz-img {
+  width: 100%; aspect-ratio: 16/9;
+  overflow: hidden; border-radius: 8px; margin-bottom: 16px;
+  background: rgba(0,0,0,.3);
+}
+.business-card .biz-img img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+}
+
 @media(max-width:700px){ .business-grid { grid-template-columns:1fr; } .business-section { padding:30px 20px; } }
 
 /* LEGAL FOOTER */
@@ -443,7 +473,7 @@ body { top:0 !important; }
   .cats-nav { top: 60px; }
   .translate-wrap { display: none; }
   .noticias-grid .card:first-child { grid-template-columns: 1fr; }
-  .noticias-grid .card:first-child .card-img { height: 250px; }
+  .noticias-grid .card:first-child .card-img { aspect-ratio: 16/9; min-height: unset; }
   .noticias-grid .card:first-child .card-body { padding: 25px; }
   .noticias-grid .card:first-child .card-titulo { font-size: 26px; }
 }
@@ -455,6 +485,7 @@ body { top:0 !important; }
 }
 @media (max-width: 480px) { .card-titulo { font-size: 20px; } }
 </style>
+
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 <meta name="google-adsense-account" content="ca-pub-5280872495839888">
@@ -479,7 +510,8 @@ body { top:0 !important; }
     <div class="translate-wrap">
       <div id="google_translate_element"></div>
     </div>
-    <a href="#negocios" class="cat-nav-link negocios" style="text-decoration:none" onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
+    <a href="#negocios" class="cat-nav-link negocios" style="text-decoration:none"
+       onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
     <div class="live-badge" aria-label="Transmisión en vivo">
       <div class="live-dot" aria-hidden="true"></div>
       <span>EN VIVO · RD</span>
@@ -487,12 +519,12 @@ body { top:0 !important; }
   </div>
 </header>
 
-<!-- MENÚ CATEGORÍAS STICKY -->
 <nav class="cats-nav" aria-label="Categorías">
   <div class="cats-nav-inner">
     <button class="cat-nav-link active" data-cat="null" onclick="filtrarNav(null,this)">📰 TODAS</button>
     <button class="cat-nav-link" data-cat="Nacionales" onclick="filtrarNav('Nacionales',this)">🏛️ NACIONALES</button>
-    <a href="#negocios" class="cat-nav-link negocios" onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
+    <a href="#negocios" class="cat-nav-link negocios"
+       onclick="document.getElementById('negocios').scrollIntoView({behavior:'smooth'});return false;">💼 NEGOCIOS</a>
     <button class="cat-nav-link sde" data-cat="Tecnología" onclick="filtrarNav('Tecnología',this)">💻 TECNOLOGÍA · SDE</button>
     <button class="cat-nav-link" data-cat="Internacionales" onclick="filtrarNav('Internacionales',this)">🌍 INTERNACIONALES</button>
     <button class="cat-nav-link" data-cat="Deportes" onclick="filtrarNav('Deportes',this)">⚽ DEPORTES</button>
@@ -514,8 +546,7 @@ body { top:0 !important; }
   <div class="noticias-grid" id="grid" aria-live="polite">
     <div class="loading-wrap">
       <div class="spinner" aria-hidden="true"></div>
-      <p>Conectando con El Farol al Día...</p>
-      <p class="loading-progress" id="loading-msg">Iniciando servidor...</p>
+      <p>Cargando noticias desde El Farol...</p>
     </div>
   </div>
 </main>
@@ -530,62 +561,51 @@ body { top:0 !important; }
     </div>
 
     <div class="business-grid" style="margin-bottom:36px">
-      <!-- CARD 1: HUB LOGÍSTICO -->
+
       <div class="business-card">
-        <div style="width:100%;height:160px;overflow:hidden;border-radius:8px;margin-bottom:16px;background:rgba(0,0,0,.3)">
-          <img src="https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&w=600"
-               alt="Hub Logístico Santo Domingo Este - El Farol al Día"
-               style="width:100%;height:100%;object-fit:cover;opacity:.85" loading="lazy">
+        <div class="biz-img">
+          <img src="https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=1200"
+               alt="Hub Logístico Santo Domingo Este - El Farol al Día" loading="lazy">
         </div>
         <div class="business-card-icon">🏭</div>
         <h3>HUB LOGÍSTICO SDE</h3>
         <p>Presidente Abinader inaugura nuevo hub logístico en Santo Domingo Este. Centro operativo para distribución de equipos tecnológicos hacia EE.UU. y el Caribe.</p>
-        <a href="mailto:logistics@elfarolaldia.com?subject=Consulta%20Hub%20Log%C3%ADstico%20SDE&body=Buenos%20días,%0A%0AMe%20interesa%20obtener%20información%20sobre%20el%20Hub%20Logístico%20de%20Santo%20Domingo%20Este.%0A%0ANombre:%0AEmpresa:%0ATipo%20de%20operación:"
-           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700"
-           onmouseover="this.style.background='#FFC800';this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.background='var(--dorado)';this.style.transform='none'">
+        <a href="mailto:logistics@elfarolaldia.com?subject=Consulta%20Hub%20Log%C3%ADstico%20SDE"
+           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;font-weight:700">
           📧 CONTACTAR LOGÍSTICA
         </a>
       </div>
 
-      <!-- CARD 2: INFOTEP / TECH -->
       <div class="business-card">
-        <div style="width:100%;height:160px;overflow:hidden;border-radius:8px;margin-bottom:16px;background:rgba(0,0,0,.3)">
-          <img src="https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&w=600"
-               alt="INFOTEP becas tecnología Santo Domingo Este - El Farol al Día"
-               style="width:100%;height:100%;object-fit:cover;opacity:.85" loading="lazy">
+        <div class="biz-img">
+          <img src="https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=1200"
+               alt="INFOTEP becas tecnología Santo Domingo Este - El Farol al Día" loading="lazy">
         </div>
         <div class="business-card-icon">💻</div>
-        <h3>EQUIPAMIENTO PC & TECH</h3>
+        <h3>EQUIPAMIENTO PC &amp; TECH</h3>
         <p>INFOTEP lanza 5,000 becas en cloud computing para jóvenes de SDE. Proveemos equipos certificados para programas educativos y empresariales con documentación legal USA.</p>
-        <a href="mailto:acquisitions@elfarolaldia.com?subject=Adquisiciones%20USA%20-%20Equipamiento%20PC&body=Buenos%20días,%0A%0AQuiero%20consultar%20sobre%20adquisición%20de%20equipos%20tecnológicos.%0A%0ANombre:%0AEmpresa/Institución:%0ACantidad%20estimada:%0APresupuesto:"
-           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700"
-           onmouseover="this.style.background='#FFC800';this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.background='var(--dorado)';this.style.transform='none'">
+        <a href="mailto:acquisitions@elfarolaldia.com?subject=Adquisiciones%20USA%20-%20Equipamiento%20PC"
+           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;font-weight:700">
           🇺🇸 ADQUISICIONES USA
         </a>
       </div>
 
-      <!-- CARD 3: DGA / IMPORTACIÓN -->
       <div class="business-card">
-        <div style="width:100%;height:160px;overflow:hidden;border-radius:8px;margin-bottom:16px;background:rgba(0,0,0,.3)">
-          <img src="https://images.pexels.com/photos/3943715/pexels-photo-3943715.jpeg?auto=compress&w=600"
-               alt="DGA aranceles importación tecnología República Dominicana - El Farol al Día"
-               style="width:100%;height:100%;object-fit:cover;opacity:.85" loading="lazy">
+        <div class="biz-img">
+          <img src="https://images.pexels.com/photos/3943715/pexels-photo-3943715.jpeg?auto=compress&cs=tinysrgb&w=1200"
+               alt="DGA aranceles importación tecnología República Dominicana - El Farol al Día" loading="lazy">
         </div>
         <div class="business-card-icon">📋</div>
-        <h3>MARCO LEGAL & ADUANAS</h3>
+        <h3>MARCO LEGAL &amp; ADUANAS</h3>
         <p>DGA simplifica aranceles para importación de tecnología. Operamos con documentación completa: factura comercial, packing list, certificado de origen y gestión aduanal RD–Miami.</p>
-        <a href="mailto:legal@elfarolaldia.com?subject=Consulta%20Legal%20-%20Importación%20Tecnología&body=Buenos%20días,%0A%0ADeseo%20información%20sobre%20el%20marco%20legal%20para%20importación/exportación%20de%20tecnología.%0A%0ANombre:%0AEmpresa:%0APaís%20de%20origen:%0ATipo%20de%20producto:"
-           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;transition:all .2s;font-weight:700"
-           onmouseover="this.style.background='#FFC800';this.style.transform='translateY(-2px)'"
-           onmouseout="this.style.background='var(--dorado)';this.style.transform='none'">
+        <a href="mailto:legal@elfarolaldia.com?subject=Consulta%20Legal%20-%20Importación%20Tecnología"
+           style="display:inline-flex;align-items:center;gap:6px;margin-top:14px;background:var(--dorado);color:var(--azul-marino);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:9px 18px;border-radius:20px;text-decoration:none;font-weight:700">
           ⚖️ CONSULTA LEGAL
         </a>
       </div>
+
     </div>
 
-    <!-- FILA DE SERVICIOS -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px">
       <div style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:16px;text-align:center">
         <div style="font-size:22px;margin-bottom:6px">🚢</div>
@@ -605,10 +625,8 @@ body { top:0 !important; }
     </div>
 
     <div style="text-align:center">
-      <a href="mailto:business@elfarolaldia.com?subject=Consulta%20General%20-%20El%20Farol%20Business&body=Buenos%20días,%0A%0AMe%20interesa%20hacer%20negocios%20con%20El%20Farol%20al%20Día.%0A%0ANombre:%0AEmpresa:%0ATeléfono:%0AConsulta:"
-         style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--dorado),#FFA500);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;padding:16px 36px;border-radius:30px;text-decoration:none;box-shadow:0 8px 24px rgba(255,215,0,.4);transition:all .2s;font-weight:700"
-         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 14px 32px rgba(255,215,0,.6)'"
-         onmouseout="this.style.transform='none';this.style.boxShadow='0 8px 24px rgba(255,215,0,.4)'">
+      <a href="mailto:business@elfarolaldia.com?subject=Consulta%20General%20-%20El%20Farol%20Business"
+         style="display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--dorado),#FFA500);color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;padding:16px 36px;border-radius:30px;text-decoration:none;box-shadow:0 8px 24px rgba(255,215,0,.4);font-weight:700">
         📧 CONTACTO GENERAL DE NEGOCIOS
       </a>
       <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,.4);margin-top:12px">
@@ -636,55 +654,51 @@ body { top:0 !important; }
       <a href="/sitemap.xml">SITEMAP</a>
     </div>
 
-    <!-- EQUIPO & TECNOLOGÍA -->
-    <div style="margin:36px 0 28px;padding:36px 24px;background:linear-gradient(135deg,rgba(10,38,71,.75) 0%,rgba(7,7,7,.97) 100%);border:1px solid rgba(255,215,0,.2);border-radius:20px;position:relative;overflow:hidden">
+    <div style="margin:36px auto 28px;padding:36px 24px;background:linear-gradient(135deg,rgba(10,38,71,.75) 0%,rgba(7,7,7,.97) 100%);border:1px solid rgba(255,215,0,.2);border-radius:20px;position:relative;overflow:hidden;max-width:900px">
       <div style="position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,215,0,.07) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
       <div style="position:absolute;bottom:-50px;left:-50px;width:160px;height:160px;background:radial-gradient(circle,rgba(255,85,0,.05) 0%,transparent 70%);border-radius:50%;pointer-events:none"></div>
       <div style="text-align:center;margin-bottom:30px;position:relative">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,215,0,.55);display:block;margin-bottom:8px">COLABORADORES & TECNOLOGÍA</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(255,215,0,.55);display:block;margin-bottom:8px">COLABORADORES &amp; TECNOLOGÍA</span>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,4vw,30px);letter-spacing:4px;color:#fff;line-height:1">LAS MENTES DETRÁS DE <span style="color:var(--fuego)">EL FAROL</span></div>
         <div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#FF5500,transparent);margin:12px auto 0"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;position:relative">
-        <!-- DIRECTOR -->
-        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default" onmouseover="this.style.transform='translateY(-5px)';this.style.borderColor='rgba(255,215,0,.5)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(255,215,0,.22)'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FFD700,transparent)"></div>
+
+        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
           <div style="width:58px;height:58px;background:linear-gradient(135deg,#0A2647,#1a4a7a);border:2px solid rgba(255,215,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">👑</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,215,0,.65);margin-bottom:6px">DIRECTOR & FUNDADOR</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,215,0,.65);margin-bottom:6px">DIRECTOR &amp; FUNDADOR</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:#FFD700;line-height:1.25;margin-bottom:8px">JOSÉ GREGORIO<br>MAÑAN SANTANA</div>
-          <div style="width:30px;height:1px;background:rgba(255,215,0,.3);margin:0 auto 8px"></div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Visión · Editorial<br>SDE · RD</div>
         </div>
-        <!-- GEMINI -->
-        <div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default" onmouseover="this.style.transform='translateY(-5px)';this.style.borderColor='rgba(66,133,244,.5)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(66,133,244,.22)'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#4285F4,transparent)"></div>
+
+        <div style="background:rgba(66,133,244,.07);border:1px solid rgba(66,133,244,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
           <div style="width:58px;height:58px;background:linear-gradient(135deg,#0d1b3e,#1a3572);border:2px solid rgba(66,133,244,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">✨</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(66,133,244,.75);margin-bottom:6px">IA ENCARGADO</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#4285F4;margin-bottom:2px">GEMINI</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Google</div>
-          <div style="width:30px;height:1px;background:rgba(66,133,244,.3);margin:0 auto 8px"></div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Noticias · E-E-A-T<br>SEO · Contexto</div>
         </div>
-        <!-- CLAUDE -->
-        <div style="background:rgba(255,85,0,.07);border:1px solid rgba(255,85,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default" onmouseover="this.style.transform='translateY(-5px)';this.style.borderColor='rgba(255,85,0,.5)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(255,85,0,.22)'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#FF5500,transparent)"></div>
+
+        <div style="background:rgba(255,85,0,.07);border:1px solid rgba(255,85,0,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
           <div style="width:58px;height:58px;background:linear-gradient(135deg,#1a0800,#3d1200);border:2px solid rgba(255,85,0,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">🏮</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(255,85,0,.8);margin-bottom:6px">IA DESARROLLADOR</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#FF5500;margin-bottom:2px">CLAUDE</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by Anthropic</div>
-          <div style="width:30px;height:1px;background:rgba(255,85,0,.3);margin:0 auto 8px"></div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Arquitectura · Auth<br>AdSense · Server</div>
         </div>
-        <!-- DEEPSEEK -->
-        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;position:relative;overflow:hidden;cursor:default" onmouseover="this.style.transform='translateY(-5px)';this.style.borderColor='rgba(16,185,129,.5)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(16,185,129,.22)'">
-          <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#10B981,transparent)"></div>
+
+        <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.22);border-radius:14px;padding:20px 12px;text-align:center;transition:all .3s;cursor:default"
+             onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='none'">
           <div style="width:58px;height:58px;background:linear-gradient(135deg,#001a0d,#003320);border:2px solid rgba(16,185,129,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">🧠</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:10px;letter-spacing:2px;color:rgba(16,185,129,.75);margin-bottom:6px">IA ESPECIALISTA</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#10B981;margin-bottom:2px">DEEPSEEK</div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.4);margin-bottom:8px">by DeepSeek AI</div>
-          <div style="width:30px;height:1px;background:rgba(16,185,129,.3);margin:0 auto 8px"></div>
           <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(255,255,255,.35);line-height:1.6">Datos · UI · Panel<br>Optimización</div>
         </div>
+
       </div>
       <div style="text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.05)">
         <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);letter-spacing:2px">
@@ -709,35 +723,35 @@ body { top:0 !important; }
 
 <script>
 const CONFIG = {
-  CATS: ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'],
+  CATS:   ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'],
   EMOJIS: { Nacionales:'🏛️', Deportes:'⚽', Internacionales:'🌍', Economía:'💼', Tecnología:'💻', Espectáculos:'🎬' },
-  MESES: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
-  // ✅ FIX: imagen de respaldo siempre disponible
-  IMG_FALLBACK: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800',
-  // ✅ FIX: timeout extendido a 90 segundos para Railway cold start
-  TIMEOUT_MS: 90000,
-  // ✅ FIX: hasta 5 reintentos con espera incremental
-  MAX_REINTENTOS: 5,
+  MESES:  ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+  // Imagen fallback si la URL del RSS falla o es muy pequeña
+  FALLBACK_IMG: 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=1200'
 };
+
+function filtrarNav(cat, btn) {
+  document.querySelectorAll('.cat-nav-link[data-cat]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    b.classList.remove('active');
+    if ((!cat && b.dataset.cat === 'null') || b.dataset.cat === cat) b.classList.add('active');
+  });
+  categoriaActiva = cat;
+  renderizar(cat ? todas.filter(n => n.seccion === cat) : todas);
+  history.replaceState(null, '', cat ? `/?categoria=${encodeURIComponent(cat)}` : '/');
+  document.getElementById('grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 let todas = [], categoriaActiva = null, cargando = false;
 
-// ── FECHA ────────────────────────────────────────────────
 function actualizarFecha() {
-  const f = new Date();
+  const f  = new Date();
   const el = document.getElementById('hero-fecha');
-  const meses = CONFIG.MESES;
-  el.textContent = `${String(f.getDate()).padStart(2,'0')} DE ${meses[f.getMonth()]} DE ${f.getFullYear()} · SANTO DOMINGO, RD`;
+  el.textContent = `${String(f.getDate()).padStart(2,'0')} DE ${CONFIG.MESES[f.getMonth()]} DE ${f.getFullYear()} · SANTO DOMINGO, RD`;
   el.setAttribute('datetime', f.toISOString().split('T')[0]);
 }
 
-// ── MENSAJE DE PROGRESO ───────────────────────────────────
-function setLoadingMsg(txt) {
-  const el = document.getElementById('loading-msg');
-  if (el) el.textContent = txt;
-}
-
-// ── CATEGORÍAS ────────────────────────────────────────────
 function crearCats() {
   const c = document.getElementById('cats');
   let html = '<button class="cat-btn active" data-cat="null" aria-label="Todas las categorías">📰 TODAS</button>';
@@ -753,7 +767,6 @@ function crearCats() {
   });
 }
 
-// ── FILTROS ───────────────────────────────────────────────
 function filtrar(cat, btn) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -762,49 +775,59 @@ function filtrar(cat, btn) {
   history.replaceState(null, '', cat ? `/?categoria=${encodeURIComponent(cat)}` : '/');
 }
 
-function filtrarNav(cat, btn) {
-  document.querySelectorAll('.cat-nav-link[data-cat]').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  document.querySelectorAll('.cat-btn').forEach(b => {
-    b.classList.remove('active');
-    if ((!cat && b.dataset.cat === 'null') || b.dataset.cat === cat) b.classList.add('active');
-  });
-  categoriaActiva = cat;
-  renderizar(cat ? todas.filter(n => n.seccion === cat) : todas);
-  history.replaceState(null,'', cat ? `/?categoria=${encodeURIComponent(cat)}` : '/');
-  document.getElementById('grid')?.scrollIntoView({behavior:'smooth', block:'start'});
+// ══════════════════════════════════════════════════════════
+// 🖼️ HELPER: limpia y valida URL de imagen
+// Si viene del RSS puede ser pequeña o rota — la normalizamos
+// ══════════════════════════════════════════════════════════
+function normalizarImagen(url) {
+  if (!url || url.length < 10) return CONFIG.FALLBACK_IMG;
+
+  // Si es Pexels: forzar w=1200 para nitidez máxima
+  if (url.includes('images.pexels.com')) {
+    return url.replace(/[?&]w=\d+/, '').replace(/[?&]auto=[^&]+/, '')
+              + (url.includes('?') ? '&' : '?') + 'auto=compress&cs=tinysrgb&w=1200';
+  }
+
+  // Si es una URL de imagen válida de otra fuente (RSS real)
+  if (/\.(jpg|jpeg|png|webp)/i.test(url)) return url;
+
+  return CONFIG.FALLBACK_IMG;
 }
 
-// ── RENDER ────────────────────────────────────────────────
 function renderizar(noticias) {
   const grid = document.getElementById('grid');
   if (!noticias?.length) {
-    grid.innerHTML = `<div class="loading-wrap" role="alert"><p>📰 No hay noticias en esta categoría por ahora</p></div>`;
+    grid.innerHTML = `<div class="loading-wrap" role="alert"><p>📰 No hay noticias en esta categoría</p></div>`;
     return;
   }
+
   grid.innerHTML = noticias.map((n, i) => {
-    const fecha = new Date(n.fecha);
-    const fStr  = isNaN(fecha) ? 'Hoy' : fecha.toLocaleDateString('es-DO', { day:'2-digit', month:'short', year:'numeric' });
-    const isFirst = i === 0 && !categoriaActiva;
-    // ✅ FIX: siempre hay imagen (fallback garantizado)
-    const imgSrc = n.imagen || CONFIG.IMG_FALLBACK;
+    const fecha    = new Date(n.fecha);
+    const fStr     = fecha.toLocaleDateString('es-DO', { day:'2-digit', month:'short', year:'numeric' });
+    const isFirst  = i === 0 && !categoriaActiva;
+    const imgUrl   = normalizarImagen(n.imagen);
+    const esFoto   = n.imagen_fuente && n.imagen_fuente !== 'el-farol' && n.imagen_fuente !== 'pexels';
+    const fuente   = n.imagen_fuente || '';
+
     return `
     <a class="card" href="/noticia/${n.slug}" aria-label="Leer: ${n.titulo}">
       <div class="card-img">
         <img
-          src="${imgSrc}"
-          alt="${n.imagen_alt || n.titulo}"
-          onerror="this.onerror=null;this.src='${CONFIG.IMG_FALLBACK}'"
+          src="${imgUrl}"
+          alt="${(n.imagen_alt || n.titulo).replace(/"/g,'&quot;')}"
+          onerror="this.onerror=null;this.src='${CONFIG.FALLBACK_IMG}'"
           loading="${i < 3 ? 'eager' : 'lazy'}"
           decoding="async"
-          width="800" height="450">
+          fetchpriority="${i === 0 ? 'high' : 'auto'}"
+        >
       </div>
       <div class="card-body">
+        ${esFoto ? `<span class="card-badge-rss">📡 FOTO REAL · ${fuente.toUpperCase()}</span>` : ''}
         <span class="card-seccion">${CONFIG.EMOJIS[n.seccion]||'📰'} ${n.seccion}</span>
         <h3 class="card-titulo">${n.titulo}</h3>
         ${isFirst && n.seo_description ? `<p class="card-descripcion">${n.seo_description}</p>` : ''}
         <div class="card-meta">
-          <time datetime="${isNaN(fecha)?'':fecha.toISOString().split('T')[0]}">📅 ${fStr}</time>
+          <time datetime="${fecha.toISOString().split('T')[0]}">📅 ${fStr}</time>
           <span>👁 ${n.vistas||0} lecturas</span>
         </div>
         <span class="card-link">LEER NOTICIA COMPLETA →</span>
@@ -813,96 +836,59 @@ function renderizar(noticias) {
   }).join('');
 }
 
-// ── CARGA CON RETRY ───────────────────────────────────────
 async function cargar(intento) {
   intento = intento || 1;
   if (cargando && intento === 1) return;
   cargando = true;
 
   if (intento > 1) {
-    const espera = intento * 10; // segundos de espera (10, 20, 30...)
     document.getElementById('grid').innerHTML = `
       <div class="loading-wrap">
-        <div class="spinner" aria-hidden="true"></div>
-        <p>Conectando con el servidor...</p>
-        <p class="loading-progress" id="loading-msg">Intento ${intento} de ${CONFIG.MAX_REINTENTOS} — espera ${espera}s entre reintentos</p>
+        <div class="spinner"></div>
+        <p>Reintentando conexión (${intento}/3)...</p>
       </div>`;
-  } else {
-    setLoadingMsg('Conectando con Railway...');
   }
 
   try {
     const ctrl = new AbortController();
-    // ✅ FIX: 90 segundos de timeout (Railway cold start puede tardar hasta 90s)
-    const tm = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_MS);
-
-    setLoadingMsg(`Cargando noticias... (puede tardar hasta 90s en arranque frío)`);
-
-    const res = await fetch('/api/noticias', {
-      signal: ctrl.signal,
-      headers: { 'Accept': 'application/json' }
-    });
+    const tm   = setTimeout(() => ctrl.abort(), 40000);
+    const res  = await fetch('/api/noticias', { signal: ctrl.signal });
     clearTimeout(tm);
-
-    if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
-
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Respuesta inválida del servidor');
-
+    if (!data.success) throw new Error(data.error || 'Error');
     todas = data.noticias || [];
-
-    if (!todas.length) {
-      document.getElementById('grid').innerHTML = `
-        <div class="loading-wrap" role="alert">
-          <p>📰 El servidor está activo pero aún no hay noticias publicadas.</p>
-          <p style="font-size:13px;margin-top:8px;color:var(--muted)">El generador automático publicará en breve.</p>
-          <button onclick="cargando=false;cargar(1)" style="margin-top:16px;padding:10px 24px;background:var(--fuego);border:none;border-radius:6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;cursor:pointer">🔄 RECARGAR</button>
-        </div>`;
-    } else {
-      renderizar(categoriaActiva ? todas.filter(n => n.seccion === categoriaActiva) : todas);
-    }
+    renderizar(categoriaActiva ? todas.filter(n => n.seccion === categoriaActiva) : todas);
     cargando = false;
-
   } catch(e) {
     cargando = false;
-    console.warn(`⚠️ Intento ${intento} falló:`, e.message);
-
-    if (intento < CONFIG.MAX_REINTENTOS) {
-      // ✅ FIX: espera incremental (10s, 20s, 30s, 40s)
-      const esperaMs = intento * 10000;
-      setTimeout(() => cargar(intento + 1), esperaMs);
+    if (intento < 3) {
+      setTimeout(() => cargar(intento + 1), 5000);
     } else {
       document.getElementById('grid').innerHTML = `
         <div class="loading-wrap" role="alert">
-          <p style="color:#ff6644;font-size:18px;margin-bottom:10px">⚠️ El servidor no responde</p>
-          <p style="font-size:14px;color:var(--crema2)">El servidor Railway puede estar iniciando en frío.</p>
-          <p style="font-size:13px;margin-top:8px;color:var(--muted)">Espera 30 segundos y vuelve a intentarlo.</p>
-          <button onclick="cargando=false;cargar(1)" style="margin-top:20px;padding:12px 28px;background:var(--fuego);border:none;border-radius:8px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 12px rgba(255,85,0,.4)">🔄 REINTENTAR AHORA</button>
-          <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:12px">Error: ${e.message}</p>
+          <p style="color:#ff4444">⚠️ El servidor está tardando en responder</p>
+          <p style="font-size:13px;margin-top:10px;color:var(--muted)">El servidor de Railway puede estar iniciando. Espera 30 segundos.</p>
+          <button onclick="cargando=false;cargar(1)" style="margin-top:16px;padding:10px 24px;background:var(--fuego);border:none;border-radius:6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;cursor:pointer">🔄 REINTENTAR AHORA</button>
         </div>`;
     }
   }
 }
 
-// ── URL PARAMS ────────────────────────────────────────────
 function leerCatURL() {
   const params = new URLSearchParams(window.location.search);
-  const cat = params.get('categoria');
-  if (cat && CONFIG.CATS.includes(cat)) {
-    categoriaActiva = cat;
+  const cat    = params.get('categoria');
+  if (cat) {
     const btn = document.querySelector(`.cat-btn[data-cat="${cat}"]`);
-    if (btn) btn.click();
+    if (btn) { categoriaActiva = cat; btn.click(); }
   }
 }
 
-// ── INIT ──────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   actualizarFecha();
   crearCats();
-  await cargar(1);
-  leerCatURL();
-  // Refresca cada 60 segundos
-  setInterval(() => { cargando = false; cargar(1); }, 60000);
+  cargar().then(leerCatURL);
+  setInterval(cargar, 60000);
 });
 </script>
 </body>
