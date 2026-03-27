@@ -11,10 +11,34 @@
     <meta property="og:description" content="Noticias de último minuto de Santo Domingo Este y República Dominicana.">
     <meta property="og:image" content="https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://elfarolaldia.com/">
+    <meta property="og:site_name" content="El Farol al Día · Último Minuto RD">
+    <meta property="og:locale" content="es_DO">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@elfarolaldia">
+    <meta name="geo.region" content="DO-01">
+    <meta name="geo.placename" content="Santo Domingo Este, República Dominicana">
 
-    <!-- AdSense -->
+    <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
+
+    <!-- Google Analytics (reemplaza G-XXXXXXXXXX con tu ID real) -->
+    <script id="ga-script"></script>
+    <script>
+        fetch('/api/configuracion').then(r=>r.json()).then(d=>{
+            const gaId = d.config?.googleAnalytics;
+            if (gaId) {
+                const s = document.createElement('script');
+                s.async = true;
+                s.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+                document.head.appendChild(s);
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', gaId);
+            }
+        }).catch(()=>{});
+    </script>
 
     <style>
         :root {
@@ -131,7 +155,6 @@
         .ticker-content {
             display: flex;
             align-items: center;
-            gap: 0;
         }
         .ticker-label {
             background: #000;
@@ -170,31 +193,6 @@
             padding: 24px 15px;
         }
 
-        /* ── SECCIÓN DESTACADA ── */
-        .seccion-titulo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-            margin-top: 30px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--borde);
-        }
-        .seccion-titulo:first-child { margin-top: 0; }
-        .seccion-titulo h2 {
-            font-size: 13px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--naranja);
-            font-family: Arial, sans-serif;
-        }
-        .seccion-titulo .linea {
-            flex: 1;
-            height: 1px;
-            background: var(--borde);
-        }
-
         /* ── GRID DE NOTICIAS ── */
         .grid-noticias {
             display: grid;
@@ -220,7 +218,6 @@
             box-shadow: 0 8px 30px rgba(255, 85, 0, 0.15);
         }
 
-        /* Imagen */
         .card-img {
             width: 100%;
             height: 210px;
@@ -236,11 +233,8 @@
             display: block;
             transition: transform 0.4s;
         }
-        .noticia-card:hover .card-img img {
-            transform: scale(1.04);
-        }
+        .noticia-card:hover .card-img img { transform: scale(1.04); }
 
-        /* Badge sección */
         .badge {
             position: absolute;
             top: 10px;
@@ -257,21 +251,6 @@
             z-index: 2;
         }
 
-        /* Imagen placeholder */
-        .card-img-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #1a1a20, #0d0d12);
-        }
-        .card-img-placeholder span {
-            font-size: 40px;
-            opacity: 0.3;
-        }
-
-        /* Info */
         .card-info {
             padding: 18px 20px 16px;
             display: flex;
@@ -397,42 +376,140 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── FOOTER ── */
+        /* ══════════════════════════════════════════
+           ── FOOTER COMPLETO CON ENLACES LEGALES ──
+           ══════════════════════════════════════════ */
         footer {
             background: #000;
-            border-top: 2px solid var(--naranja);
-            padding: 30px 20px;
-            text-align: center;
+            border-top: 3px solid var(--naranja);
+            padding: 0;
             margin-top: 60px;
         }
-        footer .logo-footer {
+
+        .footer-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px 30px;
+        }
+
+        .footer-brand .logo-footer {
             font-size: 20px;
             color: var(--naranja);
             font-weight: 900;
             letter-spacing: 2px;
+            font-family: Arial, sans-serif;
+            margin-bottom: 10px;
+        }
+
+        .footer-brand p {
+            font-size: 13px;
+            color: #555;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+
+        .footer-brand .footer-desc {
+            font-size: 12px;
+            color: #444;
+            font-family: Arial, sans-serif;
+            line-height: 1.7;
+            margin-top: 10px;
+        }
+
+        .footer-col h4 {
+            font-size: 11px;
+            color: var(--naranja);
+            font-family: Arial, sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--borde);
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
             margin-bottom: 8px;
         }
-        footer p {
-            font-size: 12px;
-            color: #555;
-            font-family: Arial, sans-serif;
-            margin-bottom: 12px;
-        }
-        footer .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        footer .footer-links a {
-            font-size: 11px;
-            color: #555;
+
+        .footer-col ul li a {
+            font-size: 13px;
+            color: #666;
             text-decoration: none;
             font-family: Arial, sans-serif;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        footer .footer-links a:hover { color: var(--naranja); }
+
+        .footer-col ul li a:hover { color: var(--naranja); }
+
+        .footer-divider {
+            border: none;
+            border-top: 1px solid var(--borde);
+            margin: 0;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .footer-bottom p {
+            font-size: 12px;
+            color: #444;
+            font-family: Arial, sans-serif;
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .footer-bottom-links a {
+            font-size: 11px;
+            color: #444;
+            text-decoration: none;
+            font-family: Arial, sans-serif;
+            transition: color 0.2s;
+        }
+
+        .footer-bottom-links a:hover { color: var(--naranja); }
+
+        .footer-badge {
+            display: inline-block;
+            background: #0d0d0d;
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 10px;
+            color: #555;
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
         /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+            .footer-top { grid-template-columns: 1fr 1fr; gap: 24px; }
+        }
+
         @media (max-width: 768px) {
             .hero-card { grid-template-columns: 1fr; min-height: auto; }
             .hero-img { height: 220px; }
@@ -441,6 +518,8 @@
             .grid-noticias { grid-template-columns: 1fr; }
             .logo-wrap h1 { font-size: 20px; }
             .header-meta { display: none; }
+            .footer-top { grid-template-columns: 1fr; gap: 20px; padding: 28px 20px; }
+            .footer-bottom { flex-direction: column; align-items: flex-start; }
         }
     </style>
 </head>
@@ -460,12 +539,12 @@
     <nav class="nav-cats">
         <ul>
             <li><a href="#" onclick="filtrarCat(''); return false;" class="activo" id="btn-todos">Todas</a></li>
-            <li><a href="#" onclick="filtrarCat('Nacionales'); return false;" id="btn-Nacionales">Nacionales</a></li>
-            <li><a href="#" onclick="filtrarCat('Deportes'); return false;" id="btn-Deportes">Deportes</a></li>
-            <li><a href="#" onclick="filtrarCat('Internacionales'); return false;" id="btn-Internacionales">Internacionales</a></li>
-            <li><a href="#" onclick="filtrarCat('Economía'); return false;" id="btn-Economía">Economía</a></li>
-            <li><a href="#" onclick="filtrarCat('Tecnología'); return false;" id="btn-Tecnología">Tecnología</a></li>
-            <li><a href="#" onclick="filtrarCat('Espectáculos'); return false;" id="btn-Espectáculos">Espectáculos</a></li>
+            <li><a href="#" onclick="filtrarCat('Nacionales'); return false;" id="btn-Nacionales">🏛️ Nacionales</a></li>
+            <li><a href="#" onclick="filtrarCat('Deportes'); return false;" id="btn-Deportes">⚽ Deportes</a></li>
+            <li><a href="#" onclick="filtrarCat('Internacionales'); return false;" id="btn-Internacionales">🌍 Internacional</a></li>
+            <li><a href="#" onclick="filtrarCat('Economía'); return false;" id="btn-Economía">💰 Economía</a></li>
+            <li><a href="#" onclick="filtrarCat('Tecnología'); return false;" id="btn-Tecnología">💻 Tecnología</a></li>
+            <li><a href="#" onclick="filtrarCat('Espectáculos'); return false;" id="btn-Espectáculos">🎬 Espectáculos</a></li>
         </ul>
     </nav>
 </header>
@@ -480,6 +559,13 @@
 </div>
 
 <main class="container">
+    <!-- AdSense arriba del contenido -->
+    <div class="ad-banner" style="margin-bottom:24px;">
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
+             data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
     <div id="contenedor-noticias">
         <div class="loading-wrap">
             <div class="spinner"></div>
@@ -488,47 +574,104 @@
     </div>
 </main>
 
+<!-- ══════════════════════════════════════════════
+     FOOTER COMPLETO — REQUERIDO POR ADSENSE
+     ══════════════════════════════════════════════ -->
 <footer>
-    <div class="logo-footer">🏮 EL FAROL AL DÍA</div>
-    <p>Tu periódico digital de Santo Domingo Este y toda la República Dominicana</p>
-    <div class="footer-links">
-        <a href="/nosotros">Nosotros</a>
-        <a href="/contacto">Contacto</a>
-        <a href="/privacidad">Privacidad</a>
-        <a href="/terminos">Términos</a>
-        <a href="/cookies">Cookies</a>
-        <a href="/sitemap.xml">Sitemap</a>
+    <div class="footer-top">
+
+        <!-- Columna marca -->
+        <div class="footer-brand">
+            <div class="logo-footer">🏮 EL FAROL AL DÍA</div>
+            <p><strong>Tu periódico digital de Santo Domingo Este</strong></p>
+            <p>República Dominicana · Desde 2023</p>
+            <p class="footer-desc">
+                El Farol al Día es el periódico digital de referencia de Santo Domingo Este y toda la República Dominicana.
+                Cubrimos noticias de último minuto, política, deportes, economía, tecnología y cultura con periodismo
+                verificado y responsable, dirigido por José Gregorio Mañan Santana.
+            </p>
+        </div>
+
+        <!-- Columna Secciones -->
+        <div class="footer-col">
+            <h4>📰 Secciones</h4>
+            <ul>
+                <li><a href="#" onclick="filtrarCat('Nacionales');return false;">🏛️ Nacionales</a></li>
+                <li><a href="#" onclick="filtrarCat('Deportes');return false;">⚽ Deportes</a></li>
+                <li><a href="#" onclick="filtrarCat('Internacionales');return false;">🌍 Internacional</a></li>
+                <li><a href="#" onclick="filtrarCat('Economía');return false;">💰 Economía</a></li>
+                <li><a href="#" onclick="filtrarCat('Tecnología');return false;">💻 Tecnología</a></li>
+                <li><a href="#" onclick="filtrarCat('Espectáculos');return false;">🎬 Espectáculos</a></li>
+            </ul>
+        </div>
+
+        <!-- Columna El Periódico -->
+        <div class="footer-col">
+            <h4>🏮 El Periódico</h4>
+            <ul>
+                <li><a href="/nosotros">👤 Quiénes Somos</a></li>
+                <li><a href="/contacto">✉️ Contacto</a></li>
+                <li><a href="/sitemap.xml">🗺️ Mapa del Sitio</a></li>
+            </ul>
+        </div>
+
+        <!-- Columna Legal -->
+        <div class="footer-col">
+            <h4>⚖️ Legal</h4>
+            <ul>
+                <li><a href="/privacidad">🔒 Política de Privacidad</a></li>
+                <li><a href="/terminos">📄 Términos y Condiciones</a></li>
+                <li><a href="/cookies">🍪 Política de Cookies</a></li>
+                <li><a href="/ads.txt">📢 Autorización Anuncios</a></li>
+            </ul>
+        </div>
+
     </div>
-    <p style="margin-top:12px;">© 2026 El Farol al Día · José Gregorio Mañan Santana · Santo Domingo Este, RD</p>
+
+    <hr class="footer-divider">
+
+    <div class="footer-bottom">
+        <p>© 2026 <strong>El Farol al Día</strong> · José Gregorio Mañan Santana · Santo Domingo Este, República Dominicana</p>
+        <div class="footer-bottom-links">
+            <a href="/privacidad">Privacidad</a>
+            <a href="/terminos">Términos</a>
+            <a href="/cookies">Cookies</a>
+            <a href="/nosotros">Nosotros</a>
+            <a href="/contacto">Contacto</a>
+        </div>
+        <span class="footer-badge">ca-pub-5280872495839888</span>
+    </div>
 </footer>
 
 <script>
     let todasLasNoticias = [];
     let categoriaActual = '';
 
-    // Fecha
+    // Fecha en español
     const fechaEl = document.getElementById('fecha-actual');
     if (fechaEl) {
         const ahora = new Date();
-        fechaEl.textContent = ahora.toLocaleDateString('es-DO', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        fechaEl.textContent = ahora.toLocaleDateString('es-DO', {
+            weekday:'long', day:'numeric', month:'long', year:'numeric'
+        });
     }
 
     function tiempoRelativo(fecha) {
         const diff = (Date.now() - new Date(fecha).getTime()) / 60000;
-        if (diff < 1)   return 'Ahora mismo';
-        if (diff < 60)  return `Hace ${Math.round(diff)} min`;
+        if (diff < 1)    return 'Ahora mismo';
+        if (diff < 60)   return `Hace ${Math.round(diff)} min`;
         if (diff < 1440) return `Hace ${Math.round(diff/60)}h`;
         return `Hace ${Math.round(diff/1440)}d`;
     }
 
     function imgFallback(seccion) {
         const mapa = {
-            'Nacionales':  'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800',
-            'Deportes':    'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'Nacionales':      'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'Deportes':        'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800',
             'Internacionales': 'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg?auto=compress&cs=tinysrgb&w=800',
-            'Economía':    'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=800',
-            'Tecnología':  'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=800',
-            'Espectáculos':'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'Economía':        'https://images.pexels.com/photos/4386466/pexels-photo-4386466.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'Tecnología':      'https://images.pexels.com/photos/3861958/pexels-photo-3861958.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'Espectáculos':    'https://images.pexels.com/photos/1190297/pexels-photo-1190297.jpeg?auto=compress&cs=tinysrgb&w=800',
         };
         return mapa[seccion] || mapa['Nacionales'];
     }
@@ -540,47 +683,46 @@
             return;
         }
 
-        let html = '';
+        let html = '<div class="grid-noticias">';
         noticias.forEach((n, i) => {
             const imgUrl = (n.imagen && n.imagen.startsWith('http')) ? n.imagen : imgFallback(n.seccion);
             const alt    = n.imagen_alt || n.titulo;
-            const desc   = n.seo_description || (n.contenido ? n.contenido.substring(0, 130) + '...' : '');
+            const desc   = n.seo_description || '';
             const tiempo = tiempoRelativo(n.fecha);
 
             if (i === 0 && categoriaActual === '') {
-                // HERO — primera noticia
-                html += `
+                // Cerrar grid, mostrar HERO, reabrir grid
+                html = `
                 <a href="/noticia/${n.slug}" class="hero-card">
                     <div class="hero-img">
                         <span class="badge">${n.seccion}</span>
-                        <img src="${imgUrl}" alt="${alt}" loading="eager"
+                        <img src="${imgUrl}" alt="${esc(alt)}" loading="eager"
                              onerror="this.src='${imgFallback(n.seccion)}'">
                     </div>
                     <div class="hero-info">
                         <span class="badge">${n.seccion}</span>
-                        <h2>${n.titulo}</h2>
-                        <p>${desc}</p>
+                        <h2>${esc(n.titulo)}</h2>
+                        <p>${esc(desc)}</p>
                         <div class="card-meta">
-                            <span class="redactor">📝 ${n.redactor || 'Redacción EFD'}</span>
+                            <span class="redactor">📝 ${esc(n.redactor || 'Redacción EFD')}</span>
                             <span>${tiempo}</span>
                         </div>
                     </div>
-                </a>`;
-                html += '<div class="grid-noticias">';
+                </a>
+                <div class="grid-noticias">`;
             } else {
-                // Tarjetas normales
                 html += `
                 <a href="/noticia/${n.slug}" class="noticia-card">
                     <div class="card-img">
                         <span class="badge">${n.seccion}</span>
-                        <img src="${imgUrl}" alt="${alt}" loading="lazy"
+                        <img src="${imgUrl}" alt="${esc(alt)}" loading="${i < 4 ? 'eager' : 'lazy'}"
                              onerror="this.src='${imgFallback(n.seccion)}'">
                     </div>
                     <div class="card-info">
-                        <h2>${n.titulo}</h2>
-                        <p>${desc}</p>
+                        <h2>${esc(n.titulo)}</h2>
+                        <p>${esc(desc)}</p>
                         <div class="card-meta">
-                            <span class="redactor">📝 ${n.redactor || 'Redacción EFD'}</span>
+                            <span class="redactor">📝 ${esc(n.redactor || 'Redacción EFD')}</span>
                             <div>
                                 <span>${tiempo}</span>&nbsp;·&nbsp;
                                 <span class="leer-mas">LEER MÁS →</span>
@@ -589,11 +731,12 @@
                     </div>
                 </a>`;
 
-                // Ad cada 6 tarjetas
+                // AdSense cada 6 tarjetas
                 if ((i + 1) % 6 === 0) {
                     html += `</div>
                     <div class="ad-banner">
-                        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
+                             data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
                         <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
                     </div>
                     <div class="grid-noticias">`;
@@ -604,13 +747,15 @@
         contenedor.innerHTML = html;
     }
 
+    function esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
     function filtrarCat(cat) {
         categoriaActual = cat;
-        // Actualizar nav activo
         document.querySelectorAll('.nav-cats a').forEach(a => a.classList.remove('activo'));
         const btn = cat ? document.getElementById(`btn-${cat}`) : document.getElementById('btn-todos');
         if (btn) btn.classList.add('activo');
-        // Filtrar y renderizar
         const filtradas = cat ? todasLasNoticias.filter(n => n.seccion === cat) : todasLasNoticias;
         renderNoticias(filtradas);
     }
@@ -622,7 +767,6 @@
             if (data.success && data.noticias.length > 0) {
                 todasLasNoticias = data.noticias;
                 renderNoticias(todasLasNoticias);
-                // Ticker
                 const titulos = data.noticias.slice(0, 8).map(n => `🏮 ${n.titulo}`).join('   ·   ');
                 const tickerEl = document.getElementById('ticker-texto');
                 if (tickerEl) tickerEl.textContent = titulos;
@@ -636,7 +780,6 @@
         }
     }
 
-    // Cargar y refrescar cada 5 min
     cargarNoticias();
     setInterval(cargarNoticias, 5 * 60 * 1000);
 </script>
