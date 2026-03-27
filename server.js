@@ -1,14 +1,9 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.3 FIX-429
+ * 🏮 EL FAROL AL DÍA — V34.4 WATERMARK-MANUAL
  * Fix aplicado:
- *   - _callGemini: cooldown mínimo 60s tras 429 (antes 5s)
- *   - Delay entre requests: 8s (antes 3s)
- *   - Timeout: 45s (antes 30s)
- *   - llamarGemini: 2 reintentos (antes 3), pausa 30s antes rescate
- *   - llamarGeminiImagen: 1 reintento, 429 → fallback directo
- *   - Cron: cada 2 horas (antes cada hora)
- *   - Ráfaga inicial: 2 noticias, 30 min entre ellas (antes 3×20min)
- *   - maxOutputTokens: 3000 (antes 4000)
+ *   - /api/publicar: watermark aplicado en imagen manual (base64 y URL)
+ *   - imagen_original guardada también en publicación manual
+ *   - Todo lo demás igual que V34.3 FIX-429
  */
 
 const express   = require('express');
@@ -234,7 +229,7 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.3 Fix-429*\n\n✅ Bot activo. Recibirás cada noticia nueva.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.4 Watermark-Manual*\n\n✅ Bot activo. Recibirás cada noticia nueva.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
         console.log('📱 Telegram bienvenida ✅');
     } catch(e) {}
 }
@@ -262,6 +257,36 @@ async function aplicarMarcaDeAgua(urlImagen) {
         console.log(`   🏮 Watermark: ${nombre}`);
         return { url:urlImagen, nombre, procesada:true };
     } catch(err) { console.warn(`   ⚠️ Watermark falló: ${err.message}`); return { url:urlImagen, procesada:false }; }
+}
+
+// ══════════════════════════════════════════════════════════
+// 🏮 WATERMARK DESDE BUFFER (para base64)
+// ══════════════════════════════════════════════════════════
+async function aplicarMarcaDeAguaBuffer(bufOrig) {
+    if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) {
+        console.warn('   ⚠️ Watermark no disponible para buffer');
+        return null;
+    }
+    try {
+        const meta = await sharp(bufOrig).metadata();
+        const w = meta.width || 800, h = meta.height || 500;
+        const wmAncho = Math.min(Math.round(w * 0.28), 300);
+        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
+        const wmMeta = await sharp(wmResized).metadata();
+        const wmAlto = wmMeta.height || 60;
+        const margen = Math.round(w * 0.02);
+        const bufFinal = await sharp(bufOrig)
+            .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
+            .jpeg({ quality: 88 })
+            .toBuffer();
+        const nombre = `efd-manual-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
+        fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
+        console.log(`   🏮 Watermark buffer: ${nombre}`);
+        return nombre;
+    } catch(err) {
+        console.warn(`   ⚠️ Watermark buffer falló: ${err.message}`);
+        return null;
+    }
 }
 
 app.get('/img/:nombre', async (req, res) => {
@@ -306,13 +331,6 @@ async function guardarConfigIA(cfg) {
 
 // ══════════════════════════════════════════════════════════
 // 🔑 GEMINI — V34.3 FIX-429
-// CAMBIOS CLAVE:
-//   - Cooldown mínimo 60s tras 429 (era 5s)
-//   - 8s entre requests (era 3s)
-//   - Timeout 45s (era 30s)
-//   - maxOutputTokens 3000 (era 4000)
-//   - llamarGemini: 2 reintentos, pausa 30s antes rescate
-//   - llamarGeminiImagen: 1 reintento, 429→fallback directo
 // ══════════════════════════════════════════════════════════
 const GEMINI_STATE = {};
 function getKeyState(k) {
@@ -324,14 +342,12 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     const st = getKeyState(apiKey);
     const ahora = Date.now();
 
-    // Respetar cooldown completo tras 429
     if (ahora < st.resetTime) {
         const espera = st.resetTime - ahora;
         console.warn(`   ⏳ KEY cooldown ${Math.round(espera/1000)}s — esperando...`);
         await new Promise(r => setTimeout(r, espera));
     }
 
-    // Mínimo 8s entre requests a la misma key
     const desde = Date.now() - st.lastRequest;
     if (desde < 8000) await new Promise(r => setTimeout(r, 8000 - desde));
     st.lastRequest = Date.now();
@@ -360,7 +376,6 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     }
 
     if (res.status === 429) {
-        // Cooldown mínimo 60s, crece con intentos hasta 5 min
         const espera = Math.min(60000 + Math.pow(2, intentoGlobal) * 10000, 300000);
         st.resetTime = Date.now() + espera;
         console.warn(`   ⚡ 429 — key cooldown ${Math.round(espera/1000)}s`);
@@ -402,7 +417,6 @@ async function llamarGemini(prompt, reintentos = 2) {
         if (!grupo.length) continue;
         const etiqueta = idx === 0 ? 'activo' : 'RESCATE';
 
-        // Pausa de 30s antes de intentar el grupo rescate
         if (idx === 1) {
             console.warn(`   ⏸️  Pausa 30s antes de grupo rescate...`);
             await new Promise(r => setTimeout(r, 30000));
@@ -421,7 +435,6 @@ async function llamarGemini(prompt, reintentos = 2) {
                     console.error(`   ❌ ${err.message}`);
                 }
             }
-            // Pausa progresiva entre reintentos: 15s, 30s
             if (i < reintentos-1) {
                 const pausa = (i+1) * 15000;
                 console.warn(`   ⏳ Pausa ${pausa/1000}s antes de reintento...`);
@@ -1188,7 +1201,7 @@ async function procesarRSS() {
 }
 
 // ══════════════════════════════════════════════════════════
-// CRON V34.3 — cada 2 horas, RSS x2/día
+// CRON — cada 2 horas, RSS x2/día
 // ══════════════════════════════════════════════════════════
 const CATS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 const ARRANQUE_TIME = Date.now();
@@ -1197,7 +1210,6 @@ cron.schedule('*/5 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch(e) {}
 });
 
-// Una noticia cada 2 horas — reduce presión en Gemini
 cron.schedule('0 */2 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
     if (Date.now() - ARRANQUE_TIME < 35*60*1000) { console.log('⏰ Cron: ventana arranque, omitiendo'); return; }
@@ -1207,10 +1219,8 @@ cron.schedule('0 */2 * * *', async () => {
     await generarNoticia(cat);
 });
 
-// RSS solo 2 veces al día (antes 3)
 cron.schedule('30 8,19 * * *', async () => { await procesarRSS(); });
 
-// Ráfaga inicial: 2 noticias, 30 min entre ellas (antes 3×20min)
 async function rafagaInicial() {
     if (!CONFIG_IA.enabled) { console.log('⚠️ IA desactivada'); return; }
     const INTERVALO = 30;
@@ -1230,7 +1240,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'34.3-fix429' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'34.4-watermark-manual' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1271,6 +1281,9 @@ app.post('/api/procesar-rss', authMiddleware, async (req, res) => {
     res.json({ success:true, mensaje:'RSS iniciado' });
 });
 
+// ══════════════════════════════════════════════════════════
+// 📝 /api/publicar — CON WATERMARK EN MANUAL (V34.4)
+// ══════════════════════════════════════════════════════════
 app.post('/api/publicar', express.json(), async (req, res) => {
     const { pin, titulo, seccion, contenido, redactor:red, seo_description, seo_keywords, imagen, imagen_alt } = req.body;
     if (pin !== '311') return res.status(403).json({ success:false, error:'PIN' });
@@ -1279,13 +1292,51 @@ app.post('/api/publicar', express.json(), async (req, res) => {
         const slugBase = slugify(titulo);
         const e = await pool.query('SELECT id FROM noticias WHERE slug=$1',[slugBase]);
         const slF = e.rows.length ? `${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}` : slugBase;
-        const imgFinal = imagen || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
+
+        let imgFinal = imagen || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
         const altFinal = imagen_alt || `${titulo} - noticias República Dominicana El Farol al Día`;
+
+        let imgOriginal = imgFinal;
+        let imgNombre   = 'manual.jpg';
+        let imgFuente   = 'manual';
+
+        try {
+            if (imgFinal.startsWith('data:image')) {
+                // ── Imagen subida como base64 ──────────────────────
+                const matches = imgFinal.match(/^data:image\/(\w+);base64,(.+)$/s);
+                if (matches) {
+                    const bufOrig = Buffer.from(matches[2], 'base64');
+                    const nombreWM = await aplicarMarcaDeAguaBuffer(bufOrig);
+                    if (nombreWM) {
+                        imgOriginal = 'base64-upload';
+                        imgFinal    = `${BASE_URL}/img/${nombreWM}`;
+                        imgNombre   = nombreWM;
+                        imgFuente   = 'manual-watermark';
+                        console.log(`   🏮 Watermark manual (base64): ${nombreWM}`);
+                    }
+                }
+            } else if (imgFinal.startsWith('http')) {
+                // ── Imagen por URL externa ─────────────────────────
+                imgOriginal = imgFinal;
+                const resultado = await aplicarMarcaDeAgua(imgFinal);
+                if (resultado.procesada && resultado.nombre) {
+                    imgFinal  = `${BASE_URL}/img/${resultado.nombre}`;
+                    imgNombre = resultado.nombre;
+                    imgFuente = 'manual-watermark';
+                    console.log(`   🏮 Watermark manual (URL): ${resultado.nombre}`);
+                }
+            }
+        } catch(wmErr) {
+            console.warn(`   ⚠️ Watermark manual falló: ${wmErr.message} — publicando sin marca`);
+        }
+
         await pool.query(
-            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-            [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,'manual.jpg','manual','publicada']
+            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+            [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,imgNombre,imgFuente,imgOriginal,'publicada']
         );
+
         invalidarCache();
+        console.log(`\n✅ Manual publicada: /noticia/${slF} | img: ${imgFuente}`);
         res.json({ success:true, slug:slF });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1509,7 +1560,7 @@ app.get('/status', async (req, res) => {
         const geminiKeys = [process.env.GEMINI_API_KEY,process.env.GEMINI_KEY_2,process.env.GEMINI_KEY_3,process.env.GEMINI_KEY_4].filter(Boolean).length;
         const hora = new Date().getHours(); const esPar = hora%2===0;
         res.json({
-            status:'OK', version:'34.3-fix429',
+            status:'OK', version:'34.4-watermark-manual',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_keys:geminiKeys, gemini_hora:`${hora}h → ${esPar?'PAR':'IMPAR'}`,
@@ -1521,6 +1572,7 @@ app.get('/status', async (req, res) => {
             telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
             pexels:PEXELS_API_KEY?'✅ Activa':'⚠️ Sin key',
             watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Sin archivo',
+            watermark_manual:'✅ Activo en publicación manual',
             filtro_autocritico:'✅ Activo',
             ia_activa:CONFIG_IA.enabled,
             adsense:'pub-5280872495839888 ✅',
@@ -1543,8 +1595,9 @@ async function iniciar() {
         const hora = new Date().getHours(); const esPar = hora%2===0;
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.3 FIX-429                            ║
+║  🏮 EL FAROL AL DÍA — V34.4 WATERMARK-MANUAL                   ║
 ╠══════════════════════════════════════════════════════════════════╣
+║  ✅ NUEVO: Watermark en publicación manual (base64 + URL)       ║
 ║  ✅ FIX 429: cooldown 60s+, delay 8s, timeout 45s              ║
 ║  ✅ Reintentos: 2 (era 3), imagen: 1 (era 2)                   ║
 ║  ✅ Cron: cada 2 horas (era cada hora)                          ║
@@ -1558,7 +1611,7 @@ async function iniciar() {
     });
     setTimeout(regenerarWatermarks, 5000);
     setTimeout(bienvenidaTelegram, 8000);
-    setTimeout(rafagaInicial, 60000); // 1 min delay antes de ráfaga
+    setTimeout(rafagaInicial, 60000);
 }
 
 iniciar();
