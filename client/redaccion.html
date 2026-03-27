@@ -5,448 +5,1367 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redacción 🏮 El Farol al Día</title>
     <style>
-        :root { --naranja:#FF5500; --fondo:#070707; --tarjeta:#141418; --texto:#EDE8DF; --borde:#222228; }
-        * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:var(--fondo); color:var(--texto); font-family:Arial,sans-serif; min-height:100vh; }
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap');
 
+        :root {
+            --naranja: #FF5500;
+            --naranja2: #FF7733;
+            --fondo: #070707;
+            --tarjeta: #111115;
+            --tarjeta2: #0d0d11;
+            --texto: #EDE8DF;
+            --texto2: #A89F94;
+            --borde: #1e1e24;
+            --verde: #22c55e;
+            --rojo: #ef4444;
+            --azul: #3b82f6;
+            --amarillo: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--fondo);
+            color: var(--texto);
+            font-family: 'Source Sans 3', Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
         header {
-            background:#000;
-            border-bottom:3px solid var(--naranja);
-            padding:15px 20px;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
+            background: #000;
+            border-bottom: 3px solid var(--naranja);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        header h1 { color:var(--naranja); font-size:20px; letter-spacing:2px; }
-        header a { color:#666; font-size:12px; text-decoration:none; }
-        header a:hover { color:var(--naranja); }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .header-logo { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; color: var(--naranja); letter-spacing: 2px; }
+        .header-badge { background: var(--naranja); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase; }
+        header a { color: #555; font-size: 12px; text-decoration: none; transition: color .2s; }
+        header a:hover { color: var(--naranja); }
 
-        .main { max-width:1100px; margin:0 auto; padding:24px 15px; display:grid; grid-template-columns:340px 1fr; gap:24px; }
-
-        /* Panel izquierdo */
-        .panel { background:var(--tarjeta); border:1px solid var(--borde); border-radius:10px; padding:24px; }
-        .panel h2 { font-size:14px; color:var(--naranja); text-transform:uppercase; letter-spacing:1px; margin-bottom:18px; padding-bottom:10px; border-bottom:1px solid var(--borde); }
-
-        label { display:block; font-size:12px; color:#888; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px; }
-
-        select, input[type=text], textarea {
-            width:100%;
-            background:#0d0d0d;
-            border:1px solid var(--borde);
-            border-radius:6px;
-            color:var(--texto);
-            padding:10px 12px;
-            font-size:14px;
-            font-family:Arial,sans-serif;
-            margin-bottom:14px;
-            transition:border-color 0.2s;
+        /* ── TABS ── */
+        .tabs-nav {
+            background: #0a0a0a;
+            border-bottom: 1px solid var(--borde);
+            display: flex;
+            gap: 0;
+            padding: 0 24px;
+            overflow-x: auto;
         }
-        select:focus, input:focus, textarea:focus { outline:none; border-color:var(--naranja); }
-        textarea { min-height:100px; resize:vertical; }
+        .tab-btn {
+            padding: 12px 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #555;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: .2s;
+        }
+        .tab-btn:hover { color: var(--texto2); }
+        .tab-btn.activo { color: var(--naranja); border-bottom-color: var(--naranja); }
 
+        /* ── LAYOUT ── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+        .tab-panel { display: none; }
+        .tab-panel.activo { display: block; }
+
+        .two-col { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 10px;
+            padding: 22px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--naranja);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--borde);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── FORM FIELDS ── */
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .field select,
+        .field input[type=text],
+        .field input[type=url],
+        .field textarea {
+            width: 100%;
+            background: #0a0a0a;
+            border: 1px solid var(--borde);
+            border-radius: 6px;
+            color: var(--texto);
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: 'Source Sans 3', sans-serif;
+            transition: border-color .2s;
+        }
+        .field select:focus,
+        .field input:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: var(--naranja);
+        }
+        .field textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+
+        /* ── UPLOAD IMAGEN ── */
+        .upload-zone {
+            border: 2px dashed var(--borde);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: .2s;
+            background: #0a0a0a;
+            position: relative;
+        }
+        .upload-zone:hover { border-color: var(--naranja); background: #0f0f0f; }
+        .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .upload-zone .upload-icon { font-size: 28px; margin-bottom: 6px; }
+        .upload-zone .upload-text { font-size: 12px; color: #555; }
+        .upload-zone .upload-text span { color: var(--naranja); }
+        .upload-preview {
+            margin-top: 10px;
+            border-radius: 6px;
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+        .upload-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
+        .upload-preview-remove {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(0,0,0,.8);
+            border: none;
+            color: #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-url-sep {
+            text-align: center;
+            color: #333;
+            font-size: 11px;
+            margin: 8px 0;
+            position: relative;
+        }
+        .upload-url-sep::before, .upload-url-sep::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 42%;
+            height: 1px;
+            background: var(--borde);
+        }
+        .upload-url-sep::before { left: 0; }
+        .upload-url-sep::after { right: 0; }
+
+        /* ── BOTONES ── */
         .btn {
-            width:100%;
-            padding:13px;
-            background:var(--naranja);
-            color:#fff;
-            border:none;
-            border-radius:8px;
-            font-size:15px;
-            font-weight:bold;
-            cursor:pointer;
-            letter-spacing:0.5px;
-            transition:background 0.2s, transform 0.1s;
+            width: 100%;
+            padding: 13px;
+            background: var(--naranja);
+            color: #fff;
+            border: none;
+            border-radius: 7px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: background .2s, transform .1s;
+            text-transform: uppercase;
         }
-        .btn:hover { background:#CC4400; }
-        .btn:active { transform:scale(0.98); }
-        .btn:disabled { background:#444; cursor:not-allowed; }
-        .btn-sec {
-            background:transparent;
-            border:1px solid var(--borde);
-            color:#888;
-            margin-top:8px;
+        .btn:hover { background: #cc4400; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--borde);
+            color: #666;
+            margin-top: 8px;
         }
-        .btn-sec:hover { border-color:var(--naranja); color:var(--naranja); background:transparent; }
+        .btn-outline:hover { border-color: var(--naranja); color: var(--naranja); background: transparent; }
+        .btn-sm {
+            width: auto;
+            padding: 6px 14px;
+            font-size: 11px;
+        }
 
+        /* ── SPINNER ── */
         .spinner {
-            width:24px; height:24px;
-            border:3px solid #333;
-            border-top:3px solid var(--naranja);
-            border-radius:50%;
-            animation:spin 0.8s linear infinite;
-            display:none;
-            margin:12px auto 0;
+            width: 22px; height: 22px;
+            border: 3px solid #222;
+            border-top-color: var(--naranja);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            display: none;
+            margin: 10px auto 0;
         }
-        @keyframes spin { to { transform:rotate(360deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        #status {
-            margin-top:14px;
-            font-size:13px;
-            color:#888;
-            text-align:center;
-            line-height:1.5;
-            min-height:40px;
-        }
-
-        /* Panel derecho — lista de noticias */
-        .panel-lista { overflow:hidden; }
-
-        .lista-header {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            margin-bottom:18px;
-            padding-bottom:10px;
-            border-bottom:1px solid var(--borde);
-        }
-        .lista-header h2 { font-size:14px; color:var(--naranja); text-transform:uppercase; letter-spacing:1px; }
-        .lista-header span { font-size:12px; color:#555; }
-
-        .filtros { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
-        .filtros button {
-            padding:5px 12px;
-            background:transparent;
-            border:1px solid var(--borde);
-            border-radius:4px;
-            color:#666;
-            font-size:11px;
-            font-weight:bold;
-            cursor:pointer;
-            text-transform:uppercase;
-            letter-spacing:0.5px;
-            transition:0.2s;
-        }
-        .filtros button:hover, .filtros button.activo { background:var(--naranja); border-color:var(--naranja); color:#fff; }
-
-        .noticia-item {
-            display:flex;
-            gap:14px;
-            align-items:flex-start;
-            padding:14px 0;
-            border-bottom:1px solid var(--borde);
-            transition:background 0.2s;
-        }
-        .noticia-item:last-child { border-bottom:none; }
-
-        .noticia-item img {
-            width:80px;
-            height:60px;
-            object-fit:cover;
-            border-radius:6px;
-            flex-shrink:0;
-            background:#222;
+        /* ── STATUS ── */
+        .status-box {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            min-height: 44px;
+            text-align: center;
+            background: #0a0a0a;
+            border: 1px solid var(--borde);
+            color: #666;
         }
 
-        .noticia-item-info { flex:1; min-width:0; }
-        .noticia-item-info .badge {
-            display:inline-block;
-            background:var(--naranja);
-            color:#fff;
-            font-size:9px;
-            font-weight:bold;
-            padding:2px 7px;
-            border-radius:3px;
-            text-transform:uppercase;
-            letter-spacing:0.5px;
-            margin-bottom:5px;
-        }
-        .noticia-item-info h3 {
-            font-size:13px;
-            line-height:1.35;
-            color:#fff;
-            margin-bottom:5px;
-            overflow:hidden;
-            text-overflow:ellipsis;
-            display:-webkit-box;
-            -webkit-line-clamp:2;
-            -webkit-box-orient:vertical;
-        }
-        .noticia-item-meta { font-size:11px; color:#555; }
-
-        .noticia-acciones { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
-        .btn-accion {
-            padding:5px 10px;
-            font-size:10px;
-            font-weight:bold;
-            border:none;
-            border-radius:4px;
-            cursor:pointer;
-            text-transform:uppercase;
-            letter-spacing:0.5px;
-            transition:0.2s;
-        }
-        .btn-ver    { background:#1a3a1a; color:#4caf50; }
-        .btn-ver:hover { background:#2a4a2a; }
-        .btn-borrar { background:#3a1a1a; color:#f44336; }
-        .btn-borrar:hover { background:#4a2a2a; }
-
-        /* Stats */
+        /* ── STATS ── */
         .stats-row {
-            display:grid;
-            grid-template-columns:repeat(3,1fr);
-            gap:12px;
-            margin-bottom:20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
         }
         .stat-card {
-            background:#0d0d0d;
-            border:1px solid var(--borde);
-            border-radius:8px;
-            padding:14px;
-            text-align:center;
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
         }
-        .stat-card .num { font-size:26px; font-weight:900; color:var(--naranja); }
-        .stat-card .lab { font-size:10px; color:#555; text-transform:uppercase; letter-spacing:1px; margin-top:3px; }
+        .stat-num { font-family: 'Oswald', sans-serif; font-size: 30px; font-weight: 700; color: var(--naranja); line-height: 1; }
+        .stat-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 
-        /* RSS */
-        .rss-status { font-size:11px; color:#555; margin-top:8px; text-align:center; }
+        /* ── FILTROS ── */
+        .filtros {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filtros .f-btn {
+            padding: 5px 14px;
+            background: transparent;
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            color: #555;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: .2s;
+            font-family: 'Oswald', sans-serif;
+        }
+        .filtros .f-btn:hover { border-color: #444; color: #888; }
+        .filtros .f-btn.activo { background: var(--naranja); border-color: var(--naranja); color: #fff; }
+
+        /* ── LISTA NOTICIAS ── */
+        .noticia-item {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--borde);
+        }
+        .noticia-item:last-child { border-bottom: none; }
+        .noticia-thumb {
+            width: 82px;
+            height: 62px;
+            object-fit: cover;
+            border-radius: 6px;
+            flex-shrink: 0;
+            background: #1a1a1a;
+        }
+        .noticia-info { flex: 1; min-width: 0; }
+        .noticia-badge {
+            display: inline-block;
+            background: var(--naranja);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            font-family: 'Oswald', sans-serif;
+        }
+        .noticia-titulo {
+            font-size: 13px;
+            line-height: 1.35;
+            color: #ddd;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .noticia-meta { font-size: 11px; color: #444; }
+        .noticia-acciones { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+        .btn-accion {
+            padding: 5px 11px;
+            font-size: 10px;
+            font-weight: 700;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: .2s;
+            font-family: 'Oswald', sans-serif;
+            white-space: nowrap;
+        }
+        .btn-ver { background: #0f2a0f; color: var(--verde); }
+        .btn-ver:hover { background: #1a3a1a; }
+        .btn-del { background: #2a0f0f; color: var(--rojo); }
+        .btn-del:hover { background: #3a1a1a; }
+
+        /* ── ANALYTICS PANEL ── */
+        .analytics-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
+        .analytics-card {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            padding: 18px;
+        }
+        .analytics-card h3 { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-family: 'Oswald', sans-serif; }
+        .cat-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .cat-bar-label { font-size: 11px; color: var(--texto2); width: 90px; flex-shrink: 0; }
+        .cat-bar-track { flex: 1; background: #1a1a1a; border-radius: 2px; height: 6px; overflow: hidden; }
+        .cat-bar-fill { height: 100%; background: var(--naranja); border-radius: 2px; transition: width .5s; }
+        .cat-bar-num { font-size: 11px; color: #555; width: 30px; text-align: right; }
+        .top-noticia-item { padding: 8px 0; border-bottom: 1px solid var(--borde); }
+        .top-noticia-item:last-child { border-bottom: none; }
+        .top-noticia-rank { font-family: 'Oswald', sans-serif; font-size: 20px; color: var(--borde); font-weight: 700; display: inline; margin-right: 8px; }
+        .top-noticia-title { font-size: 12px; color: var(--texto2); line-height: 1.3; }
+        .top-noticia-views { font-size: 11px; color: var(--naranja); margin-top: 3px; }
+
+        /* ── GA CONFIG ── */
+        .ga-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            background: #0a0a0a;
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            margin-bottom: 14px;
+        }
+        .ga-dot { width: 10px; height: 10px; border-radius: 50%; background: #333; flex-shrink: 0; }
+        .ga-dot.activo { background: var(--verde); box-shadow: 0 0 8px var(--verde); }
+        .ga-info { flex: 1; }
+        .ga-info-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+        .ga-info-val { font-size: 14px; color: var(--texto); margin-top: 2px; font-family: 'Oswald', sans-serif; }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--fondo); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--naranja); }
+
+        /* ── ALERT ── */
+        .alert {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .alert-info { background: #0d1a2e; border: 1px solid #1e3a5f; color: #7ab3e0; }
+        .alert-ok { background: #0d2010; border: 1px solid #1e4020; color: #4ade80; }
+        .alert-err { background: #2a0d0d; border: 1px solid #5f1e1e; color: #f87171; }
+
+        /* ── TOGGLE ── */
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--borde); }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-label { font-size: 13px; color: var(--texto2); }
+        .toggle-sub { font-size: 11px; color: #555; margin-top: 2px; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background: #222; border-radius: 24px; cursor: pointer; transition: .3s; }
+        .slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
+        input:checked + .slider { background: var(--naranja); }
+        input:checked + .slider::before { transform: translateX(20px); background: #fff; }
 
         @media (max-width: 900px) {
-            .main { grid-template-columns:1fr; }
+            .two-col { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: repeat(2,1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>🏮 PANEL DE REDACCIÓN</h1>
+    <div class="header-left">
+        <div class="header-logo">🏮 EL FAROL AL DÍA</div>
+        <div class="header-badge">Redacción</div>
+    </div>
     <a href="/">← Volver al periódico</a>
 </header>
 
-<div class="main">
+<!-- NAVEGACIÓN POR TABS -->
+<nav class="tabs-nav">
+    <button class="tab-btn activo" onclick="activarTab('generar')">⚡ Generar IA</button>
+    <button class="tab-btn" onclick="activarTab('manual')">✍️ Publicar Manual</button>
+    <button class="tab-btn" onclick="activarTab('noticias')">📰 Noticias</button>
+    <button class="tab-btn" onclick="activarTab('analytics')">📊 Analítica</button>
+    <button class="tab-btn" onclick="activarTab('configuracion')">⚙️ Configuración</button>
+</nav>
 
-    <!-- Panel de Generación -->
-    <aside>
-        <div class="panel">
-            <h2>⚡ Generar Noticia</h2>
+<div class="container">
 
-            <label>Categoría</label>
-            <select id="categoria">
-                <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
-                <option value="Deportes">⚽ Deportes (LIDOM / MLB)</option>
-                <option value="Economía">💰 Economía</option>
-                <option value="Internacionales">🌍 Internacionales</option>
-                <option value="Tecnología">💻 Tecnología</option>
-                <option value="Espectáculos">🎬 Espectáculos</option>
-            </select>
+    <!-- ══════════════════════════════════════════════════════
+         TAB 1 — GENERAR CON IA
+    ══════════════════════════════════════════════════════ -->
+    <div id="tab-generar" class="tab-panel activo">
+        <div class="two-col">
+            <aside>
+                <div class="card">
+                    <div class="card-title">⚡ Generar Noticia con IA</div>
 
-            <button class="btn" id="btnGenerar" onclick="generarNoticia()">⚡ GENERAR CON IA</button>
-            <button class="btn btn-sec" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
+                    <div class="field">
+                        <label>Categoría</label>
+                        <select id="gen-categoria">
+                            <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
+                            <option value="Deportes">⚽ Deportes (LIDOM / MLB)</option>
+                            <option value="Economía">💰 Economía</option>
+                            <option value="Internacionales">🌍 Internacionales</option>
+                            <option value="Tecnología">💻 Tecnología</option>
+                            <option value="Espectáculos">🎬 Espectáculos</option>
+                        </select>
+                    </div>
 
-            <div class="spinner" id="spinner"></div>
-            <div id="status">Esperando órdenes, socio...</div>
+                    <button class="btn" id="btnGenerar" onclick="generarNoticia()">⚡ GENERAR CON IA</button>
+                    <button class="btn btn-outline" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
 
-            <div class="rss-status" id="rss-status"></div>
+                    <div class="spinner" id="gen-spinner"></div>
+                    <div class="status-box" id="gen-status">Esperando órdenes, socio...</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📡 Estado del Sistema</div>
+                    <div id="sistema-status" style="font-size:12px;color:#555;line-height:2;">Cargando...</div>
+                </div>
+            </aside>
+
+            <section>
+                <div class="card">
+                    <div class="card-title">📰 Últimas Generadas</div>
+                    <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+                        <div class="stat-card">
+                            <div class="stat-num" id="g-total">—</div>
+                            <div class="stat-label">Publicadas</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-num" id="g-hoy">—</div>
+                            <div class="stat-label">Hoy</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-num" id="g-vistas">—</div>
+                            <div class="stat-label">Vistas</div>
+                        </div>
+                    </div>
+                    <div id="gen-lista">
+                        <p style="text-align:center;color:#333;padding:30px 0;">Cargando...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 2 — PUBLICAR MANUAL (con imagen + etiquetas)
+    ══════════════════════════════════════════════════════ -->
+    <div id="tab-manual" class="tab-panel">
+        <div class="two-col">
+            <aside>
+                <div class="card">
+                    <div class="card-title">✍️ Nueva Noticia Manual</div>
+
+                    <div class="field">
+                        <label>Título *</label>
+                        <input type="text" id="m-titulo" placeholder="Título de la noticia (60-70 caracteres ideal)">
+                        <div style="font-size:11px;color:#444;margin-top:4px;text-align:right;" id="titulo-contador">0 / 70</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Sección *</label>
+                        <select id="m-seccion">
+                            <option value="Nacionales">🏛️ Nacionales</option>
+                            <option value="Deportes">⚽ Deportes</option>
+                            <option value="Economía">💰 Economía</option>
+                            <option value="Internacionales">🌍 Internacionales</option>
+                            <option value="Tecnología">💻 Tecnología</option>
+                            <option value="Espectáculos">🎬 Espectáculos</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label>Etiquetas (separadas por coma)</label>
+                        <input type="text" id="m-tags" placeholder="república dominicana, política, abinader">
+                    </div>
+
+                    <div class="field">
+                        <label>Descripción SEO (150-160 caracteres)</label>
+                        <textarea id="m-desc" style="min-height:60px;" placeholder="Resumen optimizado para Google News..."></textarea>
+                        <div style="font-size:11px;color:#444;margin-top:4px;text-align:right;" id="desc-contador">0 / 160</div>
+                    </div>
+
+                    <div class="field">
+                        <label>Redactor</label>
+                        <select id="m-redactor">
+                            <option value="Carlos Méndez">Carlos Méndez (Nacionales)</option>
+                            <option value="Laura Santana">Laura Santana (Deportes)</option>
+                            <option value="Roberto Peña">Roberto Peña (Internacional)</option>
+                            <option value="Ana María Castillo">Ana María Castillo (Economía)</option>
+                            <option value="José Miguel Fernández">José Miguel Fernández (Tecnología)</option>
+                            <option value="Patricia Jiménez">Patricia Jiménez (Espectáculos)</option>
+                            <option value="Editor Manual">Editor Manual</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🖼️ Imagen de Portada</div>
+
+                    <!-- Subir archivo -->
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="img-file" accept="image/jpeg,image/png,image/webp" onchange="previsualizarImagen(event)">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Arrastra aquí o <span>haz clic para subir</span><br>JPG, PNG, WEBP · máx 5MB</div>
+                    </div>
+
+                    <div class="upload-preview" id="imgPreview">
+                        <img id="imgPreviewImg" src="" alt="Preview">
+                        <button class="upload-preview-remove" onclick="quitarImagen()">✕</button>
+                    </div>
+
+                    <div class="upload-url-sep">o pega una URL</div>
+
+                    <div class="field" style="margin-bottom:0;">
+                        <input type="url" id="m-imagen-url" placeholder="https://ejemplo.com/foto.jpg" oninput="previewURL(this.value)">
+                    </div>
+
+                    <div class="field" style="margin-top:10px;">
+                        <label>Alt Text de la imagen (SEO)</label>
+                        <input type="text" id="m-img-alt" placeholder="Descripción de la imagen para SEO...">
+                    </div>
+                </div>
+
+                <button class="btn" onclick="publicarManual()">📝 PUBLICAR NOTICIA</button>
+                <div class="status-box" id="manual-status" style="margin-top:12px;">Completa los campos y publica.</div>
+            </aside>
+
+            <section>
+                <div class="card">
+                    <div class="card-title">✏️ Contenido *</div>
+                    <div class="field">
+                        <textarea id="m-contenido" style="min-height:420px;font-size:14px;line-height:1.7;" placeholder="Escribe aquí el contenido completo de la noticia...
+
+Párrafo 1 — LEAD: Qué + Quién + Cuándo + Dónde + Por qué
+
+Párrafo 2 — CONTEXTO: datos concretos, cifras, fechas
+
+Párrafo 3 — FUENTES: institución oficial, verbos de atribución
+
+Párrafo 4 — IMPACTO: qué cambia para la gente
+
+Párrafo 5 — CIERRE: próximos pasos o contexto regional"></textarea>
+                        <div style="font-size:11px;color:#444;margin-top:4px;display:flex;justify-content:space-between;">
+                            <span id="palabras-count">0 palabras</span>
+                            <span>Mín. 300 palabras recomendado</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 3 — LISTA NOTICIAS (filtros funcionando)
+    ══════════════════════════════════════════════════════ -->
+    <div id="tab-noticias" class="tab-panel">
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-num" id="n-total">—</div>
+                <div class="stat-label">Total Noticias</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="n-hoy">—</div>
+                <div class="stat-label">Publicadas Hoy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="n-vistas">—</div>
+                <div class="stat-label">Vistas Totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="n-semana">—</div>
+                <div class="stat-label">Esta Semana</div>
+            </div>
         </div>
 
-        <div class="panel" style="margin-top:20px;">
-            <h2>✍️ Publicar Manual</h2>
-
-            <label>Título</label>
-            <input type="text" id="manual-titulo" placeholder="Título de la noticia...">
-
-            <label>Sección</label>
-            <select id="manual-seccion">
-                <option value="Nacionales">Nacionales</option>
-                <option value="Deportes">Deportes</option>
-                <option value="Economía">Economía</option>
-                <option value="Internacionales">Internacionales</option>
-                <option value="Tecnología">Tecnología</option>
-                <option value="Espectáculos">Espectáculos</option>
-            </select>
-
-            <label>Contenido</label>
-            <textarea id="manual-contenido" placeholder="Escribe aquí el contenido de la noticia..."></textarea>
-
-            <button class="btn btn-sec" onclick="publicarManual()">📝 PUBLICAR MANUAL</button>
-            <div id="manual-status" style="margin-top:10px;font-size:12px;text-align:center;color:#888;"></div>
+        <div class="card">
+            <div class="filtros" id="filtros-noticias">
+                <button class="f-btn activo" onclick="filtrarNoticias('')">Todas</button>
+                <button class="f-btn" onclick="filtrarNoticias('Nacionales')">🏛️ Nacionales</button>
+                <button class="f-btn" onclick="filtrarNoticias('Deportes')">⚽ Deportes</button>
+                <button class="f-btn" onclick="filtrarNoticias('Economía')">💰 Economía</button>
+                <button class="f-btn" onclick="filtrarNoticias('Internacionales')">🌍 Internacional</button>
+                <button class="f-btn" onclick="filtrarNoticias('Tecnología')">💻 Tecnología</button>
+                <button class="f-btn" onclick="filtrarNoticias('Espectáculos')">🎬 Espectáculos</button>
+            </div>
+            <div id="lista-noticias">
+                <p style="text-align:center;color:#333;padding:30px 0;">Cargando noticias...</p>
+            </div>
         </div>
-    </aside>
+    </div>
 
-    <!-- Panel derecho -->
-    <section class="panel panel-lista">
-        <div class="lista-header">
-            <h2>📰 Noticias Publicadas</h2>
-            <span id="total-label">Cargando...</span>
-        </div>
+    <!-- ══════════════════════════════════════════════════════
+         TAB 4 — ANALÍTICA
+    ══════════════════════════════════════════════════════ -->
+    <div id="tab-analytics" class="tab-panel">
 
-        <div class="stats-row" id="stats-row">
-            <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lab">Noticias</div></div>
-            <div class="stat-card"><div class="num" id="stat-vistas">—</div><div class="lab">Vistas</div></div>
-            <div class="stat-card"><div class="num" id="stat-hoy">—</div><div class="lab">Hoy</div></div>
-        </div>
+        <!-- Google Analytics ID config -->
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-title">📈 Google Analytics</div>
 
-        <div class="filtros" id="filtros">
-            <button class="activo" onclick="filtrar('')">Todas</button>
-            <button onclick="filtrar('Nacionales')">Nacionales</button>
-            <button onclick="filtrar('Deportes')">Deportes</button>
-            <button onclick="filtrar('Economía')">Economía</button>
-            <button onclick="filtrar('Internacionales')">Internacionales</button>
-            <button onclick="filtrar('Tecnología')">Tecnología</button>
-            <button onclick="filtrar('Espectáculos')">Espectáculos</button>
+            <div class="ga-status" id="ga-status-box">
+                <div class="ga-dot" id="ga-dot"></div>
+                <div class="ga-info">
+                    <div class="ga-info-label">ID de Medición</div>
+                    <div class="ga-info-val" id="ga-id-display">No configurado</div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>ID de Google Analytics 4 (G-XXXXXXXXXX)</label>
+                <input type="text" id="ga-id-input" placeholder="G-XXXXXXXXXX o UA-XXXXXXXXX">
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button class="btn" style="flex:1;" onclick="guardarGA()">💾 GUARDAR Y ACTIVAR</button>
+                <button class="btn btn-outline btn-sm" onclick="abrirGA()">🔗 Abrir GA</button>
+            </div>
+            <div class="status-box" id="ga-status" style="margin-top:10px;">Configura tu ID de Analytics para medir el tráfico.</div>
         </div>
 
-        <div id="lista-noticias">
-            <p style="text-align:center;color:#555;padding:40px;">Cargando noticias...</p>
+        <!-- Métricas internas -->
+        <div class="analytics-grid">
+            <div class="analytics-card">
+                <h3>📊 Vistas por Categoría</h3>
+                <div id="cat-vistas">
+                    <p style="color:#333;font-size:12px;">Cargando...</p>
+                </div>
+            </div>
+            <div class="analytics-card">
+                <h3>🏆 Top 5 Noticias</h3>
+                <div id="top-noticias">
+                    <p style="color:#333;font-size:12px;">Cargando...</p>
+                </div>
+            </div>
+            <div class="analytics-card">
+                <h3>📅 Actividad por Hora</h3>
+                <div id="actividad-horas">
+                    <p style="color:#333;font-size:12px;">Cargando...</p>
+                </div>
+            </div>
         </div>
-    </section>
-</div>
+
+        <!-- Coach IA -->
+        <div class="card">
+            <div class="card-title">🤖 Coach IA — Rendimiento por Categoría</div>
+            <div id="coach-data">
+                <p style="color:#333;text-align:center;padding:20px;">Cargando análisis...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 5 — CONFIGURACIÓN
+    ══════════════════════════════════════════════════════ -->
+    <div id="tab-configuracion" class="tab-panel">
+        <div class="two-col">
+            <div>
+                <div class="card">
+                    <div class="card-title">🤖 Configuración IA</div>
+
+                    <div class="toggle-row">
+                        <div>
+                            <div class="toggle-label">Generación Automática</div>
+                            <div class="toggle-sub">1 noticia por hora + RSS x3/día</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="ia-enabled" checked onchange="guardarConfigIA()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="field" style="margin-top:14px;">
+                        <label>Tono editorial</label>
+                        <select id="ia-tono" onchange="guardarConfigIA()">
+                            <option value="profesional">Profesional</option>
+                            <option value="formal">Formal</option>
+                            <option value="cercano">Cercano / comunitario</option>
+                            <option value="urgente">Urgente / breaking news</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label>Instrucción principal</label>
+                        <textarea id="ia-instruccion" style="min-height:80px;" onchange="guardarConfigIA()"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label>Énfasis geográfico</label>
+                        <textarea id="ia-enfasis" style="min-height:60px;" onchange="guardarConfigIA()"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label>Temas a evitar</label>
+                        <textarea id="ia-evitar" style="min-height:60px;" onchange="guardarConfigIA()"></textarea>
+                    </div>
+
+                    <button class="btn" onclick="guardarConfigIA()">💾 GUARDAR CONFIGURACIÓN</button>
+                    <div class="status-box" id="ia-config-status" style="margin-top:10px;"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title">📊 Estado Sistema</div>
+                    <div id="full-status" style="font-size:13px;line-height:2;color:var(--texto2);">
+                        Cargando...
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🧹 Mantenimiento</div>
+
+                    <div class="toggle-row">
+                        <div>
+                            <div class="toggle-label">Procesar RSS manualmente</div>
+                            <div class="toggle-sub">Busca y genera noticias de fuentes RSS</div>
+                        </div>
+                        <button class="btn btn-outline btn-sm" onclick="procesarRSS()">▶ Iniciar</button>
+                    </div>
+
+                    <div class="toggle-row">
+                        <div>
+                            <div class="toggle-label">Probar Telegram</div>
+                            <div class="toggle-sub">Envía mensaje de prueba al canal</div>
+                        </div>
+                        <button class="btn btn-outline btn-sm" onclick="testTelegram()">▶ Probar</button>
+                    </div>
+
+                    <div id="mant-status" style="font-size:12px;color:#555;margin-top:10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /container -->
 
 <script>
-    const PIN = '311';
-    let todasLasNoticias = [];
-    let categoriaFiltro = '';
+const PIN = '311';
+const AUTH = 'Basic ' + btoa('director:311');
+let todasNoticias = [];
+let filtroActual = '';
+let imagenBase64 = null;
 
-    async function generarNoticia() {
-        const btn    = document.getElementById('btnGenerar');
-        const status = document.getElementById('status');
-        const spin   = document.getElementById('spinner');
-        const cat    = document.getElementById('categoria').value;
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+function activarTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activo'));
+    event.target.classList.add('activo');
+    document.getElementById('tab-' + id).classList.add('activo');
 
-        btn.disabled = true;
-        spin.style.display = 'block';
-        status.innerHTML = `<span style="color:#aaa">Generando noticia de <b>${cat}</b>...</span><br><small style="color:#555">Puede tomar hasta 30 segundos</small>`;
+    if (id === 'noticias') cargarNoticias();
+    if (id === 'analytics') cargarAnalytics();
+    if (id === 'configuracion') cargarConfiguracion();
+}
 
-        try {
-            const res  = await fetch('/api/generar-noticia', {
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
-                body:JSON.stringify({ categoria:cat })
-            });
-            const data = await res.json();
-            if (data.success) {
-                status.innerHTML = `<span style="color:#4caf50">✅ ¡PUBLICADA!</span><br><small>${data.titulo}</small><br><a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja);font-size:11px;">Ver noticia →</a>`;
-                await cargarNoticias();
-            } else {
-                status.innerHTML = `<span style="color:#f44336">❌ Error:</span><br><small style="color:#888">${data.error}</small>`;
-            }
-        } catch(err) {
-            status.innerHTML = `<span style="color:#f44336">❌ Error de conexión</span>`;
-        } finally {
-            btn.disabled = false;
-            spin.style.display = 'none';
+// ══════════════════════════════════════════════════════
+// GENERAR NOTICIA IA
+// ══════════════════════════════════════════════════════
+async function generarNoticia() {
+    const btn = document.getElementById('btnGenerar');
+    const statusEl = document.getElementById('gen-status');
+    const spin = document.getElementById('gen-spinner');
+    const cat = document.getElementById('gen-categoria').value;
+
+    btn.disabled = true;
+    spin.style.display = 'block';
+    statusEl.innerHTML = `<span style="color:#aaa">Generando noticia de <b>${cat}</b>...</span><br><small style="color:#555">Gemini escribiendo, puede tomar 20-30 segundos</small>`;
+
+    try {
+        const res = await fetch('/api/generar-noticia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify({ categoria: cat })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusEl.innerHTML = `<span style="color:#22c55e">✅ ¡PUBLICADA!</span><br>
+            <small style="color:#aaa">${data.titulo}</small><br>
+            <a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja);font-size:11px;">Ver noticia →</a>`;
+            await cargarEstadisticas();
+            await renderUltimasGeneradas();
+        } else {
+            statusEl.innerHTML = `<span style="color:#ef4444">❌ ${data.error || 'Error al generar'}</span>`;
         }
+    } catch(err) {
+        statusEl.innerHTML = `<span style="color:#ef4444">❌ Error de conexión: ${err.message}</span>`;
+    } finally {
+        btn.disabled = false;
+        spin.style.display = 'none';
     }
+}
 
-    async function procesarRSS() {
-        const el = document.getElementById('rss-status');
-        el.textContent = '📡 Procesando RSS... (puede tardar varios minutos)';
-        try {
-            await fetch('/api/procesar-rss', {
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
-                body:JSON.stringify({ pin:PIN })
-            });
-            el.textContent = '✅ RSS iniciado en segundo plano';
-            setTimeout(() => cargarNoticias(), 10000);
-        } catch(e) {
-            el.textContent = '❌ Error al iniciar RSS';
+async function procesarRSS() {
+    const el = document.getElementById('gen-status') || document.getElementById('mant-status');
+    if (el) el.innerHTML = '<span style="color:#f59e0b">📡 Procesando RSS... (puede tardar varios minutos)</span>';
+    try {
+        await fetch('/api/procesar-rss', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify({ pin: PIN })
+        });
+        if (el) el.innerHTML = '<span style="color:#22c55e">✅ RSS iniciado en segundo plano</span>';
+        setTimeout(() => { cargarEstadisticas(); renderUltimasGeneradas(); }, 15000);
+    } catch(e) {
+        if (el) el.innerHTML = '<span style="color:#ef4444">❌ Error al iniciar RSS</span>';
+    }
+}
+
+async function renderUltimasGeneradas() {
+    try {
+        const res = await fetch('/api/noticias', { headers: { 'Authorization': AUTH } });
+        const data = await res.json();
+        if (!data.success) return;
+        todasNoticias = data.noticias;
+        const el = document.getElementById('gen-lista');
+        if (!el) return;
+        if (!data.noticias.length) { el.innerHTML = '<p style="text-align:center;color:#333;padding:20px;">Sin noticias aún.</p>'; return; }
+        el.innerHTML = data.noticias.slice(0, 10).map(n => noticiaItemHTML(n)).join('');
+    } catch(e) {}
+}
+
+async function cargarEstadisticas() {
+    try {
+        const [resN, resE] = await Promise.all([
+            fetch('/api/noticias', { headers: { 'Authorization': AUTH } }),
+            fetch('/api/estadisticas')
+        ]);
+        const dataN = await resN.json();
+        const dataE = await resE.json();
+
+        if (dataN.success) {
+            todasNoticias = dataN.noticias;
+            const hoy = new Date().toDateString();
+            const noticiasHoy = dataN.noticias.filter(n => new Date(n.fecha).toDateString() === hoy).length;
+
+            setEl('g-hoy', noticiasHoy);
+            setEl('n-hoy', noticiasHoy);
+
+            const semana = new Date(); semana.setDate(semana.getDate() - 7);
+            const estaSemana = dataN.noticias.filter(n => new Date(n.fecha) > semana).length;
+            setEl('n-semana', estaSemana);
         }
-    }
-
-    async function publicarManual() {
-        const titulo    = document.getElementById('manual-titulo').value.trim();
-        const seccion   = document.getElementById('manual-seccion').value;
-        const contenido = document.getElementById('manual-contenido').value.trim();
-        const el        = document.getElementById('manual-status');
-
-        if (!titulo || !contenido) { el.style.color='#f44336'; el.textContent='❌ Completa título y contenido'; return; }
-        el.style.color='#888'; el.textContent='Publicando...';
-
-        try {
-            const res  = await fetch('/api/publicar', {
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
-                body:JSON.stringify({ pin:PIN, titulo, seccion, contenido, redactor:'Editor Manual' })
-            });
-            const data = await res.json();
-            if (data.success) {
-                el.style.color='#4caf50';
-                el.innerHTML = `✅ Publicada — <a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja)">Ver noticia →</a>`;
-                document.getElementById('manual-titulo').value = '';
-                document.getElementById('manual-contenido').value = '';
-                await cargarNoticias();
-            } else {
-                el.style.color='#f44336'; el.textContent='❌ ' + data.error;
-            }
-        } catch(e) {
-            el.style.color='#f44336'; el.textContent='❌ Error de conexión';
+        if (dataE.success) {
+            const v = dataE.totalVistas || 0;
+            const vStr = v > 9999 ? (v/1000).toFixed(1)+'k' : v;
+            setEl('g-total', dataE.totalNoticias || 0);
+            setEl('n-total', dataE.totalNoticias || 0);
+            setEl('g-vistas', vStr);
+            setEl('n-vistas', vStr);
         }
+    } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════
+// PUBLICAR MANUAL (con imagen)
+// ══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    // Contadores
+    const tit = document.getElementById('m-titulo');
+    const cont = document.getElementById('m-contenido');
+    const desc = document.getElementById('m-desc');
+    if (tit) tit.addEventListener('input', () => {
+        document.getElementById('titulo-contador').textContent = tit.value.length + ' / 70';
+        document.getElementById('titulo-contador').style.color = tit.value.length > 70 ? '#ef4444' : '#444';
+    });
+    if (desc) desc.addEventListener('input', () => {
+        document.getElementById('desc-contador').textContent = desc.value.length + ' / 160';
+        document.getElementById('desc-contador').style.color = desc.value.length > 160 ? '#ef4444' : '#444';
+    });
+    if (cont) cont.addEventListener('input', () => {
+        const words = cont.value.trim().split(/\s+/).filter(w => w).length;
+        const el = document.getElementById('palabras-count');
+        el.textContent = words + ' palabras';
+        el.style.color = words < 300 ? '#f59e0b' : '#22c55e';
+    });
+
+    cargarEstadisticas();
+    renderUltimasGeneradas();
+    cargarSistemaStatus();
+    cargarGAConfig();
+});
+
+function previsualizarImagen(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        alert('La imagen es muy grande. Máximo 5MB.');
+        return;
     }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        imagenBase64 = e.target.result;
+        document.getElementById('imgPreviewImg').src = imagenBase64;
+        document.getElementById('imgPreview').style.display = 'block';
+        document.getElementById('uploadZone').style.display = 'none';
+        document.getElementById('m-imagen-url').value = '';
+    };
+    reader.readAsDataURL(file);
+}
 
-    async function eliminarNoticia(id) {
-        if (!confirm('¿Eliminar esta noticia? Esta acción no se puede deshacer.')) return;
-        try {
-            const res  = await fetch(`/api/eliminar/${id}`, {
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':'Basic ' + btoa('director:311')},
-                body:JSON.stringify({ pin:PIN })
-            });
-            const data = await res.json();
-            if (data.success) { await cargarNoticias(); }
-            else { alert('Error al eliminar: ' + data.error); }
-        } catch(e) { alert('Error de conexión'); }
+function quitarImagen() {
+    imagenBase64 = null;
+    document.getElementById('imgPreview').style.display = 'none';
+    document.getElementById('uploadZone').style.display = 'block';
+    document.getElementById('img-file').value = '';
+}
+
+function previewURL(url) {
+    if (!url || !url.startsWith('http')) return;
+    imagenBase64 = null;
+    document.getElementById('imgPreviewImg').src = url;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+}
+
+async function publicarManual() {
+    const titulo = document.getElementById('m-titulo').value.trim();
+    const seccion = document.getElementById('m-seccion').value;
+    const contenido = document.getElementById('m-contenido').value.trim();
+    const redactor = document.getElementById('m-redactor').value;
+    const tags = document.getElementById('m-tags').value.trim();
+    const desc = document.getElementById('m-desc').value.trim();
+    const imgUrl = document.getElementById('m-imagen-url').value.trim();
+    const imgAlt = document.getElementById('m-img-alt').value.trim();
+    const statusEl = document.getElementById('manual-status');
+
+    if (!titulo) { statusEl.innerHTML = '<span style="color:#ef4444">❌ El título es obligatorio</span>'; return; }
+    if (!contenido || contenido.length < 100) { statusEl.innerHTML = '<span style="color:#ef4444">❌ El contenido es muy corto (mínimo 100 caracteres)</span>'; return; }
+
+    statusEl.innerHTML = '<span style="color:#f59e0b">⏳ Publicando...</span>';
+
+    // Imagen final: base64 subida > URL pegada > default
+    const imagenFinal = imagenBase64 || imgUrl || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800';
+
+    try {
+        const body = {
+            pin: PIN,
+            titulo,
+            seccion,
+            contenido,
+            redactor,
+            seo_description: desc || titulo.substring(0, 155),
+            seo_keywords: tags,
+            imagen: imagenFinal,
+            imagen_alt: imgAlt || `${titulo} - El Farol al Día`,
+        };
+
+        const res = await fetch('/api/publicar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            statusEl.innerHTML = `<span style="color:#22c55e">✅ ¡Publicada!</span> — <a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja)">Ver noticia →</a>`;
+            // Limpiar formulario
+            document.getElementById('m-titulo').value = '';
+            document.getElementById('m-contenido').value = '';
+            document.getElementById('m-tags').value = '';
+            document.getElementById('m-desc').value = '';
+            document.getElementById('m-imagen-url').value = '';
+            document.getElementById('m-img-alt').value = '';
+            quitarImagen();
+            document.getElementById('titulo-contador').textContent = '0 / 70';
+            document.getElementById('desc-contador').textContent = '0 / 160';
+            document.getElementById('palabras-count').textContent = '0 palabras';
+            await cargarEstadisticas();
+        } else {
+            statusEl.innerHTML = `<span style="color:#ef4444">❌ ${data.error}</span>`;
+        }
+    } catch(e) {
+        statusEl.innerHTML = `<span style="color:#ef4444">❌ Error: ${e.message}</span>`;
     }
+}
 
-    function filtrar(cat) {
-        categoriaFiltro = cat;
-        document.querySelectorAll('.filtros button').forEach(b => b.classList.remove('activo'));
-        const btn = Array.from(document.querySelectorAll('.filtros button')).find(b => b.textContent === (cat||'Todas'));
-        if (btn) btn.classList.add('activo');
-        renderLista(cat ? todasLasNoticias.filter(n => n.seccion===cat) : todasLasNoticias);
+// ══════════════════════════════════════════════════════
+// LISTA NOTICIAS + FILTROS (FUNCIONANDO)
+// ══════════════════════════════════════════════════════
+async function cargarNoticias() {
+    try {
+        const res = await fetch('/api/noticias', { headers: { 'Authorization': AUTH } });
+        const data = await res.json();
+        if (data.success) {
+            todasNoticias = data.noticias;
+            filtrarNoticias(filtroActual);
+            await cargarEstadisticas();
+        }
+    } catch(e) {
+        document.getElementById('lista-noticias').innerHTML = '<p style="text-align:center;color:#ef4444;padding:30px;">Error al cargar.</p>';
     }
+}
 
-    function renderLista(noticias) {
-        const el = document.getElementById('lista-noticias');
-        if (!noticias.length) { el.innerHTML='<p style="text-align:center;color:#555;padding:30px;">No hay noticias en esta sección.</p>'; return; }
+function filtrarNoticias(cat) {
+    filtroActual = cat;
 
-        el.innerHTML = noticias.slice(0,50).map(n => {
-            const img = n.imagen && n.imagen.startsWith('http') ? n.imagen : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200';
-            const fecha = new Date(n.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-            return `
-            <div class="noticia-item">
-                <img src="${img}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200'">
-                <div class="noticia-item-info">
-                    <span class="badge">${n.seccion}</span>
-                    <h3>${n.titulo}</h3>
-                    <div class="noticia-item-meta">📅 ${fecha} · 👁️ ${n.vistas||0} vistas · ✍️ ${n.redactor||'Redacción'}</div>
+    // Actualizar botones
+    document.querySelectorAll('#filtros-noticias .f-btn').forEach(b => b.classList.remove('activo'));
+    const btnActivo = Array.from(document.querySelectorAll('#filtros-noticias .f-btn')).find(b => {
+        const textoLimpio = b.textContent.replace(/[🏛️⚽💰🌍💻🎬]/g, '').trim();
+        return cat === '' ? textoLimpio === 'Todas' : textoLimpio.includes(cat);
+    });
+    if (btnActivo) btnActivo.classList.add('activo');
+
+    const filtradas = cat ? todasNoticias.filter(n => n.seccion === cat) : todasNoticias;
+    const el = document.getElementById('lista-noticias');
+    if (!filtradas.length) {
+        el.innerHTML = '<p style="text-align:center;color:#333;padding:30px;">No hay noticias en esta sección.</p>';
+        return;
+    }
+    el.innerHTML = filtradas.slice(0, 60).map(n => noticiaItemHTML(n)).join('');
+}
+
+function noticiaItemHTML(n) {
+    const img = n.imagen && n.imagen.startsWith('http') ? n.imagen :
+        'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200';
+    const fecha = new Date(n.fecha).toLocaleDateString('es-DO', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    return `
+    <div class="noticia-item">
+        <img class="noticia-thumb" src="${img}" alt="${esc(n.titulo)}"
+             onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200'">
+        <div class="noticia-info">
+            <span class="noticia-badge">${n.seccion}</span>
+            <div class="noticia-titulo">${esc(n.titulo)}</div>
+            <div class="noticia-meta">📅 ${fecha} · 👁️ ${n.vistas || 0} vistas · ✍️ ${esc(n.redactor || 'Redacción')}</div>
+        </div>
+        <div class="noticia-acciones">
+            <button class="btn-accion btn-ver" onclick="window.open('/noticia/${n.slug}','_blank')">👁 Ver</button>
+            <button class="btn-accion btn-del" onclick="eliminarNoticia(${n.id})">🗑 Borrar</button>
+        </div>
+    </div>`;
+}
+
+async function eliminarNoticia(id) {
+    if (!confirm('¿Eliminar esta noticia? No se puede deshacer.')) return;
+    try {
+        const res = await fetch(`/api/eliminar/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify({ pin: PIN })
+        });
+        const data = await res.json();
+        if (data.success) {
+            await cargarNoticias();
+            await cargarEstadisticas();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch(e) { alert('Error de conexión'); }
+}
+
+// ══════════════════════════════════════════════════════
+// ANALÍTICA
+// ══════════════════════════════════════════════════════
+async function cargarAnalytics() {
+    cargarGAConfig();
+    try {
+        const res = await fetch('/api/noticias', { headers: { 'Authorization': AUTH } });
+        const data = await res.json();
+        if (!data.success) return;
+        const noticias = data.noticias;
+
+        // Vistas por categoría
+        const cats = ['Nacionales','Deportes','Economía','Internacionales','Tecnología','Espectáculos'];
+        const catData = cats.map(c => ({
+            cat: c,
+            count: noticias.filter(n => n.seccion === c).length,
+            vistas: noticias.filter(n => n.seccion === c).reduce((s, n) => s + (n.vistas || 0), 0)
+        }));
+        const maxVistas = Math.max(...catData.map(c => c.vistas), 1);
+        document.getElementById('cat-vistas').innerHTML = catData.map(c => `
+            <div class="cat-bar">
+                <div class="cat-bar-label">${c.cat}</div>
+                <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(c.vistas/maxVistas*100)}%"></div></div>
+                <div class="cat-bar-num">${c.vistas}</div>
+            </div>
+        `).join('');
+
+        // Top 5
+        const top5 = [...noticias].sort((a, b) => (b.vistas || 0) - (a.vistas || 0)).slice(0, 5);
+        document.getElementById('top-noticias').innerHTML = top5.map((n, i) => `
+            <div class="top-noticia-item">
+                <span class="top-noticia-rank">${i + 1}</span>
+                <div class="top-noticia-title">${esc(n.titulo)}</div>
+                <div class="top-noticia-views">👁 ${n.vistas || 0} vistas · ${n.seccion}</div>
+            </div>
+        `).join('');
+
+        // Actividad por hora
+        const horas = new Array(24).fill(0);
+        noticias.forEach(n => { const h = new Date(n.fecha).getHours(); horas[h]++; });
+        const maxH = Math.max(...horas, 1);
+        const hActive = horas.map((v, h) => v > 0 ? `
+            <div class="cat-bar">
+                <div class="cat-bar-label">${h}:00h</div>
+                <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(v/maxH*100)}%"></div></div>
+                <div class="cat-bar-num">${v}</div>
+            </div>` : '').join('');
+        document.getElementById('actividad-horas').innerHTML = hActive || '<p style="color:#333;font-size:12px;">Sin datos aún</p>';
+
+    } catch(e) {}
+
+    // Coach IA
+    try {
+        const res = await fetch('/api/coach?dias=7', { headers: { 'Authorization': AUTH } });
+        const data = await res.json();
+        if (data.success && data.categorias) {
+            const filas = Object.entries(data.categorias).map(([cat, info]) => `
+                <div class="cat-bar" style="margin-bottom:10px;">
+                    <div class="cat-bar-label" style="width:110px;">${cat} <span style="color:#555;font-size:10px;">(${info.total})</span></div>
+                    <div class="cat-bar-track" style="flex:1;height:8px;">
+                        <div class="cat-bar-fill" style="width:${Math.min(info.rendimiento,100)}%;${info.rendimiento>=100?'background:#22c55e':info.rendimiento>=75?'background:var(--naranja)':'background:#ef4444'}"></div>
+                    </div>
+                    <div class="cat-bar-num" style="width:50px;color:${info.rendimiento>=100?'#22c55e':info.rendimiento>=75?'var(--naranja)':'#ef4444'}">${info.rendimiento}%</div>
                 </div>
-                <div class="noticia-acciones">
-                    <button class="btn-accion btn-ver" onclick="window.open('/noticia/${n.slug}','_blank')">👁️ Ver</button>
-                    <button class="btn-accion btn-borrar" onclick="eliminarNoticia(${n.id})">🗑️ Borrar</button>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    async function cargarNoticias() {
-        try {
-            const [resN, resE] = await Promise.all([
-                fetch('/api/noticias', {headers:{'Authorization':'Basic ' + btoa('director:311')}}),
-                fetch('/api/estadisticas')
-            ]);
-            const dataN = await resN.json();
-            const dataE = await resE.json();
-
-            if (dataN.success) {
-                todasLasNoticias = dataN.noticias;
-                document.getElementById('total-label').textContent = `${dataN.noticias.length} noticias`;
-                const hoy = new Date().toDateString();
-                const noticiasHoy = dataN.noticias.filter(n => new Date(n.fecha).toDateString()===hoy).length;
-                document.getElementById('stat-hoy').textContent = noticiasHoy;
-                renderLista(categoriaFiltro ? dataN.noticias.filter(n=>n.seccion===categoriaFiltro) : dataN.noticias);
-            }
-            if (dataE.success) {
-                document.getElementById('stat-total').textContent = dataE.totalNoticias||0;
-                const v = dataE.totalVistas||0;
-                document.getElementById('stat-vistas').textContent = v > 999 ? (v/1000).toFixed(1)+'k' : v;
-            }
-        } catch(e) {
-            document.getElementById('lista-noticias').innerHTML = '<p style="text-align:center;color:#f44336;padding:30px;">Error al cargar las noticias.</p>';
+            `).join('');
+            document.getElementById('coach-data').innerHTML = `
+                <p style="font-size:12px;color:#555;margin-bottom:14px;">Rendimiento vs promedio general · últimos 7 días · Promedio: ${data.promedio_general} vistas/noticia</p>
+                ${filas}
+            `;
         }
-    }
+    } catch(e) {}
+}
 
-    cargarNoticias();
-    setInterval(cargarNoticias, 60000);
+// ══════════════════════════════════════════════════════
+// GOOGLE ANALYTICS CONFIG
+// ══════════════════════════════════════════════════════
+async function cargarGAConfig() {
+    try {
+        const res = await fetch('/api/configuracion');
+        const data = await res.json();
+        const gaId = data.config?.googleAnalytics || '';
+        const input = document.getElementById('ga-id-input');
+        const display = document.getElementById('ga-id-display');
+        const dot = document.getElementById('ga-dot');
+        if (input) input.value = gaId;
+        if (display) display.textContent = gaId || 'No configurado';
+        if (dot) dot.className = 'ga-dot ' + (gaId ? 'activo' : '');
+    } catch(e) {}
+}
+
+async function guardarGA() {
+    const gaId = document.getElementById('ga-id-input').value.trim();
+    const statusEl = document.getElementById('ga-status');
+    statusEl.innerHTML = '<span style="color:#f59e0b">Guardando...</span>';
+    try {
+        const res = await fetch('/api/configuracion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify({ pin: PIN, googleAnalytics: gaId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusEl.innerHTML = `<span style="color:#22c55e">✅ Guardado. ID: ${gaId || 'ninguno'}</span>`;
+            document.getElementById('ga-id-display').textContent = gaId || 'No configurado';
+            document.getElementById('ga-dot').className = 'ga-dot ' + (gaId ? 'activo' : '');
+        } else {
+            statusEl.innerHTML = `<span style="color:#ef4444">❌ ${data.error}</span>`;
+        }
+    } catch(e) {
+        statusEl.innerHTML = `<span style="color:#ef4444">❌ Error: ${e.message}</span>`;
+    }
+}
+
+function abrirGA() {
+    window.open('https://analytics.google.com', '_blank');
+}
+
+// ══════════════════════════════════════════════════════
+// CONFIGURACIÓN IA
+// ══════════════════════════════════════════════════════
+async function cargarConfiguracion() {
+    try {
+        const res = await fetch('/api/admin/config?pin=311', { headers: { 'Authorization': AUTH } });
+        const data = await res.json();
+        if (data.enabled !== undefined) document.getElementById('ia-enabled').checked = data.enabled;
+        if (data.tono) document.getElementById('ia-tono').value = data.tono;
+        if (data.instruccion_principal) document.getElementById('ia-instruccion').value = data.instruccion_principal;
+        if (data.enfasis) document.getElementById('ia-enfasis').value = data.enfasis;
+        if (data.evitar) document.getElementById('ia-evitar').value = data.evitar;
+    } catch(e) {}
+    cargarFullStatus();
+}
+
+async function guardarConfigIA() {
+    const statusEl = document.getElementById('ia-config-status');
+    const body = {
+        pin: PIN,
+        enabled: document.getElementById('ia-enabled').checked,
+        tono: document.getElementById('ia-tono').value,
+        instruccion_principal: document.getElementById('ia-instruccion').value,
+        enfasis: document.getElementById('ia-enfasis').value,
+        evitar: document.getElementById('ia-evitar').value,
+    };
+    try {
+        const res = await fetch('/api/admin/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (statusEl) statusEl.innerHTML = data.success
+            ? '<span style="color:#22c55e">✅ Guardado correctamente</span>'
+            : '<span style="color:#ef4444">❌ Error al guardar</span>';
+    } catch(e) {
+        if (statusEl) statusEl.innerHTML = '<span style="color:#ef4444">❌ Error</span>';
+    }
+}
+
+async function cargarSistemaStatus() {
+    try {
+        const res = await fetch('/status');
+        const data = await res.json();
+        const el = document.getElementById('sistema-status');
+        if (!el) return;
+        el.innerHTML = `
+            <div>🤖 Modelo: <span style="color:var(--naranja)">${data.modelo_gemini || 'gemini-2.5-flash'}</span></div>
+            <div>🔑 Llaves: <span style="color:var(--verde)">${data.gemini_keys || '?'}</span></div>
+            <div>🕐 Rotación: <span style="color:#888">${data.gemini_hora || '—'}</span></div>
+            <div>📰 Total: <span style="color:var(--naranja)">${data.noticias || '—'}</span> noticias</div>
+            <div>📡 RSS: <span style="color:#888">${data.rss_procesados || 0} procesados</span></div>
+            <div>🏮 Watermark: <span style="color:${data.watermark?.includes('✅') ? 'var(--verde)' : '#f59e0b'}">${data.watermark || '—'}</span></div>
+            <div>📘 Facebook: <span style="color:${data.facebook?.includes('✅') ? 'var(--verde)' : '#555'}">${data.facebook || '—'}</span></div>
+            <div>📱 Telegram: <span style="color:${data.telegram?.includes('✅') ? 'var(--verde)' : '#555'}">${data.telegram || '—'}</span></div>
+        `;
+    } catch(e) {}
+}
+
+async function cargarFullStatus() {
+    try {
+        const res = await fetch('/status');
+        const data = await res.json();
+        const el = document.getElementById('full-status');
+        if (!el) return;
+        const rows = [
+            ['Versión', data.version],
+            ['Noticias', data.noticias],
+            ['Min sin publicar', data.min_sin_publicar + ' min'],
+            ['Última noticia', (data.ultima_noticia || '—').substring(0, 50)],
+            ['Errores Gemini (1h)', data.errores_gemini_1h],
+            ['Modelo', data.modelo_gemini],
+            ['Rotación hora', data.gemini_hora],
+            ['Cron', data.cron],
+            ['AdSense', data.adsense],
+            ['IA Activa', data.ia_activa ? '✅ Sí' : '⛔ No'],
+        ];
+        el.innerHTML = rows.map(([k, v]) => `
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--borde);">
+                <span style="color:#555;font-size:12px;">${k}</span>
+                <span style="color:var(--texto);font-size:12px;font-weight:600;">${v || '—'}</span>
+            </div>
+        `).join('');
+    } catch(e) {}
+}
+
+async function testTelegram() {
+    const el = document.getElementById('mant-status');
+    el.innerHTML = '<span style="color:#f59e0b">Enviando prueba...</span>';
+    try {
+        const res = await fetch('/api/telegram/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': AUTH },
+            body: JSON.stringify({ pin: PIN })
+        });
+        const data = await res.json();
+        el.innerHTML = data.success
+            ? '<span style="color:#22c55e">✅ Mensaje enviado a Telegram</span>'
+            : '<span style="color:#ef4444">❌ Error: ' + data.mensaje + '</span>';
+    } catch(e) {
+        el.innerHTML = '<span style="color:#ef4444">❌ Error de conexión</span>';
+    }
+}
+
+// ══════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════
+function setEl(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Auto-refresh cada 60 segundos
+setInterval(() => {
+    cargarEstadisticas();
+    renderUltimasGeneradas();
+}, 60000);
 </script>
+
 </body>
 </html>
