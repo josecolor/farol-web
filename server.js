@@ -1,11 +1,14 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.2 RESTAURADO
- * Reconstruido desde cero integrando:
- *   - V34.1: Watermark blindado, rotación 2+2 original
- *   - V34.2: Rotación HORARIA par/impar, filtro autocrítico imágenes
- *   - Fix CPM: Slugs anti-404, sitemap limpio, prompt alto CPM
- *   - Fix 429: _callGemini con timeout, diagnóstico completo
- *   - Modelo: gemini-2.5-flash (el correcto, no 1.5-flash)
+ * 🏮 EL FAROL AL DÍA — V34.3 FIX-429
+ * Fix aplicado:
+ *   - _callGemini: cooldown mínimo 60s tras 429 (antes 5s)
+ *   - Delay entre requests: 8s (antes 3s)
+ *   - Timeout: 45s (antes 30s)
+ *   - llamarGemini: 2 reintentos (antes 3), pausa 30s antes rescate
+ *   - llamarGeminiImagen: 1 reintento, 429 → fallback directo
+ *   - Cron: cada 2 horas (antes cada hora)
+ *   - Ráfaga inicial: 2 noticias, 30 min entre ellas (antes 3×20min)
+ *   - maxOutputTokens: 3000 (antes 4000)
  */
 
 const express   = require('express');
@@ -231,7 +234,7 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.2 Restaurado*\n\n✅ Bot activo. Recibirás cada noticia nueva.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.3 Fix-429*\n\n✅ Bot activo. Recibirás cada noticia nueva.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
         console.log('📱 Telegram bienvenida ✅');
     } catch(e) {}
 }
@@ -302,10 +305,14 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🔑 GEMINI — ROTACIÓN HORARIA V34.2
-// Horas PARES  → texto: KEY1+KEY2 | imagen: KEY3+KEY4
-// Horas IMPARES → texto: KEY3+KEY4 | imagen: KEY1+KEY2
-// Texto e imagen NUNCA compiten por las mismas llaves.
+// 🔑 GEMINI — V34.3 FIX-429
+// CAMBIOS CLAVE:
+//   - Cooldown mínimo 60s tras 429 (era 5s)
+//   - 8s entre requests (era 3s)
+//   - Timeout 45s (era 30s)
+//   - maxOutputTokens 3000 (era 4000)
+//   - llamarGemini: 2 reintentos, pausa 30s antes rescate
+//   - llamarGeminiImagen: 1 reintento, 429→fallback directo
 // ══════════════════════════════════════════════════════════
 const GEMINI_STATE = {};
 function getKeyState(k) {
@@ -316,13 +323,17 @@ function getKeyState(k) {
 async function _callGemini(apiKey, prompt, intentoGlobal) {
     const st = getKeyState(apiKey);
     const ahora = Date.now();
+
+    // Respetar cooldown completo tras 429
     if (ahora < st.resetTime) {
         const espera = st.resetTime - ahora;
-        console.warn(`   ⏳ KEY cooldown ${Math.round(espera/1000)}s`);
-        await new Promise(r => setTimeout(r, Math.min(espera, 15000)));
+        console.warn(`   ⏳ KEY cooldown ${Math.round(espera/1000)}s — esperando...`);
+        await new Promise(r => setTimeout(r, espera));
     }
+
+    // Mínimo 8s entre requests a la misma key
     const desde = Date.now() - st.lastRequest;
-    if (desde < 3000) await new Promise(r => setTimeout(r, 3000 - desde));
+    if (desde < 8000) await new Promise(r => setTimeout(r, 8000 - desde));
     st.lastRequest = Date.now();
 
     let res;
@@ -334,9 +345,13 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.8, maxOutputTokens: 4000, stopSequences: [] }
+                    generationConfig: {
+                        temperature: 0.8,
+                        maxOutputTokens: 3000,
+                        stopSequences: []
+                    }
                 }),
-                signal: AbortSignal.timeout(30000)
+                signal: AbortSignal.timeout(45000)
             }
         );
     } catch(fetchErr) {
@@ -345,14 +360,15 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     }
 
     if (res.status === 429) {
-        const espera = Math.min(Math.pow(2, intentoGlobal) * 5000, 60000);
+        // Cooldown mínimo 60s, crece con intentos hasta 5 min
+        const espera = Math.min(60000 + Math.pow(2, intentoGlobal) * 10000, 300000);
         st.resetTime = Date.now() + espera;
-        console.warn(`   ⚡ 429 — cooldown ${Math.round(espera/1000)}s`);
+        console.warn(`   ⚡ 429 — key cooldown ${Math.round(espera/1000)}s`);
         throw new Error('RATE_LIMIT_429');
     }
     if (res.status === 503 || res.status === 502) {
-        console.warn(`   🔴 Gemini ${res.status}`);
-        await new Promise(r => setTimeout(r, 10000));
+        console.warn(`   🔴 Gemini ${res.status} — esperando 15s`);
+        await new Promise(r => setTimeout(r, 15000));
         throw new Error(`HTTP_${res.status}`);
     }
     if (!res.ok) {
@@ -369,7 +385,7 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     return texto;
 }
 
-async function llamarGemini(prompt, reintentos = 3) {
+async function llamarGemini(prompt, reintentos = 2) {
     const hora = new Date().getHours();
     const esPar = hora % 2 === 0;
     const grupoActivo = [
@@ -381,9 +397,17 @@ async function llamarGemini(prompt, reintentos = 3) {
         esPar ? process.env.GEMINI_KEY_4 : process.env.GEMINI_KEY_2,
     ].filter(Boolean);
     console.log(`   🕐 Hora ${hora}h → texto ${esPar?'PAR (KEY1+KEY2)':'IMPAR (KEY3+KEY4)'}`);
-    for (const grupo of [grupoActivo, grupoRescate]) {
+
+    for (const [idx, grupo] of [grupoActivo, grupoRescate].entries()) {
         if (!grupo.length) continue;
-        const etiqueta = grupo === grupoActivo ? 'activo' : 'RESCATE';
+        const etiqueta = idx === 0 ? 'activo' : 'RESCATE';
+
+        // Pausa de 30s antes de intentar el grupo rescate
+        if (idx === 1) {
+            console.warn(`   ⏸️  Pausa 30s antes de grupo rescate...`);
+            await new Promise(r => setTimeout(r, 30000));
+        }
+
         let intentoGlobal = 0;
         for (let i = 0; i < reintentos; i++) {
             for (const llave of grupo) {
@@ -393,18 +417,23 @@ async function llamarGemini(prompt, reintentos = 3) {
                     console.log('   ✅ Gemini-texto OK');
                     return texto;
                 } catch(err) {
-                    if (err.message === 'RATE_LIMIT_429') { console.warn(`   ⚡ 429 → rotando...`); continue; }
+                    if (err.message === 'RATE_LIMIT_429') { console.warn(`   ⚡ 429 → rotando key...`); continue; }
                     console.error(`   ❌ ${err.message}`);
                 }
             }
-            if (i < reintentos-1) await new Promise(r => setTimeout(r, Math.pow(2,i)*3000));
+            // Pausa progresiva entre reintentos: 15s, 30s
+            if (i < reintentos-1) {
+                const pausa = (i+1) * 15000;
+                console.warn(`   ⏳ Pausa ${pausa/1000}s antes de reintento...`);
+                await new Promise(r => setTimeout(r, pausa));
+            }
         }
         console.warn(`   ⚠️ Grupo [${etiqueta}] agotado`);
     }
     throw new Error('Gemini-texto: todos los grupos fallaron');
 }
 
-async function llamarGeminiImagen(prompt, reintentos = 2) {
+async function llamarGeminiImagen(prompt, reintentos = 1) {
     const hora = new Date().getHours();
     const esPar = hora % 2 === 0;
     const llaves = [
@@ -421,13 +450,15 @@ async function llamarGeminiImagen(prompt, reintentos = 2) {
                 console.log('   ✅ Gemini-imagen OK');
                 return texto;
             } catch(err) {
-                if (err.message === 'RATE_LIMIT_429') { console.warn(`   ⚡ imagen 429 → rotando...`); continue; }
+                if (err.message === 'RATE_LIMIT_429') {
+                    console.warn(`   ⚡ imagen 429 → fallback directo (sin quemar quota)`);
+                    return null;
+                }
                 console.error(`   ❌ imagen: ${err.message}`);
             }
         }
-        if (i < reintentos-1) await new Promise(r => setTimeout(r, Math.pow(2,i)*2000));
     }
-    console.warn('   ⚠️ Gemini-imagen fallback');
+    console.warn('   ⚠️ Gemini-imagen → fallback');
     return null;
 }
 
@@ -479,7 +510,7 @@ const MAPEO_IMAGENES = {
 };
 
 // ══════════════════════════════════════════════════════════
-// 🆕 FILTRO AUTOCRÍTICO V34.2-fix
+// FILTRO AUTOCRÍTICO
 // ══════════════════════════════════════════════════════════
 const PALABRAS_BASURA_COMPLETO = [
     'sale','black friday','discount','offer','promo','deal','coupon','shopping cart','ecommerce','store front','retail','gift','present',
@@ -1056,7 +1087,6 @@ PROHIBIDO: wedding, sale, gift, couple, flowers, abstract, cartoon, logo, party,
         const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
         const altFinal  = generarAltSEO(titulo, categoria, ai, sub);
 
-        // SLUG ANTI-404
         const slugBase = slugify(titulo);
         if (!slugBase || slugBase.length < 3) throw new Error(`Slug inválido para: "${titulo}"`);
         let slFin = slugBase;
@@ -1148,7 +1178,7 @@ async function procesarRSS() {
                 if (resultado.success) {
                     await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]);
                     procesadas++;
-                    await new Promise(r => setTimeout(r, 5000));
+                    await new Promise(r => setTimeout(r, 8000));
                 }
                 break;
             }
@@ -1158,7 +1188,7 @@ async function procesarRSS() {
 }
 
 // ══════════════════════════════════════════════════════════
-// CRON V34.2 — 1 noticia/hora, RSS x3/día
+// CRON V34.3 — cada 2 horas, RSS x2/día
 // ══════════════════════════════════════════════════════════
 const CATS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 const ARRANQUE_TIME = Date.now();
@@ -1167,36 +1197,40 @@ cron.schedule('*/5 * * * *', async () => {
     try { await fetch(`http://localhost:${PORT}/health`); } catch(e) {}
 });
 
-cron.schedule('0 * * * *', async () => {
+// Una noticia cada 2 horas — reduce presión en Gemini
+cron.schedule('0 */2 * * *', async () => {
     if (!CONFIG_IA.enabled) return;
-    if (Date.now() - ARRANQUE_TIME < 35*60*1000) { console.log('⏰ Cron hora: ventana arranque, omitiendo'); return; }
+    if (Date.now() - ARRANQUE_TIME < 35*60*1000) { console.log('⏰ Cron: ventana arranque, omitiendo'); return; }
     const hora = new Date().getHours();
-    const cat = CATS[hora % CATS.length];
+    const cat = CATS[Math.floor(hora/2) % CATS.length];
     console.log(`⏰ Cron ${hora}h → ${cat}`);
     await generarNoticia(cat);
 });
 
-cron.schedule('30 7,13,20 * * *', async () => { await procesarRSS(); });
+// RSS solo 2 veces al día (antes 3)
+cron.schedule('30 8,19 * * *', async () => { await procesarRSS(); });
 
+// Ráfaga inicial: 2 noticias, 30 min entre ellas (antes 3×20min)
 async function rafagaInicial() {
     if (!CONFIG_IA.enabled) { console.log('⚠️ IA desactivada'); return; }
-    const INTERVALO = 20, TOTAL = 3;
+    const INTERVALO = 30;
+    const TOTAL = 2;
     console.log(`\n🚀 RÁFAGA INICIAL — ${TOTAL} noticias · ${INTERVALO} min entre cada una\n`);
     for (let i = 1; i <= TOTAL; i++) {
         if (i > 1) { console.log(`⏳ Esperando ${INTERVALO} min...`); await new Promise(r => setTimeout(r, INTERVALO*60*1000)); }
         try {
-            const cat = CATS[i-1]||CATS[Math.floor(Math.random()*CATS.length)];
+            const cat = CATS[i-1]||CATS[0];
             console.log(`📰 Ráfaga ${i}/${TOTAL}: ${cat}`);
             await generarNoticia(cat);
         } catch(e) { console.error(`❌ Ráfaga ${i}: ${e.message}`); }
     }
-    console.log('\n✅ Ráfaga completa — ritmo: 1 noticia/hora\n');
+    console.log('\n✅ Ráfaga completa — ritmo: 1 noticia/2 horas\n');
 }
 
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'34.2-restaurado' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'34.3-fix429' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1238,14 +1272,19 @@ app.post('/api/procesar-rss', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/publicar', express.json(), async (req, res) => {
-    const { pin, titulo, seccion, contenido, redactor:red } = req.body;
+    const { pin, titulo, seccion, contenido, redactor:red, seo_description, seo_keywords, imagen, imagen_alt } = req.body;
     if (pin !== '311') return res.status(403).json({ success:false, error:'PIN' });
     if (!titulo||!seccion||!contenido) return res.status(400).json({ success:false, error:'Faltan campos' });
     try {
         const slugBase = slugify(titulo);
         const e = await pool.query('SELECT id FROM noticias WHERE slug=$1',[slugBase]);
         const slF = e.rows.length ? `${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}` : slugBase;
-        await pool.query(`INSERT INTO noticias(titulo,slug,seccion,contenido,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[titulo,slF,seccion,contenido,red||'Manual',`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${titulo} - noticias República Dominicana El Farol al Día`,`Fotografía: ${titulo}`,'efd.jpg','el-farol','publicada']);
+        const imgFinal = imagen || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
+        const altFinal = imagen_alt || `${titulo} - noticias República Dominicana El Farol al Día`;
+        await pool.query(
+            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+            [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,'manual.jpg','manual','publicada']
+        );
         invalidarCache();
         res.json({ success:true, slug:slF });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
@@ -1269,7 +1308,6 @@ app.post('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
     catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-// Comentarios
 app.get('/api/comentarios/:noticia_id', async (req, res) => {
     try {
         const r = await pool.query(`SELECT id,nombre,texto,fecha FROM comentarios WHERE noticia_id=$1 AND aprobado=true ORDER BY fecha ASC`,[req.params.noticia_id]);
@@ -1332,7 +1370,7 @@ app.post('/api/admin/config', authMiddleware, express.json(), async (req, res) =
 
 app.get('/api/coach', async (req, res) => {
     try {
-        const { dias=7, pin } = req.query;
+        const { dias=7 } = req.query;
         const noticias = await pool.query(`SELECT id,titulo,seccion,vistas,fecha FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '${parseInt(dias)} days' ORDER BY vistas DESC`);
         if (!noticias.rows.length) return res.json({ success:true, mensaje:'Sin noticias en el período' });
         const total = noticias.rows.reduce((s,n)=>s+(n.vistas||0),0);
@@ -1411,7 +1449,7 @@ app.get('/noticia/:slug', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// SITEMAP LIMPIO — SOLO PUBLICADAS, SIN RASTRO DE BORRADAS
+// SITEMAP
 // ══════════════════════════════════════════════════════════
 app.get('/sitemap.xml', async (req, res) => {
     try {
@@ -1471,7 +1509,7 @@ app.get('/status', async (req, res) => {
         const geminiKeys = [process.env.GEMINI_API_KEY,process.env.GEMINI_KEY_2,process.env.GEMINI_KEY_3,process.env.GEMINI_KEY_4].filter(Boolean).length;
         const hora = new Date().getHours(); const esPar = hora%2===0;
         res.json({
-            status:'OK', version:'34.2-restaurado',
+            status:'OK', version:'34.3-fix429',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_keys:geminiKeys, gemini_hora:`${hora}h → ${esPar?'PAR':'IMPAR'}`,
@@ -1483,12 +1521,13 @@ app.get('/status', async (req, res) => {
             telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
             pexels:PEXELS_API_KEY?'✅ Activa':'⚠️ Sin key',
             watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Sin archivo',
-            filtro_autocritico:'✅ Activo — alto CPM con lista reducida',
+            filtro_autocritico:'✅ Activo',
             ia_activa:CONFIG_IA.enabled,
             adsense:'pub-5280872495839888 ✅',
-            cron:'✅ 1 noticia/hora (0 * * * *)',
-            rss:'✅ 7:30 · 13:30 · 20:30',
-            rafaga:'✅ 3 noticias · 20 min entre cada una',
+            cron:'✅ 1 noticia/2 horas (0 */2 * * *)',
+            rss:'✅ 8:30 · 19:30',
+            rafaga:'✅ 2 noticias · 30 min entre cada una',
+            fix_429:'✅ Cooldown 60s+, delay 8s, timeout 45s',
         });
     } catch(e) { res.status(500).json({ error:e.message }); }
 });
@@ -1504,27 +1543,22 @@ async function iniciar() {
         const hora = new Date().getHours(); const esPar = hora%2===0;
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.2 RESTAURADO                         ║
+║  🏮 EL FAROL AL DÍA — V34.3 FIX-429                            ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ Modelo: gemini-2.5-flash (corregido desde 1.5-flash)        ║
-║  ✅ Rotación horaria: texto≠imagen NUNCA en misma KEY           ║
-║  ✅ Filtro autocrítico: alto CPM con lista reducida              ║
-║  ✅ Slugs anti-404: validados antes de insertar                  ║
-║  ✅ Sitemap limpio: solo publicadas, sin rastro de borradas      ║
-║  ✅ _callGemini: timeout 30s + diagnóstico 429 completo         ║
-║  ✅ Cron: 1/hora · RSS: 7:30·13:30·20:30 · Ráfaga: 3×20min    ║
+║  ✅ FIX 429: cooldown 60s+, delay 8s, timeout 45s              ║
+║  ✅ Reintentos: 2 (era 3), imagen: 1 (era 2)                   ║
+║  ✅ Cron: cada 2 horas (era cada hora)                          ║
+║  ✅ Ráfaga: 2 noticias × 30 min (era 3 × 20 min)               ║
+║  ✅ RSS: 2 veces/día 8:30 y 19:30 (era 3 veces)                ║
+║  ✅ maxOutputTokens: 3000 (era 4000)                            ║
+║  ✅ imagen 429 → fallback directo, sin quemar quota             ║
 ║                                                                  ║
 ║  Hora: ${hora}h → ${esPar?'PAR ':'IMPAR'} | Texto: ${esPar?'KEY1+KEY2':'KEY3+KEY4'} | Imagen: ${esPar?'KEY3+KEY4':'KEY1+KEY2'}        ║
-║  Facebook:  ${FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ ACTIVO              ':'⚠️  Sin credenciales    '}║
-║  Twitter:   ${TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ ACTIVO              ':'⚠️  Sin credenciales    '}║
-║  Watermark: ${WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ ACTIVA              ':'⚠️  Sin archivo (OK)    '}║
-║  KEY3:      ${process.env.GEMINI_KEY_3?'✅ Configurada         ':'⚠️  No configurada      '}║
-║  KEY4:      ${process.env.GEMINI_KEY_4?'✅ Configurada         ':'⚠️  No configurada      '}║
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
     setTimeout(regenerarWatermarks, 5000);
     setTimeout(bienvenidaTelegram, 8000);
-    setTimeout(rafagaInicial, 15000);
+    setTimeout(rafagaInicial, 60000); // 1 min delay antes de ráfaga
 }
 
 iniciar();
