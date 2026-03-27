@@ -1,158 +1,213 @@
 <!DOCTYPE html>
-<html lang="es-DO">
+<html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Política de Cookies | El Farol al Día</title>
-<meta name="description" content="Política de Cookies de El Farol al Día. Conoce qué cookies usamos y cómo gestionarlas.">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://elfarolaldia.com/cookies">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{--fuego:#FF5500;--negro:#070707;--tinta:#111;--papel:#181818;--borde:#242424;--crema:#EDE8DF;--crema2:#B8B0A4;--muted:#777;--verde:#22C55E;--amarillo:#FFC107}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Lora',Georgia,serif;background:var(--negro);color:var(--crema);line-height:1.8;min-height:100vh}
-header{background:rgba(7,7,7,.97);border-bottom:2px solid var(--fuego);padding:0 20px;height:65px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fuego);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px}
-.logo-icon{width:38px;height:38px;background:var(--fuego);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.back-btn{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--crema2);text-decoration:none;border:1px solid var(--borde);padding:7px 14px;border-radius:6px;transition:all .2s}
-.back-btn:hover{border-color:var(--fuego);color:var(--fuego)}
-.container{max-width:860px;margin:0 auto;padding:50px 24px 80px}
-h1{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:var(--fuego);margin-bottom:8px}
-.fecha{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:40px;display:block}
-h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--fuego);margin:36px 0 12px;padding-top:12px;border-top:1px solid var(--borde)}
-p{color:var(--crema2);margin-bottom:16px;font-size:15px}
-ul{color:var(--crema2);padding-left:20px;margin-bottom:16px;font-size:15px}
-ul li{margin-bottom:8px}
-a{color:var(--fuego);text-decoration:none}
-a:hover{text-decoration:underline}
-.cookie-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:13px}
-.cookie-table th{background:rgba(255,85,0,.15);color:var(--fuego);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;padding:12px 14px;text-align:left;border-bottom:1px solid rgba(255,85,0,.3)}
-.cookie-table td{padding:11px 14px;border-bottom:1px solid var(--borde);color:var(--crema2);vertical-align:top}
-.cookie-table tr:hover td{background:rgba(255,255,255,.03)}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700}
-.badge-esencial{background:rgba(34,197,94,.15);color:var(--verde);border:1px solid rgba(34,197,94,.3)}
-.badge-analitica{background:rgba(59,130,246,.15);color:#60A5FA;border:1px solid rgba(59,130,246,.3)}
-.badge-publi{background:rgba(255,193,7,.15);color:var(--amarillo);border:1px solid rgba(255,193,7,.3)}
-.badge-pref{background:rgba(168,85,247,.15);color:#C084FC;border:1px solid rgba(168,85,247,.3)}
-.highlight{background:rgba(255,85,0,.08);border:1px solid rgba(255,85,0,.2);border-radius:8px;padding:18px 20px;margin:20px 0}
-.highlight p{margin:0;font-size:14px}
-footer{background:var(--tinta);border-top:1px solid var(--borde);padding:30px 20px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
-footer a{color:var(--crema2);text-decoration:none;margin:0 10px}
-footer a:hover{color:var(--fuego)}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Cookies | El Farol al Día</title>
+    <meta name="description" content="Política de cookies de El Farol al Día. Explicación sobre el uso de cookies propias y de terceros, incluyendo Google AdSense y Google Analytics.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://elfarolaldia.com/cookies">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
+    <style>
+        :root { --naranja:#FF5500; --fondo:#070707; --tarjeta:#141418; --texto:#EDE8DF; --texto-sec:#A89F94; --borde:#222228; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--fondo); color:var(--texto); font-family:Arial,sans-serif; min-height:100vh; }
+        header { background:#000; border-bottom:3px solid var(--naranja); padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+        .logo { font-size:22px; color:var(--naranja); font-weight:900; text-transform:uppercase; letter-spacing:3px; text-decoration:none; }
+        header a.back { color:#666; font-size:12px; text-decoration:none; }
+        header a.back:hover { color:var(--naranja); }
+        .container { max-width:860px; margin:0 auto; padding:48px 20px; }
+        .page-title { font-size:30px; color:var(--naranja); font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; }
+        .page-sub { font-size:13px; color:#666; margin-bottom:8px; }
+        .ultima-actualizacion { font-size:12px; color:#555; margin-bottom:36px; padding-bottom:20px; border-bottom:2px solid var(--borde); }
+        .section { margin-bottom:32px; }
+        .section h2 { font-size:17px; color:var(--naranja); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--borde); }
+        .section p { font-size:14px; line-height:1.8; color:var(--texto-sec); margin-bottom:12px; }
+        .section ul { margin-left:20px; margin-bottom:12px; }
+        .section ul li { font-size:14px; line-height:1.8; color:var(--texto-sec); margin-bottom:6px; }
+        .section strong { color:var(--texto); }
+        .cookies-table { width:100%; border-collapse:collapse; margin:16px 0; }
+        .cookies-table th { background:#0d0d0d; color:var(--naranja); font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:10px 14px; text-align:left; border-bottom:2px solid var(--borde); }
+        .cookies-table td { padding:10px 14px; font-size:13px; color:var(--texto-sec); border-bottom:1px solid var(--borde); vertical-align:top; line-height:1.5; }
+        .cookies-table tr:last-child td { border-bottom:none; }
+        .cookie-type { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:700; text-transform:uppercase; }
+        .type-esencial { background:#0d2010; color:#4ade80; }
+        .type-analitica { background:#0d1a2e; color:#7ab3e0; }
+        .type-publicidad { background:#2a1a0d; color:#f59e0b; }
+        .banner-info { background:#141418; border:1px solid var(--naranja); border-radius:8px; padding:20px; margin:20px 0; display:flex; gap:16px; align-items:flex-start; }
+        .banner-icon { font-size:28px; flex-shrink:0; }
+        .banner-text p { font-size:14px; color:var(--texto-sec); line-height:1.7; margin-bottom:8px; }
+        .banner-text p:last-child { margin-bottom:0; }
+        footer { background:#000; border-top:2px solid var(--naranja); padding:30px 20px; text-align:center; margin-top:60px; }
+        footer .logo-footer { font-size:18px; color:var(--naranja); font-weight:900; letter-spacing:2px; margin-bottom:8px; }
+        footer p { font-size:12px; color:#555; margin-bottom:10px; }
+        footer .footer-links { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; }
+        footer .footer-links a { font-size:11px; color:#555; text-decoration:none; }
+        footer .footer-links a:hover { color:var(--naranja); }
+    </style>
 </head>
 <body>
 <header>
-  <a href="/" class="logo"><div class="logo-icon">🏮</div>EL FAROL AL DÍA</a>
-  <a href="/" class="back-btn">← VOLVER AL INICIO</a>
+    <a href="/" class="logo">🏮 El Farol al Día</a>
+    <a href="/" class="back">← Volver al periódico</a>
 </header>
 
 <div class="container">
-  <h1>POLÍTICA DE COOKIES</h1>
-  <span class="fecha">Última actualización: 17 de Marzo de 2026 · elfarolaldia.com</span>
+    <div class="page-title">Política de Cookies</div>
+    <div class="page-sub">El Farol al Día · elfarolaldia.com</div>
+    <div class="ultima-actualizacion">Última actualización: 1 de enero de 2026</div>
 
-  <div class="highlight">
-    <p>Esta política explica qué son las cookies, qué tipos usamos en elfarolaldia.com y cómo puedes controlarlas. Al continuar usando nuestro sitio, aceptas el uso de cookies según se describe aquí.</p>
-  </div>
+    <div class="banner-info">
+        <div class="banner-icon">🍪</div>
+        <div class="banner-text">
+            <p><strong>El Farol al Día</strong> utiliza cookies propias y de terceros para mejorar tu experiencia de navegación, analizar el tráfico del sitio y mostrar publicidad relevante. Al continuar navegando en este sitio, aceptas el uso de cookies según se describe en esta política.</p>
+            <p>Puedes gestionar tus preferencias de cookies en cualquier momento desde la configuración de tu navegador.</p>
+        </div>
+    </div>
 
-  <h2>¿QUÉ SON LAS COOKIES?</h2>
-  <p>Las cookies son pequeños archivos de texto que los sitios web almacenan en tu navegador cuando los visitas. Sirven para recordar información sobre tu visita, como tu idioma preferido o tu sesión de usuario, lo que hace que tu próxima visita sea más fácil y el sitio sea más útil.</p>
+    <div class="section">
+        <h2>1. ¿Qué son las Cookies?</h2>
+        <p>Las cookies son pequeños archivos de texto que los sitios web colocan en tu dispositivo (computadora, teléfono o tablet) cuando los visitas. Estas cookies permiten que el sitio recuerde tus preferencias y acciones durante cierto período de tiempo.</p>
+        <p>Las cookies son ampliamente utilizadas para hacer que los sitios web funcionen de manera más eficiente, para proporcionar información a los propietarios del sitio y para mejorar la experiencia del usuario.</p>
+    </div>
 
-  <h2>TIPOS DE COOKIES QUE USAMOS</h2>
-  <table class="cookie-table">
-    <thead>
-      <tr>
-        <th>Cookie</th>
-        <th>Tipo</th>
-        <th>Propósito</th>
-        <th>Duración</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong>pais_seleccionado</strong></td>
-        <td><span class="badge badge-pref">PREFERENCIA</span></td>
-        <td>Recuerda tu país o idioma preferido para mostrar contenido localizado.</td>
-        <td>30 días</td>
-      </tr>
-      <tr>
-        <td><strong>_ga, _gid</strong></td>
-        <td><span class="badge badge-analitica">ANALÍTICA</span></td>
-        <td>Google Analytics: nos ayuda a entender cómo los visitantes usan el sitio (páginas vistas, tiempo en el sitio, etc.).</td>
-        <td>2 años / 24h</td>
-      </tr>
-      <tr>
-        <td><strong>DSID, IDE, __gads</strong></td>
-        <td><span class="badge badge-publi">PUBLICIDAD</span></td>
-        <td>Google AdSense: muestra anuncios relevantes basados en tu historial de navegación.</td>
-        <td>13 meses</td>
-      </tr>
-      <tr>
-        <td><strong>NID, CONSENT</strong></td>
-        <td><span class="badge badge-analitica">GOOGLE</span></td>
-        <td>Cookies de Google para preferencias de usuario y consentimiento de cookies.</td>
-        <td>6 meses</td>
-      </tr>
-      <tr>
-        <td><strong>googtrans</strong></td>
-        <td><span class="badge badge-pref">PREFERENCIA</span></td>
-        <td>Google Translate: recuerda el idioma seleccionado para traducción del sitio.</td>
-        <td>Sesión</td>
-      </tr>
-    </tbody>
-  </table>
+    <div class="section">
+        <h2>2. Tipos de Cookies que Utilizamos</h2>
+        <table class="cookies-table">
+            <thead>
+                <tr>
+                    <th>Cookie / Servicio</th>
+                    <th>Tipo</th>
+                    <th>Propósito</th>
+                    <th>Duración</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>_ga</strong><br><small>Google Analytics</small></td>
+                    <td><span class="cookie-type type-analitica">Analítica</span></td>
+                    <td>Distingue usuarios únicos para estadísticas de visitas anónimas</td>
+                    <td>2 años</td>
+                </tr>
+                <tr>
+                    <td><strong>_gid</strong><br><small>Google Analytics</small></td>
+                    <td><span class="cookie-type type-analitica">Analítica</span></td>
+                    <td>Distingue usuarios para sesiones de análisis de tráfico</td>
+                    <td>24 horas</td>
+                </tr>
+                <tr>
+                    <td><strong>_gat</strong><br><small>Google Analytics</small></td>
+                    <td><span class="cookie-type type-analitica">Analítica</span></td>
+                    <td>Limita la velocidad de solicitudes al servidor de Google Analytics</td>
+                    <td>1 minuto</td>
+                </tr>
+                <tr>
+                    <td><strong>IDE</strong><br><small>Google AdSense / DoubleClick</small></td>
+                    <td><span class="cookie-type type-publicidad">Publicidad</span></td>
+                    <td>Muestra anuncios relevantes y mide la eficacia de la publicidad</td>
+                    <td>13 meses</td>
+                </tr>
+                <tr>
+                    <td><strong>ANID</strong><br><small>Google AdSense</small></td>
+                    <td><span class="cookie-type type-publicidad">Publicidad</span></td>
+                    <td>Personalización de anuncios en la Red de Display de Google</td>
+                    <td>13 meses</td>
+                </tr>
+                <tr>
+                    <td><strong>test_cookie</strong><br><small>Google AdSense</small></td>
+                    <td><span class="cookie-type type-publicidad">Publicidad</span></td>
+                    <td>Verifica si el navegador acepta cookies (prueba de compatibilidad)</td>
+                    <td>15 minutos</td>
+                </tr>
+                <tr>
+                    <td><strong>VISITOR_INFO1_LIVE</strong><br><small>YouTube (videos embebidos)</small></td>
+                    <td><span class="cookie-type type-analitica">Analítica</span></td>
+                    <td>Estima el ancho de banda del usuario para vídeos de YouTube</td>
+                    <td>6 meses</td>
+                </tr>
+                <tr>
+                    <td><strong>Sesión del sitio</strong><br><small>El Farol al Día</small></td>
+                    <td><span class="cookie-type type-esencial">Esencial</span></td>
+                    <td>Mantiene preferencias básicas de navegación durante la visita</td>
+                    <td>Sesión</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-  <h2>COOKIES DE TERCEROS — GOOGLE ADSENSE</h2>
-  <p>Utilizamos <strong>Google AdSense</strong> para mostrar publicidad en nuestro sitio. Google puede utilizar cookies para personalizar los anuncios que ves basándose en tu historial de navegación en otros sitios web.</p>
-  <p>Google usa la cookie <strong>DoubleClick DART</strong> para publicar anuncios a nuestros usuarios basados en su visita a elfarolaldia.com y otros sitios en Internet. Puedes optar por no recibir publicidad personalizada visitando:</p>
-  <ul>
-    <li><a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Configuración de anuncios de Google</a></li>
-    <li><a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">Digital Advertising Alliance (DAA)</a></li>
-    <li><a href="https://optout.networkadvertising.org/" target="_blank" rel="noopener">Network Advertising Initiative (NAI)</a></li>
-  </ul>
+    <div class="section">
+        <h2>3. Cookies de Google AdSense</h2>
+        <p>Nuestro sitio utiliza <strong>Google AdSense</strong> (ID: ca-pub-5280872495839888) para mostrar publicidad. Google AdSense utiliza cookies para mostrar anuncios basados en tus intereses y visitas anteriores a este y otros sitios web.</p>
+        <p>Google AdSense puede combinar la información de cookies con otros datos que Google tenga sobre ti (si tienes una cuenta de Google) para personalizar los anuncios mostrados.</p>
+        <p>Para más información sobre cómo Google utiliza los datos publicitarios, visita:</p>
+        <ul>
+            <li><a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener" style="color:var(--naranja)">Cómo usa Google la información publicitaria</a></li>
+            <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--naranja)">Política de Privacidad de Google</a></li>
+            <li><a href="https://adssettings.google.com" target="_blank" rel="noopener" style="color:var(--naranja)">Configuración de anuncios de Google</a></li>
+        </ul>
+    </div>
 
-  <h2>CÓMO CONTROLAR LAS COOKIES</h2>
-  <p>Puedes controlar y/o eliminar las cookies según desees. Tienes la opción de eliminar todas las cookies ya instaladas en tu computadora y puedes configurar la mayoría de los navegadores para que no las acepten. Sin embargo, si lo haces, es posible que debas ajustar manualmente algunas preferencias cada vez que visites el sitio.</p>
+    <div class="section">
+        <h2>4. Cookies de Google Analytics</h2>
+        <p>Utilizamos <strong>Google Analytics</strong> para entender cómo los usuarios interactúan con nuestro sitio. Esta herramienta nos ayuda a mejorar el contenido y la experiencia de navegación.</p>
+        <p>Google Analytics recopila información sobre:</p>
+        <ul>
+            <li>Número de visitantes únicos y visitas recurrentes</li>
+            <li>Tiempo de permanencia en cada página</li>
+            <li>Rutas de navegación dentro del sitio</li>
+            <li>Dispositivos y navegadores utilizados</li>
+            <li>Ubicación geográfica aproximada (a nivel de ciudad)</li>
+        </ul>
+        <p><strong>Toda esta información es anónima y agregada.</strong> No podemos identificar a usuarios individuales a través de Google Analytics.</p>
+        <p>Puedes optar por no ser rastreado por Google Analytics instalando el <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style="color:var(--naranja)">complemento de inhabilitación de Google Analytics</a>.</p>
+    </div>
 
-  <p><strong>Instrucciones por navegador:</strong></p>
-  <ul>
-    <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener">Google Chrome</a></li>
-    <li><a href="https://support.mozilla.org/es/kb/habilitar-y-deshabilitar-cookies-sitios-web-rastrear-preferencias" target="_blank" rel="noopener">Mozilla Firefox</a></li>
-    <li><a href="https://support.microsoft.com/es-es/windows/eliminar-y-administrar-cookies-168dab11-0753-043d-7c16-ede5947fc64d" target="_blank" rel="noopener">Microsoft Edge</a></li>
-    <li><a href="https://support.apple.com/es-es/guide/safari/sfri11471/mac" target="_blank" rel="noopener">Apple Safari</a></li>
-  </ul>
+    <div class="section">
+        <h2>5. Cómo Gestionar las Cookies</h2>
+        <p>Puedes controlar y gestionar las cookies de varias maneras:</p>
+        <h3 style="font-size:15px;color:var(--texto);margin:16px 0 8px;">5.1 Configuración del navegador</h3>
+        <p>La mayoría de los navegadores permiten controlar las cookies desde su configuración. Aquí te indicamos cómo hacerlo en los navegadores más comunes:</p>
+        <ul>
+            <li><strong>Google Chrome:</strong> Configuración → Privacidad y seguridad → Cookies</li>
+            <li><strong>Mozilla Firefox:</strong> Opciones → Privacidad y seguridad → Cookies</li>
+            <li><strong>Safari:</strong> Preferencias → Privacidad → Cookies</li>
+            <li><strong>Microsoft Edge:</strong> Configuración → Privacidad → Cookies</li>
+        </ul>
+        <h3 style="font-size:15px;color:var(--texto);margin:16px 0 8px;">5.2 Herramientas de opt-out</h3>
+        <ul>
+            <li><a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener" style="color:var(--naranja)">Digital Advertising Alliance (DAA)</a> — Opt-out de publicidad basada en intereses</li>
+            <li><a href="https://www.networkadvertising.org/choices/" target="_blank" rel="noopener" style="color:var(--naranja)">Network Advertising Initiative (NAI)</a> — Opt-out de redes publicitarias</li>
+            <li><a href="https://adssettings.google.com" target="_blank" rel="noopener" style="color:var(--naranja)">Google Ad Settings</a> — Personalización de anuncios de Google</li>
+        </ul>
+        <p style="margin-top:12px;"><strong>Nota importante:</strong> Si deshabilitas las cookies, algunas funcionalidades de nuestro sitio pueden no funcionar correctamente. La deshabilitación de cookies publicitarias no eliminará los anuncios, pero estos serán menos relevantes para ti.</p>
+    </div>
 
-  <h2>COOKIES ESENCIALES VS OPCIONALES</h2>
-  <p>Algunas cookies son esenciales para el funcionamiento del sitio y no pueden desactivarse:</p>
-  <ul>
-    <li><span class="badge badge-esencial">ESENCIAL</span> Cookies de sesión para el funcionamiento básico del sitio.</li>
-    <li><span class="badge badge-esencial">ESENCIAL</span> Cookies de seguridad para proteger el panel de administración.</li>
-  </ul>
-  <p>Las cookies opcionales (analíticas y publicitarias) pueden desactivarse sin afectar la funcionalidad principal del sitio, aunque puede que algunos servicios no funcionen correctamente.</p>
+    <div class="section">
+        <h2>6. Cambios en esta Política</h2>
+        <p>Podemos actualizar esta Política de Cookies para reflejar cambios en las tecnologías que utilizamos o por motivos legales. Cualquier cambio será publicado en esta página con la fecha de actualización correspondiente.</p>
+    </div>
 
-  <h2>ACTUALIZACIONES A ESTA POLÍTICA</h2>
-  <p>Podemos actualizar esta Política de Cookies periódicamente para reflejar cambios en nuestra práctica o por razones operativas, legales o regulatorias. Publicaremos cualquier cambio en esta página.</p>
-
-  <h2>CONTACTO</h2>
-  <p>Si tienes preguntas sobre el uso de cookies en nuestro sitio:</p>
-  <ul>
-    <li>📧 <a href="mailto:legal@elfarolaldia.com">legal@elfarolaldia.com</a></li>
-    <li>🌐 <a href="https://elfarolaldia.com">elfarolaldia.com</a></li>
-    <li>📍 Santo Domingo Este, República Dominicana</li>
-  </ul>
+    <div class="section">
+        <h2>7. Contacto</h2>
+        <p>Si tienes preguntas sobre el uso de cookies en nuestro sitio, contáctanos:</p>
+        <p>📧 <strong style="color:var(--naranja)">jose.colorvision@gmail.com</strong><br>
+        🌐 <strong>https://elfarolaldia.com</strong><br>
+        📍 Santo Domingo Este, República Dominicana</p>
+    </div>
 </div>
 
 <footer>
-  <div>© 2026 El Farol al Día · República Dominicana</div>
-  <div style="margin-top:10px">
-    <a href="/">INICIO</a>
-    <a href="/privacidad">PRIVACIDAD</a>
-    <a href="/terminos">TÉRMINOS</a>
-    <a href="/cookies">COOKIES</a>
-    <a href="/contacto">CONTACTO</a>
-  </div>
+    <div class="logo-footer">🏮 EL FAROL AL DÍA</div>
+    <p>Tu periódico digital de Santo Domingo Este y toda la República Dominicana</p>
+    <div class="footer-links">
+        <a href="/">Inicio</a>
+        <a href="/nosotros">Nosotros</a>
+        <a href="/contacto">Contacto</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/terminos">Términos</a>
+        <a href="/cookies">Cookies</a>
+    </div>
+    <p style="margin-top:12px;">© 2026 El Farol al Día · José Gregorio Mañan Santana · Santo Domingo Este, RD</p>
 </footer>
 </body>
 </html>
