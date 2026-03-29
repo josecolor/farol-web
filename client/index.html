@@ -22,332 +22,79 @@
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 
-    <!-- Google Analytics (reemplaza G-XXXXXXXXXX con tu ID real) -->
-    <script id="ga-script"></script>
+    <!-- Google Analytics dinámico -->
     <script>
         fetch('/api/configuracion').then(r=>r.json()).then(d=>{
             const gaId = d.config?.googleAnalytics;
             if (gaId) {
                 const s = document.createElement('script');
-                s.async = true;
-                s.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+                s.async = true; s.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
                 document.head.appendChild(s);
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', gaId);
+                gtag('js', new Date()); gtag('config', gaId);
             }
         }).catch(()=>{});
     </script>
 
     <style>
         :root {
-            --naranja: #FF5500;
-            --naranja-claro: #FF7733;
-            --fondo: #070707;
-            --tarjeta: #141418;
-            --texto: #EDE8DF;
-            --texto-sec: #A89F94;
-            --borde: #222228;
+            --naranja: #FF5500; --naranja-claro: #FF7733; --fondo: #070707;
+            --tarjeta: #141418; --texto: #EDE8DF; --texto-sec: #A89F94; --borde: #222228;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--fondo); color: var(--texto); font-family: 'Georgia','Times New Roman',serif; min-height: 100vh; }
 
-        body {
-            background: var(--fondo);
-            color: var(--texto);
-            font-family: 'Georgia', 'Times New Roman', serif;
-            min-height: 100vh;
-        }
+        header { background: #000; border-bottom: 3px solid var(--naranja); padding: 0; position: sticky; top: 0; z-index: 100; }
+        .header-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; max-width: 1200px; margin: 0 auto; }
+        .logo-wrap h1 { font-size: 28px; color: var(--naranja); letter-spacing: 3px; font-weight: 900; text-transform: uppercase; }
+        .logo-wrap .tagline { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 2px; font-family: Arial, sans-serif; }
+        .header-meta { text-align: right; font-family: Arial, sans-serif; }
+        .header-meta .fecha { font-size: 11px; color: #666; }
+        .header-meta .ultima { font-size: 10px; color: var(--naranja); font-weight: bold; }
 
-        /* ── HEADER ── */
-        header {
-            background: #000;
-            border-bottom: 3px solid var(--naranja);
-            padding: 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .logo-wrap h1 {
-            font-size: 28px;
-            color: var(--naranja);
-            letter-spacing: 3px;
-            font-weight: 900;
-            text-transform: uppercase;
-        }
-
-        .logo-wrap .tagline {
-            font-size: 10px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-family: Arial, sans-serif;
-        }
-
-        .header-meta {
-            text-align: right;
-            font-family: Arial, sans-serif;
-        }
-
-        .header-meta .fecha {
-            font-size: 11px;
-            color: #666;
-        }
-
-        .header-meta .ultima {
-            font-size: 10px;
-            color: var(--naranja);
-            font-weight: bold;
-        }
-
-        /* Barra de categorías */
-        .nav-cats {
-            background: #0d0d0d;
-            border-bottom: 1px solid var(--borde);
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
+        .nav-cats { background: #0d0d0d; border-bottom: 1px solid var(--borde); overflow-x: auto; scrollbar-width: none; }
         .nav-cats::-webkit-scrollbar { display: none; }
-        .nav-cats ul {
-            display: flex;
-            list-style: none;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-        .nav-cats ul li a {
-            display: block;
-            padding: 10px 18px;
-            font-size: 12px;
-            font-weight: bold;
-            color: #888;
-            text-decoration: none;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-family: Arial, sans-serif;
-            white-space: nowrap;
-            transition: color 0.2s;
-            border-bottom: 2px solid transparent;
-        }
-        .nav-cats ul li a:hover,
-        .nav-cats ul li a.activo {
-            color: var(--naranja);
-            border-bottom-color: var(--naranja);
-        }
+        .nav-cats ul { display: flex; list-style: none; max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+        .nav-cats ul li a { display: block; padding: 10px 18px; font-size: 12px; font-weight: bold; color: #888; text-decoration: none; text-transform: uppercase; letter-spacing: 1px; font-family: Arial, sans-serif; white-space: nowrap; transition: color 0.2s; border-bottom: 2px solid transparent; }
+        .nav-cats ul li a:hover, .nav-cats ul li a.activo { color: var(--naranja); border-bottom-color: var(--naranja); }
 
-        /* ── BREAKING NEWS TICKER ── */
-        .ticker-wrap {
-            background: var(--naranja);
-            padding: 8px 0;
-            overflow: hidden;
-        }
-        .ticker-content {
-            display: flex;
-            align-items: center;
-        }
-        .ticker-label {
-            background: #000;
-            color: var(--naranja);
-            font-size: 10px;
-            font-weight: 900;
-            padding: 4px 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-family: Arial, sans-serif;
-            flex-shrink: 0;
-        }
-        .ticker-text {
-            flex: 1;
-            overflow: hidden;
-            padding: 0 15px;
-        }
-        .ticker-text span {
-            display: inline-block;
-            font-size: 12px;
-            font-weight: bold;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            white-space: nowrap;
-            animation: ticker-scroll 40s linear infinite;
-        }
-        @keyframes ticker-scroll {
-            0%   { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
+        .ticker-wrap { background: var(--naranja); padding: 8px 0; overflow: hidden; }
+        .ticker-content { display: flex; align-items: center; }
+        .ticker-label { background: #000; color: var(--naranja); font-size: 10px; font-weight: 900; padding: 4px 14px; text-transform: uppercase; letter-spacing: 1px; font-family: Arial, sans-serif; flex-shrink: 0; }
+        .ticker-text { flex: 1; overflow: hidden; padding: 0 15px; }
+        .ticker-text span { display: inline-block; font-size: 12px; font-weight: bold; color: #fff; font-family: Arial, sans-serif; white-space: nowrap; animation: ticker-scroll 40s linear infinite; }
+        @keyframes ticker-scroll { 0%{transform:translateX(100%)} 100%{transform:translateX(-100%)} }
 
-        /* ── MAIN CONTAINER ── */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px 15px;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 15px; }
 
-        /* ── GRID DE NOTICIAS ── */
-        .grid-noticias {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 24px;
-        }
+        .grid-noticias { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
 
-        /* ── TARJETA ── */
-        .noticia-card {
-            background: var(--tarjeta);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid var(--borde);
-            transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
-            display: flex;
-            flex-direction: column;
-            text-decoration: none;
-            color: inherit;
-        }
-        .noticia-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--naranja);
-            box-shadow: 0 8px 30px rgba(255, 85, 0, 0.15);
-        }
-
-        .card-img {
-            width: 100%;
-            height: 210px;
-            position: relative;
-            background: #1a1a20;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .card-img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.4s;
-        }
+        .noticia-card { background: var(--tarjeta); border-radius: 10px; overflow: hidden; border: 1px solid var(--borde); transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; display: flex; flex-direction: column; text-decoration: none; color: inherit; }
+        .noticia-card:hover { transform: translateY(-4px); border-color: var(--naranja); box-shadow: 0 8px 30px rgba(255,85,0,0.15); }
+        .card-img { width: 100%; height: 210px; position: relative; background: #1a1a20; overflow: hidden; flex-shrink: 0; }
+        .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
         .noticia-card:hover .card-img img { transform: scale(1.04); }
-
-        .badge {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: var(--naranja);
-            color: #fff;
-            font-size: 10px;
-            font-weight: 900;
-            padding: 4px 10px;
-            border-radius: 3px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            font-family: Arial, sans-serif;
-            z-index: 2;
-        }
-
-        .card-info {
-            padding: 18px 20px 16px;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            gap: 10px;
-        }
-        .card-info h2 {
-            font-size: 17px;
-            line-height: 1.35;
-            color: #fff;
-            font-family: Georgia, serif;
-            font-weight: 700;
-        }
-        .card-info p {
-            font-size: 13px;
-            color: var(--texto-sec);
-            line-height: 1.55;
-            font-family: Arial, sans-serif;
-            flex: 1;
-        }
-        .card-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-            color: #555;
-            font-family: Arial, sans-serif;
-            padding-top: 10px;
-            border-top: 1px solid var(--borde);
-            margin-top: auto;
-        }
+        .badge { position: absolute; top: 10px; left: 10px; background: var(--naranja); color: #fff; font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 3px; letter-spacing: 1px; text-transform: uppercase; font-family: Arial, sans-serif; z-index: 2; }
+        .card-info { padding: 18px 20px 16px; display: flex; flex-direction: column; flex: 1; gap: 10px; }
+        .card-info h2 { font-size: 17px; line-height: 1.35; color: #fff; font-family: Georgia, serif; font-weight: 700; }
+        .card-info p { font-size: 13px; color: var(--texto-sec); line-height: 1.55; font-family: Arial, sans-serif; flex: 1; }
+        .card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #555; font-family: Arial, sans-serif; padding-top: 10px; border-top: 1px solid var(--borde); margin-top: auto; }
         .card-meta .redactor { color: #666; }
-        .leer-mas {
-            color: var(--naranja);
-            font-weight: bold;
-            font-size: 11px;
-            letter-spacing: 0.5px;
-        }
+        .leer-mas { color: var(--naranja); font-weight: bold; font-size: 11px; letter-spacing: 0.5px; }
 
-        /* ── HERO (primera noticia grande) ── */
-        .hero-card {
-            grid-column: 1 / -1;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            background: var(--tarjeta);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid var(--borde);
-            text-decoration: none;
-            color: inherit;
-            transition: border-color 0.25s, box-shadow 0.25s;
-            min-height: 320px;
-        }
-        .hero-card:hover {
-            border-color: var(--naranja);
-            box-shadow: 0 8px 40px rgba(255,85,0,0.2);
-        }
-        .hero-img {
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            transition: transform 0.4s;
-        }
+        .hero-card { grid-column: 1/-1; display: grid; grid-template-columns: 1fr 1fr; gap: 0; background: var(--tarjeta); border-radius: 10px; overflow: hidden; border: 1px solid var(--borde); text-decoration: none; color: inherit; transition: border-color 0.25s, box-shadow 0.25s; min-height: 320px; }
+        .hero-card:hover { border-color: var(--naranja); box-shadow: 0 8px 40px rgba(255,85,0,0.2); }
+        .hero-img { position: relative; overflow: hidden; }
+        .hero-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
         .hero-card:hover .hero-img img { transform: scale(1.03); }
-        .hero-info {
-            padding: 32px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            gap: 14px;
-        }
+        .hero-info { padding: 32px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
         .hero-info .badge { position: static; display: inline-block; width: fit-content; }
-        .hero-info h2 {
-            font-size: 24px;
-            line-height: 1.3;
-            color: #fff;
-            font-family: Georgia, serif;
-        }
-        .hero-info p {
-            font-size: 14px;
-            color: var(--texto-sec);
-            line-height: 1.6;
-            font-family: Arial, sans-serif;
-        }
-        .hero-info .card-meta {
-            border-top: 1px solid var(--borde);
-            padding-top: 12px;
-        }
+        .hero-info h2 { font-size: 24px; line-height: 1.3; color: #fff; font-family: Georgia, serif; }
+        .hero-info p { font-size: 14px; color: var(--texto-sec); line-height: 1.6; font-family: Arial, sans-serif; }
+        .hero-info .card-meta { border-top: 1px solid var(--borde); padding-top: 12px; }
 
-        /* ── AD BANNER ── */
+        /* ── BANNERS PUBLICITARIOS ── */
         .ad-banner {
             background: #0d0d0d;
             border: 1px solid var(--borde);
@@ -356,160 +103,43 @@
             text-align: center;
             margin: 24px 0;
         }
+        /* Banner afiliado — cuando viene de /api/publicidad/activos */
+        .banner-afiliado {
+            display: block;
+            text-align: center;
+            margin: 16px 0;
+        }
+        .banner-afiliado img {
+            max-width: 100%;
+            border-radius: 8px;
+            height: auto;
+            display: inline-block;
+        }
+        .banner-afiliado-vacio { display: none; }
 
-        /* ── CARGANDO ── */
-        .loading-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            padding: 80px 20px;
-            color: #555;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #222;
-            border-top: 3px solid var(--naranja);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
+        .loading-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 80px 20px; color: #555; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top: 3px solid var(--naranja); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ══════════════════════════════════════════
-           ── FOOTER COMPLETO CON ENLACES LEGALES ──
-           ══════════════════════════════════════════ */
-        footer {
-            background: #000;
-            border-top: 3px solid var(--naranja);
-            padding: 0;
-            margin-top: 60px;
-        }
-
-        .footer-top {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 40px;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px 30px;
-        }
-
-        .footer-brand .logo-footer {
-            font-size: 20px;
-            color: var(--naranja);
-            font-weight: 900;
-            letter-spacing: 2px;
-            font-family: Arial, sans-serif;
-            margin-bottom: 10px;
-        }
-
-        .footer-brand p {
-            font-size: 13px;
-            color: #555;
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin-bottom: 6px;
-        }
-
-        .footer-brand .footer-desc {
-            font-size: 12px;
-            color: #444;
-            font-family: Arial, sans-serif;
-            line-height: 1.7;
-            margin-top: 10px;
-        }
-
-        .footer-col h4 {
-            font-size: 11px;
-            color: var(--naranja);
-            font-family: Arial, sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--borde);
-        }
-
-        .footer-col ul {
-            list-style: none;
-        }
-
-        .footer-col ul li {
-            margin-bottom: 8px;
-        }
-
-        .footer-col ul li a {
-            font-size: 13px;
-            color: #666;
-            text-decoration: none;
-            font-family: Arial, sans-serif;
-            transition: color 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
+        footer { background: #000; border-top: 3px solid var(--naranja); padding: 0; margin-top: 60px; }
+        .footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; max-width: 1200px; margin: 0 auto; padding: 40px 20px 30px; }
+        .footer-brand .logo-footer { font-size: 20px; color: var(--naranja); font-weight: 900; letter-spacing: 2px; font-family: Arial, sans-serif; margin-bottom: 10px; }
+        .footer-brand p { font-size: 13px; color: #555; font-family: Arial, sans-serif; line-height: 1.6; margin-bottom: 6px; }
+        .footer-brand .footer-desc { font-size: 12px; color: #444; font-family: Arial, sans-serif; line-height: 1.7; margin-top: 10px; }
+        .footer-col h4 { font-size: 11px; color: var(--naranja); font-family: Arial, sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--borde); }
+        .footer-col ul { list-style: none; }
+        .footer-col ul li { margin-bottom: 8px; }
+        .footer-col ul li a { font-size: 13px; color: #666; text-decoration: none; font-family: Arial, sans-serif; transition: color 0.2s; display: flex; align-items: center; gap: 6px; }
         .footer-col ul li a:hover { color: var(--naranja); }
-
-        .footer-divider {
-            border: none;
-            border-top: 1px solid var(--borde);
-            margin: 0;
-        }
-
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .footer-bottom p {
-            font-size: 12px;
-            color: #444;
-            font-family: Arial, sans-serif;
-        }
-
-        .footer-bottom-links {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .footer-bottom-links a {
-            font-size: 11px;
-            color: #444;
-            text-decoration: none;
-            font-family: Arial, sans-serif;
-            transition: color 0.2s;
-        }
-
+        .footer-divider { border: none; border-top: 1px solid var(--borde); margin: 0; }
+        .footer-bottom { max-width: 1200px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .footer-bottom p { font-size: 12px; color: #444; font-family: Arial, sans-serif; }
+        .footer-bottom-links { display: flex; gap: 16px; flex-wrap: wrap; }
+        .footer-bottom-links a { font-size: 11px; color: #444; text-decoration: none; font-family: Arial, sans-serif; transition: color 0.2s; }
         .footer-bottom-links a:hover { color: var(--naranja); }
+        .footer-badge { display: inline-block; background: #0d0d0d; border: 1px solid var(--borde); border-radius: 4px; padding: 4px 10px; font-size: 10px; color: #555; font-family: Arial, sans-serif; text-transform: uppercase; letter-spacing: 1px; }
 
-        .footer-badge {
-            display: inline-block;
-            background: #0d0d0d;
-            border: 1px solid var(--borde);
-            border-radius: 4px;
-            padding: 4px 10px;
-            font-size: 10px;
-            color: #555;
-            font-family: Arial, sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 900px) {
-            .footer-top { grid-template-columns: 1fr 1fr; gap: 24px; }
-        }
-
+        @media (max-width: 900px) { .footer-top { grid-template-columns: 1fr 1fr; gap: 24px; } }
         @media (max-width: 768px) {
             .hero-card { grid-template-columns: 1fr; min-height: auto; }
             .hero-img { height: 220px; }
@@ -538,13 +168,13 @@
     </div>
     <nav class="nav-cats">
         <ul>
-            <li><a href="#" onclick="filtrarCat(''); return false;" class="activo" id="btn-todos">Todas</a></li>
-            <li><a href="#" onclick="filtrarCat('Nacionales'); return false;" id="btn-Nacionales">🏛️ Nacionales</a></li>
-            <li><a href="#" onclick="filtrarCat('Deportes'); return false;" id="btn-Deportes">⚽ Deportes</a></li>
-            <li><a href="#" onclick="filtrarCat('Internacionales'); return false;" id="btn-Internacionales">🌍 Internacional</a></li>
-            <li><a href="#" onclick="filtrarCat('Economía'); return false;" id="btn-Economía">💰 Economía</a></li>
-            <li><a href="#" onclick="filtrarCat('Tecnología'); return false;" id="btn-Tecnología">💻 Tecnología</a></li>
-            <li><a href="#" onclick="filtrarCat('Espectáculos'); return false;" id="btn-Espectáculos">🎬 Espectáculos</a></li>
+            <li><a href="#" onclick="filtrarCat('');return false;" class="activo" id="btn-todos">Todas</a></li>
+            <li><a href="#" onclick="filtrarCat('Nacionales');return false;" id="btn-Nacionales">🏛️ Nacionales</a></li>
+            <li><a href="#" onclick="filtrarCat('Deportes');return false;" id="btn-Deportes">⚽ Deportes</a></li>
+            <li><a href="#" onclick="filtrarCat('Internacionales');return false;" id="btn-Internacionales">🌍 Internacional</a></li>
+            <li><a href="#" onclick="filtrarCat('Economía');return false;" id="btn-Economía">💰 Economía</a></li>
+            <li><a href="#" onclick="filtrarCat('Tecnología');return false;" id="btn-Tecnología">💻 Tecnología</a></li>
+            <li><a href="#" onclick="filtrarCat('Espectáculos');return false;" id="btn-Espectáculos">🎬 Espectáculos</a></li>
         </ul>
     </nav>
 </header>
@@ -559,11 +189,15 @@
 </div>
 
 <main class="container">
-    <!-- AdSense arriba del contenido -->
-    <div class="ad-banner" style="margin-bottom:24px;">
-        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
-             data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+    <!-- ── BANNER TOP — afiliado o AdSense ── -->
+    <div id="banner-top-container" style="margin-bottom:24px;">
+        <!-- Se llena dinámicamente con cargarBanners() -->
+        <div class="ad-banner">
+            <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
+                 data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
     </div>
 
     <div id="contenedor-noticias">
@@ -572,27 +206,20 @@
             <span>Cargando el periódico...</span>
         </div>
     </div>
+
+    <!-- ── BANNER FOOTER ── -->
+    <div id="banner-footer-container" style="margin-top:24px;"></div>
+
 </main>
 
-<!-- ══════════════════════════════════════════════
-     FOOTER COMPLETO — REQUERIDO POR ADSENSE
-     ══════════════════════════════════════════════ -->
 <footer>
     <div class="footer-top">
-
-        <!-- Columna marca -->
         <div class="footer-brand">
             <div class="logo-footer">🏮 EL FAROL AL DÍA</div>
             <p><strong>Tu periódico digital de Santo Domingo Este</strong></p>
             <p>República Dominicana · Desde 2023</p>
-            <p class="footer-desc">
-                El Farol al Día es el periódico digital de referencia de Santo Domingo Este y toda la República Dominicana.
-                Cubrimos noticias de último minuto, política, deportes, economía, tecnología y cultura con periodismo
-                verificado y responsable, dirigido por José Gregorio Mañan Santana.
-            </p>
+            <p class="footer-desc">El Farol al Día es el periódico digital de referencia de Santo Domingo Este y toda la República Dominicana. Cubrimos noticias de último minuto, política, deportes, economía, tecnología y cultura con periodismo verificado y responsable, dirigido por José Gregorio Mañan Santana.</p>
         </div>
-
-        <!-- Columna Secciones -->
         <div class="footer-col">
             <h4>📰 Secciones</h4>
             <ul>
@@ -604,8 +231,6 @@
                 <li><a href="#" onclick="filtrarCat('Espectáculos');return false;">🎬 Espectáculos</a></li>
             </ul>
         </div>
-
-        <!-- Columna El Periódico -->
         <div class="footer-col">
             <h4>🏮 El Periódico</h4>
             <ul>
@@ -614,8 +239,6 @@
                 <li><a href="/sitemap.xml">🗺️ Mapa del Sitio</a></li>
             </ul>
         </div>
-
-        <!-- Columna Legal -->
         <div class="footer-col">
             <h4>⚖️ Legal</h4>
             <ul>
@@ -625,11 +248,8 @@
                 <li><a href="/ads.txt">📢 Autorización Anuncios</a></li>
             </ul>
         </div>
-
     </div>
-
     <hr class="footer-divider">
-
     <div class="footer-bottom">
         <p>© 2026 <strong>El Farol al Día</strong> · José Gregorio Mañan Santana · Santo Domingo Este, República Dominicana</p>
         <div class="footer-bottom-links">
@@ -647,14 +267,51 @@
     let todasLasNoticias = [];
     let categoriaActual = '';
 
-    // Fecha en español
+    // Fecha
     const fechaEl = document.getElementById('fecha-actual');
     if (fechaEl) {
-        const ahora = new Date();
-        fechaEl.textContent = ahora.toLocaleDateString('es-DO', {
-            weekday:'long', day:'numeric', month:'long', year:'numeric'
-        });
+        fechaEl.textContent = new Date().toLocaleDateString('es-DO', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
     }
+
+    // ── BANNERS AFILIADOS — carga automática ──────────────────────
+    // Lee /api/publicidad/activos y coloca cada banner en su lugar
+    async function cargarBanners() {
+        try {
+            const res = await fetch('/api/publicidad/activos');
+            const data = await res.json();
+            if (!data.success || !data.anuncios.length) return;
+
+            data.anuncios.forEach(a => {
+                if (!a.imagen_url || !a.url_afiliado) return; // omitir si no tiene imagen o link
+
+                const html = `
+                    <a href="${escUrl(a.url_afiliado)}" target="_blank" rel="noopener sponsored" class="banner-afiliado">
+                        <img src="${escUrl(a.imagen_url)}" alt="${escAttr(a.nombre_espacio)}" loading="lazy"
+                             onerror="this.parentElement.style.display='none'">
+                    </a>`;
+
+                // Insertar según ubicación
+                if (a.ubicacion === 'top') {
+                    const cont = document.getElementById('banner-top-container');
+                    if (cont) cont.insertAdjacentHTML('afterbegin', html);
+                } else if (a.ubicacion === 'footer') {
+                    const cont = document.getElementById('banner-footer-container');
+                    if (cont) cont.innerHTML += html;
+                } else if (a.ubicacion === 'sidebar') {
+                    // sidebar: agrega al final del top container en móvil
+                    const cont = document.getElementById('banner-top-container');
+                    if (cont) cont.insertAdjacentHTML('beforeend', html);
+                }
+                // 'medio' se inserta dentro de las noticias — ver renderNoticias()
+            });
+
+            // Guardar banners "medio" para insertarlos entre noticias
+            window.BANNERS_MEDIO = data.anuncios.filter(a => a.ubicacion === 'medio' && a.imagen_url && a.url_afiliado);
+        } catch(e) {}
+    }
+
+    function escUrl(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
     function tiempoRelativo(fecha) {
         const diff = (Date.now() - new Date(fecha).getTime()) / 60000;
@@ -683,6 +340,9 @@
             return;
         }
 
+        const bannersMedio = window.BANNERS_MEDIO || [];
+        let bannerIdx = 0;
+
         let html = '<div class="grid-noticias">';
         noticias.forEach((n, i) => {
             const imgUrl = (n.imagen && n.imagen.startsWith('http')) ? n.imagen : imgFallback(n.seccion);
@@ -691,20 +351,18 @@
             const tiempo = tiempoRelativo(n.fecha);
 
             if (i === 0 && categoriaActual === '') {
-                // Cerrar grid, mostrar HERO, reabrir grid
                 html = `
                 <a href="/noticia/${n.slug}" class="hero-card">
                     <div class="hero-img">
                         <span class="badge">${n.seccion}</span>
-                        <img src="${imgUrl}" alt="${esc(alt)}" loading="eager"
-                             onerror="this.src='${imgFallback(n.seccion)}'">
+                        <img src="${imgUrl}" alt="${esc(alt)}" loading="eager" onerror="this.src='${imgFallback(n.seccion)}'">
                     </div>
                     <div class="hero-info">
                         <span class="badge">${n.seccion}</span>
                         <h2>${esc(n.titulo)}</h2>
                         <p>${esc(desc)}</p>
                         <div class="card-meta">
-                            <span class="redactor">📝 ${esc(n.redactor || 'Redacción EFD')}</span>
+                            <span class="redactor">📝 ${esc(n.redactor||'Redacción EFD')}</span>
                             <span>${tiempo}</span>
                         </div>
                     </div>
@@ -715,31 +373,41 @@
                 <a href="/noticia/${n.slug}" class="noticia-card">
                     <div class="card-img">
                         <span class="badge">${n.seccion}</span>
-                        <img src="${imgUrl}" alt="${esc(alt)}" loading="${i < 4 ? 'eager' : 'lazy'}"
-                             onerror="this.src='${imgFallback(n.seccion)}'">
+                        <img src="${imgUrl}" alt="${esc(alt)}" loading="${i<4?'eager':'lazy'}" onerror="this.src='${imgFallback(n.seccion)}'">
                     </div>
                     <div class="card-info">
                         <h2>${esc(n.titulo)}</h2>
                         <p>${esc(desc)}</p>
                         <div class="card-meta">
-                            <span class="redactor">📝 ${esc(n.redactor || 'Redacción EFD')}</span>
-                            <div>
-                                <span>${tiempo}</span>&nbsp;·&nbsp;
-                                <span class="leer-mas">LEER MÁS →</span>
-                            </div>
+                            <span class="redactor">📝 ${esc(n.redactor||'Redacción EFD')}</span>
+                            <div><span>${tiempo}</span>&nbsp;·&nbsp;<span class="leer-mas">LEER MÁS →</span></div>
                         </div>
                     </div>
                 </a>`;
 
-                // AdSense cada 6 tarjetas
+                // Insertar banner cada 6 tarjetas
                 if ((i + 1) % 6 === 0) {
-                    html += `</div>
-                    <div class="ad-banner">
-                        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
-                             data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
-                        <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
-                    </div>
-                    <div class="grid-noticias">`;
+                    html += `</div>`;
+
+                    // Banner afiliado "medio" si hay disponible
+                    if (bannersMedio.length > 0) {
+                        const b = bannersMedio[bannerIdx % bannersMedio.length];
+                        bannerIdx++;
+                        html += `
+                        <a href="${escUrl(b.url_afiliado)}" target="_blank" rel="noopener sponsored" class="banner-afiliado" style="margin:16px 0;display:block;text-align:center;">
+                            <img src="${escUrl(b.imagen_url)}" alt="${escAttr(b.nombre_espacio)}" style="max-width:100%;border-radius:8px;" loading="lazy" onerror="this.parentElement.style.display='none'">
+                        </a>`;
+                    } else {
+                        // Fallback AdSense
+                        html += `
+                        <div class="ad-banner">
+                            <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
+                                 data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                            <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
+                        </div>`;
+                    }
+
+                    html += `<div class="grid-noticias">`;
                 }
             }
         });
@@ -747,17 +415,14 @@
         contenedor.innerHTML = html;
     }
 
-    function esc(s) {
-        return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     function filtrarCat(cat) {
         categoriaActual = cat;
         document.querySelectorAll('.nav-cats a').forEach(a => a.classList.remove('activo'));
         const btn = cat ? document.getElementById(`btn-${cat}`) : document.getElementById('btn-todos');
         if (btn) btn.classList.add('activo');
-        const filtradas = cat ? todasLasNoticias.filter(n => n.seccion === cat) : todasLasNoticias;
-        renderNoticias(filtradas);
+        renderNoticias(cat ? todasLasNoticias.filter(n=>n.seccion===cat) : todasLasNoticias);
     }
 
     async function cargarNoticias() {
@@ -767,21 +432,20 @@
             if (data.success && data.noticias.length > 0) {
                 todasLasNoticias = data.noticias;
                 renderNoticias(todasLasNoticias);
-                const titulos = data.noticias.slice(0, 8).map(n => `🏮 ${n.titulo}`).join('   ·   ');
+                const titulos = data.noticias.slice(0,8).map(n=>`🏮 ${n.titulo}`).join('   ·   ');
                 const tickerEl = document.getElementById('ticker-texto');
                 if (tickerEl) tickerEl.textContent = titulos;
             } else {
-                document.getElementById('contenedor-noticias').innerHTML =
-                    '<p style="text-align:center;color:#555;padding:80px;font-family:Arial">No hay noticias publicadas en este momento.</p>';
+                document.getElementById('contenedor-noticias').innerHTML = '<p style="text-align:center;color:#555;padding:80px;font-family:Arial">No hay noticias publicadas en este momento.</p>';
             }
         } catch(err) {
-            document.getElementById('contenedor-noticias').innerHTML =
-                '<p style="text-align:center;color:#FF5500;padding:80px;font-family:Arial">Error al conectar con el servidor. Intenta de nuevo.</p>';
+            document.getElementById('contenedor-noticias').innerHTML = '<p style="text-align:center;color:#FF5500;padding:80px;font-family:Arial">Error al conectar con el servidor.</p>';
         }
     }
 
-    cargarNoticias();
-    setInterval(cargarNoticias, 5 * 60 * 1000);
+    // Cargar banners primero, luego noticias
+    cargarBanners().then(() => cargarNoticias());
+    setInterval(cargarNoticias, 5*60*1000);
 </script>
 </body>
 </html>
