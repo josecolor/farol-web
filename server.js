@@ -905,9 +905,16 @@ async function inicializarBase() {
                 imagen_url TEXT DEFAULT '',
                 ubicacion VARCHAR(50) DEFAULT 'top',
                 activo BOOLEAN DEFAULT true,
+                ancho_px INTEGER DEFAULT 0,
+                alto_px INTEGER DEFAULT 0,
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+        // Migración: agregar columnas si no existen (para BD ya existente)
+        for (const col of ['ancho_px INTEGER DEFAULT 0', 'alto_px INTEGER DEFAULT 0']) {
+            const nombre = col.split(' ')[0];
+            await client.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='publicidad' AND column_name='${nombre}') THEN ALTER TABLE publicidad ADD COLUMN ${col}; END IF; END $$;`).catch(()=>{});
+        }
         const countPub = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(countPub.rows[0].count) === 0) {
             await client.query(`
@@ -1370,7 +1377,7 @@ app.get('/api/publicidad', authMiddleware, async (req, res) => {
 
 app.get('/api/publicidad/activos', async (req, res) => {
     try {
-        const r = await pool.query("SELECT id,nombre_espacio,url_afiliado,imagen_url,ubicacion FROM publicidad WHERE activo=true ORDER BY id ASC");
+        const r = await pool.query("SELECT id,nombre_espacio,url_afiliado,imagen_url,ubicacion,ancho_px,alto_px FROM publicidad WHERE activo=true ORDER BY id ASC");
         res.setHeader('Access-Control-Allow-Origin','*');
         res.setHeader('Cache-Control','public,max-age=300');
         res.json({ success:true, anuncios:r.rows });
@@ -1378,26 +1385,26 @@ app.get('/api/publicidad/activos', async (req, res) => {
 });
 
 app.post('/api/publicidad/actualizar', authMiddleware, async (req, res) => {
-    const { pin, id, nombre_espacio, url_afiliado, imagen_url, ubicacion, activo } = req.body;
+    const { pin, id, nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px } = req.body;
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!id) return res.status(400).json({ error:'Falta ID' });
     try {
         await pool.query(
-            `UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5 WHERE id=$6`,
-            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(id)]
+            `UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5, ancho_px=$6, alto_px=$7 WHERE id=$8`,
+            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(ancho_px)||0, parseInt(alto_px)||0, parseInt(id)]
         );
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
 app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
-    const { pin, nombre_espacio, url_afiliado, imagen_url, ubicacion } = req.body;
+    const { pin, nombre_espacio, url_afiliado, imagen_url, ubicacion, ancho_px, alto_px } = req.body;
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!nombre_espacio) return res.status(400).json({ error:'Falta nombre' });
     try {
         await pool.query(
-            `INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo) VALUES($1,$2,$3,$4,true)`,
-            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top']
+            `INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px) VALUES($1,$2,$3,$4,true,$5,$6)`,
+            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top', parseInt(ancho_px)||0, parseInt(alto_px)||0]
         );
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
