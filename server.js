@@ -53,13 +53,13 @@ if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido')
 //    IMAGEN → GEMINI_KEY_3    + GEMINI_KEY_4  (solo para prompt imagen)
 //    Google Custom Search usa su propio par de variables
 // ══════════════════════════════════════════════════════════
-const LLAVES_TEXTO  = [process.env.GEMINI_API_KEY, process.env.GEMINI_KEY_2].filter(Boolean);
-const LLAVES_IMAGEN = [process.env.GEMINI_KEY_3,   process.env.GEMINI_KEY_4].filter(Boolean);
+// Nombres reales en Railway (tal como aparecen en la pantalla)
+const LLAVES_TEXTO  = [process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2].filter(Boolean);
+const LLAVES_IMAGEN = [process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4].filter(Boolean);
 
-// Google Custom Search (para imágenes reales de SDE)
-// Railway env: GOOGLE_CSE_KEY_1, GOOGLE_CSE_KEY_2, GOOGLE_CSE_CX
-const GOOGLE_CSE_KEYS = [process.env.GOOGLE_CSE_KEY_1, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
-const GOOGLE_CSE_CX   = process.env.GOOGLE_CSE_CX || '';
+// Google Custom Search — nombres Railway: GOOGLE_CSE_KEY / GOOGLE_CSE_KEY_2 / GOOGLE_CSE_ID
+const GOOGLE_CSE_KEYS = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
+const GOOGLE_CSE_CX   = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
 
 const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
 const FB_PAGE_ID            = process.env.FB_PAGE_ID            || null;
@@ -650,6 +650,43 @@ const PEXELS_QUERIES_RD = {
     'Espectáculos':['latin entertainment music show concert','caribbean cultural performance arts'],
 };
 
+
+// ══════════════════════════════════════════════════════════
+// 📷 UNSPLASH — MOTOR SECUNDARIO (KEY_3+KEY_4 generan query)
+//    Variable Railway: UNSPLASH_ACCESS_KEY
+//    Fotos libres, alta resolución, sin marca de agua
+// ══════════════════════════════════════════════════════════
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || null;
+const UNSPLASH_BLOQUEADOS = ['wedding','bride','groom','romantic','love','kiss','couple','marriage','cartoon','pet','dog','cat','birthday','balloon','flowers','bouquet','fashion','model','selfie'];
+
+async function buscarEnUnsplash(query, categoria) {
+    if (!UNSPLASH_ACCESS_KEY) return null;
+    const q = (query || '').toLowerCase();
+    if (UNSPLASH_BLOQUEADOS.some(b => q.includes(b))) return null;
+    if (!queryEsPeriodistica(query, categoria)) return null;
+    const queryFinal = encodeURIComponent(`${query} caribbean dominican`);
+    try {
+        const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 7000);
+        const res = await fetch(
+            `https://api.unsplash.com/search/photos?query=${queryFinal}&per_page=10&orientation=landscape&content_filter=high`,
+            { headers:{ Authorization:`Client-ID ${UNSPLASH_ACCESS_KEY}` }, signal:ctrl.signal }
+        ).finally(() => clearTimeout(tm));
+        if (!res.ok) { if (res.status === 403 || res.status === 401) console.warn('   ⚠️ Unsplash: key inválida'); return null; }
+        const data = await res.json();
+        const fotos = (data.results || []).filter(f => {
+            if ((f.width || 0) < 1080) return false;
+            const desc = (f.description || f.alt_description || '').toLowerCase();
+            return !UNSPLASH_BLOQUEADOS.some(b => desc.includes(b));
+        });
+        if (!fotos.length) return null;
+        const foto = fotos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fotos.length))];
+        const url = foto.urls?.full || foto.urls?.regular;
+        if (!url) return null;
+        console.log(`   📷 Unsplash OK (${foto.width}x${foto.height})`);
+        return url;
+    } catch(err) { console.warn(`   ⚠️ Unsplash: ${err.message}`); return null; }
+}
+
 async function buscarEnPexels(queries) {
     if (!PEXELS_API_KEY) return null;
     const BLOQUEADOS = ['wedding','bride','groom','romantic','fashion','flowers','love','kiss','marriage'];
@@ -684,16 +721,17 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
 // ══════════════════════════════════════════════════════════
 // 🔍 OBTENER IMAGEN — FLUJO COMPLETO CON PRIORIDAD MXL
 //
-//  1. Google CSE (real SDE, filtros mxl)    ← PRIMARIO
-//  2. MAPEO_IMAGENES → Pexels               ← Personaje conocido
-//  3. Wikipedia / Wikimedia Commons         ← Entidad pública
-//  4. Pexels genérico                       ← Fallback
-//  5. Banco local                           ← Último recurso
+//  1. Google CSE  (imágenes reales SDE, filtros mxl)   ← PRIMARIO
+//  2. Unsplash    (fotos libres ≥1080px, sin stock)     ← SECUNDARIO
+//  3. MAPEO       → Pexels (personajes conocidos)
+//  4. Pexels      genérico por categoría
+//  5. Wikipedia / Wikimedia Commons
+//  6. Banco local                                       ← Último recurso
 // ══════════════════════════════════════════════════════════
 async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA) {
     const tituloLower = titulo.toLowerCase();
 
-    // 1. Google Custom Search (primario para noticias locales SDE)
+    // 1. Google Custom Search (imágenes reales SDE)
     if (GOOGLE_CSE_KEYS.length && GOOGLE_CSE_CX) {
         try {
             const { query: qCSE, barrio } = generarQueryCSE(titulo, categoria);
@@ -702,7 +740,19 @@ async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA
         } catch(e) { console.warn(`   ⚠️ CSE falló: ${e.message}`); }
     }
 
-    // 2. Personajes conocidos → Pexels directo
+    // 2. Unsplash (KEY_3+KEY_4 generaron el query, fotos libres ≥1080px)
+    if (UNSPLASH_ACCESS_KEY && queryIA) {
+        const urlUnsplash = await buscarEnUnsplash(queryIA, categoria);
+        if (urlUnsplash) return urlUnsplash;
+    }
+    // Unsplash con query derivado del título si no hay queryIA
+    if (UNSPLASH_ACCESS_KEY && !queryIA) {
+        const { query: qSDE } = generarQueryCSE(titulo, categoria);
+        const urlUnsplash = await buscarEnUnsplash(qSDE, categoria);
+        if (urlUnsplash) return urlUnsplash;
+    }
+
+    // 3. Personajes conocidos → Pexels directo
     for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
         if (Array.isArray(queries) && tituloLower.includes(clave)) {
             const queriesLimpias = queries.filter(q => queryEsPeriodistica(q, categoria));
@@ -714,24 +764,24 @@ async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA
         }
     }
 
-    // 3. Query de Gemini → Pexels
+    // 4. Query de Gemini → Pexels
     if (queryIA && queryEsPeriodistica(queryIA, categoria)) {
         const urlQueryIA = await buscarEnPexels([queryIA]);
         if (urlQueryIA) return urlQueryIA;
     }
 
-    // 4. Pexels por categoría
+    // 5. Pexels por categoría
     const queriesFiltradas = detectarQueriesPexels(titulo, categoria, null).filter(q => queryEsPeriodistica(q, categoria));
     const urlPexels = await buscarEnPexels(queriesFiltradas);
     if (urlPexels) return urlPexels;
 
-    // 5. Wikipedia / Commons
+    // 6. Wikipedia / Commons
     const urlWiki = await buscarImagenWikipedia(titulo);
     if (urlWiki && esImagenValida(urlWiki)) return urlWiki;
     const urlCommons = await buscarImagenWikimediaCommons(titulo);
     if (urlCommons && esImagenValida(urlCommons)) return urlCommons;
 
-    // 6. Banco local (último recurso)
+    // 7. Banco local (último recurso)
     return await fallbackVisualInteligente(categoria, subtemaLocal);
 }
 
@@ -1448,6 +1498,7 @@ app.get('/status', async (req, res) => {
             gemini_imagen:`KEY_3+KEY_4 (${LLAVES_IMAGEN.length} activas)`,
             modelo_gemini:'gemini-2.5-flash',
             google_cse:cseActivo?`✅ ${GOOGLE_CSE_KEYS.length} keys activas`:'⚠️ Sin configurar (requiere GOOGLE_CSE_KEY_1 + GOOGLE_CSE_CX)',
+            unsplash:UNSPLASH_ACCESS_KEY?'✅ Activo (motor secundario)':'⚠️ Sin key (UNSPLASH_ACCESS_KEY)',
             pexels:PEXELS_API_KEY?'✅ Fallback activo':'⚠️ Sin key',
             facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             twitter:TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
