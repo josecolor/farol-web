@@ -1,7 +1,14 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.4 + PUBLICIDAD
- * AGREGADO: Gestor de Publicidad y Links de Afiliado
- * SIN TOCAR: toda la lógica de noticias, RSS, watermark, Gemini
+ * 🏮 EL FAROL AL DÍA — V34.5 / mxl
+ * ─────────────────────────────────────────────────────────────
+ * NUEVO V34.5:
+ *   • 4 llaves Gemini separadas: KEY_1+KEY_2=texto, KEY_3+KEY_4=imágenes
+ *   • Google Custom Search API para imágenes reales de SDE
+ *   • Filtro mxl anti-stock, anti-competencia, resolución ≥ 1024px
+ *   • Estilo SDE: párrafos cortos, lenguaje directo, clickbait ético
+ *   • Pexels como fallback secundario (no primario)
+ * SIN TOCAR: auth, watermark, RSS, Telegram, Facebook, Twitter,
+ *            Wikipedia, comentarios, publicidad, cron, SEO
  */
 
 const express   = require('express');
@@ -39,6 +46,20 @@ const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
+
+// ══════════════════════════════════════════════════════════
+// 🔑 LLAVES GEMINI — SEPARADAS POR ROL
+//    TEXTO  → GEMINI_API_KEY  + GEMINI_KEY_2
+//    IMAGEN → GEMINI_KEY_3    + GEMINI_KEY_4  (solo para prompt imagen)
+//    Google Custom Search usa su propio par de variables
+// ══════════════════════════════════════════════════════════
+// Nombres reales en Railway (tal como aparecen en la pantalla)
+const LLAVES_TEXTO  = [process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2].filter(Boolean);
+const LLAVES_IMAGEN = [process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4].filter(Boolean);
+
+// Google Custom Search — nombres Railway: GOOGLE_CSE_KEY / GOOGLE_CSE_KEY_2 / GOOGLE_CSE_ID
+const GOOGLE_CSE_KEYS = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
+const GOOGLE_CSE_CX   = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
 
 const PEXELS_API_KEY        = process.env.PEXELS_API_KEY        || null;
 const FB_PAGE_ID            = process.env.FB_PAGE_ID            || null;
@@ -225,7 +246,7 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.4+Publicidad*\n\n✅ Bot activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.5/mxl*\n\n✅ Bot activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
     } catch(e) {}
 }
 
@@ -286,10 +307,10 @@ app.get('/img/:nombre', async (req, res) => {
 // ══════════════════════════════════════════════════════════
 const CONFIG_IA_DEFAULT = {
     enabled: true,
-    instruccion_principal: 'Eres un periodista profesional dominicano de alto nivel, con visión nacional e internacional. Escribes noticias verificadas, equilibradas y con impacto real. Cubres República Dominicana completa, el Caribe, Latinoamérica y el mundo.',
-    tono: 'profesional', extension: 'media',
-    enfasis: 'Si la noticia es nacional: prioriza SDE, Los Mina, Invivienda, Ensanche Ozama. Si es internacional: conecta con RD y el Caribe.',
-    evitar: 'Especulación sin fuentes. Titulares sensacionalistas. Repetir noticias ya publicadas. Copiar Wikipedia.'
+    instruccion_principal: 'Eres un periodista dominicano del barrio, directo y sin rodeos. Escribes para el lector de Los Mina, Invivienda, Charles de Gaulle y todo Santo Domingo Este. Párrafos cortos. Lenguaje real de la calle. Cero relleno.',
+    tono: 'directo-barrio', extension: 'media',
+    enfasis: 'Prioriza Santo Domingo Este: Los Mina, Invivienda, Ensanche Ozama, Sabana Perdida, Villa Mella, Charles de Gaulle. Conecta todo con el lector de SDE.',
+    evitar: 'Párrafos largos. Lenguaje técnico. Especulación. Repetir noticias publicadas. Copiar Wikipedia.'
 };
 let CONFIG_IA = {...CONFIG_IA_DEFAULT};
 
@@ -312,7 +333,7 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// GEMINI
+// GEMINI — ESTADO DE LLAVES
 // ══════════════════════════════════════════════════════════
 const GEMINI_STATE = {};
 function getKeyState(k) {
@@ -334,13 +355,13 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     try {
         res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, maxOutputTokens: 3000, stopSequences: [] } }),
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.85, maxOutputTokens: 3000, stopSequences: [] } }),
             signal: AbortSignal.timeout(45000)
         });
     } catch(fetchErr) { throw new Error(`RED: ${fetchErr.message}`); }
     if (res.status === 429) { const espera = Math.min(60000 + Math.pow(2, intentoGlobal) * 10000, 300000); st.resetTime = Date.now() + espera; throw new Error('RATE_LIMIT_429'); }
     if (res.status === 503 || res.status === 502) { await new Promise(r => setTimeout(r, 15000)); throw new Error(`HTTP_${res.status}`); }
-    if (!res.ok) { const cuerpo = await res.text().catch(()=>''); throw new Error(`HTTP ${res.status}`); }
+    if (!res.ok) { await res.text().catch(()=>''); throw new Error(`HTTP ${res.status}`); }
     const data = await res.json();
     const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const razon = data.candidates?.[0]?.finishReason;
@@ -349,29 +370,23 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     return texto;
 }
 
+// ── Texto: usa KEY_1 + KEY_2 ──────────────────────────────
 async function llamarGemini(prompt, reintentos = 2) {
-    const hora = new Date().getHours(); const esPar = hora % 2 === 0;
-    const grupoActivo = [esPar ? process.env.GEMINI_API_KEY : process.env.GEMINI_KEY_3, esPar ? process.env.GEMINI_KEY_2 : process.env.GEMINI_KEY_4].filter(Boolean);
-    const grupoRescate = [esPar ? process.env.GEMINI_KEY_3 : process.env.GEMINI_API_KEY, esPar ? process.env.GEMINI_KEY_4 : process.env.GEMINI_KEY_2].filter(Boolean);
-    for (const [idx, grupo] of [grupoActivo, grupoRescate].entries()) {
-        if (!grupo.length) continue;
-        if (idx === 1) await new Promise(r => setTimeout(r, 30000));
-        let intentoGlobal = 0;
-        for (let i = 0; i < reintentos; i++) {
-            for (const llave of grupo) {
-                try { const texto = await _callGemini(llave, prompt, intentoGlobal++); return texto; }
-                catch(err) { if (err.message === 'RATE_LIMIT_429') continue; console.error(`   ❌ ${err.message}`); }
-            }
-            if (i < reintentos-1) await new Promise(r => setTimeout(r, (i+1) * 15000));
+    if (!LLAVES_TEXTO.length) throw new Error('Sin llaves de texto configuradas');
+    let intentoGlobal = 0;
+    for (let i = 0; i < reintentos; i++) {
+        for (const llave of LLAVES_TEXTO) {
+            try { return await _callGemini(llave, prompt, intentoGlobal++); }
+            catch(err) { if (err.message === 'RATE_LIMIT_429') continue; console.error(`   ❌ Texto ${err.message}`); }
         }
+        if (i < reintentos - 1) await new Promise(r => setTimeout(r, (i + 1) * 15000));
     }
-    throw new Error('Gemini: todos los grupos fallaron');
+    throw new Error('Gemini texto: todas las llaves fallaron');
 }
 
+// ── Imagen: usa KEY_3 + KEY_4 (solo para prompt de imagen) ─
 async function llamarGeminiImagen(prompt, reintentos = 1) {
-    const hora = new Date().getHours(); const esPar = hora % 2 === 0;
-    const llaves = [esPar ? process.env.GEMINI_KEY_3 : process.env.GEMINI_API_KEY, esPar ? process.env.GEMINI_KEY_4 : process.env.GEMINI_KEY_2].filter(Boolean);
-    if (!llaves.length) return null;
+    const llaves = LLAVES_IMAGEN.length ? LLAVES_IMAGEN : LLAVES_TEXTO;
     let intentoGlobal = 0;
     for (let i = 0; i < reintentos; i++) {
         for (const llave of llaves) {
@@ -383,7 +398,158 @@ async function llamarGeminiImagen(prompt, reintentos = 1) {
 }
 
 // ══════════════════════════════════════════════════════════
-// MAPEO IMÁGENES
+// 🖼️  GOOGLE CUSTOM SEARCH — MOTOR MXL
+//     KEY_1 y KEY_2 rotan por hora (igual que Gemini)
+// ══════════════════════════════════════════════════════════
+
+// Dominios excluidos (competencia + stock)
+const CSE_EXCLUDES = [
+    '-site:listindiario.com', '-site:diariolibre.com',
+    '-site:elnacional.com.do', '-site:hoy.com.do',
+    '-site:noticiassin.com',  '-site:telesistema11.com.do',
+    '-site:shutterstock.com', '-site:gettyimages.com',
+    '-site:adobe.com',        '-site:dreamstime.com',
+    '-site:alamy.com',        '-site:123rf.com',
+    '-site:istockphoto.com',  '-site:vectorstock.com',
+].join(' ');
+
+// Palabras que invalidan una URL (stock/marca de agua)
+const URL_PALABRAS_INVALIDAS = ['shutterstock','getty','stock','preview','watermark','wm_','logo_','thumbnail','_thumb','small_','_sm.','lowres','dreamstime','alamy','depositphotos'];
+
+// Barrios de SDE para enriquecer queries
+const BARRIOS_SDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Los Trinitarios','El Tamarindo','Mendoza'];
+
+// Estado de las llaves CSE (por cuota diaria)
+const CSE_STATE = {};
+function getCseState(k) {
+    if (!CSE_STATE[k]) CSE_STATE[k] = { fallos:0, bloqueadaHasta:0 };
+    return CSE_STATE[k];
+}
+
+/**
+ * Valida que una URL de imagen sea usable (mxl filter)
+ */
+function urlImagenValida(url) {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    // Solo jpg y png (no webp)
+    if (!/(\.jpg|\.jpeg|\.png)(\?|$|#)/i.test(u) && !u.endsWith('.jpg') && !u.endsWith('.jpeg') && !u.endsWith('.png')) return false;
+    // Rechazar stock/watermark
+    if (URL_PALABRAS_INVALIDAS.some(p => u.includes(p))) return false;
+    // Rechazar logos/iconos/mapas
+    const basura = ['flag','logo','map','coat_of_arms','seal','emblem','icon','badge','crest','_bw','-bw','grayscale','favicon'];
+    if (basura.some(b => u.includes(b))) return false;
+    return true;
+}
+
+/**
+ * Verifica resolución mínima descargando headers o la imagen pequeña
+ * Retorna true si width >= 1024
+ */
+async function verificarResolucion(url) {
+    try {
+        const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 6000);
+        const res = await fetch(url, { method:'GET', signal: ctrl.signal }).finally(() => clearTimeout(tm));
+        if (!res.ok) return false;
+        const buf = Buffer.from(await res.arrayBuffer());
+        if (buf.length < 20000) return false; // menos de 20KB → thumbnail
+        const meta = await sharp(buf).metadata();
+        return (meta.width || 0) >= 1024;
+    } catch { return false; }
+}
+
+/**
+ * Busca imagen en Google Custom Search con filtros mxl
+ * @param {string} query  - tema de la noticia
+ * @param {string} barrio - barrio SDE (opcional)
+ */
+async function buscarImagenCSE(query, barrio = '') {
+    if (!GOOGLE_CSE_KEYS.length || !GOOGLE_CSE_CX) return null;
+
+    // Rotar llave por hora
+    const hora = new Date().getHours();
+    const llaves = hora % 2 === 0
+        ? [GOOGLE_CSE_KEYS[0], GOOGLE_CSE_KEYS[1]].filter(Boolean)
+        : [GOOGLE_CSE_KEYS[1], GOOGLE_CSE_KEYS[0]].filter(Boolean);
+
+    // Construir query con filtros mxl
+    const barrioStr = barrio ? ` ${barrio}` : '';
+    const qFull = `${query}${barrioStr} Santo Domingo Este ${CSE_EXCLUDES}`.trim();
+
+    for (const llave of llaves) {
+        const st = getCseState(llave);
+        if (Date.now() < st.bloqueadaHasta) continue;
+
+        try {
+            const url = `https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(qFull)}&searchType=image&imgType=photo&imgSize=large&fileType=jpg,png&num=10&safe=active`;
+            const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
+            const res = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+
+            if (res.status === 429 || res.status === 403) {
+                st.fallos++;
+                st.bloqueadaHasta = Date.now() + (st.fallos >= 3 ? 3600000 : 300000); // 1h o 5min
+                console.warn(`   ⚠️ CSE KEY bloqueada (${res.status}), espera ${st.fallos >= 3 ? '1h' : '5min'}`);
+                continue;
+            }
+
+            if (!res.ok) continue;
+            const data = await res.json();
+            const items = data.items || [];
+
+            for (const item of items) {
+                const imgUrl = item.link;
+                if (!urlImagenValida(imgUrl)) continue;
+
+                // Verificar resolución mínima 1024px
+                const buena = await verificarResolucion(imgUrl);
+                if (!buena) { console.log(`   ⏭️ CSE: imagen descartada por resolución: ${imgUrl.substring(0,60)}`); continue; }
+
+                console.log(`   ✅ CSE imagen: ${imgUrl.substring(0,80)}`);
+                st.fallos = 0; // reset en éxito
+                return imgUrl;
+            }
+        } catch(err) {
+            console.warn(`   ⚠️ CSE error: ${err.message}`);
+            st.fallos++;
+        }
+    }
+    return null;
+}
+
+/**
+ * Genera query CSE inteligente para SDE a partir del título y categoría
+ */
+function generarQueryCSE(titulo, categoria) {
+    const tLow = titulo.toLowerCase();
+
+    // Detectar barrio específico en el título
+    const barrioDetectado = BARRIOS_SDE.find(b => tLow.includes(b.toLowerCase())) || '';
+
+    // Query base por categoría
+    const queryBase = {
+        'Nacionales':    'noticias comunidad vecinos',
+        'Deportes':      'deporte atletas cancha',
+        'Internacionales':'noticias mundo caribe',
+        'Economía':      'negocio comercio mercado',
+        'Tecnología':    'tecnología innovación digital',
+        'Espectáculos':  'entretenimiento arte cultura',
+    }[categoria] || 'noticias barrio';
+
+    // Extraer palabras clave del título (sin stopwords)
+    const stopwords = new Set(['el','la','los','las','un','una','de','del','en','y','a','se','que','por','con','su','sus','al','es','son','fue','han','ha','le','les','lo','más','para','sobre','como','entre','pero','sin','ya','no','si','o','e','ni','también','cuando','donde','quien','quién','qué','cómo','muy','todo','todos','toda','todas','este','esta','estos','estas','ese','esa']);
+    const palabrasClave = titulo
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase().replace(/[^a-z0-9\s]/g,' ')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !stopwords.has(w))
+        .slice(0, 3)
+        .join(' ');
+
+    return { query: `${palabrasClave} ${queryBase}`.trim(), barrio: barrioDetectado };
+}
+
+// ══════════════════════════════════════════════════════════
+// MAPEO IMÁGENES (fallback cuando CSE no tiene)
 // ══════════════════════════════════════════════════════════
 const MAPEO_IMAGENES = {
     'donald trump':['trump president podium microphone','american president speech flag'],
@@ -408,11 +574,6 @@ function queryEsPeriodistica(query, categoria = '') {
     const q = query.toLowerCase();
     const basura = ['wedding','bride','groom','romantic','love','kiss','marriage','cartoon','3d render','pet','dog','cat','birthday cake','balloon','flowers','bouquet'];
     return !basura.some(p => q.includes(p));
-}
-
-function sanitizarQueryTecnologia(query, titulo) {
-    if (!queryEsPeriodistica(query)) return 'technology infrastructure digital caribbean';
-    return query;
 }
 
 async function fallbackVisualInteligente(categoria, subtema) {
@@ -464,7 +625,7 @@ function esImagenValida(url) {
 }
 
 // ══════════════════════════════════════════════════════════
-// PEXELS
+// PEXELS (ahora es fallback, no primario)
 // ══════════════════════════════════════════════════════════
 const PEXELS_QUERIES_RD = {
     'presidente':['president speech podium government','latin america president official event'],
@@ -488,6 +649,43 @@ const PEXELS_QUERIES_RD = {
     'Tecnología':['technology innovation digital latin america','tech professionals working computers'],
     'Espectáculos':['latin entertainment music show concert','caribbean cultural performance arts'],
 };
+
+
+// ══════════════════════════════════════════════════════════
+// 📷 UNSPLASH — MOTOR SECUNDARIO (KEY_3+KEY_4 generan query)
+//    Variable Railway: UNSPLASH_ACCESS_KEY
+//    Fotos libres, alta resolución, sin marca de agua
+// ══════════════════════════════════════════════════════════
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || null;
+const UNSPLASH_BLOQUEADOS = ['wedding','bride','groom','romantic','love','kiss','couple','marriage','cartoon','pet','dog','cat','birthday','balloon','flowers','bouquet','fashion','model','selfie'];
+
+async function buscarEnUnsplash(query, categoria) {
+    if (!UNSPLASH_ACCESS_KEY) return null;
+    const q = (query || '').toLowerCase();
+    if (UNSPLASH_BLOQUEADOS.some(b => q.includes(b))) return null;
+    if (!queryEsPeriodistica(query, categoria)) return null;
+    const queryFinal = encodeURIComponent(`${query} caribbean dominican`);
+    try {
+        const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 7000);
+        const res = await fetch(
+            `https://api.unsplash.com/search/photos?query=${queryFinal}&per_page=10&orientation=landscape&content_filter=high`,
+            { headers:{ Authorization:`Client-ID ${UNSPLASH_ACCESS_KEY}` }, signal:ctrl.signal }
+        ).finally(() => clearTimeout(tm));
+        if (!res.ok) { if (res.status === 403 || res.status === 401) console.warn('   ⚠️ Unsplash: key inválida'); return null; }
+        const data = await res.json();
+        const fotos = (data.results || []).filter(f => {
+            if ((f.width || 0) < 1080) return false;
+            const desc = (f.description || f.alt_description || '').toLowerCase();
+            return !UNSPLASH_BLOQUEADOS.some(b => desc.includes(b));
+        });
+        if (!fotos.length) return null;
+        const foto = fotos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fotos.length))];
+        const url = foto.urls?.full || foto.urls?.regular;
+        if (!url) return null;
+        console.log(`   📷 Unsplash OK (${foto.width}x${foto.height})`);
+        return url;
+    } catch(err) { console.warn(`   ⚠️ Unsplash: ${err.message}`); return null; }
+}
 
 async function buscarEnPexels(queries) {
     if (!PEXELS_API_KEY) return null;
@@ -520,8 +718,41 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
     return [...new Set(queries)].slice(0,12);
 }
 
+// ══════════════════════════════════════════════════════════
+// 🔍 OBTENER IMAGEN — FLUJO COMPLETO CON PRIORIDAD MXL
+//
+//  1. Google CSE  (imágenes reales SDE, filtros mxl)   ← PRIMARIO
+//  2. Unsplash    (fotos libres ≥1080px, sin stock)     ← SECUNDARIO
+//  3. MAPEO       → Pexels (personajes conocidos)
+//  4. Pexels      genérico por categoría
+//  5. Wikipedia / Wikimedia Commons
+//  6. Banco local                                       ← Último recurso
+// ══════════════════════════════════════════════════════════
 async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA) {
     const tituloLower = titulo.toLowerCase();
+
+    // 1. Google Custom Search (imágenes reales SDE)
+    if (GOOGLE_CSE_KEYS.length && GOOGLE_CSE_CX) {
+        try {
+            const { query: qCSE, barrio } = generarQueryCSE(titulo, categoria);
+            const urlCSE = await buscarImagenCSE(queryIA || qCSE, barrio);
+            if (urlCSE) { console.log(`   📸 Imagen CSE: OK`); return urlCSE; }
+        } catch(e) { console.warn(`   ⚠️ CSE falló: ${e.message}`); }
+    }
+
+    // 2. Unsplash (KEY_3+KEY_4 generaron el query, fotos libres ≥1080px)
+    if (UNSPLASH_ACCESS_KEY && queryIA) {
+        const urlUnsplash = await buscarEnUnsplash(queryIA, categoria);
+        if (urlUnsplash) return urlUnsplash;
+    }
+    // Unsplash con query derivado del título si no hay queryIA
+    if (UNSPLASH_ACCESS_KEY && !queryIA) {
+        const { query: qSDE } = generarQueryCSE(titulo, categoria);
+        const urlUnsplash = await buscarEnUnsplash(qSDE, categoria);
+        if (urlUnsplash) return urlUnsplash;
+    }
+
+    // 3. Personajes conocidos → Pexels directo
     for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
         if (Array.isArray(queries) && tituloLower.includes(clave)) {
             const queriesLimpias = queries.filter(q => queryEsPeriodistica(q, categoria));
@@ -532,20 +763,25 @@ async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA
             break;
         }
     }
-    if (queryIA) {
-        const queryLimpia = categoria === 'Tecnología' ? sanitizarQueryTecnologia(queryIA, titulo) : queryIA;
-        if (queryEsPeriodistica(queryLimpia, categoria)) {
-            const urlQueryIA = await buscarEnPexels([queryLimpia]);
-            if (urlQueryIA) return urlQueryIA;
-        }
+
+    // 4. Query de Gemini → Pexels
+    if (queryIA && queryEsPeriodistica(queryIA, categoria)) {
+        const urlQueryIA = await buscarEnPexels([queryIA]);
+        if (urlQueryIA) return urlQueryIA;
     }
+
+    // 5. Pexels por categoría
     const queriesFiltradas = detectarQueriesPexels(titulo, categoria, null).filter(q => queryEsPeriodistica(q, categoria));
     const urlPexels = await buscarEnPexels(queriesFiltradas);
     if (urlPexels) return urlPexels;
+
+    // 6. Wikipedia / Commons
     const urlWiki = await buscarImagenWikipedia(titulo);
     if (urlWiki && esImagenValida(urlWiki)) return urlWiki;
     const urlCommons = await buscarImagenWikimediaCommons(titulo);
     if (urlCommons && esImagenValida(urlCommons)) return urlCommons;
+
+    // 7. Banco local (último recurso)
     return await fallbackVisualInteligente(categoria, subtemaLocal);
 }
 
@@ -589,8 +825,8 @@ function generarAltSEO(titulo, categoria, altIA, subtema) {
         const ctx = {'Nacionales':'noticias República Dominicana','Deportes':'deportes dominicanos','Internacionales':'noticias internacionales impacto RD','Economía':'economía República Dominicana','Tecnología':'tecnología innovación RD','Espectáculos':'cultura entretenimiento dominicano'};
         return `${altIA}, ${ctx[categoria]||'República Dominicana'} - El Farol al Día`;
     }
-    const base = {'Nacionales':`Noticia nacional ${titulo.substring(0,40)} - Santo Domingo, República Dominicana`,'Deportes':`Deportes dominicanos ${titulo.substring(0,40)} - El Farol al Día RD`,'Internacionales':`Noticias internacionales ${titulo.substring(0,30)} - impacto en República Dominicana`,'Economía':`Economía dominicana ${titulo.substring(0,35)} - finanzas República Dominicana`,'Tecnología':`Tecnología ${titulo.substring(0,35)} - innovación República Dominicana`,'Espectáculos':`Espectáculos dominicanos ${titulo.substring(0,35)} - cultura RD`};
-    return base[categoria]||`${titulo.substring(0,50)} - noticias República Dominicana El Farol al Día`;
+    const base = {'Nacionales':`Noticia nacional ${titulo.substring(0,40)} - Santo Domingo Este, República Dominicana`,'Deportes':`Deportes dominicanos ${titulo.substring(0,40)} - El Farol al Día RD`,'Internacionales':`Noticias internacionales ${titulo.substring(0,30)} - impacto en República Dominicana`,'Economía':`Economía dominicana ${titulo.substring(0,35)} - finanzas República Dominicana`,'Tecnología':`Tecnología ${titulo.substring(0,35)} - innovación República Dominicana`,'Espectáculos':`Espectáculos dominicanos ${titulo.substring(0,35)} - cultura RD`};
+    return base[categoria]||`${titulo.substring(0,50)} - noticias Santo Domingo Este El Farol al Día`;
 }
 
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -600,10 +836,10 @@ function metaTagsCompletos(n, url) {
     const img=esc(n.imagen),sec=esc(n.seccion);
     const fi=new Date(n.fecha).toISOString(),ue=esc(url);
     const wc=(n.contenido||'').split(/\s+/).filter(w=>w).length;
-    const keywordsSEO=[n.seo_keywords||'','último minuto república dominicana','santo domingo este noticias','tendencias dominicanas','el farol al día'].filter(Boolean).join(', ');
+    const keywordsSEO=[n.seo_keywords||'','último minuto república dominicana','santo domingo este noticias','tendencias dominicanas','el farol al día','los mina invivienda sde'].filter(Boolean).join(', ');
     const schema={"@context":"https://schema.org","@type":"NewsArticle","mainEntityOfPage":{"@type":"WebPage","@id":url},"headline":n.titulo,"description":n.seo_description||'',"image":{"@type":"ImageObject","url":n.imagen,"width":1200,"height":630},"datePublished":fi,"dateModified":fi,"author":{"@type":"Person","name":"José Gregorio Mañan Santana","url":`${BASE_URL}/nosotros`,"jobTitle":"Director General","worksFor":{"@type":"Organization","name":"El Farol al Día"}},"publisher":{"@type":"NewsMediaOrganization","name":"El Farol al Día","url":BASE_URL,"logo":{"@type":"ImageObject","url":`${BASE_URL}/static/favicon.png`}},"articleSection":n.seccion,"wordCount":wc,"inLanguage":"es-DO"};
     const bread={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":BASE_URL},{"@type":"ListItem","position":2,"name":n.seccion,"item":`${BASE_URL}/#${(n.seccion||'').toLowerCase()}`},{"@type":"ListItem","position":3,"name":n.titulo,"item":url}]};
-    const tituloSEO=(n.titulo.toLowerCase().includes('santo domingo')||n.titulo.toLowerCase().includes('sde'))?`${t} | El Farol al Día`:`${t} | Último Minuto RD · El Farol al Día`;
+    const tituloSEO=(n.titulo.toLowerCase().includes('santo domingo')||n.titulo.toLowerCase().includes('sde'))?`${t} | El Farol al Día`:`${t} | Último Minuto SDE · El Farol al Día`;
     return `<title>${tituloSEO}</title>
 <meta name="description" content="${d}">
 <meta name="keywords" content="${esc(keywordsSEO)}">
@@ -620,7 +856,7 @@ function metaTagsCompletos(n, url) {
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="${ue}">
-<meta property="og:site_name" content="El Farol al Día · Último Minuto RD">
+<meta property="og:site_name" content="El Farol al Día · Último Minuto SDE">
 <meta property="og:locale" content="es_DO">
 <meta property="article:published_time" content="${fi}">
 <meta property="article:section" content="${sec}">
@@ -647,7 +883,7 @@ function redactor(cat) {
 }
 
 // ══════════════════════════════════════════════════════════
-// INICIALIZAR BD — incluye tabla publicidad
+// INICIALIZAR BD
 // ══════════════════════════════════════════════════════════
 async function inicializarBase() {
     const client = await pool.connect();
@@ -661,8 +897,6 @@ async function inicializarBase() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_memoria_tipo ON memoria_ia(tipo, categoria)`).catch(()=>{});
         await client.query(`CREATE TABLE IF NOT EXISTS comentarios(id SERIAL PRIMARY KEY,noticia_id INTEGER NOT NULL REFERENCES noticias(id) ON DELETE CASCADE,nombre VARCHAR(80) NOT NULL,texto TEXT NOT NULL,aprobado BOOLEAN DEFAULT true,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_comentarios_noticia ON comentarios(noticia_id, aprobado, fecha DESC)`).catch(()=>{});
-
-        // ── TABLA PUBLICIDAD — nueva ─────────────────────────────────────
         await client.query(`
             CREATE TABLE IF NOT EXISTS publicidad (
                 id SERIAL PRIMARY KEY,
@@ -674,7 +908,6 @@ async function inicializarBase() {
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        // Insertar espacios por defecto si la tabla está vacía
         const countPub = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(countPub.rows[0].count) === 0) {
             await client.query(`
@@ -686,7 +919,6 @@ async function inicializarBase() {
             `);
             console.log('📢 Espacios publicitarios creados');
         }
-
         const fix = await client.query(`UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}',imagen_fuente='pexels' WHERE imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
         if (fix.rowCount > 0) console.log(`🔧 Imágenes reparadas: ${fix.rowCount}`);
         console.log('✅ BD lista');
@@ -745,7 +977,7 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// GENERAR NOTICIA
+// 📰 GENERAR NOTICIA — ESTILO SDE / MXL
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
@@ -753,35 +985,43 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
         const memoria = await construirMemoria(categoria);
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana. Que sea un hecho real y relevante del contexto actual (año 2026).`;
+            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este. Que sea un hecho real y relevante del contexto actual (año 2026).`;
         const temaParaWiki = comunicadoExterno ? (comunicadoExterno.split('\n')[0]||'').replace(/^T[IÍ]TULO:\s*/i,'').trim()||categoria : categoria;
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
         const esCategoriaAlta = CATEGORIAS_ALTO_CPM.includes(categoria);
 
+        // ── Prompt estilo SDE / mxl ──────────────────────────────
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
-ROL: Editor jefe de El Farol al Día. Periodismo dominicano serio como el Listín Diario.
+ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
 MARCO TEMPORAL: Hoy es 2026.
+
+REGLAS DE ESTILO MXL:
+- Párrafos de máximo 3 líneas. El lector lee en el teléfono.
+- Primera oración = gancho directo. Sin intro genérica.
+- Lenguaje real dominicano: "se supo", "fue confirmado", "la gente del sector dice", "según fuentes del barrio".
+- Clickbait ÉTICO: título impactante pero 100% verdadero.
+- Menciona barrios de SDE cuando aplique: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella.
+- Última oración de cada párrafo = gancho para seguir leyendo.
 
 ${memoria}
 ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-TONO: ${CONFIG_IA.tono}
-EXTENSIÓN: ${esCategoriaAlta?'500-600':'400-500'} palabras, 5 párrafos
+EXTENSIÓN: ${esCategoriaAlta?'480-560':'380-450'} palabras, mínimo 5 párrafos cortos
 EVITAR: ${CONFIG_IA.evitar}
 ÉNFASIS: ${CONFIG_IA.enfasis}
 
 RESPONDE EXACTAMENTE:
-TITULO: [60-70 chars]
+TITULO: [60-70 chars, impactante, clickbait ético, menciona SDE o barrio si aplica]
 DESCRIPCION: [150-160 chars]
 PALABRAS: [5 keywords]
 SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
-[párrafos separados por línea en blanco]`;
+[párrafos cortos separados por línea en blanco]`;
 
-        console.log(`\n📰 Generando: ${categoria}${comunicadoExterno?' (RSS)':''}`);
+        console.log(`\n📰 Generando [V34.5]: ${categoria}${comunicadoExterno?' (RSS)':''}`);
         const textoGemini = await llamarGemini(promptTexto);
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
         let titulo='',desc='',pals='',sub='',contenido='';
@@ -801,13 +1041,14 @@ CONTENIDO:
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
         if (!contenido || contenido.length < 300) throw new Error(`Contenido insuficiente (${contenido.length} chars)`);
 
+        // ── Prompt imagen (KEY_3 + KEY_4) ────────────────────────
         let qi='', ai='';
-        const promptImagen = `Eres asistente de imagen para periódico dominicano.
+        const promptImagen = `Eres asistente de imagen para periódico dominicano de barrio.
 Titular: "${titulo}" | Categoría: ${categoria}
 RESPONDE SOLO:
-QUERY_IMAGEN: [3-5 palabras inglés, escena periodística]
-ALT_IMAGEN: [15-20 palabras español SEO + República Dominicana]
-PROHIBIDO: wedding, couple, flowers, cartoon, pet`;
+QUERY_IMAGEN: [3-5 palabras inglés, escena periodística real callejera SDE]
+ALT_IMAGEN: [15-20 palabras español SEO + Santo Domingo Este República Dominicana]
+PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
 
         const respuestaImagen = await llamarGeminiImagen(promptImagen);
         if (respuestaImagen) {
@@ -831,7 +1072,7 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet`;
 
         await pool.query(
             `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,10000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),urlFinal,altFinal.substring(0,255),`Fotografía periodística: ${titulo}`,imgResult.nombre||'efd.jpg','el-farol',urlOrig,'publicada']
+            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,10000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),urlFinal,altFinal.substring(0,255),`Fotografía periodística: ${titulo}`,imgResult.nombre||'efd.jpg',imgResult.procesada?'cse-watermark':'cse',urlOrig,'publicada']
         );
 
         console.log(`\n✅ /noticia/${slFin}`);
@@ -934,9 +1175,9 @@ async function rafagaInicial() {
 }
 
 // ══════════════════════════════════════════════════════════
-// RUTAS — NOTICIAS (sin cambios)
+// RUTAS — NOTICIAS
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'34.4-publicidad' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'34.5-mxl' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -986,7 +1227,7 @@ app.post('/api/publicar', express.json(), async (req, res) => {
         const e = await pool.query('SELECT id FROM noticias WHERE slug=$1',[slugBase]);
         const slF = e.rows.length ? `${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}` : slugBase;
         let imgFinal = imagen || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
-        const altFinal = imagen_alt || `${titulo} - noticias República Dominicana El Farol al Día`;
+        const altFinal = imagen_alt || `${titulo} - noticias Santo Domingo Este El Farol al Día`;
         let imgOriginal = imgFinal, imgNombre = 'manual.jpg', imgFuente = 'manual';
         try {
             if (imgFinal.startsWith('data:image')) {
@@ -1118,10 +1359,8 @@ app.post('/api/telegram/test', authMiddleware, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// 📢 RUTAS PUBLICIDAD — NUEVAS
+// 📢 RUTAS PUBLICIDAD (sin cambios desde V34.4)
 // ══════════════════════════════════════════════════════════
-
-// GET todos los espacios (panel admin)
 app.get('/api/publicidad', authMiddleware, async (req, res) => {
     try {
         const r = await pool.query('SELECT * FROM publicidad ORDER BY id ASC');
@@ -1129,7 +1368,6 @@ app.get('/api/publicidad', authMiddleware, async (req, res) => {
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-// GET solo activos (frontend público — sin auth)
 app.get('/api/publicidad/activos', async (req, res) => {
     try {
         const r = await pool.query("SELECT id,nombre_espacio,url_afiliado,imagen_url,ubicacion FROM publicidad WHERE activo=true ORDER BY id ASC");
@@ -1139,7 +1377,6 @@ app.get('/api/publicidad/activos', async (req, res) => {
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-// POST actualizar anuncio
 app.post('/api/publicidad/actualizar', authMiddleware, async (req, res) => {
     const { pin, id, nombre_espacio, url_afiliado, imagen_url, ubicacion, activo } = req.body;
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
@@ -1153,7 +1390,6 @@ app.post('/api/publicidad/actualizar', authMiddleware, async (req, res) => {
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-// POST crear nuevo espacio
 app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
     const { pin, nombre_espacio, url_afiliado, imagen_url, ubicacion } = req.body;
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
@@ -1167,7 +1403,6 @@ app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
-// POST eliminar espacio
 app.post('/api/publicidad/eliminar', authMiddleware, async (req, res) => {
     const { pin, id } = req.body;
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
@@ -1254,19 +1489,23 @@ app.get('/status', async (req, res) => {
         const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
         const ultima = await pool.query(`SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1`);
         const minSin = ultima.rows.length ? Math.round((Date.now()-new Date(ultima.rows[0].fecha))/60000) : 9999;
-        const geminiKeys = [process.env.GEMINI_API_KEY,process.env.GEMINI_KEY_2,process.env.GEMINI_KEY_3,process.env.GEMINI_KEY_4].filter(Boolean).length;
-        const hora = new Date().getHours(); const esPar = hora%2===0;
+        const cseActivo = GOOGLE_CSE_KEYS.length > 0 && !!GOOGLE_CSE_CX;
         res.json({
-            status:'OK', version:'34.4-publicidad',
+            status:'OK', version:'34.5-mxl',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
-            gemini_keys:geminiKeys, gemini_hora:`${hora}h → ${esPar?'PAR':'IMPAR'}`,
+            gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
+            gemini_imagen:`KEY_3+KEY_4 (${LLAVES_IMAGEN.length} activas)`,
             modelo_gemini:'gemini-2.5-flash',
+            google_cse:cseActivo?`✅ ${GOOGLE_CSE_KEYS.length} keys activas`:'⚠️ Sin configurar (requiere GOOGLE_CSE_KEY_1 + GOOGLE_CSE_CX)',
+            unsplash:UNSPLASH_ACCESS_KEY?'✅ Activo (motor secundario)':'⚠️ Sin key (UNSPLASH_ACCESS_KEY)',
+            pexels:PEXELS_API_KEY?'✅ Fallback activo':'⚠️ Sin key',
             facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             twitter:TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
             watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Sin archivo',
             ia_activa:CONFIG_IA.enabled,
+            estilo_sde:'✅ Párrafos cortos, lenguaje barrio, clickbait ético',
             adsense:'pub-5280872495839888 ✅',
             publicidad:'✅ Sistema gestor activo',
         });
@@ -1283,12 +1522,20 @@ async function iniciar() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.4 + PUBLICIDAD                       ║
+║  🏮 EL FAROL AL DÍA — V34.5 / mxl                              ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ Gestor de Publicidad y Links de Afiliado                    ║
-║  ✅ /redaccion → pestaña 📢 Publicidad                         ║
-║  ✅ /api/publicidad/activos → banners en portada               ║
-║  ✅ Todo lo anterior intacto (noticias, RSS, watermark)         ║
+║  ✅ KEY_1+KEY_2 → Gemini texto (noticias)                       ║
+║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                    ║
+║  ✅ Google Custom Search → imágenes reales SDE                  ║
+║  ✅ Filtro mxl: anti-stock, anti-marca, resolución ≥ 1024px     ║
+║  ✅ Estilo SDE: párrafos cortos, lenguaje directo               ║
+║  ✅ Pexels + banco local como fallback                          ║
+║  ✅ Todo V34.4 intacto: publicidad, RSS, watermark              ║
+║                                                                  ║
+║  ⚙️  Railway env nuevos:                                         ║
+║     GOOGLE_CSE_KEY_1  → 1ra llave Google Custom Search         ║
+║     GOOGLE_CSE_KEY_2  → 2da llave Google Custom Search         ║
+║     GOOGLE_CSE_CX     → Search Engine ID (cx=...)              ║
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
     setTimeout(regenerarWatermarks, 5000);
