@@ -103,19 +103,15 @@
             text-align: center;
             margin: 24px 0;
         }
-        /* Banner afiliado — cuando viene de /api/publicidad/activos */
         .banner-afiliado {
             display: block;
             text-align: center;
             margin: 16px 0;
         }
         .banner-afiliado img {
-            max-width: 100%;
             border-radius: 8px;
-            height: auto;
             display: inline-block;
         }
-        .banner-afiliado-vacio { display: none; }
 
         .loading-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 80px 20px; color: #555; }
         .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top: 3px solid var(--naranja); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -190,9 +186,8 @@
 
 <main class="container">
 
-    <!-- ── BANNER TOP — afiliado o AdSense ── -->
+    <!-- ── BANNER TOP ── -->
     <div id="banner-top-container" style="margin-bottom:24px;">
-        <!-- Se llena dinámicamente con cargarBanners() -->
         <div class="ad-banner">
             <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
                  data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
@@ -267,14 +262,10 @@
     let todasLasNoticias = [];
     let categoriaActual = '';
 
-    // Fecha
     const fechaEl = document.getElementById('fecha-actual');
-    if (fechaEl) {
-        fechaEl.textContent = new Date().toLocaleDateString('es-DO', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    }
+    if (fechaEl) fechaEl.textContent = new Date().toLocaleDateString('es-DO', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-    // ── BANNERS AFILIADOS — carga automática ──────────────────────
-    // Lee /api/publicidad/activos y coloca cada banner en su lugar
+    // ── BANNERS AFILIADOS — con soporte de ancho_px / alto_px ──────────────
     async function cargarBanners() {
         try {
             const res = await fetch('/api/publicidad/activos');
@@ -282,15 +273,23 @@
             if (!data.success || !data.anuncios.length) return;
 
             data.anuncios.forEach(a => {
-                if (!a.imagen_url || !a.url_afiliado) return; // omitir si no tiene imagen o link
+                if (!a.imagen_url || !a.url_afiliado) return;
+
+                // ── NUEVO: calcular estilo de dimensiones ──────────────────
+                // Si ancho_px > 0  → usar píxeles exactos (ej: Amazon 300x250)
+                // Si ancho_px = 0  → automático (100% del contenedor, responsive)
+                const ancho = parseInt(a.ancho_px) || 0;
+                const alto  = parseInt(a.alto_px)  || 0;
+                const imgStyle = (ancho > 0 || alto > 0)
+                    ? `width:${ancho > 0 ? ancho + 'px' : 'auto'};height:${alto > 0 ? alto + 'px' : 'auto'};object-fit:contain;border-radius:8px;`
+                    : 'max-width:100%;height:auto;border-radius:8px;';
 
                 const html = `
                     <a href="${escUrl(a.url_afiliado)}" target="_blank" rel="noopener sponsored" class="banner-afiliado">
                         <img src="${escUrl(a.imagen_url)}" alt="${escAttr(a.nombre_espacio)}" loading="lazy"
-                             onerror="this.parentElement.style.display='none'">
+                             style="${imgStyle}" onerror="this.parentElement.style.display='none'">
                     </a>`;
 
-                // Insertar según ubicación
                 if (a.ubicacion === 'top') {
                     const cont = document.getElementById('banner-top-container');
                     if (cont) cont.insertAdjacentHTML('afterbegin', html);
@@ -298,19 +297,16 @@
                     const cont = document.getElementById('banner-footer-container');
                     if (cont) cont.innerHTML += html;
                 } else if (a.ubicacion === 'sidebar') {
-                    // sidebar: agrega al final del top container en móvil
                     const cont = document.getElementById('banner-top-container');
                     if (cont) cont.insertAdjacentHTML('beforeend', html);
                 }
-                // 'medio' se inserta dentro de las noticias — ver renderNoticias()
             });
 
-            // Guardar banners "medio" para insertarlos entre noticias
             window.BANNERS_MEDIO = data.anuncios.filter(a => a.ubicacion === 'medio' && a.imagen_url && a.url_afiliado);
         } catch(e) {}
     }
 
-    function escUrl(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function escUrl(s)  { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
     function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
     function tiempoRelativo(fecha) {
@@ -389,16 +385,20 @@
                 if ((i + 1) % 6 === 0) {
                     html += `</div>`;
 
-                    // Banner afiliado "medio" si hay disponible
                     if (bannersMedio.length > 0) {
                         const b = bannersMedio[bannerIdx % bannersMedio.length];
                         bannerIdx++;
+                        // ── NUEVO: aplicar dimensiones exactas del banner medio ──
+                        const bAncho = parseInt(b.ancho_px) || 0;
+                        const bAlto  = parseInt(b.alto_px)  || 0;
+                        const bStyle = (bAncho > 0 || bAlto > 0)
+                            ? `width:${bAncho > 0 ? bAncho + 'px' : 'auto'};height:${bAlto > 0 ? bAlto + 'px' : 'auto'};object-fit:contain;border-radius:8px;`
+                            : 'max-width:100%;height:auto;border-radius:8px;';
                         html += `
                         <a href="${escUrl(b.url_afiliado)}" target="_blank" rel="noopener sponsored" class="banner-afiliado" style="margin:16px 0;display:block;text-align:center;">
-                            <img src="${escUrl(b.imagen_url)}" alt="${escAttr(b.nombre_espacio)}" style="max-width:100%;border-radius:8px;" loading="lazy" onerror="this.parentElement.style.display='none'">
+                            <img src="${escUrl(b.imagen_url)}" alt="${escAttr(b.nombre_espacio)}" style="${bStyle}" loading="lazy" onerror="this.parentElement.style.display='none'">
                         </a>`;
                     } else {
-                        // Fallback AdSense
                         html += `
                         <div class="ad-banner">
                             <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888"
@@ -443,7 +443,6 @@
         }
     }
 
-    // Cargar banners primero, luego noticias
     cargarBanners().then(() => cargarNoticias());
     setInterval(cargarNoticias, 5*60*1000);
 </script>
