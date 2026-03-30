@@ -32,7 +32,7 @@
         .card-title { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; color: var(--naranja); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--borde); display: flex; align-items: center; gap: 8px; }
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-weight: 600; }
-        .field select, .field input[type=text], .field input[type=url], .field textarea { width: 100%; background: #0a0a0a; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 10px 12px; font-size: 14px; font-family: 'Source Sans 3', sans-serif; transition: border-color .2s; }
+        .field select, .field input[type=text], .field input[type=url], .field input[type=number], .field textarea { width: 100%; background: #0a0a0a; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 10px 12px; font-size: 14px; font-family: 'Source Sans 3', sans-serif; transition: border-color .2s; }
         .field select:focus, .field input:focus, .field textarea:focus { outline: none; border-color: var(--naranja); }
         .field textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
         .upload-zone { border: 2px dashed var(--borde); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: .2s; background: #0a0a0a; position: relative; }
@@ -112,14 +112,17 @@
         .slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
         input:checked + .slider { background: var(--naranja); }
         input:checked + .slider::before { transform: translateX(20px); background: #fff; }
-
-        /* ── PUBLICIDAD ESPECÍFICO ── */
+        /* ── PUBLICIDAD ── */
         .pub-card { background: #0a0a0a; border: 1px solid var(--borde); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
         .pub-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .pub-nombre { font-family: 'Oswald', sans-serif; color: var(--naranja); font-size: 14px; }
         .pub-ubicacion-badge { background: #1a1a24; color: #888; font-size: 10px; padding: 2px 8px; border-radius: 3px; font-family: 'Oswald', sans-serif; text-transform: uppercase; }
         .pub-input { width: 100%; background: #111; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 8px 10px; font-size: 13px; font-family: 'Source Sans 3', sans-serif; margin-bottom: 8px; }
         .pub-input:focus { outline: none; border-color: var(--naranja); }
+        .pub-input-num { width: 100%; background: #111; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 8px 10px; font-size: 13px; font-family: 'Source Sans 3', sans-serif; }
+        .pub-input-num:focus { outline: none; border-color: var(--naranja); }
+        .pub-dim-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .pub-dim-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 4px; }
         .pub-actions { display: flex; gap: 8px; margin-top: 8px; }
         .pub-btn-save { flex: 1; background: var(--naranja); border: none; color: #fff; padding: 10px; border-radius: 6px; font-family: 'Oswald', sans-serif; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: .2s; }
         .pub-btn-save:hover { background: #cc4400; }
@@ -127,7 +130,6 @@
         .pub-btn-del:hover { background: #3a1a1a; }
         .pub-preview-img { width: 100%; max-height: 70px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; display: none; }
         .pub-status { font-size: 11px; text-align: center; min-height: 16px; color: #555; margin-top: 4px; }
-
         @media (max-width: 900px) {
             .two-col { grid-template-columns: 1fr; }
             .stats-row { grid-template-columns: repeat(2,1fr); }
@@ -224,13 +226,7 @@
                 <div class="card">
                     <div class="card-title">✏️ Contenido *</div>
                     <div class="field">
-                        <textarea id="m-contenido" style="min-height:420px;font-size:14px;line-height:1.7;" placeholder="Escribe el contenido de la noticia...
-
-Párrafo 1 — LEAD: Qué + Quién + Cuándo + Dónde + Por qué
-Párrafo 2 — CONTEXTO: datos concretos
-Párrafo 3 — FUENTES: institución oficial
-Párrafo 4 — IMPACTO: qué cambia para la gente
-Párrafo 5 — CIERRE: próximos pasos"></textarea>
+                        <textarea id="m-contenido" style="min-height:420px;font-size:14px;line-height:1.7;" placeholder="Escribe el contenido de la noticia..."></textarea>
                         <div style="font-size:11px;color:#444;margin-top:4px;display:flex;justify-content:space-between;"><span id="palabras-count">0 palabras</span><span>Mín. 300 palabras</span></div>
                     </div>
                 </div>
@@ -270,14 +266,14 @@ Párrafo 5 — CIERRE: próximos pasos"></textarea>
             <div class="status-box" id="ga-status" style="margin-top:10px;">Configura tu ID de Analytics.</div>
         </div>
         <div class="analytics-grid">
-            <div class="analytics-card"><h3>📊 Vistas por Categoría</h3><div id="cat-vistas"><p style="color:#333;font-size:12px;">Cargando...</p></div></div>
-            <div class="analytics-card"><h3>🏆 Top 5 Noticias</h3><div id="top-noticias"><p style="color:#333;font-size:12px;">Cargando...</p></div></div>
-            <div class="analytics-card"><h3>📅 Actividad por Hora</h3><div id="actividad-horas"><p style="color:#333;font-size:12px;">Cargando...</p></div></div>
+            <div class="analytics-card"><h3>📊 Vistas por Categoría</h3><div id="cat-vistas"></div></div>
+            <div class="analytics-card"><h3>🏆 Top 5 Noticias</h3><div id="top-noticias"></div></div>
+            <div class="analytics-card"><h3>📅 Actividad por Hora</h3><div id="actividad-horas"></div></div>
         </div>
         <div class="card"><div class="card-title">🤖 Coach IA — Rendimiento</div><div id="coach-data"><p style="color:#333;text-align:center;padding:20px;">Cargando...</p></div></div>
     </div>
 
-    <!-- TAB 5 — PUBLICIDAD ══════════════════════════════════ -->
+    <!-- TAB 5 — PUBLICIDAD -->
     <div id="tab-publicidad" class="tab-panel">
 
         <!-- Crear nuevo espacio -->
@@ -306,6 +302,17 @@ Párrafo 5 — CIERRE: próximos pasos"></textarea>
                 <label>URL de la imagen del banner</label>
                 <input type="url" id="pub-nuevo-img" placeholder="https://tu-imagen-banner.jpg">
             </div>
+            <!-- ── NUEVO: Ancho y Alto ── -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div>
+                    <div class="pub-dim-label">📐 Ancho (px) — 0 = automático</div>
+                    <input type="number" id="pub-nuevo-ancho" class="pub-input-num" placeholder="ej: 728" min="0" max="1200" value="0">
+                </div>
+                <div>
+                    <div class="pub-dim-label">📐 Alto (px) — 0 = automático</div>
+                    <input type="number" id="pub-nuevo-alto" class="pub-input-num" placeholder="ej: 90" min="0" max="600" value="0">
+                </div>
+            </div>
             <button class="btn" onclick="crearAnuncio()">➕ CREAR ESPACIO</button>
             <div class="status-box" id="pub-crear-status" style="margin-top:10px;">Completa los campos y crea el espacio.</div>
         </div>
@@ -316,7 +323,6 @@ Párrafo 5 — CIERRE: próximos pasos"></textarea>
             <div id="pub-lista"><p style="color:#555;text-align:center;padding:20px;font-size:13px;">Cargando espacios...</p></div>
         </div>
 
-        <!-- Info de uso -->
         <div class="card" style="background:#0a0f0a;border-color:#1a3a1a;">
             <div class="card-title" style="color:#22c55e;">📖 Cómo aparecen en el sitio</div>
             <div style="font-size:13px;color:#666;line-height:1.8;">
@@ -324,6 +330,8 @@ Párrafo 5 — CIERRE: próximos pasos"></textarea>
                 <p>• <strong style="color:#888;">sidebar</strong> — lateral derecho (en desktop)</p>
                 <p>• <strong style="color:#888;">medio</strong> — entre las noticias</p>
                 <p>• <strong style="color:#888;">footer</strong> — abajo del todo</p>
+                <p style="margin-top:8px;">• <strong style="color:#888;">Ancho/Alto = 0</strong> → imagen a tamaño automático (100% ancho contenedor)</p>
+                <p>• <strong style="color:#888;">Ancho/Alto > 0</strong> → imagen con píxeles exactos (ej: 728×90 para leaderboard)</p>
                 <p style="margin-top:8px;color:#555;">Solo los anuncios con switch <span style="color:#22c55e;">activado ✅</span> aparecen en el sitio.</p>
             </div>
         </div>
@@ -371,9 +379,6 @@ let todasNoticias = [];
 let filtroActual = '';
 let imagenBase64 = null;
 
-// ══════════════════════════════════════════════════════
-// TABS
-// ══════════════════════════════════════════════════════
 function activarTab(id) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activo'));
@@ -385,9 +390,6 @@ function activarTab(id) {
     if (id === 'publicidad') cargarPublicidad();
 }
 
-// ══════════════════════════════════════════════════════
-// GENERAR NOTICIA IA
-// ══════════════════════════════════════════════════════
 async function generarNoticia() {
     const btn = document.getElementById('btnGenerar');
     const statusEl = document.getElementById('gen-status');
@@ -449,9 +451,6 @@ async function cargarEstadisticas() {
     } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-// PUBLICAR MANUAL
-// ══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     const tit = document.getElementById('m-titulo');
     const cont = document.getElementById('m-contenido');
@@ -493,9 +492,6 @@ async function publicarManual() {
     } catch(e) { statusEl.innerHTML=`<span style="color:#ef4444">❌ ${e.message}</span>`; }
 }
 
-// ══════════════════════════════════════════════════════
-// NOTICIAS
-// ══════════════════════════════════════════════════════
 async function cargarNoticias() {
     try {
         const res = await fetch('/api/noticias',{headers:{'Authorization':AUTH}});
@@ -531,9 +527,6 @@ async function eliminarNoticia(id) {
     } catch(e) { alert('Error de conexión'); }
 }
 
-// ══════════════════════════════════════════════════════
-// ANALÍTICA
-// ══════════════════════════════════════════════════════
 async function cargarAnalytics() {
     cargarGAConfig();
     try {
@@ -560,9 +553,6 @@ async function cargarAnalytics() {
     } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-// GOOGLE ANALYTICS
-// ══════════════════════════════════════════════════════
 async function cargarGAConfig() {
     try {
         const res = await fetch('/api/configuracion');
@@ -592,7 +582,7 @@ async function guardarGA() {
 function abrirGA() { window.open('https://analytics.google.com','_blank'); }
 
 // ══════════════════════════════════════════════════════
-// 📢 PUBLICIDAD
+// 📢 PUBLICIDAD — con ancho_px y alto_px
 // ══════════════════════════════════════════════════════
 async function cargarPublicidad() {
     try {
@@ -610,7 +600,7 @@ async function cargarPublicidad() {
                     <span class="pub-nombre">${esc(a.nombre_espacio)}</span>
                     <span class="pub-ubicacion-badge" style="margin-left:8px;">${esc(a.ubicacion)}</span>
                 </div>
-                <label class="switch" title="${a.activo?'Activo — clic para pausar':'Pausado — clic para activar'}">
+                <label class="switch" title="${a.activo?'Activo':'Pausado'}">
                     <input type="checkbox" ${a.activo?'checked':''} onchange="toggleAnuncio(${a.id}, this.checked)">
                     <span class="slider"></span>
                 </label>
@@ -620,6 +610,17 @@ async function cargarPublicidad() {
             <input type="url" class="pub-input" id="url-${a.id}" value="${esc(a.url_afiliado||'')}" placeholder="https://amazon.com/tu-link">
             <div style="font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px;">URL imagen del banner</div>
             <input type="url" class="pub-input" id="img-${a.id}" value="${esc(a.imagen_url||'')}" placeholder="https://imagen-banner.jpg" oninput="previewBanner(${a.id}, this.value)">
+            <!-- ── NUEVO: Ancho y Alto px ── -->
+            <div class="pub-dim-row">
+                <div>
+                    <div class="pub-dim-label">📐 Ancho (px) — 0 = auto</div>
+                    <input type="number" class="pub-input-num" id="ancho-${a.id}" value="${parseInt(a.ancho_px)||0}" min="0" max="1200" placeholder="ej: 728">
+                </div>
+                <div>
+                    <div class="pub-dim-label">📐 Alto (px) — 0 = auto</div>
+                    <input type="number" class="pub-input-num" id="alto-${a.id}" value="${parseInt(a.alto_px)||0}" min="0" max="600" placeholder="ej: 90">
+                </div>
+            </div>
             <div class="pub-actions">
                 <button class="pub-btn-save" onclick="guardarAnuncio(${a.id}, '${esc(a.nombre_espacio)}', '${esc(a.ubicacion)}', ${a.activo})">💾 GUARDAR</button>
                 <button class="pub-btn-del" onclick="eliminarAnuncio(${a.id})" title="Eliminar">🗑</button>
@@ -641,16 +642,18 @@ function previewBanner(id, url) {
 }
 
 async function guardarAnuncio(id, nombre, ubicacion, activoActual) {
-    const url  = document.getElementById(`url-${id}`)?.value.trim() || '';
-    const img  = document.getElementById(`img-${id}`)?.value.trim() || '';
-    const chk  = document.querySelector(`#pub-card-${id} input[type=checkbox]`);
+    const url    = document.getElementById(`url-${id}`)?.value.trim() || '';
+    const img    = document.getElementById(`img-${id}`)?.value.trim() || '';
+    const ancho  = parseInt(document.getElementById(`ancho-${id}`)?.value) || 0;
+    const alto   = parseInt(document.getElementById(`alto-${id}`)?.value) || 0;
+    const chk    = document.querySelector(`#pub-card-${id} input[type=checkbox]`);
     const activo = chk ? chk.checked : activoActual;
-    const st   = document.getElementById(`pub-st-${id}`);
+    const st     = document.getElementById(`pub-st-${id}`);
     if (st) st.innerHTML = '<span style="color:#f59e0b">Guardando...</span>';
     try {
         const res = await fetch('/api/publicidad/actualizar', {
             method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH},
-            body: JSON.stringify({pin:PIN, id, nombre_espacio:nombre, url_afiliado:url, imagen_url:img, ubicacion, activo})
+            body: JSON.stringify({pin:PIN, id, nombre_espacio:nombre, url_afiliado:url, imagen_url:img, ubicacion, activo, ancho_px:ancho, alto_px:alto})
         });
         const data = await res.json();
         if (st) st.innerHTML = data.success ? '<span style="color:#22c55e">✅ Guardado</span>' : `<span style="color:#ef4444">❌ ${data.error}</span>`;
@@ -659,13 +662,15 @@ async function guardarAnuncio(id, nombre, ubicacion, activoActual) {
 }
 
 async function toggleAnuncio(id, activo) {
-    const url = document.getElementById(`url-${id}`)?.value || '';
-    const img = document.getElementById(`img-${id}`)?.value || '';
-    const st  = document.getElementById(`pub-st-${id}`);
+    const url   = document.getElementById(`url-${id}`)?.value || '';
+    const img   = document.getElementById(`img-${id}`)?.value || '';
+    const ancho = parseInt(document.getElementById(`ancho-${id}`)?.value) || 0;
+    const alto  = parseInt(document.getElementById(`alto-${id}`)?.value) || 0;
+    const st    = document.getElementById(`pub-st-${id}`);
     try {
         await fetch('/api/publicidad/actualizar', {
             method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH},
-            body: JSON.stringify({pin:PIN, id, nombre_espacio:'', url_afiliado:url, imagen_url:img, ubicacion:'top', activo})
+            body: JSON.stringify({pin:PIN, id, nombre_espacio:'', url_afiliado:url, imagen_url:img, ubicacion:'top', activo, ancho_px:ancho, alto_px:alto})
         });
         if (st) { st.innerHTML = `<span style="color:${activo?'#22c55e':'#f59e0b'}">${activo?'✅ Activado':'⏸ Pausado'}</span>`; setTimeout(()=>{st.innerHTML='';},2000); }
     } catch(e) {}
@@ -676,13 +681,15 @@ async function crearAnuncio() {
     const url       = document.getElementById('pub-nuevo-url').value.trim();
     const img       = document.getElementById('pub-nuevo-img').value.trim();
     const ubicacion = document.getElementById('pub-nuevo-ubicacion').value;
+    const ancho     = parseInt(document.getElementById('pub-nuevo-ancho').value) || 0;
+    const alto      = parseInt(document.getElementById('pub-nuevo-alto').value) || 0;
     const st        = document.getElementById('pub-crear-status');
     if (!nombre) { st.innerHTML = '<span style="color:#ef4444">❌ Pon un nombre al espacio</span>'; return; }
     st.innerHTML = '<span style="color:#f59e0b">Creando...</span>';
     try {
         const res = await fetch('/api/publicidad/crear', {
             method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH},
-            body: JSON.stringify({pin:PIN, nombre_espacio:nombre, url_afiliado:url, imagen_url:img, ubicacion})
+            body: JSON.stringify({pin:PIN, nombre_espacio:nombre, url_afiliado:url, imagen_url:img, ubicacion, ancho_px:ancho, alto_px:alto})
         });
         const data = await res.json();
         if (data.success) {
@@ -690,6 +697,8 @@ async function crearAnuncio() {
             document.getElementById('pub-nuevo-nombre').value = '';
             document.getElementById('pub-nuevo-url').value = '';
             document.getElementById('pub-nuevo-img').value = '';
+            document.getElementById('pub-nuevo-ancho').value = '0';
+            document.getElementById('pub-nuevo-alto').value = '0';
             cargarPublicidad();
         } else { st.innerHTML = `<span style="color:#ef4444">❌ ${data.error}</span>`; }
     } catch(e) { st.innerHTML = `<span style="color:#ef4444">❌ ${e.message}</span>`; }
@@ -703,9 +712,6 @@ async function eliminarAnuncio(id) {
     } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-// CONFIGURACIÓN IA
-// ══════════════════════════════════════════════════════
 async function cargarConfiguracion() {
     try {
         const res = await fetch('/api/admin/config?pin=311',{headers:{'Authorization':AUTH}});
@@ -735,7 +741,7 @@ async function cargarSistemaStatus() {
         const data = await res.json();
         const el = document.getElementById('sistema-status');
         if (!el) return;
-        el.innerHTML = `<div>🤖 Modelo: <span style="color:var(--naranja)">${data.modelo_gemini||'gemini-2.5-flash'}</span></div><div>🔑 Llaves: <span style="color:var(--verde)">${data.gemini_keys||'?'}</span></div><div>📰 Total: <span style="color:var(--naranja)">${data.noticias||'—'}</span> noticias</div><div>🏮 Watermark: <span style="color:${data.watermark?.includes('✅')?'var(--verde)':'#f59e0b'}">${data.watermark||'—'}</span></div><div>📘 Facebook: <span style="color:${data.facebook?.includes('✅')?'var(--verde)':'#555'}">${data.facebook||'—'}</span></div><div>📱 Telegram: <span style="color:${data.telegram?.includes('✅')?'var(--verde)':'#555'}">${data.telegram||'—'}</span></div><div>📢 Publicidad: <span style="color:var(--verde)">${data.publicidad||'✅ Activo'}</span></div>`;
+        el.innerHTML = `<div>🤖 Modelo: <span style="color:var(--naranja)">${data.modelo_gemini||'gemini-2.5-flash'}</span></div><div>📝 Texto: <span style="color:var(--verde)">${data.gemini_texto||'—'}</span></div><div>🖼️ Imagen: <span style="color:var(--verde)">${data.gemini_imagen||'—'}</span></div><div>📷 Unsplash: <span style="color:${data.unsplash?.includes('✅')?'var(--verde)':'#555'}">${data.unsplash||'—'}</span></div><div>📰 Total: <span style="color:var(--naranja)">${data.noticias||'—'}</span> noticias</div><div>🏮 Watermark: <span style="color:${data.watermark?.includes('✅')?'var(--verde)':'#f59e0b'}">${data.watermark||'—'}</span></div><div>📘 Facebook: <span style="color:${data.facebook?.includes('✅')?'var(--verde)':'#555'}">${data.facebook||'—'}</span></div><div>📱 Telegram: <span style="color:${data.telegram?.includes('✅')?'var(--verde)':'#555'}">${data.telegram||'—'}</span></div>`;
     } catch(e) {}
 }
 
@@ -745,7 +751,7 @@ async function cargarFullStatus() {
         const data = await res.json();
         const el = document.getElementById('full-status');
         if (!el) return;
-        const rows = [['Versión',data.version],['Noticias',data.noticias],['Min sin publicar',(data.min_sin_publicar||0)+' min'],['Modelo',data.modelo_gemini],['Cron',data.cron],['AdSense',data.adsense],['IA Activa',data.ia_activa?'✅ Sí':'⛔ No'],['Publicidad',data.publicidad||'✅ Activo']];
+        const rows = [['Versión',data.version],['Noticias',data.noticias],['Min sin publicar',(data.min_sin_publicar||0)+' min'],['Modelo',data.modelo_gemini],['Unsplash',data.unsplash],['AdSense',data.adsense],['IA Activa',data.ia_activa?'✅ Sí':'⛔ No'],['Publicidad',data.publicidad||'✅ Activo']];
         el.innerHTML = rows.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--borde);"><span style="color:#555;font-size:12px;">${k}</span><span style="color:var(--texto);font-size:12px;font-weight:600;">${v||'—'}</span></div>`).join('');
     } catch(e) {}
 }
