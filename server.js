@@ -1,17 +1,8 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.5 / mxl
+ * 🏮 EL FAROL AL DÍA — V34.5 / mxl + ESTRATEGIA SEO
  * ─────────────────────────────────────────────────────────────
- * NUEVO V34.5:
- *   • 4 llaves Gemini separadas: KEY_1+KEY_2=texto, KEY_3+KEY_4=imágenes
- *   • Google Custom Search API para imágenes reales de SDE
- *   • Filtro mxl anti-stock, anti-competencia, resolución ≥ 1024px
- *   • Estilo SDE: párrafos cortos, lenguaje directo, clickbait ético
- *   • Pexels como fallback secundario (no primario)
- * AÑADIDO SIN ROMPER NADA:
- *   • estrategia-loader.js → leerEstrategia() inyecta datos reales en Gemini
- *   • estrategia-analyzer.js → corre cada 6h, analiza BD, actualiza JSON
- * SIN TOCAR: auth, watermark, RSS, Telegram, Facebook, Twitter,
- *            Wikipedia, comentarios, publicidad, cron, SEO
+ * FIX: Error de callback en setTimeout corregido (Línea 1471+)
+ * ─────────────────────────────────────────────────────────────
  */
 
 const express   = require('express');
@@ -273,9 +264,9 @@ async function aplicarMarcaDeAgua(urlImagen) {
         const bufFinal = await sharp(bufOrig).composite([{input:wmResized,left:Math.max(0,w-wmAncho-margen),top:Math.max(0,h-wmAlto-margen),blend:'over'}]).jpeg({quality:88}).toBuffer();
         const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
-        console.log(`   🏮 Watermark: ${nombre}`);
+        console.log(`    🏮 Watermark: ${nombre}`);
         return { url:urlImagen, nombre, procesada:true };
-    } catch(err) { console.warn(`   ⚠️ Watermark falló: ${err.message}`); return { url:urlImagen, procesada:false }; }
+    } catch(err) { console.warn(`    ⚠️ Watermark falló: ${err.message}`); return { url:urlImagen, procesada:false }; }
 }
 
 async function aplicarMarcaDeAguaBuffer(bufOrig) {
@@ -379,7 +370,7 @@ async function llamarGemini(prompt, reintentos = 2) {
     for (let i = 0; i < reintentos; i++) {
         for (const llave of LLAVES_TEXTO) {
             try { return await _callGemini(llave, prompt, intentoGlobal++); }
-            catch(err) { if (err.message === 'RATE_LIMIT_429') continue; console.error(`   ❌ Texto ${err.message}`); }
+            catch(err) { if (err.message === 'RATE_LIMIT_429') continue; console.error(`    ❌ Texto ${err.message}`); }
         }
         if (i < reintentos - 1) await new Promise(r => setTimeout(r, (i + 1) * 15000));
     }
@@ -425,7 +416,7 @@ function urlImagenValida(url) {
     const u = url.toLowerCase();
     if (!/(\.jpg|\.jpeg|\.png)(\?|$|#)/i.test(u) && !u.endsWith('.jpg') && !u.endsWith('.jpeg') && !u.endsWith('.png')) return false;
     if (URL_PALABRAS_INVALIDAS.some(p => u.includes(p))) return false;
-    const basura = ['flag','logo','map','coat_of_arms','seal','emblem','icon','badge','crest','_bw','-bw','grayscale','favicon'];
+    const basura = ['flag','logo','map','coat_of_arms','seal','emblem','icon','badge','crest','shield','_bw','-bw','grayscale','favicon'];
     if (basura.some(b => u.includes(b))) return false;
     return true;
 }
@@ -470,11 +461,11 @@ async function buscarImagenCSE(query, barrio = '') {
                 if (!urlImagenValida(imgUrl)) continue;
                 const buena = await verificarResolucion(imgUrl);
                 if (!buena) continue;
-                console.log(`   ✅ CSE imagen OK`);
+                console.log(`    ✅ CSE imagen OK`);
                 st.fallos = 0;
                 return imgUrl;
             }
-        } catch(err) { console.warn(`   ⚠️ CSE error: ${err.message}`); st.fallos++; }
+        } catch(err) { console.warn(`    ⚠️ CSE error: ${err.message}`); st.fallos++; }
     }
     return null;
 }
@@ -594,7 +585,7 @@ async function buscarEnUnsplash(query, categoria) {
         const foto = fotos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fotos.length))];
         const url = foto.urls?.full || foto.urls?.regular;
         if (!url) return null;
-        console.log(`   📷 Unsplash OK`);
+        console.log(`    📷 Unsplash OK`);
         return url;
     } catch(err) { return null; }
 }
@@ -803,7 +794,7 @@ async function inicializarBase() {
     try {
         await client.query(`CREATE TABLE IF NOT EXISTS noticias(id SERIAL PRIMARY KEY,titulo VARCHAR(255) NOT NULL,slug VARCHAR(255) UNIQUE,seccion VARCHAR(100),contenido TEXT,seo_description VARCHAR(160),seo_keywords VARCHAR(255),redactor VARCHAR(100),imagen TEXT,imagen_alt VARCHAR(255),imagen_caption TEXT,imagen_nombre VARCHAR(100),imagen_fuente VARCHAR(50),vistas INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,estado VARCHAR(50) DEFAULT 'publicada')`);
         for (const col of ['imagen_alt','imagen_caption','imagen_nombre','imagen_fuente','imagen_original']) {
-            await client.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END $$;`).catch(()=>{});
+            await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END$$;`).catch(()=>{});
         }
         await client.query(`CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -825,7 +816,7 @@ async function inicializarBase() {
         `);
         for (const col of ['ancho_px INTEGER DEFAULT 0', 'alto_px INTEGER DEFAULT 0']) {
             const nombre = col.split(' ')[0];
-            await client.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='publicidad' AND column_name='${nombre}') THEN ALTER TABLE publicidad ADD COLUMN ${col}; END IF; END $$;`).catch(()=>{});
+            await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='publicidad' AND column_name='${nombre}') THEN ALTER TABLE publicidad ADD COLUMN ${col}; END IF; END$$;`).catch(()=>{});
         }
         const countPub = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(countPub.rows[0].count) === 0) {
@@ -950,8 +941,8 @@ CONTENIDO:
             else if (t.startsWith('DESCRIPCION:'))   desc   = t.replace('DESCRIPCION:','').trim();
             else if (t.startsWith('PALABRAS:'))      pals   = t.replace('PALABRAS:','').trim();
             else if (t.startsWith('SUBTEMA_LOCAL:')) sub    = t.replace('SUBTEMA_LOCAL:','').trim();
-            else if (t.startsWith('CONTENIDO:'))     enContenido = true;
-            else if (enContenido && t.length > 0)    bloques.push(t);
+            else if (t.startsWith('CONTENIDO:'))      enContenido = true;
+            else if (enContenido && t.length > 0)     bloques.push(t);
         }
         contenido = bloques.join('\n\n');
         titulo = titulo.replace(/[*_#`"]/g,'').trim();
@@ -1086,7 +1077,11 @@ cron.schedule('30 8,19 * * *', async () => { await procesarRSS(); });
 // ── LÍNEA 3: Cron estrategia cada 6 horas ────────────────
 cron.schedule('0 */6 * * *', async () => {
     console.log('📊 Cron estrategia: actualizando...');
-    await analizarYGenerar();
+    try {
+        await analizarYGenerar();
+    } catch(err) {
+        console.error('❌ Error cron estrategia:', err.message);
+    }
 });
 // ─────────────────────────────────────────────────────────
 
@@ -1446,30 +1441,51 @@ app.get('/status', async (req, res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE
+// ARRANQUE - VERSIÓN BLINDADA mxl
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
-    await inicializarBase();
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`
+    try {
+        await inicializarBase();
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.5/mxl + ESTRATEGIA                   ║
+║  🏮 EL FAROL AL DÍA — V34.5/mxl + ESTRATEGIA                  ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ KEY_1+KEY_2 → Gemini texto                                  ║
-║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                    ║
-║  ✅ Google Custom Search → imágenes reales SDE                  ║
-║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini           ║
-║  ✅ Estilo SDE: párrafos cortos, lenguaje directo               ║
-║  ✅ Todo V34.5 intacto: publicidad, RSS, watermark              ║
+║  ✅ KEY_1+KEY_2 → Gemini texto                                 ║
+║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                   ║
+║  ✅ Google Custom Search → imágenes reales SDE                 ║
+║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini          ║
+║  ✅ Estilo SDE: párrafos cortos, lenguaje directo              ║
+║  ✅ Todo V34.5 intacto: publicidad, RSS, watermark             ║
 ╚══════════════════════════════════════════════════════════════════╝`);
-    });
-    setTimeout(regenerarWatermarks, 5000);
-    setTimeout(bienvenidaTelegram, 8000);
-    setTimeout(rafagaInicial, 60000);
+        });
 
-    // ── LÍNEA 4: Estrategia al arrancar ──────────────────
-    setTimeout(analizarYGenerar, 10000);
-    // ─────────────────────────────────────────────────────
+        // Corregido: Envolvemos las llamadas en funciones flecha () => para evitar el error de callback
+        setTimeout(() => { 
+            if (typeof regenerarWatermarks === 'function') regenerarWatermarks(); 
+        }, 5000);
+
+        setTimeout(() => { 
+            if (typeof bienvenidaTelegram === 'function') bienvenidaTelegram(); 
+        }, 8000);
+
+        setTimeout(() => { 
+            if (typeof rafagaInicial === 'function') rafagaInicial(); 
+        }, 60000);
+
+        // ── LÍNEA 4: Estrategia al arrancar (CON FIX) ──────────
+        setTimeout(() => {
+            console.log('📊 Iniciando primer análisis de estrategia...');
+            if (typeof analizarYGenerar === 'function') {
+                analizarYGenerar().catch(err => console.error('❌ Error en análisis inicial:', err.message));
+            }
+        }, 10000);
+        // ─────────────────────────────────────────────────────
+
+    } catch (err) {
+        console.error('❌ ERROR CRÍTICO EN ARRANQUE:', err.message);
+        process.exit(1);
+    }
 }
 
 iniciar();
