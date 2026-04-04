@@ -1,11 +1,14 @@
 /**
- * 🏮 EL FAROL AL DÍA — V36.0 AUDIO & TV EDITION
+ * 🏮 EL FAROL AL DÍA — V37.0 QUAD-KEY EDITION (MXL)
  * ─────────────────────────────────────────────────────────────────────────
- * ✅ NUEVO EN V36.0:
- *   1. ElevenLabs TTS — genera audio .mp3 por noticia (voz profesional)
- *   2. Ruta /tv — pantalla digital de noticiero con autoplay + ciclo automático
- *   3. Integración generarNoticia → audio se genera y vincula en DB
- * ✅ MANTENIDO DE V35.1 MXL:
+ * ✅ NUEVO EN V37.0:
+ *   1. Rotación round-robin de 4 llaves Gemini (KEY1–KEY4)
+ *   2. Reparto de carga: KEY1+KEY2 → texto SDE | KEY3+KEY4 → imagen/query
+ *   3. Blindaje anti-429: salto automático a siguiente llave disponible
+ *   4. Audio ElevenLabs siempre vinculado al slug antes de responder a /tv
+ * ✅ HEREDADO DE V36.0:
+ *   - ElevenLabs TTS — genera audio .mp3 por noticia
+ *   - Ruta /tv — pantalla digital de noticiero con autoplay + ciclo
  *   - SQL parametrizado limpio (sin backticks ni whitespace en queries)
  *   - buscarContextoActualSDE: rotación correcta de CSE keys
  *   - Validación de contenido (600+ chars, barrios SDE, lenguaje dominicano)
@@ -59,11 +62,46 @@ if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido'); 
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
 // ══════════════════════════════════════════════════════════
-// 🔑 LLAVES — SEPARADAS POR ROL
+// 🔑 LLAVERO V37.0 — 4 LLAVES GEMINI EN ROTACIÓN ROUND-ROBIN
 // ══════════════════════════════════════════════════════════
-const LLAVES_TEXTO  = [process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2].filter(Boolean);
-const LLAVES_IMAGEN = [process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4].filter(Boolean);
+/**
+ * KEY1 + KEY2 → Redacción de texto de noticias (alto consumo de tokens)
+ * KEY3 + KEY4 → Query imagen, Alt SEO y contexto de búsqueda (consumo ligero)
+ *
+ * Si una llave retorna 429, el sistema salta automáticamente a la siguiente
+ * del mismo grupo usando el índice round-robin persistente.
+ */
+const LLAVES_TEXTO = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY2,
+].filter(Boolean);
 
+const LLAVES_IMAGEN = [
+    process.env.GEMINI_API_KEY3 || process.env.GEMINI_API_KEY,   // fallback a KEY1 si no hay KEY3
+    process.env.GEMINI_API_KEY4 || process.env.GEMINI_API_KEY2,  // fallback a KEY2 si no hay KEY4
+].filter(Boolean);
+
+// Índices round-robin persistentes (avanzan con cada uso exitoso)
+const RR_IDX = { texto: 0, imagen: 0 };
+
+function siguienteLlave(grupo) {
+    const lista = grupo === 'texto' ? LLAVES_TEXTO : LLAVES_IMAGEN;
+    if (!lista.length) throw new Error(`Sin llaves configuradas para grupo: ${grupo}`);
+    const idx = RR_IDX[grupo] % lista.length;
+    RR_IDX[grupo] = (idx + 1) % lista.length;
+    return lista[idx];
+}
+
+// Estado de cooldown por llave (429 → espera antes de reintentar)
+const GEMINI_STATE = {};
+function getKeyState(k) {
+    if (!GEMINI_STATE[k]) GEMINI_STATE[k] = { lastRequest: 0, resetTime: 0, fallos429: 0 };
+    return GEMINI_STATE[k];
+}
+
+// ══════════════════════════════════════════════════════════
+// 🔑 LLAVES AUXILIARES
+// ══════════════════════════════════════════════════════════
 const GOOGLE_CSE_KEYS = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
 const GOOGLE_CSE_CX   = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
 
@@ -78,40 +116,29 @@ const TELEGRAM_TOKEN        = process.env.TELEGRAM_TOKEN        || null;
 let   TELEGRAM_CHAT_ID      = process.env.TELEGRAM_CHAT_ID      || null;
 
 // ══════════════════════════════════════════════════════════
-// 🎙️  ELEVENLABS TTS — V36.0
+// 🎙️  ELEVENLABS TTS
 // ══════════════════════════════════════════════════════════
 const ELEVEN_LABS_KEY = process.env.ELEVENLABS_API_KEY || null;
 const VOICE_ID        = 'pNInz6ovxtat4uicW8ld';  // Voz masculina profesional
 
-/**
- * Convierte el texto de una noticia a audio MP3 vía ElevenLabs
- * y lo guarda en /tmp/audio-[slug].mp3
- * @param {string} texto   - Contenido de la noticia (máx 4.000 chars para ElevenLabs)
- * @param {string} slug    - Slug de la noticia (usado para nombrar el archivo)
- * @returns {string|null}  - Nombre del archivo generado o null si falla
- */
 async function generarAudioNoticia(texto, slug) {
     if (!ELEVEN_LABS_KEY) {
         console.log('🎙️  ElevenLabs: ELEVENLABS_API_KEY no configurada — audio omitido');
         return null;
     }
-
     try {
-        // ElevenLabs acepta hasta ~5.000 chars. Recortamos con gracia al final de oración.
         let textoLimpio = texto
-            .replace(/<[^>]+>/g, ' ')   // quitar HTML residual
+            .replace(/<[^>]+>/g, ' ')
             .replace(/\s+/g, ' ')
             .trim()
             .substring(0, 4000);
-
-        // Terminar en punto si fue cortado
         const ultimoPunto = textoLimpio.lastIndexOf('.');
         if (ultimoPunto > 500) textoLimpio = textoLimpio.substring(0, ultimoPunto + 1);
 
         const nombreArchivo = `audio-${slug}.mp3`;
         const rutaArchivo   = path.join('/tmp', nombreArchivo);
 
-        console.log(`🎙️  Generando audio para: ${slug} (${textoLimpio.length} chars)...`);
+        console.log(`🎙️  Generando audio: ${slug} (${textoLimpio.length} chars)...`);
 
         const ctrl = new AbortController();
         const tm   = setTimeout(() => ctrl.abort(), 30000);
@@ -122,9 +149,9 @@ async function generarAudioNoticia(texto, slug) {
                 method:  'POST',
                 signal:  ctrl.signal,
                 headers: {
-                    'xi-api-key':    ELEVEN_LABS_KEY,
-                    'Content-Type':  'application/json',
-                    'Accept':        'audio/mpeg',
+                    'xi-api-key':   ELEVEN_LABS_KEY,
+                    'Content-Type': 'application/json',
+                    'Accept':       'audio/mpeg',
                 },
                 body: JSON.stringify({
                     text:           textoLimpio,
@@ -145,11 +172,9 @@ async function generarAudioNoticia(texto, slug) {
             console.warn('🎙️  ElevenLabs: respuesta demasiado pequeña, descartando');
             return null;
         }
-
         fs.writeFileSync(rutaArchivo, buffer);
-        console.log(`🎙️  Audio generado: ${nombreArchivo} (${Math.round(buffer.length / 1024)} KB)`);
+        console.log(`🎙️  Audio OK: ${nombreArchivo} (${Math.round(buffer.length / 1024)} KB)`);
         return nombreArchivo;
-
     } catch (err) {
         console.warn(`🎙️  ElevenLabs error: ${err.message}`);
         return null;
@@ -157,7 +182,7 @@ async function generarAudioNoticia(texto, slug) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📱 WEB PUSH VAPID KEYS
+// 📱 WEB PUSH VAPID
 // ══════════════════════════════════════════════════════════
 const VAPID_PUBLIC_KEY  = process.env.VAPID_PUBLIC_KEY  || null;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || null;
@@ -171,7 +196,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK — BLINDADO
+// 🏮 WATERMARK
 // ══════════════════════════════════════════════════════════
 const WATERMARK_PATH = (() => {
     const variantes = ['watermark.png','WATERMARK(1).png','watermark(1).png','watermark (1).png','WATERMARK.png'];
@@ -182,7 +207,7 @@ const WATERMARK_PATH = (() => {
             if (fs.existsSync(ruta)) { console.log(`🏮 Watermark: ${ruta}`); return ruta; }
         }
     }
-    console.warn('⚠️  Watermark no encontrado — fotos sin marca');
+    console.warn('⚠️ Watermark no encontrado — fotos sin marca');
     return null;
 })();
 
@@ -233,10 +258,7 @@ async function initPushTable() {
 // 📱 ENVIAR NOTIFICACIÓN PUSH
 // ══════════════════════════════════════════════════════════
 async function enviarNotificacionPush(titulo, cuerpo, slug, imagenUrl) {
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-        console.log('📱 Push: VAPID keys no configuradas');
-        return false;
-    }
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) { console.log('📱 Push: VAPID keys no configuradas'); return false; }
     try {
         const suscriptores = await pool.query(
             'SELECT endpoint, auth_key, p256dh_key FROM push_suscripciones WHERE endpoint IS NOT NULL ORDER BY ultima_notificacion NULLS FIRST'
@@ -244,21 +266,13 @@ async function enviarNotificacionPush(titulo, cuerpo, slug, imagenUrl) {
         if (!suscriptores.rows.length) { console.log('📱 Push: 0 suscriptores activos'); return false; }
         const urlNoticia = `${BASE_URL}/noticia/${slug}`;
         const notificacion = {
-            title: titulo.substring(0, 80),
-            body: cuerpo.substring(0, 120),
+            title: titulo.substring(0, 80), body: cuerpo.substring(0, 120),
             icon: imagenUrl || `${BASE_URL}/static/favicon.png`,
-            badge: `${BASE_URL}/static/badge.png`,
-            image: imagenUrl,
+            badge: `${BASE_URL}/static/badge.png`, image: imagenUrl,
             vibrate: [200, 100, 200],
             data: { url: urlNoticia, slug },
-            actions: [
-                { action: 'open', title: '📰 Leer noticia' },
-                { action: 'later', title: '🔔 Ver después' }
-            ],
-            tag: `noticia-${slug}`,
-            renotify: true,
-            requireInteraction: false,
-            timestamp: Date.now()
+            actions: [{ action: 'open', title: '📰 Leer noticia' },{ action: 'later', title: '🔔 Ver después' }],
+            tag: `noticia-${slug}`, renotify: true, requireInteraction: false, timestamp: Date.now()
         };
         const payload = JSON.stringify(notificacion);
         let enviadas = 0, fallidas = 0;
@@ -270,9 +284,7 @@ async function enviarNotificacionPush(titulo, cuerpo, slug, imagenUrl) {
                 await new Promise(r => setTimeout(r, 100));
             } catch (err) {
                 fallidas++;
-                if (err.statusCode === 410) {
-                    await pool.query('DELETE FROM push_suscripciones WHERE endpoint = $1', [sub.endpoint]);
-                }
+                if (err.statusCode === 410) await pool.query('DELETE FROM push_suscripciones WHERE endpoint = $1', [sub.endpoint]);
             }
         }
         console.log(`📱 Push: ${enviadas} enviadas (${fallidas} fallidas)`);
@@ -418,22 +430,23 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V36.0 AUDIO & TV*\n\n✅ Bot activo.\n✅ ElevenLabs TTS integrado.\n✅ Ruta /tv activa.\n✅ Fix SQL aplicado.\n✅ Fix Watermark aplicado.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ chat_id:chatId, parse_mode:'Markdown',
+                text:`🏮 *El Farol al Día — V37.0 QUAD-KEY*\n\n✅ 4 llaves Gemini activas.\n✅ Rotación round-robin activa.\n✅ Blindaje 429 activo.\n✅ Audio ElevenLabs sincronizado.\n✅ Ruta /tv activa.\n✅ Notificaciones push activas.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)` })
+        });
     } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK — BLINDADO + FIX MXL
+// 🏮 WATERMARK
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     if (!WATERMARK_PATH) return { url:urlImagen, procesada:false };
-
-    // ✅ FIX MXL: Saltar si es upload manual (base64) o placeholder
     if (!urlImagen || urlImagen === 'base64-upload' || urlImagen.startsWith('data:image')) {
-        console.log('    🏮 Watermark: saltando imagen manual (no es URL externa)');
+        console.log('    🏮 Watermark: saltando imagen manual');
         return { url:urlImagen, procesada:false };
     }
-
     try {
         const response = await fetch(urlImagen);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -482,16 +495,13 @@ app.get('/img/:nombre', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// 🎙️  RUTA /audio/:nombre — Sirve MP3 generados por ElevenLabs
+// 🎙️  RUTA /audio/:nombre
 // ══════════════════════════════════════════════════════════
 app.get('/audio/:nombre', (req, res) => {
-    // Sanitizar: solo letras, números, guiones y punto
     const nombre = req.params.nombre.replace(/[^a-zA-Z0-9\-_.]/g, '');
     if (!nombre.endsWith('.mp3')) return res.status(400).send('Formato no permitido');
-
     const ruta = path.join('/tmp', nombre);
     if (!fs.existsSync(ruta)) return res.status(404).send('Audio no disponible');
-
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public,max-age=604800');
     res.setHeader('Accept-Ranges', 'bytes');
@@ -529,66 +539,121 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// GEMINI — ESTADO DE LLAVES
+// 🔑 GEMINI V37.0 — ROUND-ROBIN + BLINDAJE 429
 // ══════════════════════════════════════════════════════════
-const GEMINI_STATE = {};
-function getKeyState(k) {
-    if (!GEMINI_STATE[k]) GEMINI_STATE[k] = { lastRequest:0, resetTime:0 };
-    return GEMINI_STATE[k];
-}
-
+/**
+ * Llama a Gemini con una llave específica.
+ * Lanza 'RATE_LIMIT_429' si el límite fue alcanzado (caller debe saltar a siguiente llave).
+ * Lanza 'RED:...' para errores de red transitorios.
+ */
 async function _callGemini(apiKey, prompt, intentoGlobal) {
-    const st = getKeyState(apiKey);
-    const ahora = Date.now();
-    if (ahora < st.resetTime) {
-        const espera = st.resetTime - ahora;
+    const st  = getKeyState(apiKey);
+    const now = Date.now();
+
+    // Si la llave está en cooldown, esperamos o relanzamos para que el caller salte
+    if (now < st.resetTime) {
+        const espera = st.resetTime - now;
+        if (espera > 15000) throw new Error('RATE_LIMIT_429');  // cooldown largo → saltar
         await new Promise(r => setTimeout(r, espera));
     }
+
+    // Throttle mínimo entre peticiones con la misma llave
     const desde = Date.now() - st.lastRequest;
-    if (desde < 8000) await new Promise(r => setTimeout(r, 8000 - desde));
+    if (desde < 6000) await new Promise(r => setTimeout(r, 6000 - desde));
     st.lastRequest = Date.now();
+
     let res;
     try {
-        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.85, maxOutputTokens: 3000, stopSequences: [] } }),
-            signal: AbortSignal.timeout(45000)
-        });
+        res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.85, maxOutputTokens: 3000 }
+                }),
+                signal: AbortSignal.timeout(45000)
+            }
+        );
     } catch(fetchErr) { throw new Error(`RED: ${fetchErr.message}`); }
-    if (res.status === 429) { const espera = Math.min(60000 + Math.pow(2, intentoGlobal) * 10000, 300000); st.resetTime = Date.now() + espera; throw new Error('RATE_LIMIT_429'); }
-    if (res.status === 503 || res.status === 502) { await new Promise(r => setTimeout(r, 15000)); throw new Error(`HTTP_${res.status}`); }
+
+    if (res.status === 429) {
+        // Backoff exponencial con tope de 5 min, luego saltar a siguiente llave
+        st.fallos429 = (st.fallos429 || 0) + 1;
+        const cooldown = Math.min(30000 * Math.pow(2, st.fallos429 - 1), 300000);
+        st.resetTime = Date.now() + cooldown;
+        console.warn(`    ⚠️ KEY ${apiKey.substring(0,8)}... → 429. Cooldown ${Math.round(cooldown/1000)}s. Saltando a siguiente llave.`);
+        throw new Error('RATE_LIMIT_429');
+    }
+
+    if (res.status === 503 || res.status === 502) {
+        await new Promise(r => setTimeout(r, 12000));
+        throw new Error(`HTTP_${res.status}`);
+    }
+
     if (!res.ok) { await res.text().catch(()=>''); throw new Error(`HTTP ${res.status}`); }
-    const data = await res.json();
+
+    const data  = await res.json();
     const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const razon = data.candidates?.[0]?.finishReason;
     if (razon === 'SAFETY' || razon === 'RECITATION') throw new Error(`GEMINI_BLOCKED_${razon}`);
     if (!texto) throw new Error('Respuesta vacía');
+
+    // Éxito → resetear contador de fallos 429 de esta llave
+    st.fallos429 = 0;
     return texto;
 }
 
-async function llamarGemini(prompt, reintentos = 2) {
-    if (!LLAVES_TEXTO.length) throw new Error('Sin llaves de texto configuradas');
+/**
+ * Llama a Gemini con rotación round-robin sobre el grupo indicado.
+ * Ante un 429, salta automáticamente a la siguiente llave del grupo
+ * sin interrumpir el flujo de generación de noticias.
+ *
+ * @param {string} prompt
+ * @param {'texto'|'imagen'} grupo  - Qué grupo de llaves usar
+ * @param {number} reintentos
+ */
+async function llamarGeminiGrupo(prompt, grupo = 'texto', reintentos = 2) {
+    const lista = grupo === 'texto' ? LLAVES_TEXTO : LLAVES_IMAGEN;
+    if (!lista.length) throw new Error(`Sin llaves configuradas para grupo: ${grupo}`);
+
+    // Intentamos cada llave del grupo en rotación, hasta agotar reintentos
+    const maxIntentos = lista.length * reintentos;
     let intentoGlobal = 0;
-    for (let i = 0; i < reintentos; i++) {
-        for (const llave of LLAVES_TEXTO) {
-            try { return await _callGemini(llave, prompt, intentoGlobal++); }
-            catch(err) { if (err.message === 'RATE_LIMIT_429') continue; console.error(`    ❌ Texto ${err.message}`); }
+
+    for (let vuelta = 0; vuelta < reintentos; vuelta++) {
+        for (let i = 0; i < lista.length; i++) {
+            const llave = siguienteLlave(grupo);
+            try {
+                const resultado = await _callGemini(llave, prompt, intentoGlobal++);
+                console.log(`    ✅ Gemini [${grupo}] OK con KEY ...${llave.slice(-6)}`);
+                return resultado;
+            } catch(err) {
+                if (err.message === 'RATE_LIMIT_429') {
+                    // 429 → saltar a siguiente llave inmediatamente (sin espera aquí)
+                    continue;
+                }
+                // Error no-429 → log y continuar al siguiente intento
+                console.error(`    ❌ Gemini [${grupo}] KEY ...${llave.slice(-6)}: ${err.message}`);
+            }
         }
-        if (i < reintentos - 1) await new Promise(r => setTimeout(r, (i + 1) * 15000));
+        // Pausa entre vueltas completas (todas las llaves del grupo fallaron)
+        if (vuelta < reintentos - 1) {
+            console.warn(`    ⏳ Todas las llaves del grupo [${grupo}] fallaron en vuelta ${vuelta+1}. Esperando 15s...`);
+            await new Promise(r => setTimeout(r, 15000));
+        }
     }
-    throw new Error('Gemini texto: todas las llaves fallaron');
+    throw new Error(`Gemini [${grupo}]: todas las llaves fallaron tras ${reintentos} vueltas`);
 }
 
+// Alias de compatibilidad con el código existente
+async function llamarGemini(prompt, reintentos = 2) {
+    return llamarGeminiGrupo(prompt, 'texto', reintentos);
+}
 async function llamarGeminiImagen(prompt, reintentos = 1) {
-    const llaves = LLAVES_IMAGEN.length ? LLAVES_IMAGEN : LLAVES_TEXTO;
-    let intentoGlobal = 0;
-    for (let i = 0; i < reintentos; i++) {
-        for (const llave of llaves) {
-            try { return await _callGemini(llave, prompt, intentoGlobal++); }
-            catch(err) { if (err.message === 'RATE_LIMIT_429') return null; }
-        }
-    }
-    return null;
+    try { return await llamarGeminiGrupo(prompt, 'imagen', reintentos); }
+    catch(e) { return null; }  // imagen no es crítica → null en lugar de throw
 }
 
 // ══════════════════════════════════════════════════════════
@@ -996,8 +1061,7 @@ async function inicializarBase() {
     try {
         await client.query('CREATE TABLE IF NOT EXISTS noticias(id SERIAL PRIMARY KEY,titulo VARCHAR(255) NOT NULL,slug VARCHAR(255) UNIQUE,seccion VARCHAR(100),contenido TEXT,seo_description VARCHAR(160),seo_keywords VARCHAR(255),redactor VARCHAR(100),imagen TEXT,imagen_alt VARCHAR(255),imagen_caption TEXT,imagen_nombre VARCHAR(100),imagen_fuente VARCHAR(50),vistas INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,estado VARCHAR(50) DEFAULT \'publicada\')');
         for (const col of ['imagen_alt','imagen_caption','imagen_nombre','imagen_fuente','imagen_original','audio_nombre']) {
-            const tipo = col === 'audio_nombre' ? 'TEXT' : 'TEXT';
-            await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} ${tipo}; END IF; END$$;`).catch(()=>{});
+            await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END$$;`).catch(()=>{});
         }
         await client.query('CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
         await client.query('CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
@@ -1024,7 +1088,6 @@ async function inicializarBase() {
         const countPub = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(countPub.rows[0].count) === 0) {
             await client.query("INSERT INTO publicidad (nombre_espacio, url_afiliado, imagen_url, ubicacion, activo) VALUES ('Banner Principal Top', '', '', 'top', false),('Banner Sidebar Derecha', '', '', 'sidebar', false),('Banner Entre Noticias', '', '', 'medio', false),('Banner Footer', '', '', 'footer', false)");
-            console.log('📢 Espacios publicitarios creados');
         }
         const fix = await client.query(`UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}',imagen_fuente='pexels' WHERE imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
         if (fix.rowCount > 0) console.log(`🔧 Imágenes reparadas: ${fix.rowCount}`);
@@ -1035,7 +1098,7 @@ async function inicializarBase() {
 }
 
 // ══════════════════════════════════════════════════════════
-// MEMORIA IA — V35.1 FIX SQL
+// MEMORIA IA
 // ══════════════════════════════════════════════════════════
 async function construirMemoria(categoria, limiteTitulos = 25) {
     let memoria = '';
@@ -1079,7 +1142,7 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🔍 CONTEXTO REAL SDE — V35.1 (ROTACIÓN KEY)
+// 🔍 CONTEXTO REAL SDE
 // ══════════════════════════════════════════════════════════
 async function buscarContextoActualSDE(categoria, tema = '') {
     if (!GOOGLE_CSE_KEYS.length || !GOOGLE_CSE_CX) return '';
@@ -1109,39 +1172,34 @@ async function buscarContextoActualSDE(categoria, tema = '') {
         for (const item of items.slice(0, 2)) {
             contexto += `- ${item.title}\n  ${(item.snippet || '').substring(0, 200)}\n  Fuente: ${item.link}\n`;
         }
-        contexto += '\n⚠️ USA ESTO COMO REFERENCIA — NO COPIES TEXTUAL. Basa tu noticia en hechos reales de SDE.\n';
+        contexto += '\n⚠️ USA ESTO COMO REFERENCIA — NO COPIES TEXTUAL.\n';
         return contexto;
     } catch(err) { console.warn(`⚠️ Contexto SDE falló: ${err.message}`); return ''; }
 }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR DE CONTENIDO — MXL EDITION
+// ✅ VALIDADOR DE CONTENIDO
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, titulo, categoria) {
     const longitud = contenido.length;
     const palabras = contenido.split(/\s+/).length;
-
     if (longitud < 600) {
-        return { valido: false, razon: `Contenido insuficiente (${longitud} chars, mínimo 600)`, sugerencia: 'Agrega más detalles específicos: nombres de calles, testimonios de vecinos, datos de fechas, contexto del barrio.' };
+        return { valido: false, razon: `Contenido insuficiente (${longitud} chars, mínimo 600)`, sugerencia: 'Agrega más detalles: nombres de calles, testimonios de vecinos, datos de fechas, contexto del barrio.' };
     }
-
     const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro'];
     const barriosMencionados = barriosSDE.filter(b => contenido.toLowerCase().includes(b.toLowerCase()));
     if (barriosMencionados.length === 0) {
-        return { valido: false, razon: 'No menciona ningún barrio de Santo Domingo Este', sugerencia: `Menciona al menos uno de estos barrios: ${barriosSDE.slice(0, 5).join(', ')}.` };
+        return { valido: false, razon: 'No menciona ningún barrio de Santo Domingo Este', sugerencia: `Menciona al menos uno: ${barriosSDE.slice(0, 5).join(', ')}.` };
     }
-
     const parrafos = contenido.split(/\n\s*\n/).filter(p => p.trim().length > 20);
     if (parrafos.length < 4) {
-        return { valido: false, razon: `Solo ${parrafos.length} párrafos detectados (mínimo 4)`, sugerencia: 'Divide el texto en más párrafos cortos. Máximo 3 líneas por párrafo para lectura en celular.' };
+        return { valido: false, razon: `Solo ${parrafos.length} párrafos (mínimo 4)`, sugerencia: 'Divide en más párrafos cortos.' };
     }
-
     const frasesClave = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle'];
     const tieneLenguajeBarrio = frasesClave.some(f => contenido.toLowerCase().includes(f));
     if (!tieneLenguajeBarrio) {
-        return { valido: false, razon: 'Falta lenguaje de barrio dominicano', sugerencia: `Usa frases como "${frasesClave.join('", "')}". El lector de SDE habla así.` };
+        return { valido: false, razon: 'Falta lenguaje de barrio dominicano', sugerencia: `Usa: "${frasesClave.join('", "')}".` };
     }
-
     return { valido: true, longitud, palabras, barrios: barriosMencionados, parrafos: parrafos.length };
 }
 
@@ -1182,35 +1240,45 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V36.0 (+ AUDIO ELEVENLABS)
+// 📰 GENERAR NOTICIA — V37.0
 // ══════════════════════════════════════════════════════════
+/**
+ * Flujo de llaves:
+ *  - TEXTO:  KEY1 → KEY2 (round-robin, si 429 salta al otro)
+ *  - IMAGEN: KEY3 → KEY4 (round-robin, si 429 salta al otro)
+ *
+ * Audio ElevenLabs se genera y vincula de forma SÍNCRONA dentro del
+ * proceso para que /tv nunca sirva una noticia sin audio disponible.
+ * Si ElevenLabs falla, la noticia se publica igual (audio = null).
+ */
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
 
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
 
-        console.log(`\n📰 [MXL V36.0] Generando noticia - Intento ${reintento}/${MAX_REINTENTOS}`);
+        console.log(`\n📰 [V37.0 QUAD-KEY] Generando — Cat: ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
+        console.log(`    🔑 Llaves texto: ${LLAVES_TEXTO.length} | Llaves imagen: ${LLAVES_IMAGEN.length}`);
 
         const memoria        = await construirMemoria(categoria, 25);
         const contextoActual = await buscarContextoActualSDE(categoria);
+        const temaParaWiki   = comunicadoExterno ? (comunicadoExterno.split('\n')[0]||'').replace(/^T[IÍ]TULO:\s*/i,'').trim()||categoria : categoria;
+        const contextoWiki   = await buscarContextoWikipedia(temaParaWiki, categoria);
+        const esCategoriaAlta = CATEGORIAS_ALTO_CPM.includes(categoria);
+        const estrategia     = leerEstrategia();
 
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este. Que sea un hecho REAL y RELEVANTE del contexto actual (año 2026).`;
 
-        const temaParaWiki  = comunicadoExterno ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria : categoria;
-        const contextoWiki  = await buscarContextoWikipedia(temaParaWiki, categoria);
-        const esCategoriaAlta = CATEGORIAS_ALTO_CPM.includes(categoria);
-        const estrategia = leerEstrategia();
-
+        // ── PROMPT TEXTO (usa KEY1/KEY2) ──────────────────────────
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
 MARCO TEMPORAL: Hoy es ABRIL 2026. NADA de fechas pasadas.
 
-🎯 REQUISITOS OBLIGATORIOS (MXL):
-1. MÍNIMO 600 CARACTERES (aproximadamente 5-6 párrafos)
+🎯 REQUISITOS OBLIGATORIOS:
+1. MÍNIMO 600 CARACTERES (aprox. 5-6 párrafos)
 2. Menciona SÍ o SÍ al menos UN barrio de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante.
 3. Usa lenguaje dominicano real: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice".
 4. Cada párrafo: máximo 3 líneas. El lector usa celular.
@@ -1236,8 +1304,9 @@ SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
 [párrafos cortos separados por línea en blanco - MÍNIMO 600 CARACTERES TOTAL]`;
 
-        console.log(`   📝 Enviando prompt a Gemini (intento ${reintento})...`);
-        const textoGemini = await llamarGemini(promptTexto);
+        console.log(`   📝 Llamando Gemini TEXTO (KEY1/KEY2, round-robin)...`);
+        // ★ GRUPO TEXTO → KEY1 + KEY2
+        const textoGemini = await llamarGeminiGrupo(promptTexto, 'texto', 2);
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
 
         let titulo = '', desc = '', pals = '', sub = '', contenido = '';
@@ -1264,7 +1333,6 @@ CONTENIDO:
 
         if (!validacion.valido) {
             console.log(`   ⚠️ Validación fallida: ${validacion.razon}`);
-            console.log(`   💡 Sugerencia: ${validacion.sugerencia}`);
             if (reintento < MAX_REINTENTOS) {
                 console.log(`   🔄 Reintentando con más presión (intento ${reintento + 1}/${MAX_REINTENTOS})...`);
                 await new Promise(r => setTimeout(r, 3000));
@@ -1274,8 +1342,9 @@ CONTENIDO:
             }
         }
 
-        console.log(`   ✅ Validación OK: ${validacion.longitud} chars, ${validacion.palabras} palabras, barrios: ${validacion.barrios.join(', ')}`);
+        console.log(`   ✅ Texto OK: ${validacion.longitud} chars | barrios: ${validacion.barrios.join(', ')}`);
 
+        // ── PROMPT IMAGEN (usa KEY3/KEY4) ─────────────────────────
         let qi = '', ai = '';
         const promptImagen = `Eres asistente de imagen para periódico dominicano de barrio.
 Titular: "${titulo}" | Categoría: ${categoria}
@@ -1284,6 +1353,8 @@ QUERY_IMAGEN: [3-5 palabras inglés, escena periodística real callejera SDE]
 ALT_IMAGEN: [15-20 palabras español SEO + Santo Domingo Este República Dominicana]
 PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
 
+        console.log(`   🖼️  Llamando Gemini IMAGEN (KEY3/KEY4, round-robin)...`);
+        // ★ GRUPO IMAGEN → KEY3 + KEY4
         const respuestaImagen = await llamarGeminiImagen(promptImagen);
         if (respuestaImagen) {
             for (const linea of respuestaImagen.split('\n')) {
@@ -1302,40 +1373,43 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
         if (!slugBase || slugBase.length < 3) throw new Error('Slug inválido');
         let slFin = slugBase;
         const existeSlug = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slugBase]);
-        if (existeSlug.rows.length) { slFin = `${slugBase.substring(0, 68)}-${Date.now().toString().slice(-6)}`; }
+        if (existeSlug.rows.length) slFin = `${slugBase.substring(0, 68)}-${Date.now().toString().slice(-6)}`;
 
-        // ── INSERT principal ──────────────────────────────────────
+        // ── 🎙️ AUDIO ELEVENLABS — SINCRÓNICO ANTES DEL INSERT ─────
+        // V37.0: generamos el audio ANTES del INSERT para que /tv
+        // siempre encuentre la noticia con audio vinculado desde el inicio.
+        let audioNombreGenerado = null;
+        if (ELEVEN_LABS_KEY) {
+            console.log(`   🎙️  Generando audio ElevenLabs (sincrónico)...`);
+            audioNombreGenerado = await generarAudioNoticia(contenido, slFin);
+            if (audioNombreGenerado) {
+                console.log(`   🎙️  Audio listo: ${audioNombreGenerado}`);
+            } else {
+                console.warn(`   🎙️  Audio no generado — noticia publicará sin audio`);
+            }
+        }
+
+        // ── INSERT principal con audio_nombre ya incluido ─────────
         await pool.query(
-            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
-            [titulo.substring(0,255), slFin, categoria, contenido.substring(0,10000), desc.substring(0,160), (pals||categoria).substring(0,255), redactor(categoria), urlFinal, altFinal.substring(0,255), `Fotografía periodística: ${titulo}`, imgResult.nombre||'efd.jpg', imgResult.procesada?'cse-watermark':'cse', urlOrig, 'publicada']
+            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,audio_nombre,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)',
+            [
+                titulo.substring(0,255), slFin, categoria,
+                contenido.substring(0,10000), desc.substring(0,160),
+                (pals||categoria).substring(0,255), redactor(categoria),
+                urlFinal, altFinal.substring(0,255),
+                `Fotografía periodística: ${titulo}`,
+                imgResult.nombre||'efd.jpg',
+                imgResult.procesada?'cse-watermark':'cse',
+                urlOrig,
+                audioNombreGenerado || null,   // ← audio vinculado en el INSERT
+                'publicada'
+            ]
         );
 
-        // ── 🎙️ V36.0: GENERAR AUDIO Y GUARDAR EN DB ─────────────
-        // Se ejecuta de forma no bloqueante para no retrasar la respuesta
-        setImmediate(async () => {
-            try {
-                const audioNombre = await generarAudioNoticia(contenido, slFin);
-                if (audioNombre) {
-                    // Guardamos el nombre del archivo en imagen_caption
-                    // (columna reutilizada para evitar migración adicional)
-                    // y también en la columna audio_nombre si existe
-                    await pool.query(
-                        'UPDATE noticias SET audio_nombre=$1 WHERE slug=$2',
-                        [audioNombre, slFin]
-                    );
-                    console.log(`🎙️  Audio vinculado a noticia: ${slFin} → ${audioNombre}`);
-                    invalidarCache();
-                }
-            } catch (audioErr) {
-                console.warn(`🎙️  Error al generar/guardar audio: ${audioErr.message}`);
-            }
-        });
-        // ─────────────────────────────────────────────────────────
-
-        console.log(`\n✅ /noticia/${slFin} [${validacion.longitud} chars, ${validacion.palabras} palabras]`);
+        console.log(`\n✅ /noticia/${slFin} [${validacion.longitud} chars] 🎙️ Audio: ${audioNombreGenerado || 'sin audio'}`);
         invalidarCache();
-        if (qi && queryEsPeriodistica(qi, categoria)) registrarQueryPexels(qi, categoria, true);
 
+        if (qi && queryEsPeriodistica(qi, categoria)) registrarQueryPexels(qi, categoria, true);
         await enviarNotificacionPush(titulo, desc.substring(0,160), slFin, urlFinal);
 
         Promise.allSettled([
@@ -1344,7 +1418,12 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
             publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
         ]);
 
-        return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada', stats: validacion };
+        return {
+            success: true, slug: slFin, titulo,
+            alt: altFinal, mensaje: '✅ Publicada',
+            stats: validacion,
+            audio: audioNombreGenerado || null
+        };
 
     } catch (error) {
         console.error(`❌ Error en intento ${reintento}:`, error.message);
@@ -1359,27 +1438,25 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
 }
 
 // ══════════════════════════════════════════════════════════
-// 📺 RUTA /tv — PANTALLA DIGITAL DE NOTICIERO (V36.0)
+// 📺 RUTA /tv — PANTALLA DIGITAL DE NOTICIERO
 // ══════════════════════════════════════════════════════════
 app.get('/tv', async (req, res) => {
     try {
-        // Intentar obtener noticia con audio; si no hay, la más reciente de cualquier tipo
+        // Priorizar noticias con audio; si no hay, la más reciente
         const rAudio = await pool.query(
             "SELECT id, titulo, slug, imagen, contenido, seccion, seo_description, audio_nombre " +
             "FROM noticias WHERE estado='publicada' AND audio_nombre IS NOT NULL AND audio_nombre != '' " +
             "ORDER BY fecha DESC LIMIT 1"
         );
-
         const rReciente = rAudio.rows.length ? rAudio : await pool.query(
             "SELECT id, titulo, slug, imagen, contenido, seccion, seo_description, audio_nombre " +
-            "FROM noticias WHERE estado='publicada' " +
-            "ORDER BY fecha DESC LIMIT 1"
+            "FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1"
         );
 
         if (!rReciente.rows.length) {
             return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>El Farol TV</title>
 <style>body{background:#070707;color:#EDE8DF;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;text-align:center}h1{color:#FF5500}</style></head>
-<body><h1>🏮 El Farol TV</h1><p>Aún no hay noticias publicadas.<br>Vuelve pronto.</p></body></html>`);
+<body><h1>🏮 El Farol TV</h1><p>Aún no hay noticias. Vuelve pronto.</p></body></html>`);
         }
 
         const n          = rReciente.rows[0];
@@ -1388,14 +1465,10 @@ app.get('/tv', async (req, res) => {
         const locutor    = `${BASE_URL}/static/locutor_mxl.png`;
         const favicon    = `${BASE_URL}/static/favicon.png`;
 
-        // Primer párrafo del contenido para el ticker
         const primerParrafo = (n.seo_description || n.contenido || '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .substring(0, 200);
+            .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 200);
 
-        const tituloTV = esc(n.titulo);
+        const tituloTV  = esc(n.titulo);
         const tickerTexto = esc(primerParrafo);
         const seccionTV   = esc(n.seccion || 'Noticias');
         const imgFondo    = esc(n.imagen || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`);
@@ -1409,310 +1482,77 @@ app.get('/tv', async (req, res) => {
   <link rel="icon" href="${favicon}">
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
-
-    body {
-      background: #000;
-      font-family: 'Arial Black', 'Impact', sans-serif;
-      overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    /* ── FONDO: imagen de la noticia con overlay ── */
-    #fondo {
-      position: fixed;
-      inset: 0;
-      background-image: url('${imgFondo}');
-      background-size: cover;
-      background-position: center;
-      filter: brightness(0.45);
-      z-index: 0;
-      transition: background-image 0.8s ease;
-    }
-
-    /* ── LOGO CANAL ── */
-    #logo-canal {
-      position: absolute;
-      top: 24px;
-      left: 32px;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    #logo-canal img {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 3px solid #FF5500;
-      object-fit: cover;
-    }
-    #logo-canal span {
-      color: #FF5500;
-      font-size: 1.15rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px rgba(255,85,0,0.8);
-    }
-
-    /* ── BADGE SECCIÓN (esquina superior derecha) ── */
-    #badge-seccion {
-      position: absolute;
-      top: 24px;
-      right: 32px;
-      z-index: 10;
-      background: #FF5500;
-      color: #fff;
-      padding: 8px 18px;
-      font-size: 0.85rem;
-      font-weight: 900;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      border-radius: 4px;
-      animation: pulseBadge 2s infinite;
-    }
-    @keyframes pulseBadge {
-      0%,100% { opacity:1; }
-      50%      { opacity:0.7; }
-    }
-
-    /* ── AVATAR LOCUTOR (derecha, centrado vertical) ── */
-    #locutor-wrap {
-      position: absolute;
-      right: 40px;
-      bottom: 160px;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-    #locutor-img {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      border: 4px solid #FF5500;
-      object-fit: cover;
-      box-shadow: 0 0 30px rgba(255,85,0,0.6);
-      animation: float 3s ease-in-out infinite;
-    }
-    #locutor-nombre {
-      color: #EDE8DF;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      text-shadow: 0 1px 4px #000;
-    }
-    @keyframes float {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-8px); }
-    }
-
-    /* ── PANEL TÍTULO (cintillo inferior) ── */
-    #cintillo-wrap {
-      position: absolute;
-      bottom: 70px;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      padding: 0 20px;
-    }
-    #cintillo-label {
-      background: #FF5500;
-      color: #fff;
-      display: inline-block;
-      padding: 4px 14px;
-      font-size: 0.75rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    #cintillo-titulo {
-      background: rgba(7,7,7,0.88);
-      color: #EDE8DF;
-      font-size: clamp(1.1rem, 2.2vw, 1.7rem);
-      font-weight: 900;
-      padding: 14px 20px;
-      line-height: 1.3;
-      border-left: 6px solid #FF5500;
-      letter-spacing: 0.5px;
-    }
-
-    /* ── TICKER INFERIOR ── */
-    #ticker-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 46px;
-      background: #FF5500;
-      z-index: 11;
-      display: flex;
-      align-items: center;
-      overflow: hidden;
-    }
-    #ticker-prefix {
-      background: #070707;
-      color: #FF5500;
-      font-size: 0.8rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      padding: 0 16px;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      white-space: nowrap;
-      flex-shrink: 0;
-      text-transform: uppercase;
-    }
-    #ticker-texto {
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 700;
-      white-space: nowrap;
-      animation: scrollTicker linear infinite;
-      animation-duration: var(--ticker-dur, 30s);
-      padding-left: 30px;
-    }
-    @keyframes scrollTicker {
-      0%   { transform: translateX(100vw); }
-      100% { transform: translateX(-100%); }
-    }
-
-    /* ── INDICADOR AUDIO ── */
-    #audio-indicator {
-      position: absolute;
-      top: 80px;
-      right: 32px;
-      z-index: 10;
-      display: none;
-      align-items: center;
-      gap: 6px;
-      background: rgba(0,0,0,0.7);
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 1px solid #FF5500;
-    }
-    #audio-indicator.visible { display: flex; }
-    #audio-dot {
-      width: 10px; height: 10px;
-      background: #FF5500;
-      border-radius: 50%;
-      animation: pulseDot 1s infinite;
-    }
-    @keyframes pulseDot {
-      0%,100% { transform: scale(1); opacity:1; }
-      50%      { transform: scale(1.4); opacity:0.5; }
-    }
-    #audio-label {
-      color: #EDE8DF;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    /* ── ENLACE LEER MÁS ── */
-    #leer-mas {
-      position: absolute;
-      top: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      background: rgba(7,7,7,0.75);
-      color: #FF5500;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      padding: 6px 16px;
-      border-radius: 20px;
-      border: 1px solid #FF5500;
-      text-decoration: none;
-      transition: background 0.2s;
-    }
-    #leer-mas:hover { background: #FF5500; color: #fff; }
+    body { background:#000; font-family:'Arial Black','Impact',sans-serif; overflow:hidden; width:100vw; height:100vh; }
+    #fondo { position:fixed; inset:0; background-image:url('${imgFondo}'); background-size:cover; background-position:center; filter:brightness(0.45); z-index:0; transition:background-image 0.8s ease; }
+    #logo-canal { position:absolute; top:24px; left:32px; z-index:10; display:flex; align-items:center; gap:12px; }
+    #logo-canal img { width:52px; height:52px; border-radius:50%; border:3px solid #FF5500; object-fit:cover; }
+    #logo-canal span { color:#FF5500; font-size:1.15rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; text-shadow:0 0 10px rgba(255,85,0,0.8); }
+    #badge-seccion { position:absolute; top:24px; right:32px; z-index:10; background:#FF5500; color:#fff; padding:8px 18px; font-size:0.85rem; font-weight:900; letter-spacing:3px; text-transform:uppercase; border-radius:4px; animation:pulseBadge 2s infinite; }
+    @keyframes pulseBadge { 0%,100%{opacity:1} 50%{opacity:0.7} }
+    #locutor-wrap { position:absolute; right:40px; bottom:160px; z-index:10; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    #locutor-img { width:140px; height:140px; border-radius:50%; border:4px solid #FF5500; object-fit:cover; box-shadow:0 0 30px rgba(255,85,0,0.6); animation:float 3s ease-in-out infinite; }
+    #locutor-nombre { color:#EDE8DF; font-size:0.75rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; text-shadow:0 1px 4px #000; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    #cintillo-wrap { position:absolute; bottom:70px; left:0; right:0; z-index:10; padding:0 20px; }
+    #cintillo-label { background:#FF5500; color:#fff; display:inline-block; padding:4px 14px; font-size:0.75rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+    #cintillo-titulo { background:rgba(7,7,7,0.88); color:#EDE8DF; font-size:clamp(1.1rem,2.2vw,1.7rem); font-weight:900; padding:14px 20px; line-height:1.3; border-left:6px solid #FF5500; letter-spacing:0.5px; }
+    #ticker-bar { position:absolute; bottom:0; left:0; right:0; height:46px; background:#FF5500; z-index:11; display:flex; align-items:center; overflow:hidden; }
+    #ticker-prefix { background:#070707; color:#FF5500; font-size:0.8rem; font-weight:900; letter-spacing:2px; padding:0 16px; height:100%; display:flex; align-items:center; white-space:nowrap; flex-shrink:0; text-transform:uppercase; }
+    #ticker-texto { color:#fff; font-size:0.9rem; font-weight:700; white-space:nowrap; animation:scrollTicker linear infinite; padding-left:30px; }
+    @keyframes scrollTicker { 0%{transform:translateX(100vw)} 100%{transform:translateX(-100%)} }
+    #audio-indicator { position:absolute; top:80px; right:32px; z-index:10; display:none; align-items:center; gap:6px; background:rgba(0,0,0,0.7); padding:6px 12px; border-radius:20px; border:1px solid #FF5500; }
+    #audio-indicator.visible { display:flex; }
+    #audio-dot { width:10px; height:10px; background:#FF5500; border-radius:50%; animation:pulseDot 1s infinite; }
+    @keyframes pulseDot { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.5} }
+    #audio-label { color:#EDE8DF; font-size:0.75rem; font-weight:700; letter-spacing:1px; }
+    #leer-mas { position:absolute; top:24px; left:50%; transform:translateX(-50%); z-index:10; background:rgba(7,7,7,0.75); color:#FF5500; font-size:0.75rem; font-weight:700; letter-spacing:1px; padding:6px 16px; border-radius:20px; border:1px solid #FF5500; text-decoration:none; transition:background 0.2s; }
+    #leer-mas:hover { background:#FF5500; color:#fff; }
   </style>
 </head>
 <body>
-
-  <!-- Fondo -->
   <div id="fondo"></div>
-
-  <!-- Logo canal -->
   <div id="logo-canal">
     <img src="${favicon}" alt="El Farol al Día" onerror="this.style.display='none'">
     <span>🏮 El Farol TV</span>
   </div>
-
-  <!-- Badge sección -->
   <div id="badge-seccion">🔴 EN VIVO · ${seccionTV}</div>
-
-  <!-- Indicador audio -->
-  <div id="audio-indicator">
-    <div id="audio-dot"></div>
-    <span id="audio-label">🎙️ Leyendo noticia</span>
-  </div>
-
-  <!-- Enlace leer más -->
+  <div id="audio-indicator"><div id="audio-dot"></div><span id="audio-label">🎙️ Leyendo noticia</span></div>
   <a id="leer-mas" href="${urlNoticia}" target="_blank">📰 Leer noticia completa</a>
-
-  <!-- Avatar locutor -->
   <div id="locutor-wrap">
-    <img id="locutor-img" src="${locutor}" alt="Locutor El Farol TV"
-         onerror="this.src='${favicon}'">
+    <img id="locutor-img" src="${locutor}" alt="Locutor El Farol TV" onerror="this.src='${favicon}'">
     <span id="locutor-nombre">MXL Noticias</span>
   </div>
-
-  <!-- Cintillo título -->
   <div id="cintillo-wrap">
     <div id="cintillo-label">🏮 Último Minuto SDE</div>
     <div id="cintillo-titulo">${tituloTV}</div>
   </div>
-
-  <!-- Ticker inferior -->
   <div id="ticker-bar">
     <div id="ticker-prefix">🏮 EFD</div>
     <div id="ticker-texto">${tickerTexto} &nbsp;&nbsp;&nbsp; 🏮 &nbsp;&nbsp;&nbsp; ${tituloTV} &nbsp;&nbsp;&nbsp; elfarolaldia.com</div>
   </div>
-
-  <!-- Audio ElevenLabs (autoplay) -->
   ${urlAudio
-    ? `<audio id="audio-noticia" autoplay>
-        <source src="${urlAudio}" type="audio/mpeg">
-       </audio>`
-    : '<!-- Sin audio disponible para esta noticia -->'
+    ? `<audio id="audio-noticia" autoplay><source src="${urlAudio}" type="audio/mpeg"></audio>`
+    : '<!-- Sin audio para esta noticia -->'
   }
-
   <script>
-    // ── Ajuste dinámico duración ticker ──────────────────
-    const tickerEl   = document.getElementById('ticker-texto');
-    const tickerLen  = (tickerEl.textContent || '').length;
-    const durSeg     = Math.max(25, Math.min(tickerLen * 0.12, 90));
-    tickerEl.style.setProperty('--ticker-dur', durSeg + 's');
+    const tickerEl  = document.getElementById('ticker-texto');
+    const durSeg    = Math.max(25, Math.min((tickerEl.textContent||'').length * 0.12, 90));
     tickerEl.style.animationDuration = durSeg + 's';
 
-    // ── Indicador audio ───────────────────────────────────
-    const audioEl    = document.getElementById('audio-noticia');
-    const audioInd   = document.getElementById('audio-indicator');
-
+    const audioEl  = document.getElementById('audio-noticia');
+    const audioInd = document.getElementById('audio-indicator');
     if (audioEl) {
       audioEl.addEventListener('play',  () => audioInd && audioInd.classList.add('visible'));
       audioEl.addEventListener('pause', () => audioInd && audioInd.classList.remove('visible'));
       audioEl.addEventListener('ended', () => {
         if (audioInd) audioInd.classList.remove('visible');
-        // Al terminar el audio, espera 4s y recarga para buscar la siguiente noticia
         setTimeout(() => location.reload(), 4000);
       });
-
-      // Fallback: si el audio falla, recarga igualmente después de 15s
       audioEl.addEventListener('error', () => {
         console.warn('Audio no disponible, recargando en 15s...');
         setTimeout(() => location.reload(), 15000);
       });
     } else {
-      // Sin audio: recarga cada 10 segundos para buscar nueva noticia
       setTimeout(() => location.reload(), 10000);
     }
   </script>
@@ -1725,7 +1565,7 @@ app.get('/tv', async (req, res) => {
 
     } catch(err) {
         console.error('❌ /tv error:', err.message);
-        res.status(500).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Error TV</title></head>
+        res.status(500).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="background:#070707;color:#EDE8DF;text-align:center;padding:60px;font-family:sans-serif">
 <h1 style="color:#FF5500">Error en El Farol TV</h1><p>${esc(err.message)}</p>
 <button onclick="location.reload()" style="background:#FF5500;color:#fff;border:none;padding:10px 24px;border-radius:6px;cursor:pointer;margin-top:20px">Reintentar</button>
@@ -1807,7 +1647,7 @@ cron.schedule('0 */2 * * *', async () => {
 cron.schedule('30 8,19 * * *', async () => { await procesarRSS(); });
 
 cron.schedule('0 */6 * * *', async () => {
-    console.log('📊 Cron estrategia: actualizando...');
+    console.log('📊 Cron estrategia...');
     try { await analizarYGenerar(); }
     catch(err) { console.error('❌ Error cron estrategia:', err.message); }
 });
@@ -1823,7 +1663,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'36.0-audio-tv-mxl' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'37.0-quad-key-mxl' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1888,24 +1728,20 @@ app.post('/api/publicar', express.json(), async (req, res) => {
                 const resultado = await aplicarMarcaDeAgua(imgFinal);
                 if (resultado.procesada && resultado.nombre) { imgFinal=`${BASE_URL}/img/${resultado.nombre}`; imgNombre=resultado.nombre; imgFuente='manual-watermark'; }
             }
-        } catch(wmErr) { console.warn(`   ⚠️ Watermark manual falló: ${wmErr.message}`); }
+        } catch(wmErr) { console.warn(`⚠️ Watermark manual falló: ${wmErr.message}`); }
+
+        // Audio sincrónico también para publicaciones manuales
+        let audioNombreManual = null;
+        if (ELEVEN_LABS_KEY) {
+            audioNombreManual = await generarAudioNoticia(contenido, slF);
+        }
+
         await pool.query(
-            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
-            [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,imgNombre,imgFuente,imgOriginal,'publicada']);
+            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,audio_nombre,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)',
+            [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,imgNombre,imgFuente,imgOriginal,audioNombreManual||null,'publicada']);
         invalidarCache();
-        // También generar audio para publicaciones manuales
-        setImmediate(async () => {
-            try {
-                const audioNombre = await generarAudioNoticia(contenido, slF);
-                if (audioNombre) {
-                    await pool.query('UPDATE noticias SET audio_nombre=$1 WHERE slug=$2', [audioNombre, slF]);
-                    console.log(`🎙️  Audio vinculado (manual): ${slF}`);
-                    invalidarCache();
-                }
-            } catch(err) { console.warn(`🎙️  Audio manual error: ${err.message}`); }
-        });
         await enviarNotificacionPush(titulo, (seo_description||titulo).substring(0,160), slF, imgFinal);
-        res.json({ success:true, slug:slF });
+        res.json({ success:true, slug:slF, audio: audioNombreManual||null });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
@@ -2018,7 +1854,7 @@ app.post('/api/telegram/test', authMiddleware, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// 📱 RUTAS PUSH NOTIFICATIONS
+// 📱 RUTAS PUSH
 // ══════════════════════════════════════════════════════════
 app.get('/api/push/vapid-key', (req, res) => {
     if (VAPID_PUBLIC_KEY) res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
@@ -2051,7 +1887,7 @@ app.post('/api/push/test', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     const resultado = await enviarNotificacionPush(
         titulo || '🧪 Prueba El Farol al Día',
-        mensaje || 'Esta es una notificación de prueba desde el panel',
+        mensaje || 'Notificación de prueba desde el panel',
         'test', `${BASE_URL}/static/favicon.png`
     );
     res.json({ success: resultado });
@@ -2067,17 +1903,14 @@ app.get('/api/estrategia', authMiddleware, (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// 🎙️  RUTA API AUDIO — Estado y regeneración manual
+// 🎙️  API AUDIO — Estado y regeneración manual
 // ══════════════════════════════════════════════════════════
 app.get('/api/audio/status', authMiddleware, async (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error:'PIN requerido' });
     try {
-        const r = await pool.query(
-            "SELECT id, titulo, slug, audio_nombre FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 20"
-        );
+        const r = await pool.query("SELECT id,titulo,slug,audio_nombre FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 20");
         const resultado = r.rows.map(n => ({
-            id: n.id, titulo: n.titulo.substring(0, 60),
-            slug: n.slug,
+            id: n.id, titulo: n.titulo.substring(0, 60), slug: n.slug,
             audio: n.audio_nombre || null,
             audio_url: n.audio_nombre ? `${BASE_URL}/audio/${n.audio_nombre}` : null,
             audio_existe: n.audio_nombre ? fs.existsSync(path.join('/tmp', n.audio_nombre)) : false,
@@ -2086,6 +1919,10 @@ app.get('/api/audio/status', authMiddleware, async (req, res) => {
             success: true,
             eleven_labs_activo: !!ELEVEN_LABS_KEY,
             voice_id: VOICE_ID,
+            llaves_texto: LLAVES_TEXTO.length,
+            llaves_imagen: LLAVES_IMAGEN.length,
+            rr_idx_texto: RR_IDX.texto,
+            rr_idx_imagen: RR_IDX.imagen,
             noticias: resultado
         });
     } catch(e) { res.status(500).json({ error: e.message }); }
@@ -2104,6 +1941,42 @@ app.post('/api/audio/regenerar/:slug', authMiddleware, async (req, res) => {
         invalidarCache();
         res.json({ success:true, audio_nombre: audioNombre, url: `${BASE_URL}/audio/${audioNombre}` });
     } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════════════════════
+// 🔑 API ESTADO LLAVES GEMINI (nuevo en V37.0)
+// ══════════════════════════════════════════════════════════
+app.get('/api/admin/llaves', authMiddleware, (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ error:'PIN requerido' });
+    const ahora = Date.now();
+    const estadoTexto  = LLAVES_TEXTO.map((k, i) => {
+        const st = getKeyState(k);
+        const enCooldown = ahora < st.resetTime;
+        return {
+            grupo: 'texto', indice: i+1,
+            key_preview: `...${k.slice(-6)}`,
+            en_cooldown: enCooldown,
+            cooldown_restante_seg: enCooldown ? Math.round((st.resetTime - ahora) / 1000) : 0,
+            fallos_429: st.fallos429 || 0,
+        };
+    });
+    const estadoImagen = LLAVES_IMAGEN.map((k, i) => {
+        const st = getKeyState(k);
+        const enCooldown = ahora < st.resetTime;
+        return {
+            grupo: 'imagen', indice: i+1,
+            key_preview: `...${k.slice(-6)}`,
+            en_cooldown: enCooldown,
+            cooldown_restante_seg: enCooldown ? Math.round((st.resetTime - ahora) / 1000) : 0,
+            fallos_429: st.fallos429 || 0,
+        };
+    });
+    res.json({
+        success: true, version: '37.0',
+        rr_idx: RR_IDX,
+        llaves_texto: estadoTexto,
+        llaves_imagen: estadoImagen,
+    });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -2130,10 +2003,8 @@ app.post('/api/publicidad/actualizar', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!id) return res.status(400).json({ error:'Falta ID' });
     try {
-        await pool.query(
-            'UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5, ancho_px=$6, alto_px=$7 WHERE id=$8',
-            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(ancho_px)||0, parseInt(alto_px)||0, parseInt(id)]
-        );
+        await pool.query('UPDATE publicidad SET nombre_espacio=$1,url_afiliado=$2,imagen_url=$3,ubicacion=$4,activo=$5,ancho_px=$6,alto_px=$7 WHERE id=$8',
+            [nombre_espacio||'Sin nombre',url_afiliado||'',imagen_url||'',ubicacion||'top',activo===true||activo==='true',parseInt(ancho_px)||0,parseInt(alto_px)||0,parseInt(id)]);
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -2143,10 +2014,8 @@ app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!nombre_espacio) return res.status(400).json({ error:'Falta nombre' });
     try {
-        await pool.query(
-            'INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px) VALUES($1,$2,$3,$4,true,$5,$6)',
-            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top', parseInt(ancho_px)||0, parseInt(alto_px)||0]
-        );
+        await pool.query('INSERT INTO publicidad(nombre_espacio,url_afiliado,imagen_url,ubicacion,activo,ancho_px,alto_px) VALUES($1,$2,$3,$4,true,$5,$6)',
+            [nombre_espacio,url_afiliado||'',imagen_url||'',ubicacion||'top',parseInt(ancho_px)||0,parseInt(alto_px)||0]);
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -2154,10 +2023,8 @@ app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
 app.post('/api/publicidad/eliminar', authMiddleware, async (req, res) => {
     const { pin, id } = req.body;
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
-    try {
-        await pool.query('DELETE FROM publicidad WHERE id=$1', [parseInt(id)]);
-        res.json({ success:true });
-    } catch(e) { res.status(500).json({ success:false, error:e.message }); }
+    try { await pool.query('DELETE FROM publicidad WHERE id=$1',[parseInt(id)]); res.json({ success:true }); }
+    catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
 
 // ══════════════════════════════════════════════════════════
@@ -2238,31 +2105,43 @@ app.get('/status', async (req, res) => {
         const ultima    = await pool.query("SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1");
         const minSin    = ultima.rows.length ? Math.round((Date.now()-new Date(ultima.rows[0].fecha))/60000) : 9999;
         const cseActivo = GOOGLE_CSE_KEYS.length > 0 && !!GOOGLE_CSE_CX;
-        const estrategiaExiste  = fs.existsSync(path.join(__dirname, 'estrategia.json'));
-        const pushSuscriptores  = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
-        const audioConteo       = await pool.query("SELECT COUNT(*) FROM noticias WHERE audio_nombre IS NOT NULL AND audio_nombre != '' AND estado='publicada'");
+        const pushSuscriptores = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
+        const audioConteo      = await pool.query("SELECT COUNT(*) FROM noticias WHERE audio_nombre IS NOT NULL AND audio_nombre != '' AND estado='publicada'");
+
+        // Estado llaves Gemini
+        const ahora = Date.now();
+        const llavesTextoStatus = LLAVES_TEXTO.map((k,i) => {
+            const st = getKeyState(k);
+            return `KEY${i+1}(...${k.slice(-4)}): ${ahora < st.resetTime ? `⏳ cooldown ${Math.round((st.resetTime-ahora)/1000)}s` : '✅ libre'}`;
+        }).join(' | ');
+        const llavesImagenStatus = LLAVES_IMAGEN.map((k,i) => {
+            const st = getKeyState(k);
+            return `KEY${i+1}(...${k.slice(-4)}): ${ahora < st.resetTime ? `⏳ cooldown ${Math.round((st.resetTime-ahora)/1000)}s` : '✅ libre'}`;
+        }).join(' | ');
+
         res.json({
-            status:'OK', version:'36.0-audio-tv-mxl',
-            noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
-            min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
-            gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
-            gemini_imagen:`KEY_3+KEY_4 (${LLAVES_IMAGEN.length} activas)`,
-            modelo_gemini:'gemini-2.5-flash',
-            google_cse:cseActivo?`✅ ${GOOGLE_CSE_KEYS.length} keys activas`:'⚠️ Sin configurar',
-            unsplash:UNSPLASH_ACCESS_KEY?'✅ Activo':'⚠️ Sin key',
-            pexels:PEXELS_API_KEY?'✅ Fallback activo':'⚠️ Sin key',
-            estrategia:estrategiaExiste?'✅ Activa — se actualiza cada 6h':'⚠️ Aún no generada',
-            facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
-            twitter:TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
-            telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
-            watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Sin archivo',
-            push_notifications:VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY ? `✅ Activo (${pushSuscriptores.rows[0].count} suscriptores)` : '⚠️ VAPID keys no configuradas',
-            eleven_labs:ELEVEN_LABS_KEY ? `✅ Activo — voice: ${VOICE_ID}` : '⚠️ ELEVENLABS_API_KEY no configurada',
+            status:'OK', version:'37.0-quad-key-mxl',
+            noticias: parseInt(r.rows[0].count),
+            rss_procesados: parseInt(rss.rows[0].count),
+            min_sin_publicar: minSin,
+            ultima_noticia: ultima.rows[0]?.titulo?.substring(0,60)||'—',
+            gemini_texto: `${LLAVES_TEXTO.length} llaves (KEY1+KEY2) | RR idx: ${RR_IDX.texto} | ${llavesTextoStatus}`,
+            gemini_imagen: `${LLAVES_IMAGEN.length} llaves (KEY3+KEY4) | RR idx: ${RR_IDX.imagen} | ${llavesImagenStatus}`,
+            modelo_gemini: 'gemini-2.5-flash',
+            google_cse: cseActivo ? `✅ ${GOOGLE_CSE_KEYS.length} keys activas` : '⚠️ Sin configurar',
+            unsplash: UNSPLASH_ACCESS_KEY ? '✅ Activo' : '⚠️ Sin key',
+            pexels: PEXELS_API_KEY ? '✅ Fallback activo' : '⚠️ Sin key',
+            facebook: FB_PAGE_ID&&FB_PAGE_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            twitter: TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN ? '✅ Activo' : '⚠️ Sin credenciales',
+            telegram: TELEGRAM_TOKEN ? '✅ Activo' : '⚠️ Sin token',
+            watermark: WATERMARK_PATH && fs.existsSync(WATERMARK_PATH) ? '✅ Activa' : '⚠️ Sin archivo',
+            push_notifications: VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY ? `✅ Activo (${pushSuscriptores.rows[0].count} suscriptores)` : '⚠️ VAPID keys no configuradas',
+            eleven_labs: ELEVEN_LABS_KEY ? `✅ Activo — voice: ${VOICE_ID}` : '⚠️ ELEVENLABS_API_KEY no configurada',
             noticias_con_audio: parseInt(audioConteo.rows[0].count),
             tv_canal: `${BASE_URL}/tv`,
-            ia_activa:CONFIG_IA.enabled,
-            adsense:'pub-5280872495839888 ✅',
-            publicidad:'✅ Sistema gestor activo',
+            ia_activa: CONFIG_IA.enabled,
+            adsense: 'pub-5280872495839888 ✅',
+            publicidad: '✅ Sistema gestor activo',
         });
     } catch(e) { res.status(500).json({ error:e.message }); }
 });
@@ -2270,7 +2149,7 @@ app.get('/status', async (req, res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE — V36.0 AUDIO & TV EDITION
+// ARRANQUE — V37.0 QUAD-KEY EDITION (MXL)
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -2278,24 +2157,23 @@ async function iniciar() {
         await initPushTable();
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
-╔══════════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V36.0 AUDIO & TV EDITION (MXL)              ║
-╠══════════════════════════════════════════════════════════════════════╣
-║  ✅ KEY_1+KEY_2 → Gemini texto                                     ║
-║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                       ║
-║  ✅ FIX: SQL parametrizado sin backticks (heredado V35.1)          ║
-║  ✅ FIX: Rotación correcta de CSE keys (heredado V35.1)            ║
-║  ✅ FIX: Watermark ignora base64-upload/data:image (V35.1)         ║
-║  ✅ NUEVO: ElevenLabs TTS → audio MP3 por noticia                  ║
-║  ✅ NUEVO: Ruta /tv → pantalla digital de noticiero                ║
-║  ✅ NUEVO: /audio/:nombre → sirve archivos MP3                     ║
-║  ✅ NUEVO: /api/audio/status + /api/audio/regenerar/:slug          ║
-║  ✅ ANTI-REPETICIÓN: 25 títulos + detección automática             ║
-║  ✅ VALIDACIÓN: 600+ chars, barrios SDE, lenguaje dominicano       ║
-║  ✅ REINTENTOS AUTOMÁTICOS (3 intentos)                            ║
-║  ✅ Notificaciones PUSH: alertas al celular en tiempo real         ║
-║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini              ║
-╚══════════════════════════════════════════════════════════════════════╝`);
+╔══════════════════════════════════════════════════════════════════════════╗
+║  🏮 EL FAROL AL DÍA — V37.0 QUAD-KEY EDITION (MXL)                   ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║  🔑 KEY1+KEY2 → Gemini TEXTO (round-robin, blindaje 429)              ║
+║  🔑 KEY3+KEY4 → Gemini IMAGEN/QUERY (round-robin, blindaje 429)       ║
+║  ✅ Rotación automática: si KEY1 falla → KEY2 sin detener noticia      ║
+║  ✅ Backoff exponencial por llave (30s → 60s → 120s → 300s)           ║
+║  🎙️  Audio ElevenLabs: sincrónico antes del INSERT → /tv nunca mudo   ║
+║  📺 Ruta /tv: pantalla digital de noticiero con autoplay               ║
+║  ✅ SQL parametrizado limpio (sin backticks)                           ║
+║  ✅ Watermark ignora base64-upload/data:image                          ║
+║  ✅ Validación: 600+ chars, barrios SDE, lenguaje dominicano           ║
+║  ✅ Anti-repetición: 25 títulos + detección automática                 ║
+║  ✅ Reintentos automáticos (3 intentos)                                ║
+║  ✅ Push notifications: alertas en tiempo real                         ║
+║  🆕 GET /api/admin/llaves — estado en vivo del llavero Gemini         ║
+╚══════════════════════════════════════════════════════════════════════════╝`);
         });
 
         setTimeout(() => { if (typeof regenerarWatermarks === 'function') regenerarWatermarks(); }, 5000);
