@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL)
+ * 🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL + FIX WATERMARK)
  * ─────────────────────────────────────────────────────────────────────────
  * ✅ OPTIMIZACIONES MXL:
  *   1. Módulo de investigación previa (25 títulos + detección automática)
@@ -10,6 +10,8 @@
  * ✅ FIX V35.1:
  *   - SQL parametrizado limpio (sin backticks ni whitespace en queries)
  *   - buscarContextoActualSDE: rotación correcta de CSE keys
+ * ✅ FIX WATERMARK MXL:
+ *   - aplicarMarcaDeAgua ignora base64-upload y data:image (no son URLs)
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -363,15 +365,22 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.1 MXL*\n\n✅ Bot activo.\n✅ Fix SQL aplicado.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.1 MXL*\n\n✅ Bot activo.\n✅ Fix SQL aplicado.\n✅ Fix Watermark aplicado.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
     } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK
+// 🏮 WATERMARK — BLINDADO + FIX MXL
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     if (!WATERMARK_PATH) return { url:urlImagen, procesada:false };
+
+    // ✅ FIX MXL: Saltar si es upload manual (base64) o placeholder — no son URLs válidas
+    if (!urlImagen || urlImagen === 'base64-upload' || urlImagen.startsWith('data:image')) {
+        console.log('    🏮 Watermark: saltando imagen manual (no es URL externa)');
+        return { url:urlImagen, procesada:false };
+    }
+
     try {
         const response = await fetch(urlImagen);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -960,7 +969,6 @@ async function inicializarBase() {
 async function construirMemoria(categoria, limiteTitulos = 25) {
     let memoria = '';
     try {
-        // ✅ FIX: SQL parametrizado limpio, sin backticks ni whitespace
         const recientes = await pool.query(
             'SELECT titulo, seccion, fecha FROM noticias WHERE estado = $1 ORDER BY fecha DESC LIMIT $2',
             ['publicada', parseInt(limiteTitulos)]
@@ -972,7 +980,6 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
             memoria += '\n⚠️ NO escribir sobre estos temas otra vez. Busca un ÁNGULO DIFERENTE o un tema NUEVO.\n';
         }
 
-        // Detección automática de palabras prohibidas
         const palabrasProhibidas = new Set();
         for (const row of recientes.rows) {
             const tl = row.titulo.toLowerCase();
@@ -991,7 +998,6 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
             memoria += '\n✅ En su lugar, busca: calles específicas de SDE, personajes locales, problemas de barrio, proyectos nuevos.\n';
         }
 
-        // ✅ FIX: Query de errores también con string limpio
         const errores = await pool.query(
             "SELECT valor FROM memoria_ia WHERE tipo='error' AND categoria=$1 AND ultima_vez > NOW() - INTERVAL '24 hours' ORDER BY fallos DESC LIMIT 5",
             [categoria]
@@ -1005,7 +1011,6 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
 
     } catch(e) {
         console.warn('⚠️ Error en construirMemoria:', e.message);
-        // Devuelve memoria vacía para no detener el proceso
     }
     return memoria;
 }
@@ -1029,7 +1034,6 @@ async function buscarContextoActualSDE(categoria, tema = '') {
     const queryFinal = tema ? `${tema} ${queryList[0]}` : queryList[0];
 
     try {
-        // ✅ FIX: Rotación correcta de keys — soporte para 1 o 2 keys
         const llave = GOOGLE_CSE_KEYS.length > 1
             ? (new Date().getHours() % 2 === 0 ? GOOGLE_CSE_KEYS[0] : GOOGLE_CSE_KEYS[1])
             : GOOGLE_CSE_KEYS[0];
@@ -1123,7 +1127,7 @@ async function registrarError(tipo, descripcion, categoria) {
 
 async function regenerarWatermarks() {
     try {
-        const r = await pool.query("SELECT id,imagen,imagen_nombre,imagen_original FROM noticias WHERE imagen LIKE '%/img/%' AND imagen_original IS NOT NULL AND imagen_original!='' ORDER BY fecha DESC LIMIT 50");
+        const r = await pool.query("SELECT id,imagen,imagen_nombre,imagen_original FROM noticias WHERE imagen LIKE '%/img/%' AND imagen_original IS NOT NULL AND imagen_original!='' AND imagen_original!='base64-upload' ORDER BY fecha DESC LIMIT 50");
         if (!r.rows.length) return;
         let regeneradas = 0;
         for (const n of r.rows) {
@@ -1131,6 +1135,8 @@ async function regenerarWatermarks() {
             if (!nombre) continue;
             const ruta = path.join('/tmp', nombre);
             if (fs.existsSync(ruta)) continue;
+            // ✅ FIX: Solo regenerar si imagen_original es una URL real
+            if (!n.imagen_original || n.imagen_original === 'base64-upload' || n.imagen_original.startsWith('data:image')) continue;
             const resultado = await aplicarMarcaDeAgua(n.imagen_original);
             if (resultado.procesada && resultado.nombre) {
                 await pool.query('UPDATE noticias SET imagen=$1,imagen_nombre=$2 WHERE id=$3',[`${BASE_URL}/img/${resultado.nombre}`,resultado.nombre,n.id]);
@@ -1223,7 +1229,6 @@ CONTENIDO:
 
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
 
-        // Validación de calidad
         const validacion = validarContenido(contenido, titulo, categoria);
 
         if (!validacion.valido) {
@@ -1241,7 +1246,6 @@ CONTENIDO:
 
         console.log(`   ✅ Validación OK: ${validacion.longitud} caracteres, ${validacion.palabras} palabras, barrios: ${validacion.barrios.join(', ')}`);
 
-        // Imagen
         let qi = '', ai = '';
         const promptImagen = `Eres asistente de imagen para periódico dominicano de barrio.
 Titular: "${titulo}" | Categoría: ${categoria}
@@ -1398,7 +1402,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'35.1-mxl+push+antirepeticion+sqlfix' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'35.1-mxl+push+antirepeticion+sqlfix+wmfix' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1777,7 +1781,7 @@ app.get('/status', async (req, res) => {
         const estrategiaExiste  = fs.existsSync(path.join(__dirname, 'estrategia.json'));
         const pushSuscriptores  = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
         res.json({
-            status:'OK', version:'35.1-mxl+push+antirepeticion+sqlfix',
+            status:'OK', version:'35.1-mxl+push+antirepeticion+sqlfix+wmfix',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
@@ -1802,7 +1806,7 @@ app.get('/status', async (req, res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE — V35.1 BLINDADO mxl + FIX SQL
+// ARRANQUE — V35.1 BLINDADO mxl + FIX SQL + FIX WATERMARK
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -1811,12 +1815,13 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL)              ║
+║  🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL + WM)        ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  ✅ KEY_1+KEY_2 → Gemini texto                                 ║
 ║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                   ║
 ║  ✅ FIX: SQL parametrizado sin backticks ni whitespace          ║
 ║  ✅ FIX: Rotación correcta de CSE keys (1 o 2 keys)            ║
+║  ✅ FIX: Watermark ignora base64-upload y data:image           ║
 ║  ✅ Google Custom Search → imágenes reales SDE                 ║
 ║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini          ║
 ║  ✅ Estilo SDE: párrafos cortos, lenguaje directo              ║
