@@ -1,10 +1,15 @@
 /**
- * 🏮 EL FAROL AL DÍA — V35.2 MXL EDITION
+ * 🏮 EL FAROL AL DÍA — V35.3 MXL EDITION
  * ─────────────────────────────────────────────────────────────────────────
- * ✅ V35.1 completo intacto +
- * ✅ FIX CRÍTICO: aplicarMarcaDeAgua — validación Content-Type + metadata
- *    antes de procesar con sharp (elimina todos los warnings amarillos)
- * ✅ FIX: aplicarMarcaDeAguaBuffer — misma protección aplicada
+ * ✅ V35.2 completo intacto +
+ * ✅ MEJORA CRÍTICA: promptTexto blindado — 8-10 párrafos, 800+ chars
+ *    calles reales de SDE, ambiente dominicano, lenguaje del barrio
+ * ✅ MEJORA: validarContenido — mínimo subido a 700 chars con mensaje claro
+ * ✅ MEJORA: validación de párrafos bajada a 3 (más tolerante)
+ * ✅ MEJORA: promptImagen mejorado para más contexto periodístico
+ * ✅ MEJORA: version string actualizado a 35.3
+ * ✅ FIX MANTENIDO: aplicarMarcaDeAgua — Content-Type + metadata sharp
+ * ✅ FIX MANTENIDO: construirMemoria parametrizado SQL
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -329,14 +334,12 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.2 MXL*\n\n✅ Bot activo.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n✅ Watermark blindado (sin errores de formato).\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.3 MXL*\n\n✅ Bot activo.\n✅ Prompt blindado: 8-10 párrafos, 800+ chars.\n✅ Calles reales de SDE integradas.\n✅ Watermark blindado (sin errores de formato).\n✅ Notificaciones push activas.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
     } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK — V35.2 FIX CRÍTICO
-// Valida Content-Type + metadata de sharp ANTES de procesar
-// Elimina todos los warnings "Input file contains unsupported image format"
+// 🏮 WATERMARK — V35.2 FIX CRÍTICO (mantenido en V35.3)
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
     if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) return { url: urlImagen, procesada: false };
@@ -347,8 +350,6 @@ async function aplicarMarcaDeAgua(urlImagen) {
         const response = await fetch(urlImagen, { signal: controller.signal }).finally(() => clearTimeout(timeout));
         if (!response.ok) return { url: urlImagen, procesada: false };
 
-        // ✅ FIX #1: Verificar Content-Type ANTES de bajar el buffer
-        // Si devuelve text/html (404 disfrazado, redirect, etc.) → descartar silenciosamente
         const contentType = response.headers.get('content-type') || '';
         if (!contentType.includes('image/')) {
             return { url: urlImagen, procesada: false };
@@ -356,14 +357,11 @@ async function aplicarMarcaDeAgua(urlImagen) {
 
         const bufOrig = Buffer.from(await response.arrayBuffer());
 
-        // ✅ FIX #2: Buffer mínimo — imágenes < 5KB no son útiles
         if (bufOrig.length < 5000) return { url: urlImagen, procesada: false };
 
-        // ✅ FIX #3: Validar formato con sharp().metadata() ANTES de composite
-        // Esto captura WebP animados, AVIF, HEIC, SVG y cualquier formato no soportado
         const metadata = await sharp(bufOrig).metadata().catch(() => null);
         if (!metadata || !['jpeg', 'jpg', 'png', 'webp', 'gif', 'tiff'].includes(metadata.format)) {
-            return { url: urlImagen, procesada: false }; // Silencioso — sin log amarillo
+            return { url: urlImagen, procesada: false };
         }
 
         const w = metadata.width || 800, h = metadata.height || 500;
@@ -383,7 +381,6 @@ async function aplicarMarcaDeAgua(urlImagen) {
         console.log(`    🏮 Watermark: ${nombre}`);
         return { url: urlImagen, nombre, procesada: true };
     } catch (err) {
-        // ✅ FIX #4: Fallo completamente silencioso — cero warnings amarillos
         return { url: urlImagen, procesada: false };
     }
 }
@@ -391,7 +388,6 @@ async function aplicarMarcaDeAgua(urlImagen) {
 async function aplicarMarcaDeAguaBuffer(bufOrig) {
     if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) return null;
     try {
-        // ✅ FIX: Misma validación de metadata para buffers directos
         const metadata = await sharp(bufOrig).metadata().catch(() => null);
         if (!metadata || !['jpeg', 'jpg', 'png', 'webp', 'gif', 'tiff'].includes(metadata.format)) return null;
 
@@ -946,7 +942,7 @@ async function inicializarBase() {
 }
 
 // ══════════════════════════════════════════════════════════
-// MEMORIA IA — FIX SQL V35.1
+// MEMORIA IA
 // ══════════════════════════════════════════════════════════
 async function construirMemoria(categoria, limiteTitulos = 25) {
     let memoria = '';
@@ -1028,7 +1024,7 @@ async function buscarContextoActualSDE(categoria, tema = '') {
 }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR DE CONTENIDO — FIX V35.1
+// ✅ VALIDADOR DE CONTENIDO — V35.3 MEJORADO
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, titulo, categoria) {
     if (!contenido || typeof contenido !== 'string') {
@@ -1039,40 +1035,42 @@ function validarContenido(contenido, titulo, categoria) {
     const longitud = limpio.length;
     const palabras = limpio.split(/\s+/).filter(w => w.length > 0).length;
 
-    if (longitud < 600) {
+    // ✅ V35.3: Mínimo subido a 700 para coincidir con prompt que pide 800+
+    if (longitud < 700) {
         return {
             valido: false,
-            razon: `Contenido insuficiente (${longitud} chars, mínimo 600)`,
-            sugerencia: 'Agrega más detalles: nombres de calles, testimonios de vecinos, fechas, contexto del barrio.'
+            razon: `Contenido insuficiente (${longitud} chars). El prompt pide 800+, mínimo aceptable 700.`,
+            sugerencia: 'Faltan detalles: nombres de calles, testimonios de vecinos, contexto del ambiente del barrio.'
         };
     }
 
-    const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro'];
+    const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro','Carretera Mella','Sabana Larga'];
     const barriosMencionados = barriosSDE.filter(b => limpio.toLowerCase().includes(b.toLowerCase()));
     if (barriosMencionados.length === 0) {
         return {
             valido: false,
-            razon: 'No menciona ningún barrio de Santo Domingo Este',
-            sugerencia: `Menciona al menos uno: ${barriosSDE.slice(0,5).join(', ')}.`
+            razon: 'No menciona ningún barrio o calle de Santo Domingo Este',
+            sugerencia: `Menciona al menos uno: ${barriosSDE.slice(0,6).join(', ')}.`
         };
     }
 
+    // ✅ V35.3: Bajado a 3 párrafos mínimo — más tolerante con el prompt de 8-10
     const parrafos = limpio.split(/\n\s*\n/).filter(p => p.trim().length > 20);
-    if (parrafos.length < 4) {
+    if (parrafos.length < 3) {
         return {
             valido: false,
-            razon: `Solo ${parrafos.length} párrafos (mínimo 4)`,
+            razon: `Solo ${parrafos.length} párrafos (mínimo 3)`,
             sugerencia: 'Divide el texto en más párrafos cortos. Máximo 3 líneas por párrafo.'
         };
     }
 
-    const frasesClave = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle'];
+    const frasesClave = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle','se armó','está en grito','de buena fuente','los residentes','la comunidad'];
     const tieneLenguaje = frasesClave.some(f => limpio.toLowerCase().includes(f));
     if (!tieneLenguaje) {
         return {
             valido: false,
             razon: 'Falta lenguaje de barrio dominicano',
-            sugerencia: `Usa frases como: "${frasesClave.slice(0,3).join('", "')}".`
+            sugerencia: `Usa frases como: "${frasesClave.slice(0,4).join('", "')}".`
         };
     }
 
@@ -1115,7 +1113,7 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V35.1 (REINTENTOS BLINDADOS)
+// 📰 GENERAR NOTICIA — V35.3 PROMPT BLINDADO
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
@@ -1123,7 +1121,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
 
-        console.log(`\n📰 [V35.2 MXL] Generando — Intento ${reintento}/${MAX_REINTENTOS} — Categoría: ${categoria}`);
+        console.log(`\n📰 [V35.3 MXL] Generando — Intento ${reintento}/${MAX_REINTENTOS} — Categoría: ${categoria}`);
 
         const memoria        = await construirMemoria(categoria, 25);
         const contextoActual = await buscarContextoActualSDE(categoria);
@@ -1135,17 +1133,20 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este (año 2026).`;
 
+        // ✅ V35.3 — PROMPT BLINDADO: más párrafos, ambiente real, calles de SDE
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
-ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
-MARCO TEMPORAL: Hoy es ABRIL 2026. NADA de fechas pasadas.
+ROL: Redactor Jefe de El Farol al Día. Eres la voz de Santo Domingo Este.
+MARCO TEMPORAL: Hoy es ABRIL 2026. Absolutamente nada de noticias del pasado.
 
-🎯 REQUISITOS OBLIGATORIOS (MXL V35.2):
-1. MÍNIMO 600 CARACTERES de contenido real
-2. Menciona SÍ o SÍ al menos UN barrio de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante
-3. Usa lenguaje dominicano: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice"
-4. Cada párrafo: máximo 3 líneas (el lector usa celular)
-5. Primera oración = gancho directo. NADA de "En el día de hoy..."
+🎯 REQUISITOS OBLIGATORIOS PARA PASAR VALIDACIÓN (V35.3 MXL):
+1. EXTENSIÓN: Escribe un reportaje EXTENSO de al menos 8 a 10 párrafos detallados.
+2. MÍNIMO 800 CARACTERES de contenido real. Si escribes poco, el sistema rechazará la noticia.
+3. DETALLES REALES DE SDE: Menciona calles, esquinas o lugares concretos (Ej: Av. Venezuela, Sabana Larga, Carretera Mella, El Almirante, Entrada de las Palmas, parada de la Charles de Gaulle).
+4. AMBIENTE DOMINICANO: Describe el calor, el ruido de los motores, el movimiento en los colmados, la parada del carro público, los vecinos en la acera.
+5. LENGUAJE DEL BARRIO: USA estas frases: "se armó el avispero", "la gente está en grito", "se supo de buena fuente", "según los vecinos del sector", "fue confirmado", "los residentes dicen".
+6. PÁRRAFOS: Máximo 3 líneas por párrafo. Optimizado para celular. Nunca bloques largos de texto.
+7. Primera oración = GANCHO DIRECTO. Sin "En el día de hoy", sin "Fue confirmado que".
 
 ${memoria}
 ${contextoActual}
@@ -1153,19 +1154,19 @@ ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-EXTENSIÓN: ${esCategoriaAlta ? '550-650' : '450-550'} palabras, mínimo 5 párrafos
+EXTENSIÓN: Reportaje profundo de ${esCategoriaAlta ? '600-800' : '500-700'} palabras, mínimo 8 párrafos.
 EVITAR: ${CONFIG_IA.evitar}
-ÉNFASIS: ${CONFIG_IA.enfasis}
+ÉNFASIS: ${CONFIG_IA.enfasis} — Conecta la noticia directamente con el residente de Los Mina, Invivienda, Ensanche Ozama, Sabana Perdida o Villa Mella.
 
 ${estrategia}
 
-RESPONDE EXACTAMENTE (sin texto extra):
-TITULO: [60-70 chars, impactante, clickbait ético, menciona SDE o barrio si aplica]
-DESCRIPCION: [150-160 chars]
+RESPONDE EXACTAMENTE EN ESTE FORMATO (SIN TEXTO EXTRA, SIN ASTERISCOS, SIN MARKDOWN):
+TITULO: [65 chars, impactante, clickbait ético, menciona SDE o un barrio si aplica]
+DESCRIPCION: [150-160 chars para SEO]
 PALABRAS: [5 keywords separadas por comas]
 SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
-[párrafos cortos separados por línea en blanco — MÍNIMO 600 CARACTERES]`;
+[Escribe aquí el reportaje MUY EXTENSO. Mínimo 8 párrafos. Calles reales. Ambiente del barrio. Lenguaje dominicano. No resumas, detalla todo.]`;
 
         const textoGemini = await llamarGemini(promptTexto);
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
@@ -1204,13 +1205,18 @@ CONTENIDO:
 
         console.log(`    ✅ Validación OK: ${validacion.longitud} chars, ${validacion.palabras} palabras, barrios: ${validacion.barrios.join(', ')}`);
 
+        // ✅ V35.3 — PROMPT IMAGEN MEJORADO
         let qi = '', ai = '';
-        const promptImagen = `Asistente de imagen para periódico dominicano.
-Titular: "${titulo}" | Categoría: ${categoria}
-RESPONDE SOLO:
-QUERY_IMAGEN: [3-5 palabras inglés, escena periodística real callejera SDE]
-ALT_IMAGEN: [15-20 palabras español SEO + Santo Domingo Este República Dominicana]
-PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
+        const promptImagen = `Eres asistente de búsqueda de imagen para un periódico dominicano de barrio.
+Titular: "${titulo}"
+Categoría: ${categoria}
+Ubicación: Santo Domingo Este, República Dominicana
+
+RESPONDE SOLO EN ESTE FORMATO (sin texto extra):
+QUERY_IMAGEN: [3-5 palabras en inglés que describan UNA escena periodística real y callejera relacionada al titular. Sin conceptos abstractos.]
+ALT_IMAGEN: [15-20 palabras en español, SEO-friendly, con "Santo Domingo Este" y "República Dominicana"]
+
+PROHIBIDO en la query: wedding, couple, flowers, cartoon, pet, stock photo, romantic, fashion`;
 
         const respuestaImagen = await llamarGeminiImagen(promptImagen);
         if (respuestaImagen) {
@@ -1354,7 +1360,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'35.2-mxl-watermark-fix' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'35.3-mxl-prompt-blindado' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1702,7 +1708,7 @@ app.get('/status', async (req, res) => {
         const pushSubs = await pool.query('SELECT COUNT(*) FROM push_suscripciones').catch(()=>({rows:[{count:0}]}));
         const estrategiaExiste = fs.existsSync(path.join(__dirname,'estrategia.json'));
         res.json({
-            status:'OK', version:'35.2-mxl-watermark-fix',
+            status:'OK', version:'35.3-mxl-prompt-blindado',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ulti.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
@@ -1711,19 +1717,19 @@ app.get('/status', async (req, res) => {
             google_cse:GOOGLE_CSE_KEYS.length&&GOOGLE_CSE_CX?`✅ ${GOOGLE_CSE_KEYS.length} keys activas`:'⚠️ Sin configurar',
             unsplash:UNSPLASH_ACCESS_KEY?'✅ Activo':'⚠️ Sin key',
             pexels:PEXELS_API_KEY?'✅ Fallback activo':'⚠️ Sin key',
-            estrategia:estrategiaExiste?'✅ Activa — cada 6h':'⚠️ Aún no generada (10s al arranque)',
+            estrategia:estrategiaExiste?'✅ Activa — cada 6h':'⚠️ Aún no generada',
             push_notifications:VAPID_PUBLIC_KEY&&VAPID_PRIVATE_KEY?`✅ Activo (${pushSubs.rows[0].count} suscriptores)`:'⚠️ VAPID keys no configuradas',
             facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             twitter:TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
-            watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa (V35.2 blindada)':'⚠️ Sin archivo',
+            watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa (V35.3 blindada)':'⚠️ Sin archivo',
             ia_activa:CONFIG_IA.enabled,
             adsense:'pub-5280872495839888 ✅',
             publicidad:'✅ Sistema gestor activo',
             anti_repeticion:'✅ 25 títulos monitoreados',
-            validacion:'✅ 600+ chars, barrios SDE, lenguaje dominicano',
+            validacion:'✅ 700+ chars, barrios SDE, lenguaje dominicano',
             reintentos:'✅ Máximo 3 automáticos',
-            watermark_fix:'✅ V35.2 — Content-Type + metadata validados, cero warnings',
+            prompt_v353:'✅ Blindado — 8-10 párrafos, calles reales, ambiente dominicano',
         });
     } catch(e) { res.status(500).json({ error:e.message }); }
 });
@@ -1740,18 +1746,18 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V35.2 MXL EDITION (WATERMARK FIX)        ║
+║  🏮 EL FAROL AL DÍA — V35.3 MXL EDITION (PROMPT BLINDADO)      ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ FIX CRÍTICO: aplicarMarcaDeAgua — Content-Type check        ║
-║  ✅ FIX CRÍTICO: sharp().metadata() validado antes de procesar  ║
-║  ✅ FIX: aplicarMarcaDeAguaBuffer — misma protección            ║
-║  ✅ Cero warnings amarillos "unsupported image format"          ║
-║  ✅ SQL: construirMemoria parametrizado ($1/$2)                  ║
-║  ✅ validarContenido protegido contra null/undefined            ║
-║  ✅ generarNoticia reintentos blindados (máx 3)                 ║
+║  ✅ PROMPT BLINDADO: 8-10 párrafos, mínimo 800 chars           ║
+║  ✅ Calles reales de SDE integradas en el prompt               ║
+║  ✅ Ambiente dominicano: calor, motores, colmados              ║
+║  ✅ Frases del barrio ampliadas (12 variantes)                 ║
+║  ✅ validarContenido: mínimo 700 chars, 3 párrafos, 12 frases  ║
+║  ✅ promptImagen mejorado con ubicación y contexto             ║
+║  ✅ FIX MANTENIDO: watermark Content-Type + metadata sharp     ║
+║  ✅ SQL: construirMemoria parametrizado ($1/$2)                 ║
 ║  ✅ Push notifications activas                                  ║
-║  ✅ Anti-repetición: 25 títulos monitoreados                    ║
-║  ✅ Validación: 600+ chars, barrios SDE, lenguaje dominicano    ║
+║  ✅ Anti-repetición: 25 títulos monitoreados                   ║
 ║  ✅ Google CSE + Unsplash + Pexels + banco local               ║
 ║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini          ║
 ╚══════════════════════════════════════════════════════════════════╝`);
