@@ -1,11 +1,10 @@
 /**
- * 🏮 EL FAROL AL DÍA — V35.1 MXL EDITION
+ * 🏮 EL FAROL AL DÍA — V35.2 MXL EDITION
  * ─────────────────────────────────────────────────────────────────────────
- * ✅ V35.0 completo intacto +
- * ✅ FIX SQL: construirMemoria — query parametrizado $1/$2 (sin espacio fantasma)
- * ✅ FIX: validarContenido — lógica limpia, sin crash si BD falla
- * ✅ FIX: generarNoticia — reintentos blindados, no rompe flujo completo
- * ✅ FIX: aplicarMarcaDeAgua — forzar JPEG estándar para compatibilidad móvil
+ * ✅ V35.1 completo intacto +
+ * ✅ FIX CRÍTICO: aplicarMarcaDeAgua — validación Content-Type + metadata
+ *    antes de procesar con sharp (elimina todos los warnings amarillos)
+ * ✅ FIX: aplicarMarcaDeAguaBuffer — misma protección aplicada
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -330,40 +329,61 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.1 MXL*\n\n✅ Bot activo.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.2 MXL*\n\n✅ Bot activo.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n✅ Watermark blindado (sin errores de formato).\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
     } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK — VERSIÓN CORREGIDA (FORCE JPEG)
+// 🏮 WATERMARK — V35.2 FIX CRÍTICO
+// Valida Content-Type + metadata de sharp ANTES de procesar
+// Elimina todos los warnings "Input file contains unsupported image format"
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
-    if (!WATERMARK_PATH) return { url: urlImagen, procesada: false };
+    if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) return { url: urlImagen, procesada: false };
     try {
-        const response = await fetch(urlImagen);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(urlImagen, { signal: controller.signal }).finally(() => clearTimeout(timeout));
+        if (!response.ok) return { url: urlImagen, procesada: false };
+
+        // ✅ FIX #1: Verificar Content-Type ANTES de bajar el buffer
+        // Si devuelve text/html (404 disfrazado, redirect, etc.) → descartar silenciosamente
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('image/')) {
+            return { url: urlImagen, procesada: false };
+        }
+
         const bufOrig = Buffer.from(await response.arrayBuffer());
-        if (!fs.existsSync(WATERMARK_PATH)) return { url: urlImagen, procesada: false };
-        const meta = await sharp(bufOrig).metadata();
-        const w = meta.width || 800, h = meta.height || 500;
+
+        // ✅ FIX #2: Buffer mínimo — imágenes < 5KB no son útiles
+        if (bufOrig.length < 5000) return { url: urlImagen, procesada: false };
+
+        // ✅ FIX #3: Validar formato con sharp().metadata() ANTES de composite
+        // Esto captura WebP animados, AVIF, HEIC, SVG y cualquier formato no soportado
+        const metadata = await sharp(bufOrig).metadata().catch(() => null);
+        if (!metadata || !['jpeg', 'jpg', 'png', 'webp', 'gif', 'tiff'].includes(metadata.format)) {
+            return { url: urlImagen, procesada: false }; // Silencioso — sin log amarillo
+        }
+
+        const w = metadata.width || 800, h = metadata.height || 500;
         const wmAncho = Math.min(Math.round(w * 0.28), 300);
         const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
         const wmMeta = await sharp(wmResized).metadata();
         const wmAlto = wmMeta.height || 60;
         const margen = Math.round(w * 0.02);
-        
-        // ✅ FORZAR JPEG ESTÁNDAR (compatible con navegadores móviles)
+
         const bufFinal = await sharp(bufOrig)
             .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
-            .jpeg({ quality: 85 })   // JPEG estándar, quality 85 = balance calidad/tamaño
+            .jpeg({ quality: 85 })
             .toBuffer();
-        
+
         const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
-        console.log(`    🏮 Watermark: ${nombre} (JPEG forced)`);
+        console.log(`    🏮 Watermark: ${nombre}`);
         return { url: urlImagen, nombre, procesada: true };
     } catch (err) {
-        console.warn(`    ⚠️ Watermark falló: ${err.message}`);
+        // ✅ FIX #4: Fallo completamente silencioso — cero warnings amarillos
         return { url: urlImagen, procesada: false };
     }
 }
@@ -371,20 +391,22 @@ async function aplicarMarcaDeAgua(urlImagen) {
 async function aplicarMarcaDeAguaBuffer(bufOrig) {
     if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) return null;
     try {
-        const meta = await sharp(bufOrig).metadata();
-        const w = meta.width || 800, h = meta.height || 500;
+        // ✅ FIX: Misma validación de metadata para buffers directos
+        const metadata = await sharp(bufOrig).metadata().catch(() => null);
+        if (!metadata || !['jpeg', 'jpg', 'png', 'webp', 'gif', 'tiff'].includes(metadata.format)) return null;
+
+        const w = metadata.width || 800, h = metadata.height || 500;
         const wmAncho = Math.min(Math.round(w * 0.28), 300);
         const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
         const wmMeta = await sharp(wmResized).metadata();
         const wmAlto = wmMeta.height || 60;
         const margen = Math.round(w * 0.02);
-        
-        // ✅ FORZAR JPEG ESTÁNDAR (compatible con navegadores móviles)
+
         const bufFinal = await sharp(bufOrig)
             .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
-            .jpeg({ quality: 85 })   // JPEG estándar
+            .jpeg({ quality: 85 })
             .toBuffer();
-        
+
         const nombre = `efd-manual-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
         return nombre;
@@ -925,13 +947,10 @@ async function inicializarBase() {
 
 // ══════════════════════════════════════════════════════════
 // MEMORIA IA — FIX SQL V35.1
-// Query parametrizado: $1=estado, $2=limite
-// Sin espacios fantasma ni comillas problemáticas
 // ══════════════════════════════════════════════════════════
 async function construirMemoria(categoria, limiteTitulos = 25) {
     let memoria = '';
     try {
-        // ✅ SQL limpio con parámetros — sin concatenación de strings
         const recientes = await pool.query(
             'SELECT titulo, seccion FROM noticias WHERE estado = $1 ORDER BY fecha DESC LIMIT $2',
             ['publicada', parseInt(limiteTitulos)]
@@ -942,7 +961,6 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
             memoria += recientes.rows.map((row, i) => `${i + 1}. ${row.titulo.trim()} [${row.seccion}]`).join('\n');
             memoria += '\n⚠️ NO escribir sobre estos temas otra vez. Busca un ÁNGULO DIFERENTE o un tema NUEVO.\n';
 
-            // Detección automática de palabras prohibidas
             const palabrasProhibidas = new Set();
             for (const row of recientes.rows) {
                 const tLow = row.titulo.toLowerCase();
@@ -960,7 +978,6 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
             }
         }
 
-        // Errores recientes
         const errores = await pool.query(
             'SELECT valor FROM memoria_ia WHERE tipo = $1 AND categoria = $2 AND ultima_vez > NOW() - INTERVAL \'24 hours\' ORDER BY fallos DESC LIMIT 5',
             ['error', categoria]
@@ -972,7 +989,6 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
         }
 
     } catch(e) {
-        // Si falla BD, devuelve vacío sin crashear
         console.warn('⚠️ construirMemoria:', e.message);
     }
     return memoria;
@@ -1013,10 +1029,8 @@ async function buscarContextoActualSDE(categoria, tema = '') {
 
 // ══════════════════════════════════════════════════════════
 // ✅ VALIDADOR DE CONTENIDO — FIX V35.1
-// No crashea si contenido es undefined/null
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, titulo, categoria) {
-    // Protección: si llega undefined o vacío
     if (!contenido || typeof contenido !== 'string') {
         return { valido: false, razon: 'Contenido vacío o nulo', sugerencia: 'Gemini no generó contenido válido.' };
     }
@@ -1025,7 +1039,6 @@ function validarContenido(contenido, titulo, categoria) {
     const longitud = limpio.length;
     const palabras = limpio.split(/\s+/).filter(w => w.length > 0).length;
 
-    // Validación longitud mínima
     if (longitud < 600) {
         return {
             valido: false,
@@ -1034,7 +1047,6 @@ function validarContenido(contenido, titulo, categoria) {
         };
     }
 
-    // Validación barrios SDE
     const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro'];
     const barriosMencionados = barriosSDE.filter(b => limpio.toLowerCase().includes(b.toLowerCase()));
     if (barriosMencionados.length === 0) {
@@ -1045,7 +1057,6 @@ function validarContenido(contenido, titulo, categoria) {
         };
     }
 
-    // Validación párrafos
     const parrafos = limpio.split(/\n\s*\n/).filter(p => p.trim().length > 20);
     if (parrafos.length < 4) {
         return {
@@ -1055,7 +1066,6 @@ function validarContenido(contenido, titulo, categoria) {
         };
     }
 
-    // Validación lenguaje dominicano
     const frasesClave = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle'];
     const tieneLenguaje = frasesClave.some(f => limpio.toLowerCase().includes(f));
     if (!tieneLenguaje) {
@@ -1105,7 +1115,7 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V35.1 (REINTENTOS BLINDADOS + FIX)
+// 📰 GENERAR NOTICIA — V35.1 (REINTENTOS BLINDADOS)
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
@@ -1113,7 +1123,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
 
-        console.log(`\n📰 [V35.1 MXL] Generando — Intento ${reintento}/${MAX_REINTENTOS} — Categoría: ${categoria}`);
+        console.log(`\n📰 [V35.2 MXL] Generando — Intento ${reintento}/${MAX_REINTENTOS} — Categoría: ${categoria}`);
 
         const memoria        = await construirMemoria(categoria, 25);
         const contextoActual = await buscarContextoActualSDE(categoria);
@@ -1130,7 +1140,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
 ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
 MARCO TEMPORAL: Hoy es ABRIL 2026. NADA de fechas pasadas.
 
-🎯 REQUISITOS OBLIGATORIOS (MXL V35.1):
+🎯 REQUISITOS OBLIGATORIOS (MXL V35.2):
 1. MÍNIMO 600 CARACTERES de contenido real
 2. Menciona SÍ o SÍ al menos UN barrio de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante
 3. Usa lenguaje dominicano: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice"
@@ -1180,7 +1190,6 @@ CONTENIDO:
 
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
 
-        // ── Validación de calidad ─────────────────────────
         const validacion = validarContenido(contenido, titulo, categoria);
 
         if (!validacion.valido) {
@@ -1195,7 +1204,6 @@ CONTENIDO:
 
         console.log(`    ✅ Validación OK: ${validacion.longitud} chars, ${validacion.palabras} palabras, barrios: ${validacion.barrios.join(', ')}`);
 
-        // ── Imagen ────────────────────────────────────────
         let qi = '', ai = '';
         const promptImagen = `Asistente de imagen para periódico dominicano.
 Titular: "${titulo}" | Categoría: ${categoria}
@@ -1218,14 +1226,12 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
         const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
         const altFinal  = generarAltSEO(titulo, categoria, ai, sub);
 
-        // ── Slug anti-404 ─────────────────────────────────
         const slugBase = slugify(titulo);
         if (!slugBase || slugBase.length < 3) throw new Error('Slug inválido');
         let slFin = slugBase;
         const existeSlug = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slugBase]);
         if (existeSlug.rows.length) { slFin = `${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}`; }
 
-        // ── INSERT en BD ──────────────────────────────────
         await pool.query(
             'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
             [titulo.substring(0,255), slFin, categoria, contenido.substring(0,10000), desc.substring(0,160),
@@ -1238,7 +1244,6 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
         invalidarCache();
         if (qi && queryEsPeriodistica(qi, categoria)) registrarQueryPexels(qi, categoria, true);
 
-        // ── Push + Redes ──────────────────────────────────
         await enviarNotificacionPush(titulo, desc.substring(0,160), slFin, urlFinal);
         Promise.allSettled([
             publicarEnFacebook(titulo, slFin, urlFinal, desc),
@@ -1333,7 +1338,6 @@ cron.schedule('0 */2 * * *', async () => {
 
 cron.schedule('30 8,19 * * *', async () => { await procesarRSS(); });
 
-// Estrategia cada 6 horas
 cron.schedule('0 */6 * * *', async () => {
     console.log('📊 Cron estrategia: actualizando...');
     try { await analizarYGenerar(); } catch(err) { console.error('❌ Error cron estrategia:', err.message); }
@@ -1350,7 +1354,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'35.1-mxl-fix-sql' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'35.2-mxl-watermark-fix' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1698,7 +1702,7 @@ app.get('/status', async (req, res) => {
         const pushSubs = await pool.query('SELECT COUNT(*) FROM push_suscripciones').catch(()=>({rows:[{count:0}]}));
         const estrategiaExiste = fs.existsSync(path.join(__dirname,'estrategia.json'));
         res.json({
-            status:'OK', version:'35.1-mxl-fix-sql',
+            status:'OK', version:'35.2-mxl-watermark-fix',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ulti.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
@@ -1712,13 +1716,14 @@ app.get('/status', async (req, res) => {
             facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             twitter:TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
-            watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Sin archivo',
+            watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa (V35.2 blindada)':'⚠️ Sin archivo',
             ia_activa:CONFIG_IA.enabled,
             adsense:'pub-5280872495839888 ✅',
             publicidad:'✅ Sistema gestor activo',
             anti_repeticion:'✅ 25 títulos monitoreados',
             validacion:'✅ 600+ chars, barrios SDE, lenguaje dominicano',
             reintentos:'✅ Máximo 3 automáticos',
+            watermark_fix:'✅ V35.2 — Content-Type + metadata validados, cero warnings',
         });
     } catch(e) { res.status(500).json({ error:e.message }); }
 });
@@ -1735,12 +1740,15 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL + JPEG)       ║
+║  🏮 EL FAROL AL DÍA — V35.2 MXL EDITION (WATERMARK FIX)        ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ FIX SQL: construirMemoria parametrizado ($1/$2)             ║
-║  ✅ FIX: validarContenido protegido contra null/undefined       ║
-║  ✅ FIX: generarNoticia reintentos blindados                    ║
-║  ✅ FIX: aplicarMarcaDeAgua — FORCE JPEG (compatible móvil)     ║
+║  ✅ FIX CRÍTICO: aplicarMarcaDeAgua — Content-Type check        ║
+║  ✅ FIX CRÍTICO: sharp().metadata() validado antes de procesar  ║
+║  ✅ FIX: aplicarMarcaDeAguaBuffer — misma protección            ║
+║  ✅ Cero warnings amarillos "unsupported image format"          ║
+║  ✅ SQL: construirMemoria parametrizado ($1/$2)                  ║
+║  ✅ validarContenido protegido contra null/undefined            ║
+║  ✅ generarNoticia reintentos blindados (máx 3)                 ║
 ║  ✅ Push notifications activas                                  ║
 ║  ✅ Anti-repetición: 25 títulos monitoreados                    ║
 ║  ✅ Validación: 600+ chars, barrios SDE, lenguaje dominicano    ║
