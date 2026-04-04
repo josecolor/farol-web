@@ -1,8 +1,12 @@
 /**
- * 🏮 EL FAROL AL DÍA — V34.5 / mxl + ESTRATEGIA SEO + PUSH NOTIFICATIONS
+ * 🏮 EL FAROL AL DÍA — V35.0 MXL EDITION
  * ─────────────────────────────────────────────────────────────────────────
- * FIX: Error de callback en setTimeout corregido (Línea 1471+)
- * ADD: Notificaciones push para celular (Línea ~1492)
+ * ✅ OPTIMIZACIONES MXL:
+ *   1. Módulo de investigación previa (25 títulos + detección automática)
+ *   2. Búsqueda de contexto real en SDE vía Google CSE
+ *   3. Validación de contenido (600+ chars, barrios SDE, lenguaje dominicano)
+ *   4. Reintentos automáticos (máx 3) con presión creciente
+ *   5. Notificaciones push para celular
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -359,7 +363,7 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V34.5/mxl + PUSH*\n\n✅ Bot activo.\n✅ Notificaciones push activadas.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.0 MXL*\n\n✅ Bot activo.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
     } catch(e) {}
 }
 
@@ -951,8 +955,161 @@ async function inicializarBase() {
 }
 
 // ══════════════════════════════════════════════════════════
-// MEMORIA IA
+// MEMORIA IA — VERSIÓN MXL (ANTI-REPETICIÓN)
 // ══════════════════════════════════════════════════════════
+async function construirMemoria(categoria, limiteTitulos = 25) {
+    let memoria = '';
+    try {
+        // 🔥 OBTENER ÚLTIMOS 25 TÍTULOS PUBLICADOS (para evitar repetición)
+        const recientes = await pool.query(`
+            SELECT titulo, seccion, fecha 
+            FROM noticias 
+            WHERE estado = 'publicada' 
+            ORDER BY fecha DESC 
+            LIMIT $1
+        `, [limiteTitulos]);
+        
+        if (recientes.rows.length) { 
+            memoria += `\n⛔ TEMAS YA PUBLICADOS RECIENTEMENTE — PROHIBIDO REPETIR:\n`;
+            memoria += recientes.rows.map((x, i) => `${i+1}. ${x.titulo} [${x.seccion}]`).join('\n'); 
+            memoria += `\n⚠️ NO escribir sobre estos temas otra vez. Busca un ÁNGULO DIFERENTE o un tema NUEVO.\n`;
+        }
+        
+        // 🔥 EXTRAER PALABRAS CLAVE PROHIBIDAS automáticamente
+        const palabrasProhibidas = new Set();
+        for (const row of recientes.rows) {
+            const tituloLower = row.titulo.toLowerCase();
+            if (tituloLower.includes('juegos centroamericanos')) palabrasProhibidas.add('Juegos Centroamericanos');
+            if (tituloLower.includes('acueducto')) palabrasProhibidas.add('Acueducto');
+            if (tituloLower.includes('centro de los héroes')) palabrasProhibidas.add('Centro de los Héroes');
+            if (tituloLower.includes('alcarrizos')) palabrasProhibidas.add('Alcarrizos');
+            if (tituloLower.includes('villa mella')) palabrasProhibidas.add('Villa Mella');
+            if (tituloLower.includes('los mina')) palabrasProhibidas.add('Los Mina');
+            if (tituloLower.includes('invivienda')) palabrasProhibidas.add('Invivienda');
+        }
+        
+        if (palabrasProhibidas.size > 0) {
+            memoria += `\n🚫 TEMAS PROHIBIDOS (ya están muy vistos):\n`;
+            memoria += Array.from(palabrasProhibidas).map(p => `- ${p}`).join('\n');
+            memoria += `\n✅ En su lugar, busca: calles específicas de SDE, personajes locales, problemas de barrio, proyectos nuevos.\n`;
+        }
+        
+        // 🔥 ERRORES RECIENTES para evitar
+        const errores = await pool.query(`
+            SELECT valor FROM memoria_ia 
+            WHERE tipo='error' AND categoria=$1 
+            AND ultima_vez > NOW() - INTERVAL '24 hours' 
+            ORDER BY fallos DESC LIMIT 5
+        `, [categoria]);
+        
+        if (errores.rows.length) { 
+            memoria += `\n⚠️ ERRORES RECIENTES A EVITAR:\n`; 
+            memoria += errores.rows.map(e => `- ${e.valor}`).join('\n'); 
+            memoria += '\n'; 
+        }
+        
+    } catch(e) { console.warn('⚠️ Error en construirMemoria:', e.message); }
+    return memoria;
+}
+
+// ══════════════════════════════════════════════════════════
+// 🔍 BÚSQUEDA DE CONTEXTO REAL EN SDE (Google CSE)
+// ══════════════════════════════════════════════════════════
+async function buscarContextoActualSDE(categoria, tema = '') {
+    if (!GOOGLE_CSE_KEYS.length || !GOOGLE_CSE_CX) return '';
+    
+    const queries = {
+        'Nacionales': ['noticias Santo Domingo Este hoy', 'actualidad República Dominicana 2026', 'último minuto RD'],
+        'Deportes': ['deportes República Dominicana hoy', 'béisbol dominicano noticias', 'deportes SDE'],
+        'Internacionales': ['noticias internacionales impacto RD', 'Caribe noticias hoy', 'América Latina actualidad'],
+        'Economía': ['economía República Dominicana 2026', 'negocios Santo Domingo', 'inflación RD hoy'],
+        'Tecnología': ['tecnología República Dominicana', 'innovación digital RD', 'startups Santo Domingo'],
+        'Espectáculos': ['farándula dominicana hoy', 'música urbana RD', 'entretenimiento Santo Domingo']
+    };
+    
+    const queryList = queries[categoria] || queries['Nacionales'];
+    const queryFinal = tema ? `${tema} ${queryList[0]}` : queryList[0];
+    
+    try {
+        const llave = GOOGLE_CSE_KEYS[0];
+        const url = `https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(queryFinal)}&num=3`;
+        
+        const ctrl = new AbortController();
+        const tm = setTimeout(() => ctrl.abort(), 6000);
+        const res = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+        
+        if (!res.ok) return '';
+        const data = await res.json();
+        const items = data.items || [];
+        
+        if (!items.length) return '';
+        
+        let contexto = '\n📰 CONTEXTO ACTUAL DE SANTO DOMINGO ESTE (noticias reales hoy):\n';
+        for (const item of items.slice(0, 2)) {
+            contexto += `- ${item.title}\n  ${item.snippet?.substring(0, 200) || ''}\n  Fuente: ${item.link}\n`;
+        }
+        contexto += '\n⚠️ USA ESTO COMO REFERENCIA — NO COPIES TEXTUAL. Basa tu noticia en hechos reales de SDE.\n';
+        return contexto;
+        
+    } catch(err) {
+        console.warn(`⚠️ Contexto SDE falló: ${err.message}`);
+        return '';
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// ✅ VALIDADOR DE CONTENIDO — MXL EDITION
+// ══════════════════════════════════════════════════════════
+function validarContenido(contenido, titulo, categoria) {
+    const longitud = contenido.length;
+    const palabras = contenido.split(/\s+/).length;
+    
+    // 🔥 VALIDACIÓN DE LONGITUD MÍNIMA (600 caracteres = ~100-120 palabras)
+    if (longitud < 600) {
+        return { 
+            valido: false, 
+            razon: `Contenido insuficiente (${longitud} chars, mínimo 600)`,
+            sugerencia: 'Agrega más detalles específicos: nombres de calles, testimonios de vecinos, datos de fechas, contexto del barrio.'
+        };
+    }
+    
+    // 🔥 VALIDACIÓN DE MENCIONES DE BARRIOS SDE
+    const barriosSDE = ['Los Mina', 'Invivienda', 'Charles de Gaulle', 'Ensanche Ozama', 'Sabana Perdida', 'Villa Mella', 'El Almirante', 'Mendoza', 'Los Trinitarios', 'San Isidro'];
+    const barriosMencionados = barriosSDE.filter(b => contenido.toLowerCase().includes(b.toLowerCase()));
+    
+    if (barriosMencionados.length === 0) {
+        return { 
+            valido: false, 
+            razon: 'No menciona ningún barrio de Santo Domingo Este',
+            sugerencia: `Menciona al menos uno de estos barrios: ${barriosSDE.slice(0, 5).join(', ')}. La gente de SDE necesita sentirse identificada.`
+        };
+    }
+    
+    // 🔥 VALIDACIÓN DE PÁRRAFOS (mínimo 4 párrafos)
+    const parrafos = contenido.split(/\n\s*\n/).filter(p => p.trim().length > 20);
+    if (parrafos.length < 4) {
+        return { 
+            valido: false, 
+            razon: `Solo ${parrafos.length} párrafos detectados (mínimo 4)`,
+            sugerencia: 'Divide el texto en más párrafos cortos. Máximo 3 líneas por párrafo para lectura en celular.'
+        };
+    }
+    
+    // 🔥 VALIDACIÓN DE LENGUAJE DOMINICANO
+    const frasesClave = ['se supo', 'fue confirmado', 'según fuentes', 'la gente del sector', 'vecinos dicen', 'en el barrio', 'en la calle'];
+    const tieneLenguajeBarrio = frasesClave.some(f => contenido.toLowerCase().includes(f));
+    
+    if (!tieneLenguajeBarrio) {
+        return { 
+            valido: false, 
+            razon: 'Falta lenguaje de barrio dominicano',
+            sugerencia: `Usa frases como "${frasesClave.join('", "')}". El lector de SDE habla así.`
+        };
+    }
+    
+    return { valido: true, longitud, palabras, barrios: barriosMencionados, parrafos: parrafos.length };
+}
+
 async function registrarQueryPexels(query, categoria, exito) {
     try {
         await pool.query(`INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('pexels_query',$1,$2,$3,$4) ON CONFLICT DO NOTHING`,[query,categoria,exito?1:0,exito?0:1]);
@@ -965,17 +1122,6 @@ async function registrarError(tipo, descripcion, categoria) {
         await pool.query(`INSERT INTO memoria_ia(tipo,valor,categoria,fallos) VALUES('error',$1,$2,1) ON CONFLICT DO NOTHING`,[descripcion.substring(0,200),categoria]);
         await pool.query(`UPDATE memoria_ia SET fallos=fallos+1,ultima_vez=NOW() WHERE tipo='error' AND valor=$1`,[descripcion.substring(0,200)]);
     } catch(e) {}
-}
-
-async function construirMemoria(categoria) {
-    let memoria = '';
-    try {
-        const recientes = await pool.query(`SELECT titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 15`);
-        if (recientes.rows.length) { memoria += `\n⛔ YA PUBLICADAS — NO repetir:\n`; memoria += recientes.rows.map((x,i)=>`${i+1}. ${x.titulo}`).join('\n'); memoria += '\n'; }
-        const errores = await pool.query(`SELECT valor FROM memoria_ia WHERE tipo='error' AND categoria=$1 AND ultima_vez>NOW()-INTERVAL '24 hours' ORDER BY fallos DESC LIMIT 3`,[categoria]);
-        if (errores.rows.length) { memoria += `\n⚠️ TEMAS CON PROBLEMAS (evitar):\n`; memoria += errores.rows.map(e=>`- ${e.valor}`).join('\n'); memoria += '\n'; }
-    } catch(e) {}
-    return memoria;
 }
 
 async function regenerarWatermarks() {
@@ -1000,76 +1146,108 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — con estrategia inyectada + PUSH
+// 📰 GENERAR NOTICIA — V35.0 MXL (CON REINTENTOS Y VALIDACIÓN)
 // ══════════════════════════════════════════════════════════
-async function generarNoticia(categoria, comunicadoExterno = null) {
+async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
+    const MAX_REINTENTOS = 3;
+    
     try {
-        if (!CONFIG_IA.enabled) return { success:false, error:'IA desactivada' };
-        const memoria = await construirMemoria(categoria);
+        if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
+        
+        // 🔥 MÓDULO 1: INVESTIGACIÓN PREVIA (memoria + contexto real)
+        console.log(`\n📰 [MXL V35.0] Generando noticia - Intento ${reintento}/${MAX_REINTENTOS}`);
+        
+        const memoria = await construirMemoria(categoria, 25);
+        const contextoActual = await buscarContextoActualSDE(categoria);
+        
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este. Que sea un hecho real y relevante del contexto actual (año 2026).`;
-        const temaParaWiki = comunicadoExterno ? (comunicadoExterno.split('\n')[0]||'').replace(/^T[IÍ]TULO:\s*/i,'').trim()||categoria : categoria;
+            : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este. Que sea un hecho REAL y RELEVANTE del contexto actual (año 2026).`;
+        
+        const temaParaWiki = comunicadoExterno ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria : categoria;
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
         const esCategoriaAlta = CATEGORIAS_ALTO_CPM.includes(categoria);
-
+        
         // ── LÍNEA 2: Leer estrategia antes del prompt ─────────
         const estrategia = leerEstrategia();
-        // ─────────────────────────────────────────────────────
-
+        
+        // 🔥 PROMPT DINÁMICO CON EXIGENCIAS CLARAS
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
-MARCO TEMPORAL: Hoy es 2026.
+MARCO TEMPORAL: Hoy es ABRIL 2026. NADA de fechas pasadas.
 
-REGLAS DE ESTILO MXL:
-- Párrafos de máximo 3 líneas. El lector lee en el teléfono.
-- Primera oración = gancho directo. Sin intro genérica.
-- Lenguaje real dominicano: "se supo", "fue confirmado", "la gente del sector dice", "según fuentes del barrio".
-- Clickbait ÉTICO: título impactante pero 100% verdadero.
-- Menciona barrios de SDE cuando aplique: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella.
-- Última oración de cada párrafo = gancho para seguir leyendo.
+🎯 REQUISITOS OBLIGATORIOS (MXL):
+1. MÍNIMO 600 CARACTERES (aproximadamente 5-6 párrafos)
+2. Menciona SÍ o SÍ al menos UN barrio de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante.
+3. Usa lenguaje dominicano real: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice".
+4. Cada párrafo: máximo 3 líneas. El lector usa celular.
+5. Primera oración = gancho directo. NADA de "En el día de hoy..." o "Se informa que..."
 
 ${memoria}
+${contextoActual}
 ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-EXTENSIÓN: ${esCategoriaAlta?'480-560':'380-450'} palabras, mínimo 5 párrafos cortos
-EVITAR: ${CONFIG_IA.evitar}
+EXTENSIÓN: ${esCategoriaAlta ? '550-650' : '450-550'} palabras, mínimo 5 párrafos
+EVITAR: ${CONFIG_IA.evitar} + NO repetir temas de la lista "TEMAS YA PUBLICADOS"
 ÉNFASIS: ${CONFIG_IA.enfasis}
 
 ${estrategia}
 
-RESPONDE EXACTAMENTE:
+RESPONDE EXACTAMENTE (sin texto extra):
 TITULO: [60-70 chars, impactante, clickbait ético, menciona SDE o barrio si aplica]
-DESCRIPCION: [150-160 chars]
-PALABRAS: [5 keywords]
+DESCRIPCION: [150-160 chars, atrapante]
+PALABRAS: [5 keywords separadas por comas]
 SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
-[párrafos cortos separados por línea en blanco]`;
+[párrafos cortos separados por línea en blanco - MÍNIMO 600 CARACTERES TOTAL]`;
 
-        console.log(`\n📰 Generando [V34.5+estrategia+push]: ${categoria}${comunicadoExterno?' (RSS)':''}`);
+        console.log(`   📝 Enviando prompt a Gemini (intento ${reintento})...`);
         const textoGemini = await llamarGemini(promptTexto);
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
-        let titulo='',desc='',pals='',sub='',contenido='';
-        let enContenido = false; const bloques = [];
+        
+        let titulo = '', desc = '', pals = '', sub = '', contenido = '';
+        let enContenido = false;
+        const bloques = [];
+        
         for (const linea of textoLimpio.split('\n')) {
             const t = linea.trim();
-            if      (t.startsWith('TITULO:'))        titulo = t.replace('TITULO:','').trim();
-            else if (t.startsWith('DESCRIPCION:'))   desc   = t.replace('DESCRIPCION:','').trim();
-            else if (t.startsWith('PALABRAS:'))      pals   = t.replace('PALABRAS:','').trim();
-            else if (t.startsWith('SUBTEMA_LOCAL:')) sub    = t.replace('SUBTEMA_LOCAL:','').trim();
-            else if (t.startsWith('CONTENIDO:'))      enContenido = true;
-            else if (enContenido && t.length > 0)     bloques.push(t);
+            if (t.startsWith('TITULO:')) titulo = t.replace('TITULO:', '').trim();
+            else if (t.startsWith('DESCRIPCION:')) desc = t.replace('DESCRIPCION:', '').trim();
+            else if (t.startsWith('PALABRAS:')) pals = t.replace('PALABRAS:', '').trim();
+            else if (t.startsWith('SUBTEMA_LOCAL:')) sub = t.replace('SUBTEMA_LOCAL:', '').trim();
+            else if (t.startsWith('CONTENIDO:')) enContenido = true;
+            else if (enContenido && t.length > 0) bloques.push(t);
         }
+        
         contenido = bloques.join('\n\n');
-        titulo = titulo.replace(/[*_#`"]/g,'').trim();
-        desc   = desc.replace(/[*_#`]/g,'').trim();
+        titulo = titulo.replace(/[*_#`"]/g, '').trim();
+        desc = desc.replace(/[*_#`]/g, '').trim();
+        
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
-        if (!contenido || contenido.length < 300) throw new Error(`Contenido insuficiente (${contenido.length} chars)`);
-
-        let qi='', ai='';
+        
+        // 🔥 VALIDACIÓN DE CALIDAD
+        const validacion = validarContenido(contenido, titulo, categoria);
+        
+        if (!validacion.valido) {
+            console.log(`   ⚠️ Validación fallida: ${validacion.razon}`);
+            console.log(`   💡 Sugerencia: ${validacion.sugerencia}`);
+            
+            if (reintento < MAX_REINTENTOS) {
+                console.log(`   🔄 Reintentando con más presión (intento ${reintento + 1}/${MAX_REINTENTOS})...`);
+                await new Promise(r => setTimeout(r, 3000));
+                return await generarNoticia(categoria, comunicadoExterno, reintento + 1);
+            } else {
+                throw new Error(`Validación fallida tras ${MAX_REINTENTOS} intentos: ${validacion.razon}`);
+            }
+        }
+        
+        console.log(`   ✅ Validación OK: ${validacion.longitud} caracteres, ${validacion.palabras} palabras, barrios: ${validacion.barrios.join(', ')}`);
+        
+        // 🔥 IMAGEN
+        let qi = '', ai = '';
         const promptImagen = `Eres asistente de imagen para periódico dominicano de barrio.
 Titular: "${titulo}" | Categoría: ${categoria}
 RESPONDE SOLO:
@@ -1081,32 +1259,32 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
         if (respuestaImagen) {
             for (const linea of respuestaImagen.split('\n')) {
                 const t = linea.trim();
-                if (t.startsWith('QUERY_IMAGEN:')) qi = t.replace('QUERY_IMAGEN:','').trim();
-                if (t.startsWith('ALT_IMAGEN:'))   ai = t.replace('ALT_IMAGEN:','').trim();
+                if (t.startsWith('QUERY_IMAGEN:')) qi = t.replace('QUERY_IMAGEN:', '').trim();
+                if (t.startsWith('ALT_IMAGEN:')) ai = t.replace('ALT_IMAGEN:', '').trim();
             }
         }
 
-        const urlOrig   = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+        const urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
         const imgResult = await aplicarMarcaDeAgua(urlOrig);
-        const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
-        const altFinal  = generarAltSEO(titulo, categoria, ai, sub);
+        const urlFinal = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
+        const altFinal = generarAltSEO(titulo, categoria, ai, sub);
 
         const slugBase = slugify(titulo);
         if (!slugBase || slugBase.length < 3) throw new Error(`Slug inválido`);
         let slFin = slugBase;
         const existeSlug = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slugBase]);
-        if (existeSlug.rows.length) { slFin = `${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}`; }
+        if (existeSlug.rows.length) { slFin = `${slugBase.substring(0, 68)}-${Date.now().toString().slice(-6)}`; }
 
         await pool.query(
             `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,10000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),urlFinal,altFinal.substring(0,255),`Fotografía periodística: ${titulo}`,imgResult.nombre||'efd.jpg',imgResult.procesada?'cse-watermark':'cse',urlOrig,'publicada']
+            [titulo.substring(0, 255), slFin, categoria, contenido.substring(0, 10000), desc.substring(0, 160), (pals || categoria).substring(0, 255), redactor(categoria), urlFinal, altFinal.substring(0, 255), `Fotografía periodística: ${titulo}`, imgResult.nombre || 'efd.jpg', imgResult.procesada ? 'cse-watermark' : 'cse', urlOrig, 'publicada']
         );
 
-        console.log(`\n✅ /noticia/${slFin}`);
+        console.log(`\n✅ /noticia/${slFin} [${validacion.longitud} chars, ${validacion.palabras} palabras]`);
         invalidarCache();
         if (qi && queryEsPeriodistica(qi, categoria)) registrarQueryPexels(qi, categoria, true);
 
-        // 🔔 Esta línea activa el aviso al celular de una vez
+        // 🔔 Notificación push
         await enviarNotificacionPush(titulo, desc.substring(0, 160), slFin, urlFinal);
 
         Promise.allSettled([
@@ -1115,11 +1293,19 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
             publicarEnTelegram(titulo, slFin, urlFinal, desc, categoria)
         ]);
 
-        return { success:true, slug:slFin, titulo, alt:altFinal, mensaje:'✅ Publicada' };
-    } catch(error) {
-        console.error('❌', error.message);
+        return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada', stats: validacion };
+        
+    } catch (error) {
+        console.error(`❌ Error en intento ${reintento}:`, error.message);
+        
+        if (reintento < MAX_REINTENTOS) {
+            console.log(`🔄 Reintentando por error (${reintento + 1}/${MAX_REINTENTOS})...`);
+            await new Promise(r => setTimeout(r, 5000));
+            return await generarNoticia(categoria, comunicadoExterno, reintento + 1);
+        }
+        
         await registrarError('generacion', error.message, categoria);
-        return { success:false, error:error.message };
+        return { success: false, error: error.message };
     }
 }
 
@@ -1218,7 +1404,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'34.5-mxl+estrategia+push' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'35.0-mxl+push+antirepeticion' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1287,7 +1473,6 @@ app.post('/api/publicar', express.json(), async (req, res) => {
         await pool.query(`INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
             [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,imgNombre,imgFuente,imgOriginal,'publicada']);
         invalidarCache();
-        // También enviar push para publicaciones manuales
         await enviarNotificacionPush(titulo, (seo_description||titulo).substring(0,160), slF, imgFinal);
         res.json({ success:true, slug:slF });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
@@ -1601,7 +1786,7 @@ app.get('/status', async (req, res) => {
         const estrategiaExiste = fs.existsSync(path.join(__dirname, 'estrategia.json'));
         const pushSuscriptores = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
         res.json({
-            status:'OK', version:'34.5-mxl+estrategia+push',
+            status:'OK', version:'35.0-mxl+push+antirepeticion',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
@@ -1626,7 +1811,7 @@ app.get('/status', async (req, res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE - VERSIÓN BLINDADA mxl + PUSH
+// ARRANQUE - VERSIÓN BLINDADA mxl + PUSH + ANTI-REPETICIÓN
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -1635,7 +1820,7 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.5/mxl + ESTRATEGIA + PUSH            ║
+║  🏮 EL FAROL AL DÍA — V35.0 MXL EDITION                        ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  ✅ KEY_1+KEY_2 → Gemini texto                                 ║
 ║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                   ║
@@ -1643,11 +1828,12 @@ async function iniciar() {
 ║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini          ║
 ║  ✅ Estilo SDE: párrafos cortos, lenguaje directo              ║
 ║  ✅ Notificaciones PUSH: alertas al celular en tiempo real     ║
-║  ✅ Todo V34.5 intacto: publicidad, RSS, watermark             ║
+║  ✅ ANTI-REPETICIÓN: 25 títulos + detección automática         ║
+║  ✅ VALIDACIÓN: 600+ chars, barrios SDE, lenguaje dominicano   ║
+║  ✅ REINTENTOS AUTOMÁTICOS (3 intentos)                        ║
 ╚══════════════════════════════════════════════════════════════════╝`);
         });
 
-        // Corregido: Envolvemos las llamadas en funciones flecha () => para evitar el error de callback
         setTimeout(() => { 
             if (typeof regenerarWatermarks === 'function') regenerarWatermarks(); 
         }, 5000);
@@ -1660,14 +1846,12 @@ async function iniciar() {
             if (typeof rafagaInicial === 'function') rafagaInicial(); 
         }, 60000);
 
-        // ── LÍNEA 4: Estrategia al arrancar (CON FIX) ──────────
         setTimeout(() => {
             console.log('📊 Iniciando primer análisis de estrategia...');
             if (typeof analizarYGenerar === 'function') {
                 analizarYGenerar().catch(err => console.error('❌ Error en análisis inicial:', err.message));
             }
         }, 10000);
-        // ─────────────────────────────────────────────────────
 
     } catch (err) {
         console.error('❌ ERROR CRÍTICO EN ARRANQUE:', err.message);
