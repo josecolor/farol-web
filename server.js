@@ -1,5 +1,5 @@
 /**
- * 🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL)
+ * 🏮 EL FAROL AL DÍA — V35.0 MXL EDITION
  * ─────────────────────────────────────────────────────────────────────────
  * ✅ OPTIMIZACIONES MXL:
  *   1. Módulo de investigación previa (25 títulos + detección automática)
@@ -7,9 +7,6 @@
  *   3. Validación de contenido (600+ chars, barrios SDE, lenguaje dominicano)
  *   4. Reintentos automáticos (máx 3) con presión creciente
  *   5. Notificaciones push para celular
- * ✅ FIX V35.1:
- *   - SQL parametrizado limpio (sin backticks ni whitespace en queries)
- *   - buscarContextoActualSDE: rotación correcta de CSE keys
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -131,17 +128,17 @@ app.options('*', cors());
 async function initPushTable() {
     const client = await pool.connect();
     try {
-        await client.query(
-            'CREATE TABLE IF NOT EXISTS push_suscripciones (' +
-            'id SERIAL PRIMARY KEY,' +
-            'endpoint TEXT UNIQUE NOT NULL,' +
-            'auth_key TEXT NOT NULL,' +
-            'p256dh_key TEXT NOT NULL,' +
-            'user_agent TEXT,' +
-            'fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,' +
-            'ultima_notificacion TIMESTAMP' +
-            ')'
-        );
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS push_suscripciones (
+                id SERIAL PRIMARY KEY,
+                endpoint TEXT UNIQUE NOT NULL,
+                auth_key TEXT NOT NULL,
+                p256dh_key TEXT NOT NULL,
+                user_agent TEXT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ultima_notificacion TIMESTAMP
+            )
+        `);
         console.log('📱 Tabla push_suscripciones lista');
     } catch(e) { console.warn('⚠️ Push table:', e.message); }
     finally { client.release(); }
@@ -157,9 +154,12 @@ async function enviarNotificacionPush(titulo, cuerpo, slug, imagenUrl) {
     }
 
     try {
-        const suscriptores = await pool.query(
-            'SELECT endpoint, auth_key, p256dh_key FROM push_suscripciones WHERE endpoint IS NOT NULL ORDER BY ultima_notificacion NULLS FIRST'
-        );
+        const suscriptores = await pool.query(`
+            SELECT endpoint, auth_key, p256dh_key 
+            FROM push_suscripciones 
+            WHERE endpoint IS NOT NULL
+            ORDER BY ultima_notificacion NULLS FIRST
+        `);
 
         if (!suscriptores.rows.length) {
             console.log('📱 Push: 0 suscriptores activos');
@@ -203,7 +203,7 @@ async function enviarNotificacionPush(titulo, cuerpo, slug, imagenUrl) {
                 enviadas++;
 
                 await pool.query(
-                    'UPDATE push_suscripciones SET ultima_notificacion = NOW() WHERE endpoint = $1',
+                    `UPDATE push_suscripciones SET ultima_notificacion = NOW() WHERE endpoint = $1`,
                     [sub.endpoint]
                 );
 
@@ -211,8 +211,8 @@ async function enviarNotificacionPush(titulo, cuerpo, slug, imagenUrl) {
             } catch (err) {
                 fallidas++;
                 if (err.statusCode === 410) {
-                    await pool.query('DELETE FROM push_suscripciones WHERE endpoint = $1', [sub.endpoint]);
-                    console.log('📱 Push: endpoint expirado eliminado');
+                    await pool.query(`DELETE FROM push_suscripciones WHERE endpoint = $1`, [sub.endpoint]);
+                    console.log(`📱 Push: endpoint expirado eliminado`);
                 }
             }
         }
@@ -363,7 +363,7 @@ async function bienvenidaTelegram() {
     const chatId = await obtenerChatIdTelegram();
     if (!chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.1 MXL*\n\n✅ Bot activo.\n✅ Fix SQL aplicado.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:chatId,text:`🏮 *El Farol al Día — V35.0 MXL*\n\n✅ Bot activo.\n✅ Notificaciones push activadas.\n✅ Motor anti-repetición activo.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)`,parse_mode:'Markdown'}) });
     } catch(e) {}
 }
 
@@ -433,7 +433,7 @@ let CONFIG_IA = {...CONFIG_IA_DEFAULT};
 
 async function cargarConfigIA() {
     try {
-        const r = await pool.query("SELECT valor FROM memoria_ia WHERE tipo='config_ia' ORDER BY ultima_vez DESC LIMIT 1");
+        const r = await pool.query(`SELECT valor FROM memoria_ia WHERE tipo='config_ia' ORDER BY ultima_vez DESC LIMIT 1`);
         if (r.rows.length) { CONFIG_IA = {...CONFIG_IA_DEFAULT,...JSON.parse(r.rows[0].valor)}; }
         else { CONFIG_IA = {...CONFIG_IA_DEFAULT}; }
     } catch(e) { CONFIG_IA = {...CONFIG_IA_DEFAULT}; }
@@ -443,8 +443,8 @@ async function cargarConfigIA() {
 async function guardarConfigIA(cfg) {
     try {
         const valor = JSON.stringify(cfg);
-        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('config_ia',$1,'sistema',1,0) ON CONFLICT DO NOTHING",[valor]);
-        await pool.query("UPDATE memoria_ia SET valor=$1,ultima_vez=NOW() WHERE tipo='config_ia' AND categoria='sistema'",[valor]);
+        await pool.query(`INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('config_ia',$1,'sistema',1,0) ON CONFLICT DO NOTHING`,[valor]);
+        await pool.query(`UPDATE memoria_ia SET valor=$1,ultima_vez=NOW() WHERE tipo='config_ia' AND categoria='sistema'`,[valor]);
         return true;
     } catch(e) { return false; }
 }
@@ -584,7 +584,7 @@ async function buscarImagenCSE(query, barrio = '') {
                 if (!urlImagenValida(imgUrl)) continue;
                 const buena = await verificarResolucion(imgUrl);
                 if (!buena) continue;
-                console.log('    ✅ CSE imagen OK');
+                console.log(`    ✅ CSE imagen OK`);
                 st.fallos = 0;
                 return imgUrl;
             }
@@ -708,7 +708,7 @@ async function buscarEnUnsplash(query, categoria) {
         const foto = fotos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fotos.length))];
         const url = foto.urls?.full || foto.urls?.regular;
         if (!url) return null;
-        console.log('    📷 Unsplash OK');
+        console.log(`    📷 Unsplash OK`);
         return url;
     } catch(err) { return null; }
 }
@@ -915,35 +915,35 @@ function redactor(cat) {
 async function inicializarBase() {
     const client = await pool.connect();
     try {
-        await client.query('CREATE TABLE IF NOT EXISTS noticias(id SERIAL PRIMARY KEY,titulo VARCHAR(255) NOT NULL,slug VARCHAR(255) UNIQUE,seccion VARCHAR(100),contenido TEXT,seo_description VARCHAR(160),seo_keywords VARCHAR(255),redactor VARCHAR(100),imagen TEXT,imagen_alt VARCHAR(255),imagen_caption TEXT,imagen_nombre VARCHAR(100),imagen_fuente VARCHAR(50),vistas INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,estado VARCHAR(50) DEFAULT \'publicada\')');
+        await client.query(`CREATE TABLE IF NOT EXISTS noticias(id SERIAL PRIMARY KEY,titulo VARCHAR(255) NOT NULL,slug VARCHAR(255) UNIQUE,seccion VARCHAR(100),contenido TEXT,seo_description VARCHAR(160),seo_keywords VARCHAR(255),redactor VARCHAR(100),imagen TEXT,imagen_alt VARCHAR(255),imagen_caption TEXT,imagen_nombre VARCHAR(100),imagen_fuente VARCHAR(50),vistas INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,estado VARCHAR(50) DEFAULT 'publicada')`);
         for (const col of ['imagen_alt','imagen_caption','imagen_nombre','imagen_fuente','imagen_original']) {
             await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END$$;`).catch(()=>{});
         }
-        await client.query('CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
-        await client.query('CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_memoria_tipo ON memoria_ia(tipo, categoria)').catch(()=>{});
-        await client.query('CREATE TABLE IF NOT EXISTS comentarios(id SERIAL PRIMARY KEY,noticia_id INTEGER NOT NULL REFERENCES noticias(id) ON DELETE CASCADE,nombre VARCHAR(80) NOT NULL,texto TEXT NOT NULL,aprobado BOOLEAN DEFAULT true,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
-        await client.query('CREATE INDEX IF NOT EXISTS idx_comentarios_noticia ON comentarios(noticia_id, aprobado, fecha DESC)').catch(()=>{});
-        await client.query(
-            'CREATE TABLE IF NOT EXISTS publicidad (' +
-            'id SERIAL PRIMARY KEY,' +
-            'nombre_espacio VARCHAR(100) NOT NULL,' +
-            "url_afiliado TEXT DEFAULT ''," +
-            "imagen_url TEXT DEFAULT ''," +
-            "ubicacion VARCHAR(50) DEFAULT 'top'," +
-            'activo BOOLEAN DEFAULT true,' +
-            'ancho_px INTEGER DEFAULT 0,' +
-            'alto_px INTEGER DEFAULT 0,' +
-            'fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP' +
-            ')'
-        );
+        await client.query(`CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+        await client.query(`CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_memoria_tipo ON memoria_ia(tipo, categoria)`).catch(()=>{});
+        await client.query(`CREATE TABLE IF NOT EXISTS comentarios(id SERIAL PRIMARY KEY,noticia_id INTEGER NOT NULL REFERENCES noticias(id) ON DELETE CASCADE,nombre VARCHAR(80) NOT NULL,texto TEXT NOT NULL,aprobado BOOLEAN DEFAULT true,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_comentarios_noticia ON comentarios(noticia_id, aprobado, fecha DESC)`).catch(()=>{});
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS publicidad (
+                id SERIAL PRIMARY KEY,
+                nombre_espacio VARCHAR(100) NOT NULL,
+                url_afiliado TEXT DEFAULT '',
+                imagen_url TEXT DEFAULT '',
+                ubicacion VARCHAR(50) DEFAULT 'top',
+                activo BOOLEAN DEFAULT true,
+                ancho_px INTEGER DEFAULT 0,
+                alto_px INTEGER DEFAULT 0,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
         for (const col of ['ancho_px INTEGER DEFAULT 0', 'alto_px INTEGER DEFAULT 0']) {
             const nombre = col.split(' ')[0];
             await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='publicidad' AND column_name='${nombre}') THEN ALTER TABLE publicidad ADD COLUMN ${col}; END IF; END$$;`).catch(()=>{});
         }
         const countPub = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(countPub.rows[0].count) === 0) {
-            await client.query("INSERT INTO publicidad (nombre_espacio, url_afiliado, imagen_url, ubicacion, activo) VALUES ('Banner Principal Top', '', '', 'top', false),('Banner Sidebar Derecha', '', '', 'sidebar', false),('Banner Entre Noticias', '', '', 'medio', false),('Banner Footer', '', '', 'footer', false)");
+            await client.query(`INSERT INTO publicidad (nombre_espacio, url_afiliado, imagen_url, ubicacion, activo) VALUES ('Banner Principal Top', '', '', 'top', false),('Banner Sidebar Derecha', '', '', 'sidebar', false),('Banner Entre Noticias', '', '', 'medio', false),('Banner Footer', '', '', 'footer', false)`);
             console.log('📢 Espacios publicitarios creados');
         }
         const fix = await client.query(`UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}',imagen_fuente='pexels' WHERE imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
@@ -955,103 +955,102 @@ async function inicializarBase() {
 }
 
 // ══════════════════════════════════════════════════════════
-// MEMORIA IA — V35.1 FIX SQL (SIN BACKTICKS EN QUERIES)
+// MEMORIA IA — VERSIÓN MXL (ANTI-REPETICIÓN)
 // ══════════════════════════════════════════════════════════
 async function construirMemoria(categoria, limiteTitulos = 25) {
     let memoria = '';
     try {
-        // ✅ FIX: SQL parametrizado limpio, sin backticks ni whitespace
-        const recientes = await pool.query(
-            'SELECT titulo, seccion, fecha FROM noticias WHERE estado = $1 ORDER BY fecha DESC LIMIT $2',
-            ['publicada', parseInt(limiteTitulos)]
-        );
-
-        if (recientes.rows && recientes.rows.length > 0) {
-            memoria += '\n⛔ TEMAS YA PUBLICADOS RECIENTEMENTE — PROHIBIDO REPETIR:\n';
-            memoria += recientes.rows.map((x, i) => `${i+1}. ${x.titulo} [${x.seccion}]`).join('\n');
-            memoria += '\n⚠️ NO escribir sobre estos temas otra vez. Busca un ÁNGULO DIFERENTE o un tema NUEVO.\n';
+        // 🔥 OBTENER ÚLTIMOS 25 TÍTULOS PUBLICADOS (para evitar repetición)
+        const recientes = await pool.query(`
+            SELECT titulo, seccion, fecha 
+            FROM noticias 
+            WHERE estado = 'publicada' 
+            ORDER BY fecha DESC 
+            LIMIT $1
+        `, [limiteTitulos]);
+        
+        if (recientes.rows.length) { 
+            memoria += `\n⛔ TEMAS YA PUBLICADOS RECIENTEMENTE — PROHIBIDO REPETIR:\n`;
+            memoria += recientes.rows.map((x, i) => `${i+1}. ${x.titulo} [${x.seccion}]`).join('\n'); 
+            memoria += `\n⚠️ NO escribir sobre estos temas otra vez. Busca un ÁNGULO DIFERENTE o un tema NUEVO.\n`;
         }
-
-        // Detección automática de palabras prohibidas
+        
+        // 🔥 EXTRAER PALABRAS CLAVE PROHIBIDAS automáticamente
         const palabrasProhibidas = new Set();
         for (const row of recientes.rows) {
-            const tl = row.titulo.toLowerCase();
-            if (tl.includes('juegos centroamericanos')) palabrasProhibidas.add('Juegos Centroamericanos');
-            if (tl.includes('acueducto'))              palabrasProhibidas.add('Acueducto');
-            if (tl.includes('centro de los héroes'))   palabrasProhibidas.add('Centro de los Héroes');
-            if (tl.includes('alcarrizos'))             palabrasProhibidas.add('Alcarrizos');
-            if (tl.includes('villa mella'))            palabrasProhibidas.add('Villa Mella');
-            if (tl.includes('los mina'))               palabrasProhibidas.add('Los Mina');
-            if (tl.includes('invivienda'))             palabrasProhibidas.add('Invivienda');
+            const tituloLower = row.titulo.toLowerCase();
+            if (tituloLower.includes('juegos centroamericanos')) palabrasProhibidas.add('Juegos Centroamericanos');
+            if (tituloLower.includes('acueducto')) palabrasProhibidas.add('Acueducto');
+            if (tituloLower.includes('centro de los héroes')) palabrasProhibidas.add('Centro de los Héroes');
+            if (tituloLower.includes('alcarrizos')) palabrasProhibidas.add('Alcarrizos');
+            if (tituloLower.includes('villa mella')) palabrasProhibidas.add('Villa Mella');
+            if (tituloLower.includes('los mina')) palabrasProhibidas.add('Los Mina');
+            if (tituloLower.includes('invivienda')) palabrasProhibidas.add('Invivienda');
         }
-
+        
         if (palabrasProhibidas.size > 0) {
-            memoria += '\n🚫 TEMAS PROHIBIDOS (ya están muy vistos):\n';
+            memoria += `\n🚫 TEMAS PROHIBIDOS (ya están muy vistos):\n`;
             memoria += Array.from(palabrasProhibidas).map(p => `- ${p}`).join('\n');
-            memoria += '\n✅ En su lugar, busca: calles específicas de SDE, personajes locales, problemas de barrio, proyectos nuevos.\n';
+            memoria += `\n✅ En su lugar, busca: calles específicas de SDE, personajes locales, problemas de barrio, proyectos nuevos.\n`;
         }
-
-        // ✅ FIX: Query de errores también con string limpio
-        const errores = await pool.query(
-            "SELECT valor FROM memoria_ia WHERE tipo='error' AND categoria=$1 AND ultima_vez > NOW() - INTERVAL '24 hours' ORDER BY fallos DESC LIMIT 5",
-            [categoria]
-        );
-
-        if (errores.rows.length) {
-            memoria += '\n⚠️ ERRORES RECIENTES A EVITAR:\n';
-            memoria += errores.rows.map(e => `- ${e.valor}`).join('\n');
-            memoria += '\n';
+        
+        // 🔥 ERRORES RECIENTES para evitar
+        const errores = await pool.query(`
+            SELECT valor FROM memoria_ia 
+            WHERE tipo='error' AND categoria=$1 
+            AND ultima_vez > NOW() - INTERVAL '24 hours' 
+            ORDER BY fallos DESC LIMIT 5
+        `, [categoria]);
+        
+        if (errores.rows.length) { 
+            memoria += `\n⚠️ ERRORES RECIENTES A EVITAR:\n`; 
+            memoria += errores.rows.map(e => `- ${e.valor}`).join('\n'); 
+            memoria += '\n'; 
         }
-
-    } catch(e) {
-        console.warn('⚠️ Error en construirMemoria:', e.message);
-        // Devuelve memoria vacía para no detener el proceso
-    }
+        
+    } catch(e) { console.warn('⚠️ Error en construirMemoria:', e.message); }
     return memoria;
 }
 
 // ══════════════════════════════════════════════════════════
-// 🔍 BÚSQUEDA DE CONTEXTO REAL EN SDE — V35.1 (ROTACIÓN KEY)
+// 🔍 BÚSQUEDA DE CONTEXTO REAL EN SDE (Google CSE)
 // ══════════════════════════════════════════════════════════
 async function buscarContextoActualSDE(categoria, tema = '') {
     if (!GOOGLE_CSE_KEYS.length || !GOOGLE_CSE_CX) return '';
-
+    
     const queries = {
-        'Nacionales':    ['noticias Santo Domingo Este hoy', 'actualidad República Dominicana 2026', 'último minuto RD'],
-        'Deportes':      ['deportes República Dominicana hoy', 'béisbol dominicano noticias', 'deportes SDE'],
-        'Internacionales':['noticias internacionales impacto RD', 'Caribe noticias hoy', 'América Latina actualidad'],
-        'Economía':      ['economía República Dominicana 2026', 'negocios Santo Domingo', 'inflación RD hoy'],
-        'Tecnología':    ['tecnología República Dominicana', 'innovación digital RD', 'startups Santo Domingo'],
-        'Espectáculos':  ['farándula dominicana hoy', 'música urbana RD', 'entretenimiento Santo Domingo']
+        'Nacionales': ['noticias Santo Domingo Este hoy', 'actualidad República Dominicana 2026', 'último minuto RD'],
+        'Deportes': ['deportes República Dominicana hoy', 'béisbol dominicano noticias', 'deportes SDE'],
+        'Internacionales': ['noticias internacionales impacto RD', 'Caribe noticias hoy', 'América Latina actualidad'],
+        'Economía': ['economía República Dominicana 2026', 'negocios Santo Domingo', 'inflación RD hoy'],
+        'Tecnología': ['tecnología República Dominicana', 'innovación digital RD', 'startups Santo Domingo'],
+        'Espectáculos': ['farándula dominicana hoy', 'música urbana RD', 'entretenimiento Santo Domingo']
     };
-
-    const queryList  = queries[categoria] || queries['Nacionales'];
+    
+    const queryList = queries[categoria] || queries['Nacionales'];
     const queryFinal = tema ? `${tema} ${queryList[0]}` : queryList[0];
-
+    
     try {
-        // ✅ FIX: Rotación correcta de keys — soporte para 1 o 2 keys
-        const llave = GOOGLE_CSE_KEYS.length > 1
-            ? (new Date().getHours() % 2 === 0 ? GOOGLE_CSE_KEYS[0] : GOOGLE_CSE_KEYS[1])
-            : GOOGLE_CSE_KEYS[0];
-
+        const llave = GOOGLE_CSE_KEYS[0];
         const url = `https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(queryFinal)}&num=3`;
-
+        
         const ctrl = new AbortController();
-        const tm   = setTimeout(() => ctrl.abort(), 6000);
-        const res  = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tm));
-
+        const tm = setTimeout(() => ctrl.abort(), 6000);
+        const res = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tm));
+        
         if (!res.ok) return '';
-        const data  = await res.json();
+        const data = await res.json();
         const items = data.items || [];
+        
         if (!items.length) return '';
-
+        
         let contexto = '\n📰 CONTEXTO ACTUAL DE SANTO DOMINGO ESTE (noticias reales hoy):\n';
         for (const item of items.slice(0, 2)) {
-            contexto += `- ${item.title}\n  ${(item.snippet || '').substring(0, 200)}\n  Fuente: ${item.link}\n`;
+            contexto += `- ${item.title}\n  ${item.snippet?.substring(0, 200) || ''}\n  Fuente: ${item.link}\n`;
         }
         contexto += '\n⚠️ USA ESTO COMO REFERENCIA — NO COPIES TEXTUAL. Basa tu noticia en hechos reales de SDE.\n';
         return contexto;
-
+        
     } catch(err) {
         console.warn(`⚠️ Contexto SDE falló: ${err.message}`);
         return '';
@@ -1064,66 +1063,70 @@ async function buscarContextoActualSDE(categoria, tema = '') {
 function validarContenido(contenido, titulo, categoria) {
     const longitud = contenido.length;
     const palabras = contenido.split(/\s+/).length;
-
+    
+    // 🔥 VALIDACIÓN DE LONGITUD MÍNIMA (600 caracteres = ~100-120 palabras)
     if (longitud < 600) {
-        return {
-            valido: false,
+        return { 
+            valido: false, 
             razon: `Contenido insuficiente (${longitud} chars, mínimo 600)`,
             sugerencia: 'Agrega más detalles específicos: nombres de calles, testimonios de vecinos, datos de fechas, contexto del barrio.'
         };
     }
-
-    const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro'];
+    
+    // 🔥 VALIDACIÓN DE MENCIONES DE BARRIOS SDE
+    const barriosSDE = ['Los Mina', 'Invivienda', 'Charles de Gaulle', 'Ensanche Ozama', 'Sabana Perdida', 'Villa Mella', 'El Almirante', 'Mendoza', 'Los Trinitarios', 'San Isidro'];
     const barriosMencionados = barriosSDE.filter(b => contenido.toLowerCase().includes(b.toLowerCase()));
-
+    
     if (barriosMencionados.length === 0) {
-        return {
-            valido: false,
+        return { 
+            valido: false, 
             razon: 'No menciona ningún barrio de Santo Domingo Este',
-            sugerencia: `Menciona al menos uno de estos barrios: ${barriosSDE.slice(0, 5).join(', ')}.`
+            sugerencia: `Menciona al menos uno de estos barrios: ${barriosSDE.slice(0, 5).join(', ')}. La gente de SDE necesita sentirse identificada.`
         };
     }
-
+    
+    // 🔥 VALIDACIÓN DE PÁRRAFOS (mínimo 4 párrafos)
     const parrafos = contenido.split(/\n\s*\n/).filter(p => p.trim().length > 20);
     if (parrafos.length < 4) {
-        return {
-            valido: false,
+        return { 
+            valido: false, 
             razon: `Solo ${parrafos.length} párrafos detectados (mínimo 4)`,
             sugerencia: 'Divide el texto en más párrafos cortos. Máximo 3 líneas por párrafo para lectura en celular.'
         };
     }
-
-    const frasesClave = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle'];
+    
+    // 🔥 VALIDACIÓN DE LENGUAJE DOMINICANO
+    const frasesClave = ['se supo', 'fue confirmado', 'según fuentes', 'la gente del sector', 'vecinos dicen', 'en el barrio', 'en la calle'];
     const tieneLenguajeBarrio = frasesClave.some(f => contenido.toLowerCase().includes(f));
-
+    
     if (!tieneLenguajeBarrio) {
-        return {
-            valido: false,
+        return { 
+            valido: false, 
             razon: 'Falta lenguaje de barrio dominicano',
             sugerencia: `Usa frases como "${frasesClave.join('", "')}". El lector de SDE habla así.`
         };
     }
-
+    
     return { valido: true, longitud, palabras, barrios: barriosMencionados, parrafos: parrafos.length };
 }
 
 async function registrarQueryPexels(query, categoria, exito) {
     try {
-        await pool.query('INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES(\'pexels_query\',$1,$2,$3,$4) ON CONFLICT DO NOTHING',[query,categoria,exito?1:0,exito?0:1]);
-        await pool.query('UPDATE memoria_ia SET exitos=exitos+$1,fallos=fallos+$2,ultima_vez=NOW() WHERE tipo=\'pexels_query\' AND valor=$3 AND categoria=$4',[exito?1:0,exito?0:1,query,categoria]);
+        await pool.query(`INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('pexels_query',$1,$2,$3,$4) ON CONFLICT DO NOTHING`,[query,categoria,exito?1:0,exito?0:1]);
+        await pool.query(`UPDATE memoria_ia SET exitos=exitos+$1,fallos=fallos+$2,ultima_vez=NOW() WHERE tipo='pexels_query' AND valor=$3 AND categoria=$4`,[exito?1:0,exito?0:1,query,categoria]);
     } catch(e) {}
 }
 
 async function registrarError(tipo, descripcion, categoria) {
     try {
-        await pool.query('INSERT INTO memoria_ia(tipo,valor,categoria,fallos) VALUES(\'error\',$1,$2,1) ON CONFLICT DO NOTHING',[descripcion.substring(0,200),categoria]);
-        await pool.query('UPDATE memoria_ia SET fallos=fallos+1,ultima_vez=NOW() WHERE tipo=\'error\' AND valor=$1',[descripcion.substring(0,200)]);
+        await pool.query(`INSERT INTO memoria_ia(tipo,valor,categoria,fallos) VALUES('error',$1,$2,1) ON CONFLICT DO NOTHING`,[descripcion.substring(0,200),categoria]);
+        await pool.query(`UPDATE memoria_ia SET fallos=fallos+1,ultima_vez=NOW() WHERE tipo='error' AND valor=$1`,[descripcion.substring(0,200)]);
     } catch(e) {}
 }
 
 async function regenerarWatermarks() {
     try {
-        const r = await pool.query("SELECT id,imagen,imagen_nombre,imagen_original FROM noticias WHERE imagen LIKE '%/img/%' AND imagen_original IS NOT NULL AND imagen_original!='' ORDER BY fecha DESC LIMIT 50");
+        const r = await pool.query(`SELECT id,imagen,imagen_nombre,imagen_original FROM noticias WHERE imagen LIKE '%/img/%' AND imagen_original IS NOT NULL AND imagen_original!='' ORDER BY fecha DESC LIMIT 50`);
         if (!r.rows.length) return;
         let regeneradas = 0;
         for (const n of r.rows) {
@@ -1133,7 +1136,7 @@ async function regenerarWatermarks() {
             if (fs.existsSync(ruta)) continue;
             const resultado = await aplicarMarcaDeAgua(n.imagen_original);
             if (resultado.procesada && resultado.nombre) {
-                await pool.query('UPDATE noticias SET imagen=$1,imagen_nombre=$2 WHERE id=$3',[`${BASE_URL}/img/${resultado.nombre}`,resultado.nombre,n.id]);
+                await pool.query(`UPDATE noticias SET imagen=$1,imagen_nombre=$2 WHERE id=$3`,[`${BASE_URL}/img/${resultado.nombre}`,resultado.nombre,n.id]);
                 regeneradas++;
             }
             await new Promise(r => setTimeout(r, 200));
@@ -1143,30 +1146,32 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V35.1 (FIX SQL + REINTENTOS)
+// 📰 GENERAR NOTICIA — V35.0 MXL (CON REINTENTOS Y VALIDACIÓN)
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
-
+    
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
-
-        console.log(`\n📰 [MXL V35.1] Generando noticia - Intento ${reintento}/${MAX_REINTENTOS}`);
-
-        const memoria        = await construirMemoria(categoria, 25);
+        
+        // 🔥 MÓDULO 1: INVESTIGACIÓN PREVIA (memoria + contexto real)
+        console.log(`\n📰 [MXL V35.0] Generando noticia - Intento ${reintento}/${MAX_REINTENTOS}`);
+        
+        const memoria = await construirMemoria(categoria, 25);
         const contextoActual = await buscarContextoActualSDE(categoria);
-
+        
         const fuenteContenido = comunicadoExterno
             ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este. Que sea un hecho REAL y RELEVANTE del contexto actual (año 2026).`;
-
-        const temaParaWiki  = comunicadoExterno ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria : categoria;
-        const contextoWiki  = await buscarContextoWikipedia(temaParaWiki, categoria);
+        
+        const temaParaWiki = comunicadoExterno ? (comunicadoExterno.split('\n')[0] || '').replace(/^T[IÍ]TULO:\s*/i, '').trim() || categoria : categoria;
+        const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
         const esCategoriaAlta = CATEGORIAS_ALTO_CPM.includes(categoria);
-
+        
         // ── LÍNEA 2: Leer estrategia antes del prompt ─────────
         const estrategia = leerEstrategia();
-
+        
+        // 🔥 PROMPT DINÁMICO CON EXIGENCIAS CLARAS
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
@@ -1202,34 +1207,34 @@ CONTENIDO:
         console.log(`   📝 Enviando prompt a Gemini (intento ${reintento})...`);
         const textoGemini = await llamarGemini(promptTexto);
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
-
+        
         let titulo = '', desc = '', pals = '', sub = '', contenido = '';
         let enContenido = false;
         const bloques = [];
-
+        
         for (const linea of textoLimpio.split('\n')) {
             const t = linea.trim();
-            if (t.startsWith('TITULO:'))       titulo = t.replace('TITULO:', '').trim();
+            if (t.startsWith('TITULO:')) titulo = t.replace('TITULO:', '').trim();
             else if (t.startsWith('DESCRIPCION:')) desc = t.replace('DESCRIPCION:', '').trim();
-            else if (t.startsWith('PALABRAS:'))    pals = t.replace('PALABRAS:', '').trim();
+            else if (t.startsWith('PALABRAS:')) pals = t.replace('PALABRAS:', '').trim();
             else if (t.startsWith('SUBTEMA_LOCAL:')) sub = t.replace('SUBTEMA_LOCAL:', '').trim();
-            else if (t.startsWith('CONTENIDO:'))   enContenido = true;
-            else if (enContenido && t.length > 0)  bloques.push(t);
+            else if (t.startsWith('CONTENIDO:')) enContenido = true;
+            else if (enContenido && t.length > 0) bloques.push(t);
         }
-
+        
         contenido = bloques.join('\n\n');
         titulo = titulo.replace(/[*_#`"]/g, '').trim();
-        desc   = desc.replace(/[*_#`]/g, '').trim();
-
+        desc = desc.replace(/[*_#`]/g, '').trim();
+        
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
-
-        // Validación de calidad
+        
+        // 🔥 VALIDACIÓN DE CALIDAD
         const validacion = validarContenido(contenido, titulo, categoria);
-
+        
         if (!validacion.valido) {
             console.log(`   ⚠️ Validación fallida: ${validacion.razon}`);
             console.log(`   💡 Sugerencia: ${validacion.sugerencia}`);
-
+            
             if (reintento < MAX_REINTENTOS) {
                 console.log(`   🔄 Reintentando con más presión (intento ${reintento + 1}/${MAX_REINTENTOS})...`);
                 await new Promise(r => setTimeout(r, 3000));
@@ -1238,10 +1243,10 @@ CONTENIDO:
                 throw new Error(`Validación fallida tras ${MAX_REINTENTOS} intentos: ${validacion.razon}`);
             }
         }
-
+        
         console.log(`   ✅ Validación OK: ${validacion.longitud} caracteres, ${validacion.palabras} palabras, barrios: ${validacion.barrios.join(', ')}`);
-
-        // Imagen
+        
+        // 🔥 IMAGEN
         let qi = '', ai = '';
         const promptImagen = `Eres asistente de imagen para periódico dominicano de barrio.
 Titular: "${titulo}" | Categoría: ${categoria}
@@ -1255,31 +1260,32 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
             for (const linea of respuestaImagen.split('\n')) {
                 const t = linea.trim();
                 if (t.startsWith('QUERY_IMAGEN:')) qi = t.replace('QUERY_IMAGEN:', '').trim();
-                if (t.startsWith('ALT_IMAGEN:'))   ai = t.replace('ALT_IMAGEN:', '').trim();
+                if (t.startsWith('ALT_IMAGEN:')) ai = t.replace('ALT_IMAGEN:', '').trim();
             }
         }
 
-        const urlOrig   = await obtenerImagenInteligente(titulo, categoria, sub, qi);
+        const urlOrig = await obtenerImagenInteligente(titulo, categoria, sub, qi);
         const imgResult = await aplicarMarcaDeAgua(urlOrig);
-        const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
-        const altFinal  = generarAltSEO(titulo, categoria, ai, sub);
+        const urlFinal = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
+        const altFinal = generarAltSEO(titulo, categoria, ai, sub);
 
         const slugBase = slugify(titulo);
-        if (!slugBase || slugBase.length < 3) throw new Error('Slug inválido');
+        if (!slugBase || slugBase.length < 3) throw new Error(`Slug inválido`);
         let slFin = slugBase;
         const existeSlug = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slugBase]);
         if (existeSlug.rows.length) { slFin = `${slugBase.substring(0, 68)}-${Date.now().toString().slice(-6)}`; }
 
         await pool.query(
-            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
-            [titulo.substring(0,255), slFin, categoria, contenido.substring(0,10000), desc.substring(0,160), (pals||categoria).substring(0,255), redactor(categoria), urlFinal, altFinal.substring(0,255), `Fotografía periodística: ${titulo}`, imgResult.nombre||'efd.jpg', imgResult.procesada?'cse-watermark':'cse', urlOrig, 'publicada']
+            `INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+            [titulo.substring(0, 255), slFin, categoria, contenido.substring(0, 10000), desc.substring(0, 160), (pals || categoria).substring(0, 255), redactor(categoria), urlFinal, altFinal.substring(0, 255), `Fotografía periodística: ${titulo}`, imgResult.nombre || 'efd.jpg', imgResult.procesada ? 'cse-watermark' : 'cse', urlOrig, 'publicada']
         );
 
         console.log(`\n✅ /noticia/${slFin} [${validacion.longitud} chars, ${validacion.palabras} palabras]`);
         invalidarCache();
         if (qi && queryEsPeriodistica(qi, categoria)) registrarQueryPexels(qi, categoria, true);
 
-        await enviarNotificacionPush(titulo, desc.substring(0,160), slFin, urlFinal);
+        // 🔔 Notificación push
+        await enviarNotificacionPush(titulo, desc.substring(0, 160), slFin, urlFinal);
 
         Promise.allSettled([
             publicarEnFacebook(titulo, slFin, urlFinal, desc),
@@ -1288,16 +1294,16 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
         ]);
 
         return { success: true, slug: slFin, titulo, alt: altFinal, mensaje: '✅ Publicada', stats: validacion };
-
+        
     } catch (error) {
         console.error(`❌ Error en intento ${reintento}:`, error.message);
-
+        
         if (reintento < MAX_REINTENTOS) {
             console.log(`🔄 Reintentando por error (${reintento + 1}/${MAX_REINTENTOS})...`);
             await new Promise(r => setTimeout(r, 5000));
             return await generarNoticia(categoria, comunicadoExterno, reintento + 1);
         }
-
+        
         await registrarError('generacion', error.message, categoria);
         return { success: false, error: error.message };
     }
@@ -1398,7 +1404,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'35.1-mxl+push+antirepeticion+sqlfix' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'35.0-mxl+push+antirepeticion' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1412,7 +1418,7 @@ app.get('/api/noticias', async (req, res) => {
     res.setHeader('Content-Type','application/json');
     try {
         if (_cacheNoticias && (Date.now()-_cacheFecha) < CACHE_TTL) return res.json({success:true,noticias:_cacheNoticias,cached:true});
-        const r = await pool.query("SELECT id,titulo,slug,seccion,imagen,imagen_alt,seo_description,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30",['publicada']);
+        const r = await pool.query(`SELECT id,titulo,slug,seccion,imagen,imagen_alt,seo_description,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30`,['publicada']);
         _cacheNoticias = r.rows; _cacheFecha = Date.now();
         res.json({ success:true, noticias:r.rows });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
@@ -1420,7 +1426,7 @@ app.get('/api/noticias', async (req, res) => {
 
 app.get('/api/estadisticas', async (req, res) => {
     try {
-        const r = await pool.query("SELECT COUNT(*) as c, SUM(vistas) as v FROM noticias WHERE estado=$1",['publicada']);
+        const r = await pool.query('SELECT COUNT(*) as c, SUM(vistas) as v FROM noticias WHERE estado=$1',['publicada']);
         res.json({ success:true, totalNoticias:parseInt(r.rows[0].c), totalVistas:parseInt(r.rows[0].v)||0 });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1464,8 +1470,7 @@ app.post('/api/publicar', express.json(), async (req, res) => {
                 if (resultado.procesada && resultado.nombre) { imgFinal=`${BASE_URL}/img/${resultado.nombre}`; imgNombre=resultado.nombre; imgFuente='manual-watermark'; }
             }
         } catch(wmErr) { console.warn(`   ⚠️ Watermark manual falló: ${wmErr.message}`); }
-        await pool.query(
-            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
+        await pool.query(`INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
             [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Fotografía: ${titulo}`,imgNombre,imgFuente,imgOriginal,'publicada']);
         invalidarCache();
         await enviarNotificacionPush(titulo, (seo_description||titulo).substring(0,160), slF, imgFinal);
@@ -1493,7 +1498,7 @@ app.post('/api/actualizar-imagen/:id', authMiddleware, async (req, res) => {
 
 app.get('/api/comentarios/:noticia_id', async (req, res) => {
     try {
-        const r = await pool.query('SELECT id,nombre,texto,fecha FROM comentarios WHERE noticia_id=$1 AND aprobado=true ORDER BY fecha ASC',[req.params.noticia_id]);
+        const r = await pool.query(`SELECT id,nombre,texto,fecha FROM comentarios WHERE noticia_id=$1 AND aprobado=true ORDER BY fecha ASC`,[req.params.noticia_id]);
         res.json({ success:true, comentarios:r.rows });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1506,7 +1511,7 @@ app.post('/api/comentarios/:noticia_id', async (req, res) => {
     if (texto.trim().length < 3) return res.status(400).json({ success:false, error:'Comentario muy corto' });
     if (texto.trim().length > 1000) return res.status(400).json({ success:false, error:'Comentario muy largo' });
     try {
-        const r = await pool.query('INSERT INTO comentarios(noticia_id,nombre,texto) VALUES($1,$2,$3) RETURNING id,nombre,texto,fecha',[noticia_id,nombre.trim().substring(0,80),texto.trim().substring(0,1000)]);
+        const r = await pool.query(`INSERT INTO comentarios(noticia_id,nombre,texto) VALUES($1,$2,$3) RETURNING id,nombre,texto,fecha`,[noticia_id,nombre.trim().substring(0,80),texto.trim().substring(0,1000)]);
         res.json({ success:true, comentario:r.rows[0] });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1520,7 +1525,7 @@ app.post('/api/comentarios/eliminar/:id', authMiddleware, async (req, res) => {
 app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
     if (req.query.pin!=='311') return res.status(403).json({ error:'PIN requerido' });
     try {
-        const r = await pool.query('SELECT c.id,c.nombre,c.texto,c.fecha,n.titulo as noticia_titulo,n.slug as noticia_slug FROM comentarios c JOIN noticias n ON n.id=c.noticia_id ORDER BY c.fecha DESC LIMIT 50');
+        const r = await pool.query(`SELECT c.id,c.nombre,c.texto,c.fecha,n.titulo as noticia_titulo,n.slug as noticia_slug FROM comentarios c JOIN noticias n ON n.id=c.noticia_id ORDER BY c.fecha DESC LIMIT 50`);
         res.json({ success:true, comentarios:r.rows });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1528,7 +1533,7 @@ app.get('/api/admin/comentarios', authMiddleware, async (req, res) => {
 app.get('/api/memoria', authMiddleware, async (req, res) => {
     if (req.query.pin!=='311') return res.status(403).json({ error:'PIN requerido' });
     try {
-        const r = await pool.query('SELECT tipo,valor,categoria,exitos,fallos,ultima_vez FROM memoria_ia ORDER BY ultima_vez DESC LIMIT 50');
+        const r = await pool.query(`SELECT tipo,valor,categoria,exitos,fallos,ultima_vez FROM memoria_ia ORDER BY ultima_vez DESC LIMIT 50`);
         res.json({ success:true, registros:r.rows });
     } catch(e) { res.status(500).json({ error:e.message }); }
 });
@@ -1598,10 +1603,17 @@ app.post('/api/push/suscribir', express.json(), async (req, res) => {
         if (!subscription || !subscription.endpoint || !subscription.keys) {
             return res.status(400).json({ success: false, error: 'Suscripción inválida' });
         }
-        await pool.query(
-            'INSERT INTO push_suscripciones (endpoint, auth_key, p256dh_key, user_agent) VALUES ($1, $2, $3, $4) ON CONFLICT (endpoint) DO UPDATE SET auth_key = $2, p256dh_key = $3, user_agent = $4, fecha = CURRENT_TIMESTAMP',
-            [subscription.endpoint, subscription.keys.auth, subscription.keys.p256dh, userAgent || null]
-        );
+        await pool.query(`
+            INSERT INTO push_suscripciones (endpoint, auth_key, p256dh_key, user_agent)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (endpoint) 
+            DO UPDATE SET auth_key = $2, p256dh_key = $3, user_agent = $4, fecha = CURRENT_TIMESTAMP
+        `, [
+            subscription.endpoint,
+            subscription.keys.auth,
+            subscription.keys.p256dh,
+            userAgent || null
+        ]);
         res.json({ success: true, mensaje: '✅ Suscripción guardada' });
     } catch (err) {
         console.error('❌ Error al suscribir:', err.message);
@@ -1613,7 +1625,7 @@ app.post('/api/push/desuscribir', express.json(), async (req, res) => {
     try {
         const { endpoint } = req.body;
         if (endpoint) {
-            await pool.query('DELETE FROM push_suscripciones WHERE endpoint = $1', [endpoint]);
+            await pool.query(`DELETE FROM push_suscripciones WHERE endpoint = $1`, [endpoint]);
         }
         res.json({ success: true });
     } catch (err) {
@@ -1633,6 +1645,7 @@ app.post('/api/push/test', authMiddleware, async (req, res) => {
     res.json({ success: resultado });
 });
 
+// Ruta pública para ver la estrategia actual
 app.get('/api/estrategia', authMiddleware, (req, res) => {
     try {
         const ruta = path.join(__dirname, 'estrategia.json');
@@ -1666,10 +1679,8 @@ app.post('/api/publicidad/actualizar', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!id) return res.status(400).json({ error:'Falta ID' });
     try {
-        await pool.query(
-            'UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5, ancho_px=$6, alto_px=$7 WHERE id=$8',
-            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(ancho_px)||0, parseInt(alto_px)||0, parseInt(id)]
-        );
+        await pool.query(`UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5, ancho_px=$6, alto_px=$7 WHERE id=$8`,
+            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(ancho_px)||0, parseInt(alto_px)||0, parseInt(id)]);
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1679,10 +1690,8 @@ app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!nombre_espacio) return res.status(400).json({ error:'Falta nombre' });
     try {
-        await pool.query(
-            'INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px) VALUES($1,$2,$3,$4,true,$5,$6)',
-            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top', parseInt(ancho_px)||0, parseInt(alto_px)||0]
-        );
+        await pool.query(`INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px) VALUES($1,$2,$3,$4,true,$5,$6)`,
+            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top', parseInt(ancho_px)||0, parseInt(alto_px)||0]);
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1710,7 +1719,7 @@ app.get('/cookies',   (req,res) => res.sendFile(path.join(__dirname,'client','co
 
 app.get('/noticia/:slug', async (req, res) => {
     try {
-        const r = await pool.query("SELECT * FROM noticias WHERE slug=$1 AND estado=$2",[req.params.slug,'publicada']);
+        const r = await pool.query('SELECT * FROM noticias WHERE slug=$1 AND estado=$2',[req.params.slug,'publicada']);
         if (!r.rows.length) return res.status(404).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>404</title></head><body style="background:#070707;color:#EDE8DF;text-align:center;padding:60px;font-family:sans-serif"><h1 style="color:#FF5500">404</h1><p>Noticia no encontrada</p><a href="/" style="color:#FF5500">← Volver</a></body></html>');
         const n = r.rows[0];
         await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1',[n.id]);
@@ -1728,7 +1737,7 @@ app.get('/noticia/:slug', async (req, res) => {
 
 app.get('/sitemap.xml', async (req, res) => {
     try {
-        const r = await pool.query("SELECT slug,fecha FROM noticias WHERE estado='publicada' AND slug IS NOT NULL ORDER BY fecha DESC LIMIT 1000");
+        const r = await pool.query(`SELECT slug,fecha FROM noticias WHERE estado='publicada' AND slug IS NOT NULL ORDER BY fecha DESC LIMIT 1000`);
         const now = Date.now();
         let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
         xml += `<url><loc>${BASE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>\n`;
@@ -1769,15 +1778,15 @@ app.post('/api/configuracion', express.json(), (req,res) => {
 
 app.get('/status', async (req, res) => {
     try {
-        const r         = await pool.query("SELECT COUNT(*) FROM noticias WHERE estado='publicada'");
-        const rss       = await pool.query('SELECT COUNT(*) FROM rss_procesados');
-        const ultima    = await pool.query("SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1");
-        const minSin    = ultima.rows.length ? Math.round((Date.now()-new Date(ultima.rows[0].fecha))/60000) : 9999;
+        const r = await pool.query(`SELECT COUNT(*) FROM noticias WHERE estado='publicada'`);
+        const rss = await pool.query('SELECT COUNT(*) FROM rss_procesados');
+        const ultima = await pool.query(`SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1`);
+        const minSin = ultima.rows.length ? Math.round((Date.now()-new Date(ultima.rows[0].fecha))/60000) : 9999;
         const cseActivo = GOOGLE_CSE_KEYS.length > 0 && !!GOOGLE_CSE_CX;
-        const estrategiaExiste  = fs.existsSync(path.join(__dirname, 'estrategia.json'));
-        const pushSuscriptores  = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
+        const estrategiaExiste = fs.existsSync(path.join(__dirname, 'estrategia.json'));
+        const pushSuscriptores = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
         res.json({
-            status:'OK', version:'35.1-mxl+push+antirepeticion+sqlfix',
+            status:'OK', version:'35.0-mxl+push+antirepeticion',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
@@ -1802,7 +1811,7 @@ app.get('/status', async (req, res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE — V35.1 BLINDADO mxl + FIX SQL
+// ARRANQUE - VERSIÓN BLINDADA mxl + PUSH + ANTI-REPETICIÓN
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -1811,12 +1820,10 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL)              ║
+║  🏮 EL FAROL AL DÍA — V35.0 MXL EDITION                        ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  ✅ KEY_1+KEY_2 → Gemini texto                                 ║
 ║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                   ║
-║  ✅ FIX: SQL parametrizado sin backticks ni whitespace          ║
-║  ✅ FIX: Rotación correcta de CSE keys (1 o 2 keys)            ║
 ║  ✅ Google Custom Search → imágenes reales SDE                 ║
 ║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini          ║
 ║  ✅ Estilo SDE: párrafos cortos, lenguaje directo              ║
@@ -1827,16 +1834,16 @@ async function iniciar() {
 ╚══════════════════════════════════════════════════════════════════╝`);
         });
 
-        setTimeout(() => {
-            if (typeof regenerarWatermarks === 'function') regenerarWatermarks();
+        setTimeout(() => { 
+            if (typeof regenerarWatermarks === 'function') regenerarWatermarks(); 
         }, 5000);
 
-        setTimeout(() => {
-            if (typeof bienvenidaTelegram === 'function') bienvenidaTelegram();
+        setTimeout(() => { 
+            if (typeof bienvenidaTelegram === 'function') bienvenidaTelegram(); 
         }, 8000);
 
-        setTimeout(() => {
-            if (typeof rafagaInicial === 'function') rafagaInicial();
+        setTimeout(() => { 
+            if (typeof rafagaInicial === 'function') rafagaInicial(); 
         }, 60000);
 
         setTimeout(() => {
