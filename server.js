@@ -7,6 +7,9 @@
  *   • Filtro mxl anti-stock, anti-competencia, resolución ≥ 1024px
  *   • Estilo SDE: párrafos cortos, lenguaje directo, clickbait ético
  *   • Pexels como fallback secundario (no primario)
+ * AÑADIDO SIN ROMPER NADA:
+ *   • estrategia-loader.js → leerEstrategia() inyecta datos reales en Gemini
+ *   • estrategia-analyzer.js → corre cada 6h, analiza BD, actualiza JSON
  * SIN TOCAR: auth, watermark, RSS, Telegram, Facebook, Twitter,
  *            Wikipedia, comentarios, publicidad, cron, SEO
  */
@@ -20,6 +23,11 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
+
+// ── LÍNEA 1: Estrategia (loader + analyzer) ──────────────────
+const { leerEstrategia }   = require('./estrategia-loader');
+const { analizarYGenerar } = require('./estrategia-analyzer');
+// ─────────────────────────────────────────────────────────────
 
 // ══════════════════════════════════════════════════════════
 // 🔒 BASIC AUTH
@@ -49,15 +57,10 @@ if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido')
 
 // ══════════════════════════════════════════════════════════
 // 🔑 LLAVES GEMINI — SEPARADAS POR ROL
-//    TEXTO  → GEMINI_API_KEY  + GEMINI_KEY_2
-//    IMAGEN → GEMINI_KEY_3    + GEMINI_KEY_4  (solo para prompt imagen)
-//    Google Custom Search usa su propio par de variables
 // ══════════════════════════════════════════════════════════
-// Nombres reales en Railway (tal como aparecen en la pantalla)
 const LLAVES_TEXTO  = [process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2].filter(Boolean);
 const LLAVES_IMAGEN = [process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4].filter(Boolean);
 
-// Google Custom Search — nombres Railway: GOOGLE_CSE_KEY / GOOGLE_CSE_KEY_2 / GOOGLE_CSE_ID
 const GOOGLE_CSE_KEYS = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
 const GOOGLE_CSE_CX   = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
 
@@ -370,7 +373,6 @@ async function _callGemini(apiKey, prompt, intentoGlobal) {
     return texto;
 }
 
-// ── Texto: usa KEY_1 + KEY_2 ──────────────────────────────
 async function llamarGemini(prompt, reintentos = 2) {
     if (!LLAVES_TEXTO.length) throw new Error('Sin llaves de texto configuradas');
     let intentoGlobal = 0;
@@ -384,7 +386,6 @@ async function llamarGemini(prompt, reintentos = 2) {
     throw new Error('Gemini texto: todas las llaves fallaron');
 }
 
-// ── Imagen: usa KEY_3 + KEY_4 (solo para prompt de imagen) ─
 async function llamarGeminiImagen(prompt, reintentos = 1) {
     const llaves = LLAVES_IMAGEN.length ? LLAVES_IMAGEN : LLAVES_TEXTO;
     let intentoGlobal = 0;
@@ -399,10 +400,7 @@ async function llamarGeminiImagen(prompt, reintentos = 1) {
 
 // ══════════════════════════════════════════════════════════
 // 🖼️  GOOGLE CUSTOM SEARCH — MOTOR MXL
-//     KEY_1 y KEY_2 rotan por hora (igual que Gemini)
 // ══════════════════════════════════════════════════════════
-
-// Dominios excluidos (competencia + stock)
 const CSE_EXCLUDES = [
     '-site:listindiario.com', '-site:diariolibre.com',
     '-site:elnacional.com.do', '-site:hoy.com.do',
@@ -413,143 +411,89 @@ const CSE_EXCLUDES = [
     '-site:istockphoto.com',  '-site:vectorstock.com',
 ].join(' ');
 
-// Palabras que invalidan una URL (stock/marca de agua)
 const URL_PALABRAS_INVALIDAS = ['shutterstock','getty','stock','preview','watermark','wm_','logo_','thumbnail','_thumb','small_','_sm.','lowres','dreamstime','alamy','depositphotos'];
-
-// Barrios de SDE para enriquecer queries
 const BARRIOS_SDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Los Trinitarios','El Tamarindo','Mendoza'];
 
-// Estado de las llaves CSE (por cuota diaria)
 const CSE_STATE = {};
 function getCseState(k) {
     if (!CSE_STATE[k]) CSE_STATE[k] = { fallos:0, bloqueadaHasta:0 };
     return CSE_STATE[k];
 }
 
-/**
- * Valida que una URL de imagen sea usable (mxl filter)
- */
 function urlImagenValida(url) {
     if (!url) return false;
     const u = url.toLowerCase();
-    // Solo jpg y png (no webp)
     if (!/(\.jpg|\.jpeg|\.png)(\?|$|#)/i.test(u) && !u.endsWith('.jpg') && !u.endsWith('.jpeg') && !u.endsWith('.png')) return false;
-    // Rechazar stock/watermark
     if (URL_PALABRAS_INVALIDAS.some(p => u.includes(p))) return false;
-    // Rechazar logos/iconos/mapas
     const basura = ['flag','logo','map','coat_of_arms','seal','emblem','icon','badge','crest','_bw','-bw','grayscale','favicon'];
     if (basura.some(b => u.includes(b))) return false;
     return true;
 }
 
-/**
- * Verifica resolución mínima descargando headers o la imagen pequeña
- * Retorna true si width >= 1024
- */
 async function verificarResolucion(url) {
     try {
         const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 6000);
         const res = await fetch(url, { method:'GET', signal: ctrl.signal }).finally(() => clearTimeout(tm));
         if (!res.ok) return false;
         const buf = Buffer.from(await res.arrayBuffer());
-        if (buf.length < 20000) return false; // menos de 20KB → thumbnail
+        if (buf.length < 20000) return false;
         const meta = await sharp(buf).metadata();
         return (meta.width || 0) >= 1024;
     } catch { return false; }
 }
 
-/**
- * Busca imagen en Google Custom Search con filtros mxl
- * @param {string} query  - tema de la noticia
- * @param {string} barrio - barrio SDE (opcional)
- */
 async function buscarImagenCSE(query, barrio = '') {
     if (!GOOGLE_CSE_KEYS.length || !GOOGLE_CSE_CX) return null;
-
-    // Rotar llave por hora
     const hora = new Date().getHours();
     const llaves = hora % 2 === 0
         ? [GOOGLE_CSE_KEYS[0], GOOGLE_CSE_KEYS[1]].filter(Boolean)
         : [GOOGLE_CSE_KEYS[1], GOOGLE_CSE_KEYS[0]].filter(Boolean);
-
-    // Construir query con filtros mxl
     const barrioStr = barrio ? ` ${barrio}` : '';
     const qFull = `${query}${barrioStr} Santo Domingo Este ${CSE_EXCLUDES}`.trim();
-
     for (const llave of llaves) {
         const st = getCseState(llave);
         if (Date.now() < st.bloqueadaHasta) continue;
-
         try {
             const url = `https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(qFull)}&searchType=image&imgType=photo&imgSize=large&fileType=jpg,png&num=10&safe=active`;
             const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
             const res = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(tm));
-
             if (res.status === 429 || res.status === 403) {
                 st.fallos++;
-                st.bloqueadaHasta = Date.now() + (st.fallos >= 3 ? 3600000 : 300000); // 1h o 5min
-                console.warn(`   ⚠️ CSE KEY bloqueada (${res.status}), espera ${st.fallos >= 3 ? '1h' : '5min'}`);
+                st.bloqueadaHasta = Date.now() + (st.fallos >= 3 ? 3600000 : 300000);
                 continue;
             }
-
             if (!res.ok) continue;
             const data = await res.json();
             const items = data.items || [];
-
             for (const item of items) {
                 const imgUrl = item.link;
                 if (!urlImagenValida(imgUrl)) continue;
-
-                // Verificar resolución mínima 1024px
                 const buena = await verificarResolucion(imgUrl);
-                if (!buena) { console.log(`   ⏭️ CSE: imagen descartada por resolución: ${imgUrl.substring(0,60)}`); continue; }
-
-                console.log(`   ✅ CSE imagen: ${imgUrl.substring(0,80)}`);
-                st.fallos = 0; // reset en éxito
+                if (!buena) continue;
+                console.log(`   ✅ CSE imagen OK`);
+                st.fallos = 0;
                 return imgUrl;
             }
-        } catch(err) {
-            console.warn(`   ⚠️ CSE error: ${err.message}`);
-            st.fallos++;
-        }
+        } catch(err) { console.warn(`   ⚠️ CSE error: ${err.message}`); st.fallos++; }
     }
     return null;
 }
 
-/**
- * Genera query CSE inteligente para SDE a partir del título y categoría
- */
 function generarQueryCSE(titulo, categoria) {
     const tLow = titulo.toLowerCase();
-
-    // Detectar barrio específico en el título
     const barrioDetectado = BARRIOS_SDE.find(b => tLow.includes(b.toLowerCase())) || '';
-
-    // Query base por categoría
     const queryBase = {
-        'Nacionales':    'noticias comunidad vecinos',
-        'Deportes':      'deporte atletas cancha',
-        'Internacionales':'noticias mundo caribe',
-        'Economía':      'negocio comercio mercado',
-        'Tecnología':    'tecnología innovación digital',
-        'Espectáculos':  'entretenimiento arte cultura',
+        'Nacionales':'noticias comunidad vecinos','Deportes':'deporte atletas cancha',
+        'Internacionales':'noticias mundo caribe','Economía':'negocio comercio mercado',
+        'Tecnología':'tecnología innovación digital','Espectáculos':'entretenimiento arte cultura',
     }[categoria] || 'noticias barrio';
-
-    // Extraer palabras clave del título (sin stopwords)
     const stopwords = new Set(['el','la','los','las','un','una','de','del','en','y','a','se','que','por','con','su','sus','al','es','son','fue','han','ha','le','les','lo','más','para','sobre','como','entre','pero','sin','ya','no','si','o','e','ni','también','cuando','donde','quien','quién','qué','cómo','muy','todo','todos','toda','todas','este','esta','estos','estas','ese','esa']);
-    const palabrasClave = titulo
-        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-        .toLowerCase().replace(/[^a-z0-9\s]/g,' ')
-        .split(/\s+/)
-        .filter(w => w.length > 3 && !stopwords.has(w))
-        .slice(0, 3)
-        .join(' ');
-
+    const palabrasClave = titulo.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w => w.length > 3 && !stopwords.has(w)).slice(0, 3).join(' ');
     return { query: `${palabrasClave} ${queryBase}`.trim(), barrio: barrioDetectado };
 }
 
 // ══════════════════════════════════════════════════════════
-// MAPEO IMÁGENES (fallback cuando CSE no tiene)
+// MAPEO IMÁGENES
 // ══════════════════════════════════════════════════════════
 const MAPEO_IMAGENES = {
     'donald trump':['trump president podium microphone','american president speech flag'],
@@ -625,7 +569,38 @@ function esImagenValida(url) {
 }
 
 // ══════════════════════════════════════════════════════════
-// PEXELS (ahora es fallback, no primario)
+// UNSPLASH
+// ══════════════════════════════════════════════════════════
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || null;
+const UNSPLASH_BLOQUEADOS = ['wedding','bride','groom','romantic','love','kiss','couple','marriage','cartoon','pet','dog','cat','birthday','balloon','flowers','bouquet','fashion','model','selfie'];
+
+async function buscarEnUnsplash(query, categoria) {
+    if (!UNSPLASH_ACCESS_KEY) return null;
+    const q = (query || '').toLowerCase();
+    if (UNSPLASH_BLOQUEADOS.some(b => q.includes(b))) return null;
+    if (!queryEsPeriodistica(query, categoria)) return null;
+    const queryFinal = encodeURIComponent(`${query} caribbean dominican`);
+    try {
+        const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 7000);
+        const res = await fetch(`https://api.unsplash.com/search/photos?query=${queryFinal}&per_page=10&orientation=landscape&content_filter=high`, { headers:{ Authorization:`Client-ID ${UNSPLASH_ACCESS_KEY}` }, signal:ctrl.signal }).finally(() => clearTimeout(tm));
+        if (!res.ok) return null;
+        const data = await res.json();
+        const fotos = (data.results || []).filter(f => {
+            if ((f.width || 0) < 1080) return false;
+            const desc = (f.description || f.alt_description || '').toLowerCase();
+            return !UNSPLASH_BLOQUEADOS.some(b => desc.includes(b));
+        });
+        if (!fotos.length) return null;
+        const foto = fotos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fotos.length))];
+        const url = foto.urls?.full || foto.urls?.regular;
+        if (!url) return null;
+        console.log(`   📷 Unsplash OK`);
+        return url;
+    } catch(err) { return null; }
+}
+
+// ══════════════════════════════════════════════════════════
+// PEXELS (fallback)
 // ══════════════════════════════════════════════════════════
 const PEXELS_QUERIES_RD = {
     'presidente':['president speech podium government','latin america president official event'],
@@ -649,43 +624,6 @@ const PEXELS_QUERIES_RD = {
     'Tecnología':['technology innovation digital latin america','tech professionals working computers'],
     'Espectáculos':['latin entertainment music show concert','caribbean cultural performance arts'],
 };
-
-
-// ══════════════════════════════════════════════════════════
-// 📷 UNSPLASH — MOTOR SECUNDARIO (KEY_3+KEY_4 generan query)
-//    Variable Railway: UNSPLASH_ACCESS_KEY
-//    Fotos libres, alta resolución, sin marca de agua
-// ══════════════════════════════════════════════════════════
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || null;
-const UNSPLASH_BLOQUEADOS = ['wedding','bride','groom','romantic','love','kiss','couple','marriage','cartoon','pet','dog','cat','birthday','balloon','flowers','bouquet','fashion','model','selfie'];
-
-async function buscarEnUnsplash(query, categoria) {
-    if (!UNSPLASH_ACCESS_KEY) return null;
-    const q = (query || '').toLowerCase();
-    if (UNSPLASH_BLOQUEADOS.some(b => q.includes(b))) return null;
-    if (!queryEsPeriodistica(query, categoria)) return null;
-    const queryFinal = encodeURIComponent(`${query} caribbean dominican`);
-    try {
-        const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 7000);
-        const res = await fetch(
-            `https://api.unsplash.com/search/photos?query=${queryFinal}&per_page=10&orientation=landscape&content_filter=high`,
-            { headers:{ Authorization:`Client-ID ${UNSPLASH_ACCESS_KEY}` }, signal:ctrl.signal }
-        ).finally(() => clearTimeout(tm));
-        if (!res.ok) { if (res.status === 403 || res.status === 401) console.warn('   ⚠️ Unsplash: key inválida'); return null; }
-        const data = await res.json();
-        const fotos = (data.results || []).filter(f => {
-            if ((f.width || 0) < 1080) return false;
-            const desc = (f.description || f.alt_description || '').toLowerCase();
-            return !UNSPLASH_BLOQUEADOS.some(b => desc.includes(b));
-        });
-        if (!fotos.length) return null;
-        const foto = fotos.slice(0, 5)[Math.floor(Math.random() * Math.min(5, fotos.length))];
-        const url = foto.urls?.full || foto.urls?.regular;
-        if (!url) return null;
-        console.log(`   📷 Unsplash OK (${foto.width}x${foto.height})`);
-        return url;
-    } catch(err) { console.warn(`   ⚠️ Unsplash: ${err.message}`); return null; }
-}
 
 async function buscarEnPexels(queries) {
     if (!PEXELS_API_KEY) return null;
@@ -718,41 +656,24 @@ function detectarQueriesPexels(titulo, categoria, queryIA) {
     return [...new Set(queries)].slice(0,12);
 }
 
-// ══════════════════════════════════════════════════════════
-// 🔍 OBTENER IMAGEN — FLUJO COMPLETO CON PRIORIDAD MXL
-//
-//  1. Google CSE  (imágenes reales SDE, filtros mxl)   ← PRIMARIO
-//  2. Unsplash    (fotos libres ≥1080px, sin stock)     ← SECUNDARIO
-//  3. MAPEO       → Pexels (personajes conocidos)
-//  4. Pexels      genérico por categoría
-//  5. Wikipedia / Wikimedia Commons
-//  6. Banco local                                       ← Último recurso
-// ══════════════════════════════════════════════════════════
 async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA) {
     const tituloLower = titulo.toLowerCase();
-
-    // 1. Google Custom Search (imágenes reales SDE)
     if (GOOGLE_CSE_KEYS.length && GOOGLE_CSE_CX) {
         try {
             const { query: qCSE, barrio } = generarQueryCSE(titulo, categoria);
             const urlCSE = await buscarImagenCSE(queryIA || qCSE, barrio);
-            if (urlCSE) { console.log(`   📸 Imagen CSE: OK`); return urlCSE; }
-        } catch(e) { console.warn(`   ⚠️ CSE falló: ${e.message}`); }
+            if (urlCSE) return urlCSE;
+        } catch(e) {}
     }
-
-    // 2. Unsplash (KEY_3+KEY_4 generaron el query, fotos libres ≥1080px)
     if (UNSPLASH_ACCESS_KEY && queryIA) {
         const urlUnsplash = await buscarEnUnsplash(queryIA, categoria);
         if (urlUnsplash) return urlUnsplash;
     }
-    // Unsplash con query derivado del título si no hay queryIA
     if (UNSPLASH_ACCESS_KEY && !queryIA) {
         const { query: qSDE } = generarQueryCSE(titulo, categoria);
         const urlUnsplash = await buscarEnUnsplash(qSDE, categoria);
         if (urlUnsplash) return urlUnsplash;
     }
-
-    // 3. Personajes conocidos → Pexels directo
     for (const [clave, queries] of Object.entries(MAPEO_IMAGENES)) {
         if (Array.isArray(queries) && tituloLower.includes(clave)) {
             const queriesLimpias = queries.filter(q => queryEsPeriodistica(q, categoria));
@@ -763,25 +684,17 @@ async function obtenerImagenInteligente(titulo, categoria, subtemaLocal, queryIA
             break;
         }
     }
-
-    // 4. Query de Gemini → Pexels
     if (queryIA && queryEsPeriodistica(queryIA, categoria)) {
         const urlQueryIA = await buscarEnPexels([queryIA]);
         if (urlQueryIA) return urlQueryIA;
     }
-
-    // 5. Pexels por categoría
     const queriesFiltradas = detectarQueriesPexels(titulo, categoria, null).filter(q => queryEsPeriodistica(q, categoria));
     const urlPexels = await buscarEnPexels(queriesFiltradas);
     if (urlPexels) return urlPexels;
-
-    // 6. Wikipedia / Commons
     const urlWiki = await buscarImagenWikipedia(titulo);
     if (urlWiki && esImagenValida(urlWiki)) return urlWiki;
     const urlCommons = await buscarImagenWikimediaCommons(titulo);
     if (urlCommons && esImagenValida(urlCommons)) return urlCommons;
-
-    // 7. Banco local (último recurso)
     return await fallbackVisualInteligente(categoria, subtemaLocal);
 }
 
@@ -910,20 +823,13 @@ async function inicializarBase() {
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        // Migración: agregar columnas si no existen (para BD ya existente)
         for (const col of ['ancho_px INTEGER DEFAULT 0', 'alto_px INTEGER DEFAULT 0']) {
             const nombre = col.split(' ')[0];
             await client.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='publicidad' AND column_name='${nombre}') THEN ALTER TABLE publicidad ADD COLUMN ${col}; END IF; END $$;`).catch(()=>{});
         }
         const countPub = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(countPub.rows[0].count) === 0) {
-            await client.query(`
-                INSERT INTO publicidad (nombre_espacio, url_afiliado, imagen_url, ubicacion, activo) VALUES
-                ('Banner Principal Top', '', '', 'top', false),
-                ('Banner Sidebar Derecha', '', '', 'sidebar', false),
-                ('Banner Entre Noticias', '', '', 'medio', false),
-                ('Banner Footer', '', '', 'footer', false)
-            `);
+            await client.query(`INSERT INTO publicidad (nombre_espacio, url_afiliado, imagen_url, ubicacion, activo) VALUES ('Banner Principal Top', '', '', 'top', false),('Banner Sidebar Derecha', '', '', 'sidebar', false),('Banner Entre Noticias', '', '', 'medio', false),('Banner Footer', '', '', 'footer', false)`);
             console.log('📢 Espacios publicitarios creados');
         }
         const fix = await client.query(`UPDATE noticias SET imagen='${PB}/3052454/pexels-photo-3052454.jpeg${OPT}',imagen_fuente='pexels' WHERE imagen LIKE '%fallback%' OR imagen IS NULL OR imagen=''`);
@@ -984,7 +890,7 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — ESTILO SDE / MXL
+// 📰 GENERAR NOTICIA — con estrategia inyectada
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null) {
     try {
@@ -997,7 +903,10 @@ async function generarNoticia(categoria, comunicadoExterno = null) {
         const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
         const esCategoriaAlta = CATEGORIAS_ALTO_CPM.includes(categoria);
 
-        // ── Prompt estilo SDE / mxl ──────────────────────────────
+        // ── LÍNEA 2: Leer estrategia antes del prompt ─────────
+        const estrategia = leerEstrategia();
+        // ─────────────────────────────────────────────────────
+
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
@@ -1020,6 +929,8 @@ EXTENSIÓN: ${esCategoriaAlta?'480-560':'380-450'} palabras, mínimo 5 párrafos
 EVITAR: ${CONFIG_IA.evitar}
 ÉNFASIS: ${CONFIG_IA.enfasis}
 
+${estrategia}
+
 RESPONDE EXACTAMENTE:
 TITULO: [60-70 chars, impactante, clickbait ético, menciona SDE o barrio si aplica]
 DESCRIPCION: [150-160 chars]
@@ -1028,7 +939,7 @@ SUBTEMA_LOCAL: [uno de: ${Object.keys(BANCO_LOCAL).join(', ')}]
 CONTENIDO:
 [párrafos cortos separados por línea en blanco]`;
 
-        console.log(`\n📰 Generando [V34.5]: ${categoria}${comunicadoExterno?' (RSS)':''}`);
+        console.log(`\n📰 Generando [V34.5+estrategia]: ${categoria}${comunicadoExterno?' (RSS)':''}`);
         const textoGemini = await llamarGemini(promptTexto);
         const textoLimpio = textoGemini.replace(/^\s*[*#]+\s*/gm, '');
         let titulo='',desc='',pals='',sub='',contenido='';
@@ -1048,7 +959,6 @@ CONTENIDO:
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
         if (!contenido || contenido.length < 300) throw new Error(`Contenido insuficiente (${contenido.length} chars)`);
 
-        // ── Prompt imagen (KEY_3 + KEY_4) ────────────────────────
         let qi='', ai='';
         const promptImagen = `Eres asistente de imagen para periódico dominicano de barrio.
 Titular: "${titulo}" | Categoría: ${categoria}
@@ -1173,6 +1083,13 @@ cron.schedule('0 */2 * * *', async () => {
 
 cron.schedule('30 8,19 * * *', async () => { await procesarRSS(); });
 
+// ── LÍNEA 3: Cron estrategia cada 6 horas ────────────────
+cron.schedule('0 */6 * * *', async () => {
+    console.log('📊 Cron estrategia: actualizando...');
+    await analizarYGenerar();
+});
+// ─────────────────────────────────────────────────────────
+
 async function rafagaInicial() {
     if (!CONFIG_IA.enabled) return;
     for (let i = 1; i <= 2; i++) {
@@ -1182,9 +1099,9 @@ async function rafagaInicial() {
 }
 
 // ══════════════════════════════════════════════════════════
-// RUTAS — NOTICIAS
+// RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'34.5-mxl' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'34.5-mxl+estrategia' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1365,8 +1282,18 @@ app.post('/api/telegram/test', authMiddleware, async (req, res) => {
     res.json({ success:ok, mensaje:ok?'✅ Mensaje enviado':'❌ Error' });
 });
 
+// Ruta pública para ver la estrategia actual
+app.get('/api/estrategia', authMiddleware, (req, res) => {
+    try {
+        const ruta = path.join(__dirname, 'estrategia.json');
+        if (!fs.existsSync(ruta)) return res.json({ success:false, mensaje:'Estrategia aún no generada' });
+        const data = JSON.parse(fs.readFileSync(ruta, 'utf8'));
+        res.json({ success:true, ...data });
+    } catch(e) { res.status(500).json({ error:e.message }); }
+});
+
 // ══════════════════════════════════════════════════════════
-// 📢 RUTAS PUBLICIDAD (sin cambios desde V34.4)
+// 📢 RUTAS PUBLICIDAD
 // ══════════════════════════════════════════════════════════
 app.get('/api/publicidad', authMiddleware, async (req, res) => {
     try {
@@ -1389,10 +1316,8 @@ app.post('/api/publicidad/actualizar', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!id) return res.status(400).json({ error:'Falta ID' });
     try {
-        await pool.query(
-            `UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5, ancho_px=$6, alto_px=$7 WHERE id=$8`,
-            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(ancho_px)||0, parseInt(alto_px)||0, parseInt(id)]
-        );
+        await pool.query(`UPDATE publicidad SET nombre_espacio=$1, url_afiliado=$2, imagen_url=$3, ubicacion=$4, activo=$5, ancho_px=$6, alto_px=$7 WHERE id=$8`,
+            [nombre_espacio||'Sin nombre', url_afiliado||'', imagen_url||'', ubicacion||'top', activo===true||activo==='true', parseInt(ancho_px)||0, parseInt(alto_px)||0, parseInt(id)]);
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1402,10 +1327,8 @@ app.post('/api/publicidad/crear', authMiddleware, async (req, res) => {
     if (pin !== '311') return res.status(403).json({ error:'PIN incorrecto' });
     if (!nombre_espacio) return res.status(400).json({ error:'Falta nombre' });
     try {
-        await pool.query(
-            `INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px) VALUES($1,$2,$3,$4,true,$5,$6)`,
-            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top', parseInt(ancho_px)||0, parseInt(alto_px)||0]
-        );
+        await pool.query(`INSERT INTO publicidad(nombre_espacio, url_afiliado, imagen_url, ubicacion, activo, ancho_px, alto_px) VALUES($1,$2,$3,$4,true,$5,$6)`,
+            [nombre_espacio, url_afiliado||'', imagen_url||'', ubicacion||'top', parseInt(ancho_px)||0, parseInt(alto_px)||0]);
         res.json({ success:true });
     } catch(e) { res.status(500).json({ success:false, error:e.message }); }
 });
@@ -1497,22 +1420,23 @@ app.get('/status', async (req, res) => {
         const ultima = await pool.query(`SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1`);
         const minSin = ultima.rows.length ? Math.round((Date.now()-new Date(ultima.rows[0].fecha))/60000) : 9999;
         const cseActivo = GOOGLE_CSE_KEYS.length > 0 && !!GOOGLE_CSE_CX;
+        const estrategiaExiste = fs.existsSync(path.join(__dirname, 'estrategia.json'));
         res.json({
-            status:'OK', version:'34.5-mxl',
+            status:'OK', version:'34.5-mxl+estrategia',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minSin, ultima_noticia:ultima.rows[0]?.titulo?.substring(0,60)||'—',
             gemini_texto:`KEY_1+KEY_2 (${LLAVES_TEXTO.length} activas)`,
             gemini_imagen:`KEY_3+KEY_4 (${LLAVES_IMAGEN.length} activas)`,
             modelo_gemini:'gemini-2.5-flash',
-            google_cse:cseActivo?`✅ ${GOOGLE_CSE_KEYS.length} keys activas`:'⚠️ Sin configurar (requiere GOOGLE_CSE_KEY_1 + GOOGLE_CSE_CX)',
-            unsplash:UNSPLASH_ACCESS_KEY?'✅ Activo (motor secundario)':'⚠️ Sin key (UNSPLASH_ACCESS_KEY)',
+            google_cse:cseActivo?`✅ ${GOOGLE_CSE_KEYS.length} keys activas`:'⚠️ Sin configurar',
+            unsplash:UNSPLASH_ACCESS_KEY?'✅ Activo':'⚠️ Sin key',
             pexels:PEXELS_API_KEY?'✅ Fallback activo':'⚠️ Sin key',
+            estrategia:estrategiaExiste?'✅ Activa — se actualiza cada 6h':'⚠️ Aún no generada (se genera en 10s)',
             facebook:FB_PAGE_ID&&FB_PAGE_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             twitter:TWITTER_API_KEY&&TWITTER_ACCESS_TOKEN?'✅ Activo':'⚠️ Sin credenciales',
             telegram:TELEGRAM_TOKEN?'✅ Activo':'⚠️ Sin token',
             watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅ Activa':'⚠️ Sin archivo',
             ia_activa:CONFIG_IA.enabled,
-            estilo_sde:'✅ Párrafos cortos, lenguaje barrio, clickbait ético',
             adsense:'pub-5280872495839888 ✅',
             publicidad:'✅ Sistema gestor activo',
         });
@@ -1529,25 +1453,23 @@ async function iniciar() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V34.5 / mxl                              ║
+║  🏮 EL FAROL AL DÍA — V34.5/mxl + ESTRATEGIA                   ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  ✅ KEY_1+KEY_2 → Gemini texto (noticias)                       ║
+║  ✅ KEY_1+KEY_2 → Gemini texto                                  ║
 ║  ✅ KEY_3+KEY_4 → Gemini imagen + Google CSE                    ║
 ║  ✅ Google Custom Search → imágenes reales SDE                  ║
-║  ✅ Filtro mxl: anti-stock, anti-marca, resolución ≥ 1024px     ║
+║  ✅ Estrategia: analiza BD cada 6h, inyecta en Gemini           ║
 ║  ✅ Estilo SDE: párrafos cortos, lenguaje directo               ║
-║  ✅ Pexels + banco local como fallback                          ║
-║  ✅ Todo V34.4 intacto: publicidad, RSS, watermark              ║
-║                                                                  ║
-║  ⚙️  Railway env nuevos:                                         ║
-║     GOOGLE_CSE_KEY_1  → 1ra llave Google Custom Search         ║
-║     GOOGLE_CSE_KEY_2  → 2da llave Google Custom Search         ║
-║     GOOGLE_CSE_CX     → Search Engine ID (cx=...)              ║
+║  ✅ Todo V34.5 intacto: publicidad, RSS, watermark              ║
 ╚══════════════════════════════════════════════════════════════════╝`);
     });
     setTimeout(regenerarWatermarks, 5000);
     setTimeout(bienvenidaTelegram, 8000);
     setTimeout(rafagaInicial, 60000);
+
+    // ── LÍNEA 4: Estrategia al arrancar ──────────────────
+    setTimeout(analizarYGenerar, 10000);
+    // ─────────────────────────────────────────────────────
 }
 
 iniciar();
