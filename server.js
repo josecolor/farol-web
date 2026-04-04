@@ -1,25 +1,11 @@
 /**
- * 🏮 EL FAROL AL DÍA — V37.5 QUAD-KEY EDITION (MXL)
+ * 🏮 EL FAROL AL DÍA — V37.5 FINAL (MXL)
  * ─────────────────────────────────────────────────────────────────────────
- * ✅ CORRECCIONES CRÍTICAS V37.5:
- *   1. Validación flexible: mínimo de caracteres BAJADO DE 600 A 300.
- *   2. Audio Sincrónico: ElevenLabs se genera ANTES del INSERT en BD.
- *   3. Prompt de Blindaje: Obliga a Gemini a mencionar barrios de SDE.
- * ✅ NUEVO EN V37.0:
- *   1. Rotación round-robin de 4 llaves Gemini (KEY1–KEY4)
- *   2. Reparto de carga: KEY1+KEY2 → texto SDE | KEY3+KEY4 → imagen/query
- *   3. Blindaje anti-429: salto automático a siguiente llave disponible
- *   4. Audio ElevenLabs siempre vinculado al slug antes de responder a /tv
- * ✅ HEREDADO DE V36.0:
- *   - ElevenLabs TTS — genera audio .mp3 por noticia
- *   - Ruta /tv — pantalla digital de noticiero con autoplay + ciclo
- *   - SQL parametrizado limpio (sin backticks ni whitespace en queries)
- *   - buscarContextoActualSDE: rotación correcta de CSE keys
- *   - Validación de contenido (300+ chars, barrios SDE, lenguaje dominicano)
- *   - Anti-repetición: 25 títulos + detección automática
- *   - Reintentos automáticos (máx 3) con presión creciente
- *   - Notificaciones push para celular
- *   - aplicarMarcaDeAgua ignora base64-upload y data:image
+ * ✅ LECCIONES APLICADAS (4 PILARES):
+ *   1. Cerrojo JSON → Extracción con indexOf('{') y lastIndexOf('}')
+ *   2. Carrera Audio → INSERT después de generar MP3 (ya estaba ✅)
+ *   3. Anti-Bodas → Filtros agresivos en búsqueda de imágenes
+ *   4. Validación 300 → Mínimo 300 caracteres + reintento forzado
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -271,6 +257,49 @@ let CONFIG_IA = {
 };
 
 // ══════════════════════════════════════════════════════════
+// 🔧 FUNCIÓN: CERROJO JSON (PILAR #1)
+// ══════════════════════════════════════════════════════════
+function extraerJSON(raw) {
+    if (!raw || typeof raw !== 'string') throw new Error('Entrada no válida');
+    
+    // Buscar el primer '{' y el último '}'
+    const inicio = raw.indexOf('{');
+    const fin = raw.lastIndexOf('}') + 1;
+    
+    if (inicio === -1 || fin === 0) throw new Error('No se encontró estructura JSON');
+    
+    const soloJSON = raw.slice(inicio, fin);
+    
+    try {
+        return JSON.parse(soloJSON);
+    } catch (error) {
+        // Intento de reparación: comillas simples a dobles
+        const reparado = soloJSON.replace(/'/g, '"');
+        return JSON.parse(reparado);
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// 🚫 PILAR #3: FILTRO ANTI-BODAS PARA IMÁGENES
+// ══════════════════════════════════════════════════════════
+const PALABRAS_PROHIBIDAS_IMAGENES = [
+    'wedding', 'bride', 'groom', 'romantic', 'love', 'kiss', 'couple', 'marriage',
+    'birthday', 'cake', 'balloon', 'party', 'fashion', 'model', 'selfie', 'portrait',
+    'pet', 'dog', 'cat', 'flower', 'bouquet', 'beauty', 'makeup', 'smile', 'happy'
+];
+
+function filtrarQueryImagen(queryOriginal) {
+    // Eliminar palabras prohibidas del query
+    let queryLimpia = queryOriginal;
+    for (const prohibida of PALABRAS_PROHIBIDAS_IMAGENES) {
+        queryLimpia = queryLimpia.replace(new RegExp(prohibida, 'gi'), '');
+    }
+    // Forzar términos periodísticos
+    queryLimpia = `${queryLimpia} breaking news dominican republic santo domingo este`;
+    return queryLimpia.trim();
+}
+
+// ══════════════════════════════════════════════════════════
 // 🔑 GEMINI V37.0 — ROUND-ROBIN + BLINDAJE 429
 // ══════════════════════════════════════════════════════════
 async function _callGemini(apiKey, prompt) {
@@ -351,17 +380,18 @@ async function llamarGeminiImagen(prompt, reintentos = 1) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🖼️  IMAGENES
+// 🖼️  IMAGENES CON FILTRO ANTI-BODAS
 // ══════════════════════════════════════════════════════════
 const PB  = 'https://images.pexels.com/photos';
 const OPT = '?auto=compress&cs=tinysrgb&w=800';
 
 const BANCO_LOCAL = {
     'politica-gobierno': [`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`, `${PB}/290595/pexels-photo-290595.jpeg${OPT}`],
-    'seguridad-policia': [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`],
-    'economia-mercado': [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`],
-    'deporte-general': [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`],
-    'tecnologia': [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`],
+    'seguridad-policia': [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`, `${PB}/5699456/pexels-photo-5699456.jpeg${OPT}`],
+    'economia-mercado': [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`, `${PB}/6772070/pexels-photo-6772070.jpeg${OPT}`],
+    'deporte-general': [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`, `${PB}/936094/pexels-photo-936094.jpeg${OPT}`],
+    'tecnologia': [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`, `${PB}/2582937/pexels-photo-2582937.jpeg${OPT}`],
+    'transporte-vial': [`${PB}/93398/pexels-photo-93398.jpeg${OPT}`, `${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`],
 };
 
 function imgLocal(sub, cat) {
@@ -370,6 +400,7 @@ function imgLocal(sub, cat) {
 }
 
 async function obtenerImagenInteligente(titulo, categoria, subtemaLocal) {
+    // Usar imagen local con temática apropiada (nunca bodas)
     return imgLocal(subtemaLocal, categoria);
 }
 
@@ -441,28 +472,35 @@ async function construirMemoria(categoria, limiteTitulos = 25) {
 }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR DE CONTENIDO (MÍNIMO 300 CARACTERES)
+// ✅ PILAR #4: VALIDADOR DE CONTENIDO (MÍNIMO 300 CARACTERES)
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, titulo, categoria) {
     const longitud = contenido.length;
-    const barriosSDE = ['Los Mina', 'Invivienda', 'Charles de Gaulle', 'Ensanche Ozama', 'Sabana Perdida', 'Villa Mella'];
+    const barriosSDE = ['Los Mina', 'Invivienda', 'Charles de Gaulle', 'Ensanche Ozama', 'Sabana Perdida', 'Villa Mella', 'El Almirante', 'Mendoza'];
     const barriosMencionados = barriosSDE.filter(b => contenido.toLowerCase().includes(b.toLowerCase()));
     
+    // PILAR #4: Mínimo 300 caracteres (flexible pero estricto)
     if (longitud < 300) {
-        return { valido: false, razon: `Contenido insuficiente (${longitud} chars, mínimo 300)` };
+        return { valido: false, razon: `Contenido insuficiente (${longitud} chars, mínimo 300)`, longitud };
     }
     if (barriosMencionados.length === 0) {
-        return { valido: false, razon: 'No menciona ningún barrio de Santo Domingo Este' };
+        return { valido: false, razon: 'No menciona ningún barrio de Santo Domingo Este', longitud };
     }
     const parrafos = contenido.split(/\n\s*\n/).filter(p => p.trim().length > 20);
     if (parrafos.length < 3) {
-        return { valido: false, razon: `Solo ${parrafos.length} párrafos (mínimo 3)` };
+        return { valido: false, razon: `Solo ${parrafos.length} párrafos (mínimo 3)`, longitud };
+    }
+    // Validar lenguaje de barrio
+    const frasesClave = ['se supo', 'fue confirmado', 'vecinos dicen', 'en el barrio', 'la gente del sector'];
+    const tieneLenguajeBarrio = frasesClave.some(f => contenido.toLowerCase().includes(f));
+    if (!tieneLenguajeBarrio) {
+        return { valido: false, razon: 'Falta lenguaje de barrio dominicano', longitud };
     }
     return { valido: true, longitud, barrios: barriosMencionados, parrafos: parrafos.length };
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V37.5
+// 📰 GENERAR NOTICIA — V37.5 CON 4 PILARES
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
@@ -479,23 +517,24 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
 
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
-🎯 REQUISITOS OBLIGATORIOS:
-1. MÍNIMO 600 CARACTERES
-2. Menciona al menos DOS barrios de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella
-3. Usa lenguaje dominicano real: "se supo", "fue confirmado", "vecinos dicen"
-4. Párrafos cortos (máximo 3 líneas)
+🎯 REQUISITOS OBLIGATORIOS (NO NEGOCIABLES):
+1. MÍNIMO 600 CARACTERES (aproximadamente 5-6 párrafos)
+2. Menciona al menos DOS barrios de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante
+3. Usa lenguaje dominicano real: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice", "en los bajos de la Charles"
+4. Párrafos cortos (máximo 3 líneas por párrafo)
+5. Primera oración = gancho directo. NADA de "En el día de hoy..." o "Se informa que..."
 
 ${memoria}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
 
-RESPONDE EXACTAMENTE (sin texto extra):
-TITULO: [60-70 chars]
+RESPONDE EXACTAMENTE (sin texto extra, sin explicaciones, sin asteriscos):
+TITULO: [60-70 chars, impactante]
 DESCRIPCION: [150-160 chars]
-SUBTEMA_LOCAL: [politica-gobierno|seguridad-policia|economia-mercado|deporte-general|tecnologia]
+SUBTEMA_LOCAL: [politica-gobierno|seguridad-policia|economia-mercado|deporte-general|tecnologia|transporte-vial]
 CONTENIDO:
-[párrafos cortos separados por línea en blanco - MÍNIMO 600 CARACTERES]`;
+[párrafos cortos separados por línea en blanco - MÍNIMO 600 CARACTERES TOTAL]`;
 
         console.log(`   📝 Llamando Gemini TEXTO...`);
         const textoGemini = await llamarGeminiGrupo(promptTexto, 'texto', 2);
@@ -518,15 +557,17 @@ CONTENIDO:
 
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
 
+        // PILAR #4: Validación con reintento si falla
         const validacion = validarContenido(contenido, titulo, categoria);
 
         if (!validacion.valido) {
-            console.log(`   ⚠️ Validación fallida: ${validacion.razon}`);
+            console.log(`   ⚠️ Validación fallida: ${validacion.razon} (${validacion.longitud || 0} chars)`);
             if (reintento < MAX_REINTENTOS) {
+                console.log(`   🔄 Reintentando con más presión (intento ${reintento + 1}/${MAX_REINTENTOS})...`);
                 await new Promise(r => setTimeout(r, 3000));
                 return await generarNoticia(categoria, comunicadoExterno, reintento + 1);
             }
-            throw new Error(`Validación fallida: ${validacion.razon}`);
+            throw new Error(`Validación fallida tras ${MAX_REINTENTOS} intentos: ${validacion.razon}`);
         }
 
         console.log(`   ✅ Texto OK: ${validacion.longitud} chars | barrios: ${validacion.barrios.join(', ')}`);
@@ -541,12 +582,13 @@ CONTENIDO:
         const existeSlug = await pool.query('SELECT id FROM noticias WHERE slug=$1', [slugBase]);
         if (existeSlug.rows.length) slFin = `${slugBase.substring(0, 68)}-${Date.now().toString().slice(-6)}`;
 
-        // 🎙️ AUDIO SINCRÓNICO ANTES DEL INSERT
+        // 🎙️ PILAR #2: AUDIO SINCRÓNICO ANTES DEL INSERT
         let audioNombreGenerado = null;
         if (ELEVEN_LABS_KEY) {
             console.log(`   🎙️ Generando audio ElevenLabs...`);
             audioNombreGenerado = await generarAudioNoticia(contenido, slFin);
             if (audioNombreGenerado) console.log(`   🎙️ Audio listo: ${audioNombreGenerado}`);
+            else console.warn(`   🎙️ Audio no generado — noticia publicará sin audio`);
         }
 
         await pool.query(
@@ -556,13 +598,15 @@ CONTENIDO:
 
         console.log(`\n✅ /noticia/${slFin} [${validacion.longitud} chars] 🎙️ Audio: ${audioNombreGenerado || 'sin audio'}`);
 
-        await enviarNotificacionPush(titulo, desc.substring(0,160), slFin, urlFinal);
+        // Notificación push en segundo plano (no bloquea)
+        enviarNotificacionPush(titulo, desc.substring(0,160), slFin, urlFinal).catch(e => console.warn('Push error:', e.message));
 
-        return { success: true, slug: slFin, titulo, audio: audioNombreGenerado || null };
+        return { success: true, slug: slFin, titulo, audio: audioNombreGenerado || null, stats: validacion };
 
     } catch (error) {
-        console.error(`❌ Error:`, error.message);
+        console.error(`❌ Error en intento ${reintento}:`, error.message);
         if (reintento < MAX_REINTENTOS) {
+            console.log(`🔄 Reintentando por error (${reintento + 1}/${MAX_REINTENTOS})...`);
             await new Promise(r => setTimeout(r, 5000));
             return await generarNoticia(categoria, comunicadoExterno, reintento + 1);
         }
@@ -658,6 +702,7 @@ app.get('/tv', async (req, res) => {
         res.setHeader('Cache-Control', 'no-store');
         res.send(html);
     } catch(err) {
+        console.error('❌ /tv error:', err.message);
         res.status(500).send('Error en El Farol TV');
     }
 });
@@ -665,7 +710,7 @@ app.get('/tv', async (req, res) => {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status: 'OK', version: '37.5-quad-key' }));
+app.get('/health', (req, res) => res.json({ status: 'OK', version: '37.5-final' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60 * 1000;
@@ -709,7 +754,14 @@ app.post('/api/audio/regenerar/:slug', authMiddleware, async (req, res) => {
 
 app.get('/api/admin/llaves', authMiddleware, (req, res) => {
     if (req.query.pin !== '311') return res.status(403).json({ error: 'PIN requerido' });
-    res.json({ success: true, version: '37.5', rr_idx: RR_IDX, llaves_texto: LLAVES_TEXTO.length, llaves_imagen: LLAVES_IMAGEN.length });
+    res.json({ success: true, version: '37.5-final', rr_idx: RR_IDX, llaves_texto: LLAVES_TEXTO.length, llaves_imagen: LLAVES_IMAGEN.length });
+});
+
+app.get('/api/estadisticas', async (req, res) => {
+    try {
+        const r = await pool.query("SELECT COUNT(*) as total, SUM(vistas) as vistas FROM noticias WHERE estado='publicada'");
+        res.json({ success: true, totalNoticias: parseInt(r.rows[0].total) || 0, totalVistas: parseInt(r.rows[0].vistas) || 0 });
+    } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.get('/audio/:nombre', (req, res) => {
@@ -738,28 +790,59 @@ app.get('/noticia/:slug', async (req, res) => {
         if (!r.rows.length) return res.status(404).send('Noticia no encontrada');
         const n = r.rows[0];
         await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1', [n.id]);
-        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${n.titulo} | El Farol al Día</title><meta name="description" content="${n.seo_description}"><meta property="og:title" content="${n.titulo}"><meta property="og:image" content="${n.imagen}"><link rel="icon" href="/static/favicon.png"></head><body style="background:#070707;color:#EDE8DF;font-family:sans-serif;padding:20px"><h1 style="color:#FF5500">${n.titulo}</h1><img src="${n.imagen}" alt="${n.imagen_alt}" style="max-width:100%;border-radius:8px"><div>${n.contenido.split('\n').map(p => `<p>${p}</p>`).join('')}</div><p><strong>${new Date(n.fecha).toLocaleDateString('es-DO')}</strong> | ${n.vistas} vistas</p><a href="/" style="color:#FF5500">← Volver</a></body></html>`;
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${n.titulo} | El Farol al Día</title><meta name="description" content="${n.seo_description}"><meta property="og:title" content="${n.titulo}"><meta property="og:image" content="${n.imagen}"><link rel="icon" href="/static/favicon.png"></head><body style="background:#070707;color:#EDE8DF;font-family:sans-serif;padding:20px"><h1 style="color:#FF5500">${n.titulo}</h1><img src="${n.imagen}" alt="${n.imagen_alt}" style="max-width:100%;border-radius:8px"><div>${n.contenido.split('\n').map(p => `<p>${p}</p>`).join('')}</div><p><strong>${new Date(n.fecha).toLocaleDateString('es-DO')}</strong> | ${n.vistas} vistas</p>${n.audio_nombre ? `<audio controls src="/audio/${n.audio_nombre}"></audio>` : ''}<br><a href="/" style="color:#FF5500">← Volver</a></body></html>`;
         res.send(html);
     } catch(e) { res.status(500).send('Error'); }
 });
 
 app.get('/status', async (req, res) => {
     const r = await pool.query("SELECT COUNT(*) FROM noticias WHERE estado='publicada'");
-    res.json({ status: 'OK', version: '37.5-quad-key', noticias: parseInt(r.rows[0].count), eleven_labs: !!ELEVEN_LABS_KEY, llaves_texto: LLAVES_TEXTO.length, llaves_imagen: LLAVES_IMAGEN.length });
+    res.json({ 
+        status: 'OK', 
+        version: '37.5-final',
+        noticias: parseInt(r.rows[0].count),
+        eleven_labs: !!ELEVEN_LABS_KEY,
+        llaves_texto: LLAVES_TEXTO.length,
+        llaves_imagen: LLAVES_IMAGEN.length,
+        watermark: WATERMARK_PATH ? '✅ Activa' : '⚠️ No disponible',
+        push: VAPID_PUBLIC_KEY ? '✅ Activo' : '⚠️ No configurado'
+    });
 });
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE
+// CRON JOBS
 // ══════════════════════════════════════════════════════════
+const CATEGORIAS = ['Nacionales', 'Deportes', 'Internacionales', 'Economía', 'Tecnología', 'Espectáculos'];
+let indiceCategoria = 0;
+
+// Generar noticia cada 2 horas
+cron.schedule('0 */2 * * *', async () => {
+    if (!CONFIG_IA.enabled) return;
+    const categoria = CATEGORIAS[indiceCategoria % CATEGORIAS.length];
+    indiceCategoria++;
+    console.log(`⏰ Cron: generando noticia de ${categoria}`);
+    await generarNoticia(categoria);
+});
+
+// ARRANQUE
 async function iniciar() {
     await inicializarBase();
     await initPushTable();
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`\n🏮 EL FAROL AL DÍA — V37.5 QUAD-KEY EDITION`);
-        console.log(`📡 Puerto: ${PORT}`);
-        console.log(`🔑 Llaves texto: ${LLAVES_TEXTO.length} | Llaves imagen: ${LLAVES_IMAGEN.length}`);
-        console.log(`🎙️ ElevenLabs: ${ELEVEN_LABS_KEY ? '✅ Activo' : '⚠️ No configurado'}`);
-        console.log(`📺 TV Channel: ${BASE_URL}/tv\n`);
+        console.log(`
+╔══════════════════════════════════════════════════════════════════════════╗
+║  🏮 EL FAROL AL DÍA — V37.5 FINAL (MXL)                                ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║  ✅ PILAR #1: Cerrojo JSON — extracción con indexOf/lastIndexOf        ║
+║  ✅ PILAR #2: Audio sincrónico — INSERT después del MP3                ║
+║  ✅ PILAR #3: Anti-bodas — filtros agresivos en imágenes               ║
+║  ✅ PILAR #4: Validación 300 — mínimo + reintento forzado              ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║  🔑 Llaves texto: ${LLAVES_TEXTO.length} | Llaves imagen: ${LLAVES_IMAGEN.length}                     ║
+║  🎙️ ElevenLabs: ${ELEVEN_LABS_KEY ? '✅ Activo' : '⚠️ No configurado'}                                    ║
+║  📺 TV Channel: ${BASE_URL}/tv                                          ║
+║  📡 Puerto: ${PORT}                                                     ║
+╚══════════════════════════════════════════════════════════════════════════╝`);
     });
     setTimeout(() => generarNoticia('Nacionales'), 10000);
 }
