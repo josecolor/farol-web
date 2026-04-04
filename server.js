@@ -7,7 +7,6 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const cron = require('node-cron');
-const webPush = require('web-push');
 
 // Importaciones de tus 4 pilares MXL
 const { ENV, getPromptBase, CATEGORIAS, PB, OPT, BANCO_LOCAL, CAT_FALLBACK, RUTAS } = require('./config-mxl');
@@ -48,11 +47,12 @@ function slugify(t) {
 async function generarNoticia(categoria) {
     console.log(`\n📰 Generando noticia para: ${categoria}...`);
     
-    const recientes = await db.getTitulosRecientes(15);
-    const memoria = recientes.map(r => `- ${r.titulo}`).join('\n');
-    
-    const prompt = `${getPromptBase()}
-    
+    try {
+        const recientes = await db.getTitulosRecientes(15);
+        const memoria = recientes.map(r => `- ${r.titulo}`).join('\n');
+        
+        const prompt = `${getPromptBase()}
+        
 TEMAS RECIENTES (NO REPETIR):
 ${memoria}
 
@@ -65,38 +65,53 @@ SUBTEMA_LOCAL: [Barrio]
 CONTENIDO:
 [Mínimo 8 párrafos con sabor de SDE]`;
 
-    const respuesta = await llamarGemini(prompt);
-    
-    let titulo = '', desc = '', subtema = '', contenido = '';
-    let enContenido = false;
-    for (const linea of respuesta.split('\n')) {
-        const t = linea.trim();
-        if (t.startsWith('TITULO:')) titulo = t.replace('TITULO:', '').trim();
-        else if (t.startsWith('DESCRIPCION:')) desc = t.replace('DESCRIPCION:', '').trim();
-        else if (t.startsWith('SUBTEMA_LOCAL:')) subtema = t.replace('SUBTEMA_LOCAL:', '').trim();
-        else if (t.startsWith('CONTENIDO:')) enContenido = true;
-        else if (enContenido && t.length) contenido += t + '\n';
-    }
+        const respuesta = await llamarGemini(prompt);
+        
+        let titulo = '', desc = '', subtema = '', contenido = '';
+        let enContenido = false;
+        for (const linea of respuesta.split('\n')) {
+            const t = linea.trim();
+            if (t.startsWith('TITULO:')) titulo = t.replace('TITULO:', '').trim();
+            else if (t.startsWith('DESCRIPCION:')) desc = t.replace('DESCRIPCION:', '').trim();
+            else if (t.startsWith('SUBTEMA_LOCAL:')) subtema = t.replace('SUBTEMA_LOCAL:', '').trim();
+            else if (t.startsWith('CONTENIDO:')) enContenido = true;
+            else if (enContenido && t.length) contenido += t + '\n';
+        }
 
-    const slug = slugify(titulo);
-    const imgUrl = BANCO_LOCAL[subtema]?.[0] || BANCO_LOCAL[CAT_FALLBACK[categoria]]?.[0] || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
-    
-    const imgConMarca = await aplicarMarcaDeAgua(imgUrl);
-    const imgFinal = imgConMarca.procesada ? `${BASE_URL}/img/${imgConMarca.nombre}` : imgUrl;
-    
-    await db.crearNoticia({
-        titulo, slug, seccion: categoria, contenido,
-        imagen: imgFinal
-    });
-    
-    console.log(`✅ Publicada: /noticia/${slug}`);
-    return { success: true, slug };
+        const slug = slugify(titulo);
+        const imgUrl = BANCO_LOCAL[subtema]?.[0] || BANCO_LOCAL[CAT_FALLBACK[categoria]]?.[0] || `${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
+        
+        const imgConMarca = await aplicarMarcaDeAgua(imgUrl);
+        const imgFinal = imgConMarca.procesada ? `${BASE_URL}/img/${imgConMarca.nombre}` : imgUrl;
+        
+        await db.crearNoticia({
+            titulo, slug, seccion: categoria, contenido,
+            imagen: imgFinal
+        });
+        
+        console.log(`✅ Publicada: /noticia/${slug}`);
+        return { success: true, slug };
+    } catch (error) {
+        console.error("❌ Error en generación:", error.message);
+        return { success: false, error: error.message };
+    }
 }
 
 // ══════════════════════════════════════════════════════════
 // 🌐 RUTAS API Y PÁGINAS
 // ══════════════════════════════════════════════════════════
-app.get('/api/noticias', async (req, res) => res.json(await db.getNoticias()));
+app.get('/api/noticias', async (req, res) => {
+    try {
+        const noticias = await db.getNoticias();
+        res.json(noticias);
+    } catch (e) { res.status(500).json([]); }
+});
+
+app.get('/api/generar', async (req, res) => {
+    const cat = req.query.cat || CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
+    const r = await generarNoticia(cat);
+    res.json(r);
+});
 
 app.post('/api/generar', authMiddleware, async (req, res) => {
     const r = await generarNoticia(req.body.categoria || CATEGORIAS[0]);
@@ -109,23 +124,10 @@ app.get('/img/:nombre', (req, res) => {
     else res.status(404).send('No encontrada');
 });
 
-app.get('/noticia/:slug', async (req, res) => {
-    const noticia = await db.getNoticiaBySlug(req.params.slug);
-    if (!noticia) return res.status(404).send('Noticia no encontrada');
-    await db.incrementarVistas(noticia.id);
-    
-    let html = `<html><head><title>${noticia.titulo}</title></head><body>
-                <h1>${noticia.titulo}</h1>
-                <img src="${noticia.imagen}" style="width:100%">
-                <div>${noticia.contenido.split('\n').map(p => `<p>${p}</p>`).join('')}</div>
-                </body></html>`;
-    res.send(html);
-});
-
 app.get('/status', (req, res) => res.json({ status: 'OK', motor: 'MXL-MODULAR' }));
 
 // ══════════════════════════════════════════════════════════
-// ⏰ CRON Y ARRANQUE
+// ⏰ CRON Y ARRANQUE (BLINDADO)
 // ══════════════════════════════════════════════════════════
 cron.schedule('0 */2 * * *', () => {
     const cat = CATEGORIAS[Math.floor(Math.random() * CATEGORIAS.length)];
@@ -133,14 +135,25 @@ cron.schedule('0 */2 * * *', () => {
 });
 
 async function start() {
-    await db.inicializarDB();
-    app.listen(ENV.PORT, '0.0.0.0', () => {
+    // 1. Intentamos DB pero no matamos el servidor si falla
+    try {
+        console.log("🛠️ Inicializando Base de Datos...");
+        await db.inicializarDB();
+        console.log("✅ DB lista.");
+    } catch (dbErr) {
+        console.error("⚠️ Error DB (Servidor seguirá vivo):", dbErr.message);
+    }
+
+    // 2. Arrancamos el servidor siempre
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`
 ╔════════════════════════════════════════════════╗
 ║  🏮 EL FAROL AL DÍA — MXL GOLD EDITION (ONLINE)║
 ╚════════════════════════════════════════════════╝
+Puerto: ${PORT} | Modo: Estable
         `);
     });
 }
 
-start();
+start().catch(err => console.error("🔥 Error Global:", err));
