@@ -2,354 +2,99 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>El Farol al Día 🏮 Último Minuto RD | Santo Domingo Este</title>
-    <meta name="description" content="Noticias de último minuto de Santo Domingo Este, Los Mina, Invivienda, Ensanche Ozama y toda la República Dominicana. Información veraz y actualizada.">
-    <meta name="keywords" content="noticias santo domingo este, los mina, invivienda, ensanche ozama, el farol al día, periódico digital dominicano, últimas noticias rd">
-    <meta name="author" content="El Farol al Día">
-    <meta name="robots" content="index, follow, max-image-preview:large">
-    <link rel="canonical" href="https://elfarolaldia.com/">
-    <meta property="og:title" content="El Farol al Día · Periódico Digital de Santo Domingo Este">
-    <meta property="og:description" content="Noticias de último minuto de Santo Domingo Este y toda la República Dominicana">
-    <meta property="og:image" content="https://elfarolaldia.com/static/og-image.jpg">
-    <meta property="og:url" content="https://elfarolaldia.com/">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="El Farol al Día">
-    <meta name="twitter:description" content="Noticias de último minuto de Santo Domingo Este">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    
-    <!-- OneSignal -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(async function(OneSignal) {
-            await OneSignal.init({ 
-                appId: "14cdf752-ad4f-4d48-8eea-1bbb5dfc8e72", 
-                notifyButton: { enable: true } 
-            });
-        });
-    </script>
-    
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Farol al Día | SDE 2026</title>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
-        :root {
-            --naranja: #FF5500;
-            --naranja-claro: #FF7733;
-            --fondo: #070707;
-            --tarjeta: #141418;
-            --texto: #EDE8DF;
-            --texto-sec: #A89F94;
-            --borde: #222228;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--fondo); color: var(--texto); font-family: 'Georgia', serif; min-height: 100vh; }
-
-        /* HEADER & NAV */
-        header { background: #000; border-bottom: 3px solid var(--naranja); position: sticky; top: 0; z-index: 100; }
-        .header-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; gap: 15px; }
-        .logo-wrap h1 { font-size: 28px; color: var(--naranja); font-weight: 900; text-transform: uppercase; }
-        .tagline { font-size: 11px; color: var(--texto-sec); letter-spacing: 1px; margin-top: 4px; }
-        .fecha-actual { font-size: 12px; background: var(--tarjeta); padding: 6px 12px; border-radius: 20px; }
-
-        /* NAV CATEGORÍAS */
-        .nav-cats { background: #0d0d0d; border-bottom: 1px solid var(--borde); overflow-x: auto; }
-        .nav-cats ul { display: flex; list-style: none; max-width: 1200px; margin: 0 auto; }
-        .nav-cats ul li a { display: block; padding: 15px; font-size: 12px; color: #888; text-decoration: none; font-weight: bold; text-transform: uppercase; transition: 0.2s; cursor: pointer; }
-        .nav-cats ul li a.activo, .nav-cats ul li a:hover { color: var(--naranja); border-bottom: 2px solid var(--naranja); }
-
-        /* 📺 SECCIÓN FAROL TV */
-        .tv-section { background: #000; padding: 20px 0; border-bottom: 1px solid var(--borde); }
-        .tv-container { max-width: 1000px; margin: 0 auto; background: #111; border: 2px solid var(--naranja); border-radius: 12px; overflow: hidden; box-shadow: 0 0 30px rgba(255,85,0,0.2); }
-        .tv-header-label { background: var(--naranja); color: #fff; font-size: 12px; font-weight: 900; padding: 8px 15px; display: flex; align-items: center; gap: 8px; font-family: Arial; letter-spacing: 1px; }
-        .live-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-        .tv-iframe { width: 100%; height: 500px; border: none; }
-
-        /* TICKER */
-        .ticker-wrap { background: var(--naranja); padding: 10px 0; overflow: hidden; white-space: nowrap; }
-        .ticker-text { display: inline-block; animation: tickerScroll 40s linear infinite; font-weight: bold; font-size: 14px; color: #fff; padding-left: 100%; }
-        .ticker-text span { margin-right: 50px; }
-        @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-        /* GRID DE NOTICIAS */
-        .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
-        .grid-noticias { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 28px; }
-        .noticia-card { background: var(--tarjeta); border-radius: 12px; border: 1px solid var(--borde); text-decoration: none; color: inherit; display: flex; flex-direction: column; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
-        .noticia-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(255,85,0,0.15); border-color: var(--naranja); }
-        .card-img img { width: 100%; height: 210px; object-fit: cover; display: block; }
-        .card-info { padding: 20px; flex: 1; display: flex; flex-direction: column; }
-        .card-info small { color: var(--naranja); font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
-        .card-info h2 { font-size: 18px; margin: 12px 0; line-height: 1.4; }
-        .card-info p { font-size: 13px; color: var(--texto-sec); line-height: 1.5; }
-
-        /* 🔊 BOTÓN DE AUDIO CORREGIDO */
-        .audio-btn { 
-            background: #1a1a1a; 
-            border: 1px solid var(--naranja); 
-            color: var(--naranja); 
-            padding: 8px 14px; 
-            border-radius: 30px; 
-            font-size: 12px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 8px; 
-            margin-top: 12px;
-            transition: all 0.2s; 
-            font-family: Arial, sans-serif;
-            width: fit-content;
-        }
-        .audio-btn:hover { background: var(--naranja); color: #fff; }
-        .audio-btn.playing { background: #2e7d32 !important; color: #fff !important; border-color: #4caf50 !important; }
+        /* Estilo limpio mxl */
+        body { background:#070707; color:#EDE8DF; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin:0; padding:15px; }
+        header { text-align:center; border-bottom:2px solid #FF5500; padding-bottom:15px; margin-bottom:25px; }
+        header h1 { color:#FF5500; margin:0; font-size: 28px; letter-spacing: 1px; }
+        header p { margin:5px 0; font-weight:bold; text-transform:uppercase; font-size:12px; color: #A89F94; }
         
-        .leer-mas { margin-top: 12px; color: var(--naranja); text-decoration: none; font-weight: bold; font-size: 12px; display: inline-block; }
-        .leer-mas:hover { text-decoration: underline; }
+        #noticias-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px; max-width:1200px; margin:0 auto; }
         
-        .loading { text-align: center; padding: 60px; color: var(--texto-sec); }
-        footer { background: #0A0A0E; text-align: center; padding: 30px; margin-top: 40px; border-top: 1px solid var(--borde); font-size: 12px; color: var(--texto-sec); }
-        footer a { color: var(--naranja); text-decoration: none; }
-
-        @media (max-width: 768px) { 
-            .tv-iframe { height: 280px; } 
-            .grid-noticias { grid-template-columns: 1fr; }
-            .header-top { flex-direction: column; text-align: center; }
-        }
+        .card { background:#141418; border-radius:12px; overflow:hidden; border:1px solid #333; transition: 0.3s; }
+        .card:hover { border-color: #FF5500; transform: translateY(-3px); }
+        .card img { width:100%; height:210px; object-fit:cover; border-bottom: 1px solid #333; }
+        .card-body { padding:18px; }
+        
+        .tag { color:#FF5500; font-size:11px; font-weight:bold; text-transform:uppercase; display: block; margin-bottom: 8px; }
+        .card h2 { font-size:19px; margin:0 0 12px 0; line-height: 1.3; color: #fff; }
+        .card p { font-size:14px; color:#A89F94; line-height:1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        .btn-audio { background:#FF5500; color:#fff; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold; width:100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-audio:hover { background: #E64D00; }
+        .btn-no-audio { background:#222; color:#555; border:none; padding:12px; border-radius:8px; width:100%; cursor: not-allowed; }
+        
+        .leer-mas { display:block; text-align:center; margin-top:15px; color:#FF5500; text-decoration:none; font-size:13px; font-weight:bold; border: 1px solid #FF5500; padding: 8px; border-radius: 6px; }
+        .leer-mas:hover { background: rgba(255, 85, 0, 0.1); }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="header-top">
-        <div class="logo-wrap">
-            <h1>🏮 EL FAROL AL DÍA</h1>
-            <div class="tagline">Santo Domingo Este · República Dominicana · 2026</div>
-        </div>
-        <div class="fecha-actual" id="fecha-actual"></div>
-    </div>
-    <nav class="nav-cats">
-        <ul>
-            <li><a onclick="filtrarCat('');return false;" class="activo" id="btn-todos">Todas</a></li>
-            <li><a onclick="filtrarCat('Nacionales');return false;" id="btn-Nacionales">🏛️ Nacionales</a></li>
-            <li><a onclick="filtrarCat('Deportes');return false;" id="btn-Deportes">⚽ Deportes</a></li>
-            <li><a onclick="filtrarCat('Internacionales');return false;" id="btn-Internacionales">🌍 Internacionales</a></li>
-            <li><a onclick="filtrarCat('Economía');return false;" id="btn-Economía">💰 Economía</a></li>
-            <li><a onclick="filtrarCat('Tecnología');return false;" id="btn-Tecnología">💻 Tecnología</a></li>
-            <li><a onclick="filtrarCat('Espectáculos');return false;" id="btn-Espectáculos">🎬 Espectáculos</a></li>
-        </ul>
-    </nav>
-</header>
+    <header>
+        <h1>🏮 EL FAROL AL DÍA</h1>
+        <p>Santo Domingo Este · Lo que el otro no te cuenta</p>
+    </header>
 
-<!-- 📺 FAROL TV - EMBEBIDO EN EL TOP -->
-<section class="tv-section">
-    <div class="tv-container">
-        <div class="tv-header-label">
-            <div class="live-dot"></div> 🔴 EN VIVO: EL FAROL TV DIGITAL · 24/7
-        </div>
-        <iframe src="/tv" class="tv-iframe" title="El Farol TV - Canal de Noticias" scrolling="no"></iframe>
-    </div>
-</section>
+    <main id="noticias-grid">
+        <!-- El robot V35.1 inyectará las noticias aquí -->
+    </main>
 
-<!-- TICKER DE ÚLTIMO MOMENTO -->
-<div class="ticker-wrap">
-    <div class="ticker-text" id="ticker-texto">
-        <span>🏮 Cargando últimas noticias...</span>
-    </div>
-</div>
+    <script>
+        async function cargarNoticias() {
+            try {
+                // Llamamos a la API de tu V35.1
+                const res = await fetch('/api/noticias');
+                const data = await res.json();
+                const grid = document.getElementById('noticias-grid');
+                grid.innerHTML = '';
 
-<main class="container">
-    <div id="contenedor-noticias">
-        <div class="loading">🔄 Cargando noticias de Santo Domingo Este...</div>
-    </div>
-</main>
-
-<footer>
-    <p>© 2026 El Farol al Día · Periódico Digital de Santo Domingo Este, República Dominicana</p>
-    <p>📧 contacto@elfarolaldia.com | 📞 (809) 555-0131</p>
-    <p><a href="/privacidad">Política de Privacidad</a> | <a href="/terminos">Términos de Uso</a> | <a href="/contacto">Contacto</a></p>
-</footer>
-
-<script>
-    let todasLasNoticias = [];
-    let audioActual = null;
-    let categoriaActiva = '';
-
-    // Fecha actual
-    function actualizarFecha() {
-        const ahora = new Date();
-        const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('fecha-actual').innerHTML = `📅 ${ahora.toLocaleDateString('es-DO', opciones)}`;
-    }
-    actualizarFecha();
-
-    // 🔊 FUNCIÓN CORREGIDA: usa audio_nombre de la API
-    function reproducirAudio(audioNombre, titulo, boton) {
-        if (!audioNombre) {
-            // Mostrar notificación amigable
-            const notif = document.createElement('div');
-            notif.textContent = '🔇 Esta noticia aún no tiene audio disponible. Estará lista pronto.';
-            notif.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#FF5500;color:#fff;padding:10px 20px;border-radius:8px;z-index:1000;font-size:13px;';
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 3000);
-            return;
-        }
-
-        // Si hay un audio reproduciéndose, detenerlo
-        if (audioActual && !audioActual.paused) {
-            audioActual.pause();
-            audioActual.currentTime = 0;
-        }
-
-        // Resetear todos los botones
-        document.querySelectorAll('.audio-btn').forEach(btn => {
-            btn.classList.remove('playing');
-            btn.innerHTML = '🔊 Escuchar Noticia';
-        });
-
-        // Crear y reproducir nuevo audio
-        const audioUrl = `/audio/${audioNombre}`;
-        audioActual = new Audio(audioUrl);
-        
-        audioActual.play().catch(err => {
-            console.error('Error al reproducir audio:', err);
-            boton.innerHTML = '❌ Error al reproducir';
-            setTimeout(() => {
-                if (!boton.classList.contains('playing')) {
-                    boton.innerHTML = '🔊 Escuchar Noticia';
+                if (!data.noticias || data.noticias.length === 0) {
+                    grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">Esperando noticias frescas del barrio...</p>';
+                    return;
                 }
-            }, 2000);
-        });
 
-        boton.classList.add('playing');
-        boton.innerHTML = '🎙️ Escuchando...';
-
-        audioActual.onended = () => {
-            boton.classList.remove('playing');
-            boton.innerHTML = '🔊 Escuchar Noticia';
-            audioActual = null;
-        };
-
-        audioActual.onerror = () => {
-            boton.classList.remove('playing');
-            boton.innerHTML = '🔇 Audio no disponible';
-            audioActual = null;
-        };
-    }
-
-    // Renderizar noticias usando audio_nombre del objeto
-    function renderizarNoticias(noticias) {
-        const contenedor = document.getElementById('contenedor-noticias');
-        
-        if (!noticias || noticias.length === 0) {
-            contenedor.innerHTML = '<div class="loading">📭 No hay noticias en esta categoría</div>';
-            return;
-        }
-
-        let html = '<div class="grid-noticias">';
-        noticias.forEach(noticia => {
-            // Usamos el audio_nombre que viene directamente de la API
-            const tieneAudio = noticia.audio_nombre && noticia.audio_nombre !== '';
-            const audioDataAttr = tieneAudio ? `data-audio="${noticia.audio_nombre}"` : '';
-            
-            html += `
-            <div class="noticia-card">
-                <a href="/noticia/${noticia.slug}" class="card-img">
-                    <img src="${noticia.imagen || 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800'}" 
-                         alt="${noticia.imagen_alt || noticia.titulo}"
-                         loading="lazy"
-                         onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800'">
-                </a>
-                <div class="card-info">
-                    <small>${noticia.seccion || 'Noticias'}</small>
-                    <h2>${noticia.titulo}</h2>
-                    <p>${(noticia.seo_description || noticia.titulo).substring(0, 120)}...</p>
+                data.noticias.forEach(n => {
+                    // 🎙️ Lógica para el botón de audio (Antoni)
+                    // Importante: V35.1 debe guardar el campo audio_nombre para que esto funcione
+                    const tieneAudio = n.audio_nombre && n.audio_nombre !== 'null' && n.audio_nombre !== '';
                     
-                    <button class="audio-btn" 
-                            onclick="reproducirAudio('${noticia.audio_nombre || ''}', '${noticia.titulo.replace(/'/g, "\\'")}', this)">
-                        ${tieneAudio ? '🔊 Escuchar Noticia' : '🔇 Sin audio disponible'}
-                    </button>
-                    
-                    <a href="/noticia/${noticia.slug}" class="leer-mas">📖 LEER MÁS →</a>
-                </div>
-            </div>`;
-        });
-        html += '</div>';
-        contenedor.innerHTML = html;
-    }
+                    const botonAudio = tieneAudio 
+                        ? `<button class="btn-audio" onclick="playAudio('${n.audio_nombre}')"><span>🔊</span> ESCUCHAR NOTICIA</button>`
+                        : `<button class="btn-no-audio" disabled>⏳ Audio en proceso</button>`;
 
-    // Actualizar el ticker con los títulos de noticias reales
-    function actualizarTicker(noticias) {
-        const tickerEl = document.getElementById('ticker-texto');
-        if (!noticias || noticias.length === 0) {
-            tickerEl.innerHTML = '<span>🏮 El Farol al Día - Noticias de Santo Domingo Este al instante</span>';
-            return;
-        }
-        
-        const titulos = noticias.slice(0, 15).map(n => `🏮 ${n.titulo}`).join(' • ');
-        tickerEl.innerHTML = `<span>${titulos} • 🔴 ÚLTIMO MINUTO SDE • Síguenos en @elfarolaldia • elfarolaldia.com</span>`;
-    }
-
-    // Filtrar por categoría
-    function filtrarCat(categoria) {
-        categoriaActiva = categoria;
-        
-        // Actualizar clase activa en los botones del nav
-        document.querySelectorAll('.nav-cats ul li a').forEach(link => {
-            link.classList.remove('activo');
-        });
-        
-        if (categoria === '') {
-            document.getElementById('btn-todos').classList.add('activo');
-        } else {
-            const btn = document.getElementById(`btn-${categoria}`);
-            if (btn) btn.classList.add('activo');
-        }
-        
-        const noticiasFiltradas = categoria === '' 
-            ? todasLasNoticias 
-            : todasLasNoticias.filter(n => n.seccion === categoria);
-        
-        renderizarNoticias(noticiasFiltradas);
-    }
-
-    // Cargar noticias desde la API
-    async function cargarNoticias() {
-        try {
-            const response = await fetch('/api/noticias');
-            const data = await response.json();
-            
-            if (data.success && data.noticias) {
-                todasLasNoticias = data.noticias;
-                renderizarNoticias(todasLasNoticias);
-                actualizarTicker(todasLasNoticias);
-            } else {
-                throw new Error('Error al cargar noticias');
+                    grid.innerHTML += `
+                        <article class="card">
+                            <img src="${n.imagen}" alt="${n.imagen_alt || n.titulo}" onerror="this.src='/static/fallback.jpg'">
+                            <div class="card-body">
+                                <span class="tag">${n.seccion}</span>
+                                <h2>${n.titulo}</h2>
+                                <p>${n.seo_description}</p>
+                                ${botonAudio}
+                                <a href="/noticia/${n.slug}" class="leer-mas">LEER NOTICIA COMPLETA</a>
+                            </div>
+                        </article>
+                    `;
+                });
+            } catch (err) {
+                console.error("Error cargando el feed:", err);
             }
-        } catch (error) {
-            console.error('Error:', error);
-            document.getElementById('contenedor-noticias').innerHTML = `
-                <div class="loading">
-                    ❌ Error al cargar noticias. 
-                    <button onclick="cargarNoticias()" style="background:#FF5500;border:none;padding:10px 20px;border-radius:8px;color:#fff;margin-top:15px;cursor:pointer">Reintentar</button>
-                </div>`;
         }
-    }
 
-    // Exponer funciones globalmente
-    window.filtrarCat = filtrarCat;
-    window.reproducirAudio = reproducirAudio;
-    window.cargarNoticias = cargarNoticias;
-    
-    // Inicializar
-    cargarNoticias();
-    
-    // Recargar cada 2 minutos si la pestaña está activa
-    setInterval(() => {
-        if (!document.hidden) cargarNoticias();
-    }, 120000);
-</script>
+        function playAudio(archivo) {
+            const audio = new Audio(`/audio/${archivo}`);
+            audio.play().catch(e => {
+                alert("Toca en cualquier parte de la pantalla para activar el sonido (permiso del navegador)");
+            });
+        }
+
+        // Carga inicial
+        cargarNoticias();
+        
+        // Refresco automático cada 3 minutos (180000ms)
+        setInterval(cargarNoticias, 180000);
+    </script>
 </body>
 </html>
