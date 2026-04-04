@@ -19,6 +19,24 @@
     <meta name="geo.region" content="DO-01">
     <meta name="geo.placename" content="Santo Domingo Este, República Dominicana">
 
+    <!-- 🔔 NOTIFICACIONES ONESIGNAL (Integrado por Gemini para mxl) -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "14cdf752-ad4f-4d48-8eea-1bbb5dfc8e72",
+          notifyButton: {
+            enable: true, /* Esto pone la campanita flotante abajo */
+          },
+          welcomeNotification: {
+            "title": "¡Ya estás con El Farol! 🏮",
+            "message": "Gracias por elegirnos. Recibirás lo último de SDE antes que nadie.",
+          }
+        });
+      });
+    </script>
+
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 
@@ -265,7 +283,7 @@
     const fechaEl = document.getElementById('fecha-actual');
     if (fechaEl) fechaEl.textContent = new Date().toLocaleDateString('es-DO', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-    // ── BANNERS AFILIADOS — con soporte de ancho_px / alto_px ──────────────
+    // ── BANNERS AFILIADOS ──────────────
     async function cargarBanners() {
         try {
             const res = await fetch('/api/publicidad/activos');
@@ -275,9 +293,6 @@
             data.anuncios.forEach(a => {
                 if (!a.imagen_url || !a.url_afiliado) return;
 
-                // ── NUEVO: calcular estilo de dimensiones ──────────────────
-                // Si ancho_px > 0  → usar píxeles exactos (ej: Amazon 300x250)
-                // Si ancho_px = 0  → automático (100% del contenedor, responsive)
                 const ancho = parseInt(a.ancho_px) || 0;
                 const alto  = parseInt(a.alto_px)  || 0;
                 const imgStyle = (ancho > 0 || alto > 0)
@@ -381,14 +396,11 @@
                     </div>
                 </a>`;
 
-                // Insertar banner cada 6 tarjetas
                 if ((i + 1) % 6 === 0) {
                     html += `</div>`;
-
                     if (bannersMedio.length > 0) {
                         const b = bannersMedio[bannerIdx % bannersMedio.length];
                         bannerIdx++;
-                        // ── NUEVO: aplicar dimensiones exactas del banner medio ──
                         const bAncho = parseInt(b.ancho_px) || 0;
                         const bAlto  = parseInt(b.alto_px)  || 0;
                         const bStyle = (bAncho > 0 || bAlto > 0)
@@ -406,7 +418,6 @@
                             <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
                         </div>`;
                     }
-
                     html += `<div class="grid-noticias">`;
                 }
             }
