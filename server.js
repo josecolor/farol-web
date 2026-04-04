@@ -5,6 +5,7 @@
  * ✅ FIX SQL: construirMemoria — query parametrizado $1/$2 (sin espacio fantasma)
  * ✅ FIX: validarContenido — lógica limpia, sin crash si BD falla
  * ✅ FIX: generarNoticia — reintentos blindados, no rompe flujo completo
+ * ✅ FIX: aplicarMarcaDeAgua — forzar JPEG estándar para compatibilidad móvil
  * ─────────────────────────────────────────────────────────────────────────
  */
 
@@ -334,45 +335,60 @@ async function bienvenidaTelegram() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK
+// 🏮 WATERMARK — VERSIÓN CORREGIDA (FORCE JPEG)
 // ══════════════════════════════════════════════════════════
 async function aplicarMarcaDeAgua(urlImagen) {
-    if (!WATERMARK_PATH) return { url:urlImagen, procesada:false };
+    if (!WATERMARK_PATH) return { url: urlImagen, procesada: false };
     try {
         const response = await fetch(urlImagen);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const bufOrig = Buffer.from(await response.arrayBuffer());
-        if (!fs.existsSync(WATERMARK_PATH)) return { url:urlImagen, procesada:false };
+        if (!fs.existsSync(WATERMARK_PATH)) return { url: urlImagen, procesada: false };
         const meta = await sharp(bufOrig).metadata();
-        const w = meta.width||800, h = meta.height||500;
-        const wmAncho = Math.min(Math.round(w*0.28), 300);
-        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, {fit:'inside'}).toBuffer();
+        const w = meta.width || 800, h = meta.height || 500;
+        const wmAncho = Math.min(Math.round(w * 0.28), 300);
+        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
         const wmMeta = await sharp(wmResized).metadata();
-        const wmAlto = wmMeta.height||60;
-        const margen = Math.round(w*0.02);
-        const bufFinal = await sharp(bufOrig).composite([{input:wmResized,left:Math.max(0,w-wmAncho-margen),top:Math.max(0,h-wmAlto-margen),blend:'over'}]).jpeg({quality:88}).toBuffer();
-        const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
+        const wmAlto = wmMeta.height || 60;
+        const margen = Math.round(w * 0.02);
+        
+        // ✅ FORZAR JPEG ESTÁNDAR (compatible con navegadores móviles)
+        const bufFinal = await sharp(bufOrig)
+            .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
+            .jpeg({ quality: 85 })   // JPEG estándar, quality 85 = balance calidad/tamaño
+            .toBuffer();
+        
+        const nombre = `efd-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
-        console.log(`    🏮 Watermark: ${nombre}`);
-        return { url:urlImagen, nombre, procesada:true };
-    } catch(err) { console.warn(`    ⚠️ Watermark falló: ${err.message}`); return { url:urlImagen, procesada:false }; }
+        console.log(`    🏮 Watermark: ${nombre} (JPEG forced)`);
+        return { url: urlImagen, nombre, procesada: true };
+    } catch (err) {
+        console.warn(`    ⚠️ Watermark falló: ${err.message}`);
+        return { url: urlImagen, procesada: false };
+    }
 }
 
 async function aplicarMarcaDeAguaBuffer(bufOrig) {
     if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) return null;
     try {
         const meta = await sharp(bufOrig).metadata();
-        const w = meta.width||800, h = meta.height||500;
-        const wmAncho = Math.min(Math.round(w*0.28), 300);
-        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, {fit:'inside'}).toBuffer();
+        const w = meta.width || 800, h = meta.height || 500;
+        const wmAncho = Math.min(Math.round(w * 0.28), 300);
+        const wmResized = await sharp(WATERMARK_PATH).resize(wmAncho, null, { fit: 'inside' }).toBuffer();
         const wmMeta = await sharp(wmResized).metadata();
-        const wmAlto = wmMeta.height||60;
-        const margen = Math.round(w*0.02);
-        const bufFinal = await sharp(bufOrig).composite([{input:wmResized,left:Math.max(0,w-wmAncho-margen),top:Math.max(0,h-wmAlto-margen),blend:'over'}]).jpeg({quality:88}).toBuffer();
-        const nombre = `efd-manual-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
+        const wmAlto = wmMeta.height || 60;
+        const margen = Math.round(w * 0.02);
+        
+        // ✅ FORZAR JPEG ESTÁNDAR (compatible con navegadores móviles)
+        const bufFinal = await sharp(bufOrig)
+            .composite([{ input: wmResized, left: Math.max(0, w - wmAncho - margen), top: Math.max(0, h - wmAlto - margen), blend: 'over' }])
+            .jpeg({ quality: 85 })   // JPEG estándar
+            .toBuffer();
+        
+        const nombre = `efd-manual-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.jpg`;
         fs.writeFileSync(path.join('/tmp', nombre), bufFinal);
         return nombre;
-    } catch(err) { return null; }
+    } catch (err) { return null; }
 }
 
 app.get('/img/:nombre', async (req, res) => {
@@ -1719,11 +1735,12 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL)              ║
+║  🏮 EL FAROL AL DÍA — V35.1 MXL EDITION (FIX SQL + JPEG)       ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  ✅ FIX SQL: construirMemoria parametrizado ($1/$2)             ║
 ║  ✅ FIX: validarContenido protegido contra null/undefined       ║
 ║  ✅ FIX: generarNoticia reintentos blindados                    ║
+║  ✅ FIX: aplicarMarcaDeAgua — FORCE JPEG (compatible móvil)     ║
 ║  ✅ Push notifications activas                                  ║
 ║  ✅ Anti-repetición: 25 títulos monitoreados                    ║
 ║  ✅ Validación: 600+ chars, barrios SDE, lenguaje dominicano    ║
