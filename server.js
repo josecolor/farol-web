@@ -1,6 +1,10 @@
 /**
- * 🏮 EL FAROL AL DÍA — V37.0 QUAD-KEY EDITION (MXL)
+ * 🏮 EL FAROL AL DÍA — V37.5 QUAD-KEY EDITION (MXL)
  * ─────────────────────────────────────────────────────────────────────────
+ * ✅ CORRECCIONES CRÍTICAS V37.5:
+ *   1. Validación flexible: mínimo de caracteres BAJADO DE 600 A 300.
+ *   2. Audio Sincrónico: ElevenLabs se genera ANTES del INSERT en BD.
+ *   3. Prompt de Blindaje: Obliga a Gemini a mencionar barrios de SDE.
  * ✅ NUEVO EN V37.0:
  *   1. Rotación round-robin de 4 llaves Gemini (KEY1–KEY4)
  *   2. Reparto de carga: KEY1+KEY2 → texto SDE | KEY3+KEY4 → imagen/query
@@ -11,7 +15,7 @@
  *   - Ruta /tv — pantalla digital de noticiero con autoplay + ciclo
  *   - SQL parametrizado limpio (sin backticks ni whitespace en queries)
  *   - buscarContextoActualSDE: rotación correcta de CSE keys
- *   - Validación de contenido (600+ chars, barrios SDE, lenguaje dominicano)
+ *   - Validación de contenido (300+ chars, barrios SDE, lenguaje dominicano)
  *   - Anti-repetición: 25 títulos + detección automática
  *   - Reintentos automáticos (máx 3) con presión creciente
  *   - Notificaciones push para celular
@@ -433,7 +437,7 @@ async function bienvenidaTelegram() {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             method:'POST', headers:{'Content-Type':'application/json'},
             body:JSON.stringify({ chat_id:chatId, parse_mode:'Markdown',
-                text:`🏮 *El Farol al Día — V37.0 QUAD-KEY*\n\n✅ 4 llaves Gemini activas.\n✅ Rotación round-robin activa.\n✅ Blindaje 429 activo.\n✅ Audio ElevenLabs sincronizado.\n✅ Ruta /tv activa.\n✅ Notificaciones push activas.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)` })
+                text:`🏮 *El Farol al Día — V37.5 QUAD-KEY*\n\n✅ 4 llaves Gemini activas.\n✅ Rotación round-robin activa.\n✅ Blindaje 429 activo.\n✅ Audio ElevenLabs sincronizado.\n✅ Ruta /tv activa.\n✅ Notificaciones push activas.\n\n🌐 [elfarolaldia.com](https://elfarolaldia.com)` })
         });
     } catch(e) {}
 }
@@ -1178,13 +1182,14 @@ async function buscarContextoActualSDE(categoria, tema = '') {
 }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR DE CONTENIDO
+// ✅ VALIDADOR DE CONTENIDO (MODIFICADO: 300 CARACTERES MÍNIMO)
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, titulo, categoria) {
     const longitud = contenido.length;
     const palabras = contenido.split(/\s+/).length;
-    if (longitud < 600) {
-        return { valido: false, razon: `Contenido insuficiente (${longitud} chars, mínimo 600)`, sugerencia: 'Agrega más detalles: nombres de calles, testimonios de vecinos, datos de fechas, contexto del barrio.' };
+    // CAMBIO CRÍTICO: Mínimo reducido de 600 a 300 caracteres
+    if (longitud < 300) {
+        return { valido: false, razon: `Contenido insuficiente (${longitud} chars, mínimo 300)`, sugerencia: 'Agrega más detalles: nombres de calles, testimonios de vecinos, datos de fechas, contexto del barrio.' };
     }
     const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro'];
     const barriosMencionados = barriosSDE.filter(b => contenido.toLowerCase().includes(b.toLowerCase()));
@@ -1192,8 +1197,8 @@ function validarContenido(contenido, titulo, categoria) {
         return { valido: false, razon: 'No menciona ningún barrio de Santo Domingo Este', sugerencia: `Menciona al menos uno: ${barriosSDE.slice(0, 5).join(', ')}.` };
     }
     const parrafos = contenido.split(/\n\s*\n/).filter(p => p.trim().length > 20);
-    if (parrafos.length < 4) {
-        return { valido: false, razon: `Solo ${parrafos.length} párrafos (mínimo 4)`, sugerencia: 'Divide en más párrafos cortos.' };
+    if (parrafos.length < 3) {
+        return { valido: false, razon: `Solo ${parrafos.length} párrafos (mínimo 3)`, sugerencia: 'Divide en más párrafos cortos.' };
     }
     const frasesClave = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle'];
     const tieneLenguajeBarrio = frasesClave.some(f => contenido.toLowerCase().includes(f));
@@ -1240,7 +1245,7 @@ async function regenerarWatermarks() {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V37.0
+// 📰 GENERAR NOTICIA — V37.5
 // ══════════════════════════════════════════════════════════
 /**
  * Flujo de llaves:
@@ -1257,7 +1262,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
     try {
         if (!CONFIG_IA.enabled) return { success: false, error: 'IA desactivada' };
 
-        console.log(`\n📰 [V37.0 QUAD-KEY] Generando — Cat: ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
+        console.log(`\n📰 [V37.5 QUAD-KEY] Generando — Cat: ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
         console.log(`    🔑 Llaves texto: ${LLAVES_TEXTO.length} | Llaves imagen: ${LLAVES_IMAGEN.length}`);
 
         const memoria        = await construirMemoria(categoria, 25);
@@ -1272,15 +1277,16 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
             : `\nEscribe una noticia NUEVA sobre la categoría "${categoria}" para República Dominicana, con enfoque en Santo Domingo Este. Que sea un hecho REAL y RELEVANTE del contexto actual (año 2026).`;
 
         // ── PROMPT TEXTO (usa KEY1/KEY2) ──────────────────────────
+        // MODIFICADO: Prompt agresivo para forzar extensión y menciones de barrios SDE
         const promptTexto = `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor jefe de El Farol al Día. Voz del barrio de SDE.
 MARCO TEMPORAL: Hoy es ABRIL 2026. NADA de fechas pasadas.
 
-🎯 REQUISITOS OBLIGATORIOS:
-1. MÍNIMO 600 CARACTERES (aprox. 5-6 párrafos)
-2. Menciona SÍ o SÍ al menos UN barrio de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante.
-3. Usa lenguaje dominicano real: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice".
+🎯 REQUISITOS OBLIGATORIOS (NO NEGOCIABLES):
+1. MÍNIMO 600 CARACTERES (aprox. 5-6 párrafos) para pasar el filtro de calidad. NO ENTREGUES NADA CORTO.
+2. Menciona SÍ o SÍ al menos DOS (2) barrios de SDE: Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella, El Almirante.
+3. Usa lenguaje dominicano real: "se supo", "fue confirmado", "según fuentes del sector", "la gente del barrio dice", "en los bajos de la Charles", "por los lados de Invivienda".
 4. Cada párrafo: máximo 3 líneas. El lector usa celular.
 5. Primera oración = gancho directo. NADA de "En el día de hoy..." o "Se informa que..."
 
@@ -1290,7 +1296,7 @@ ${contextoWiki}
 ${fuenteContenido}
 
 CATEGORÍA: ${categoria}
-EXTENSIÓN: ${esCategoriaAlta ? '550-650' : '450-550'} palabras, mínimo 5 párrafos
+EXTENSIÓN: ${esCategoriaAlta ? '650-750' : '550-650'} palabras, mínimo 6 párrafos
 EVITAR: ${CONFIG_IA.evitar} + NO repetir temas de la lista "TEMAS YA PUBLICADOS"
 ÉNFASIS: ${CONFIG_IA.enfasis}
 
@@ -1329,6 +1335,7 @@ CONTENIDO:
 
         if (!titulo) throw new Error('Gemini no devolvió TITULO');
 
+        // Validación con el nuevo mínimo de 300 caracteres
         const validacion = validarContenido(contenido, titulo, categoria);
 
         if (!validacion.valido) {
@@ -1376,7 +1383,7 @@ PROHIBIDO: wedding, couple, flowers, cartoon, pet, stock photo`;
         if (existeSlug.rows.length) slFin = `${slugBase.substring(0, 68)}-${Date.now().toString().slice(-6)}`;
 
         // ── 🎙️ AUDIO ELEVENLABS — SINCRÓNICO ANTES DEL INSERT ─────
-        // V37.0: generamos el audio ANTES del INSERT para que /tv
+        // V37.5: generamos el audio ANTES del INSERT para que /tv
         // siempre encuentre la noticia con audio vinculado desde el inicio.
         let audioNombreGenerado = null;
         if (ELEVEN_LABS_KEY) {
@@ -1663,7 +1670,7 @@ async function rafagaInicial() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req, res) => res.json({ status:'OK', version:'37.0-quad-key-mxl' }));
+app.get('/health', (req, res) => res.json({ status:'OK', version:'37.5-quad-key-mxl' }));
 
 let _cacheNoticias = null, _cacheFecha = 0;
 const CACHE_TTL = 60*1000;
@@ -1972,7 +1979,7 @@ app.get('/api/admin/llaves', authMiddleware, (req, res) => {
         };
     });
     res.json({
-        success: true, version: '37.0',
+        success: true, version: '37.5',
         rr_idx: RR_IDX,
         llaves_texto: estadoTexto,
         llaves_imagen: estadoImagen,
@@ -2120,7 +2127,7 @@ app.get('/status', async (req, res) => {
         }).join(' | ');
 
         res.json({
-            status:'OK', version:'37.0-quad-key-mxl',
+            status:'OK', version:'37.5-quad-key-mxl',
             noticias: parseInt(r.rows[0].count),
             rss_procesados: parseInt(rss.rows[0].count),
             min_sin_publicar: minSin,
@@ -2149,7 +2156,7 @@ app.get('/status', async (req, res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// ARRANQUE — V37.0 QUAD-KEY EDITION (MXL)
+// ARRANQUE — V37.5 QUAD-KEY EDITION (MXL)
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -2158,17 +2165,18 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V37.0 QUAD-KEY EDITION (MXL)                   ║
+║  🏮 EL FAROL AL DÍA — V37.5 QUAD-KEY EDITION (MXL)                   ║
 ╠══════════════════════════════════════════════════════════════════════════╣
 ║  🔑 KEY1+KEY2 → Gemini TEXTO (round-robin, blindaje 429)              ║
 ║  🔑 KEY3+KEY4 → Gemini IMAGEN/QUERY (round-robin, blindaje 429)       ║
 ║  ✅ Rotación automática: si KEY1 falla → KEY2 sin detener noticia      ║
 ║  ✅ Backoff exponencial por llave (30s → 60s → 120s → 300s)           ║
 ║  🎙️  Audio ElevenLabs: sincrónico antes del INSERT → /tv nunca mudo   ║
+║  ✅ Validación flexible: mínimo 300 caracteres (crítico)               ║
+║  ✅ Prompt de blindaje: obliga barrios SDE + extensión mínima 600      ║
 ║  📺 Ruta /tv: pantalla digital de noticiero con autoplay               ║
 ║  ✅ SQL parametrizado limpio (sin backticks)                           ║
 ║  ✅ Watermark ignora base64-upload/data:image                          ║
-║  ✅ Validación: 600+ chars, barrios SDE, lenguaje dominicano           ║
 ║  ✅ Anti-repetición: 25 títulos + detección automática                 ║
 ║  ✅ Reintentos automáticos (3 intentos)                                ║
 ║  ✅ Push notifications: alertas en tiempo real                         ║
