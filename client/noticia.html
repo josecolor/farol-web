@@ -358,24 +358,27 @@ async function iniciar() {
   try {
     const r = await fetch('/api/noticias');
     const d = await r.json();
-    todasNoticias = d.noticias || [];
+    
+    // El servidor modular envía el Array directo
+    todasNoticias = Array.isArray(d) ? d : (d.noticias || []);
+    
     const actual = todasNoticias.find(n => n.slug === SLUG);
     if (actual) {
       NOTICIA_ID = actual.id;
-      cargarComentarios();
+      actualizarBreadcrumb(actual);
       navegacionAnteriorSiguiente(actual);
+      cargarComentarios();
     }
     cargarRelacionadas(actual);
     cargarSidebar();
-    actualizarBreadcrumb(actual);
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error("Error al cargar datos:", e); }
 }
 
 function actualizarBreadcrumb(noticia) {
   if (!noticia) return;
   const tit = document.getElementById('breadTitulo');
   const sec = document.getElementById('breadSeccionLink');
-  if (tit) tit.textContent = noticia.titulo.length > 50 ? noticia.titulo.substring(0,50)+'...' : noticia.titulo;
+  if (tit) tit.textContent = noticia.titulo.substring(0, 50) + (noticia.titulo.length > 50 ? '...' : '');
   if (sec) { sec.textContent = noticia.seccion; sec.href = `/#${noticia.seccion}`; }
 }
 
@@ -386,13 +389,13 @@ function navegacionAnteriorSiguiente(actual) {
   if (idx > 0) {
     const sig = todasNoticias[idx - 1];
     btnSig.href = `/noticia/${sig.slug}`;
-    document.getElementById('titSiguiente').textContent = sig.titulo.length > 55 ? sig.titulo.substring(0,55)+'…' : sig.titulo;
+    document.getElementById('titSiguiente').textContent = sig.titulo;
     btnSig.style.visibility = 'visible';
   }
-  if (idx < todasNoticias.length - 1) {
+  if (idx < todasNoticias.length - 1 && idx !== -1) {
     const ant = todasNoticias[idx + 1];
     btnAnt.href = `/noticia/${ant.slug}`;
-    document.getElementById('titAnterior').textContent = ant.titulo.length > 55 ? ant.titulo.substring(0,55)+'…' : ant.titulo;
+    document.getElementById('titAnterior').textContent = ant.titulo;
     btnAnt.style.visibility = 'visible';
   }
 }
@@ -400,42 +403,32 @@ function navegacionAnteriorSiguiente(actual) {
 function cargarRelacionadas(actual) {
   const c = document.getElementById('relacionadas');
   if (!todasNoticias.length) { c.innerHTML = ''; return; }
-  const seccion = actual?.seccion || '';
   const idActual = actual?.id;
-  let mismaSec = todasNoticias.filter(n => n.seccion === seccion && n.id !== idActual).sort(() => Math.random()-.5);
-  let otras    = todasNoticias.filter(n => n.seccion !== seccion && n.id !== idActual).sort(() => Math.random()-.5);
-  const rel = [...mismaSec.slice(0,2), ...otras.slice(0,2)];
-  if (!rel.length) { c.innerHTML = '<p style="color:var(--muted);font-size:13px;font-family:JetBrains Mono,monospace">Sin noticias relacionadas</p>'; return; }
-  c.innerHTML = rel.map(n => {
-    const f = new Date(n.fecha).toLocaleDateString('es-DO', {day:'2-digit',month:'short',year:'numeric'});
-    const img = n.imagen?.startsWith('http') ? n.imagen : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400';
-    return `<a class="rel-card" href="/noticia/${n.slug}">
-      <img src="${img}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
+  const rel = todasNoticias.filter(n => n.id !== idActual).slice(0, 4);
+  
+  c.innerHTML = rel.map(n => `
+    <a class="rel-card" href="/noticia/${n.slug}">
+      <img src="${n.imagen}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
       <div class="rel-body">
         <div class="rel-seccion">${n.seccion}</div>
-        <div class="rel-titulo">${n.titulo.length>60?n.titulo.substring(0,60)+'…':n.titulo}</div>
-        <div class="rel-fecha">📅 ${f}</div>
+        <div class="rel-titulo">${n.titulo}</div>
+        <div class="rel-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>
       </div>
-    </a>`;
-  }).join('');
+    </a>`).join('');
 }
 
 function cargarSidebar() {
   const nav = document.getElementById('sidebarNoticias');
-  const ultimas = todasNoticias.slice(0, 10);
-  if (!ultimas.length) { nav.innerHTML = ''; return; }
-  nav.innerHTML = ultimas.map(n => {
-    const f = new Date(n.fecha).toLocaleDateString('es-DO', {day:'2-digit',month:'short'});
-    const img = n.imagen?.startsWith('http') ? n.imagen : 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100';
-    return `<a class="sidebar-noticia" href="/noticia/${n.slug}">
-      <img class="sidebar-thumb" src="${img}" alt="${n.titulo}" loading="lazy"
-        onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
+  const ultimas = todasNoticias.slice(0, 8);
+  if (!ultimas.length) return;
+  nav.innerHTML = ultimas.map(n => `
+    <a class="sidebar-noticia" href="/noticia/${n.slug}">
+      <img class="sidebar-thumb" src="${n.imagen}" alt="${n.titulo}">
       <div class="sidebar-info">
         <div class="sidebar-titulo">${n.titulo}</div>
-        <div class="sidebar-fecha">📅 ${f} · ${n.seccion}</div>
+        <div class="sidebar-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>
       </div>
-    </a>`;
-  }).join('');
+    </a>`).join('');
 }
 
 async function cargarComentarios() {
@@ -445,64 +438,42 @@ async function cargarComentarios() {
     const d = await r.json();
     const lista = document.getElementById('comLista');
     const count = document.getElementById('comCount');
-    if (!d.comentarios?.length) {
+    const coms = d.comentarios || [];
+
+    if (!coms.length) {
       lista.innerHTML = '<div class="com-empty">Sé el primero en comentar 🏮</div>';
       count.textContent = '';
       return;
     }
-    count.textContent = `${d.comentarios.length} COMENTARIO${d.comentarios.length!==1?'S':''}`;
-    lista.innerHTML = d.comentarios.map(c => {
-      const inicial = c.nombre.charAt(0).toUpperCase();
-      const fecha = new Date(c.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-      return `<div class="comentario-item">
+    count.textContent = `${coms.length} COMENTARIOS`;
+    lista.innerHTML = coms.map(c => `
+      <div class="comentario-item">
         <div class="com-header">
-          <div class="com-avatar">${inicial}</div>
+          <div class="com-avatar">${c.nombre.charAt(0).toUpperCase()}</div>
           <span class="com-nombre">${c.nombre}</span>
-          <span class="com-fecha">📅 ${fecha}</span>
+          <span class="com-fecha">📅 ${new Date(c.fecha).toLocaleDateString()}</span>
         </div>
-        <p class="com-texto">${c.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    document.getElementById('comLista').innerHTML = '<div class="com-empty">No se pudieron cargar los comentarios</div>';
-  }
+        <p class="com-texto">${c.texto}</p>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
 }
 
 async function publicarComentario() {
-  if (!NOTICIA_ID) return;
   const nombre = document.getElementById('comNombre').value.trim();
   const texto  = document.getElementById('comTexto').value.trim();
-  const btn    = document.getElementById('btnComentar');
-  if (!nombre) { showComMsg('❌ Escribe tu nombre', false); return; }
-  if (!texto || texto.length < 3) { showComMsg('❌ Comentario muy corto', false); return; }
-  btn.disabled = true; btn.textContent = 'Publicando...';
+  if (!nombre || !texto) return;
   try {
     const r = await fetch(`/api/comentarios/${NOTICIA_ID}`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({nombre, texto})
     });
-    const d = await r.json();
-    if (d.success) {
+    if (r.ok) {
       document.getElementById('comNombre').value = '';
-      document.getElementById('comTexto').value  = '';
-      document.getElementById('comChars').textContent = '0/1000';
-      showComMsg('✅ Comentario publicado', true);
-      await cargarComentarios();
-    } else { showComMsg('❌ ' + (d.error||'Error'), false); }
-  } catch(e) { showComMsg('❌ Error de conexión', false); }
-  finally { btn.disabled = false; btn.textContent = '💬 PUBLICAR COMENTARIO'; }
+      document.getElementById('comTexto').value = '';
+      cargarComentarios();
+    }
+  } catch(e) { console.error(e); }
 }
-
-function showComMsg(txt, ok) {
-  const el = document.getElementById('comMsg');
-  el.textContent = txt;
-  el.className = 'com-msg ' + (ok ? 'ok' : 'err');
-  setTimeout(() => { el.className = 'com-msg'; }, 5000);
-}
-
-document.getElementById('comTexto').addEventListener('input', function() {
-  document.getElementById('comChars').textContent = `${this.value.length}/1000`;
-});
 
 document.addEventListener('DOMContentLoaded', iniciar);
 </script>
