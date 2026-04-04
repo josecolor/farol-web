@@ -1,7 +1,7 @@
 {
   "name": "el-farol-al-dia",
-  "version": "34.2.1",
-  "description": "Periódico Digital Dominicano — Gemini 2.5-Flash + Rotación Horaria + Filtro Autocrítico + Anti-404",
+  "version": "35.0.0",
+  "description": "Periódico Digital Dominicano — Gemini 2.5-Flash + OneSignal + Estrategia SEO + Anti-404",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,8 @@
     "gemini",
     "automation",
     "rss",
-    "periodico"
+    "periodico",
+    "sde"
   ],
   "author": "José Gregorio Mañan Santana",
   "license": "ISC",
@@ -25,7 +26,9 @@
     "node-cron": "^3.0.3",
     "pg": "^8.11.3",
     "rss-parser": "^3.13.0",
-    "sharp": "^0.32.6"
+    "sharp": "^0.32.6",
+    "web-push": "^3.6.7",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
