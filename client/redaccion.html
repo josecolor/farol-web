@@ -112,7 +112,6 @@
         .slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
         input:checked + .slider { background: var(--naranja); }
         input:checked + .slider::before { transform: translateX(20px); background: #fff; }
-        /* ── PUBLICIDAD ── */
         .pub-card { background: #0a0a0a; border: 1px solid var(--borde); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
         .pub-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .pub-nombre { font-family: 'Oswald', sans-serif; color: var(--naranja); font-size: 14px; }
@@ -275,8 +274,6 @@
 
     <!-- TAB 5 — PUBLICIDAD -->
     <div id="tab-publicidad" class="tab-panel">
-
-        <!-- Crear nuevo espacio -->
         <div class="card" style="margin-bottom:20px;">
             <div class="card-title">➕ Nuevo Espacio Publicitario</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -302,7 +299,6 @@
                 <label>URL de la imagen del banner</label>
                 <input type="url" id="pub-nuevo-img" placeholder="https://tu-imagen-banner.jpg">
             </div>
-            <!-- ── NUEVO: Ancho y Alto ── -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
                 <div>
                     <div class="pub-dim-label">📐 Ancho (px) — 0 = automático</div>
@@ -317,7 +313,6 @@
             <div class="status-box" id="pub-crear-status" style="margin-top:10px;">Completa los campos y crea el espacio.</div>
         </div>
 
-        <!-- Lista de espacios -->
         <div class="card">
             <div class="card-title">📢 Espacios Configurados <span style="font-size:11px;color:#555;font-family:sans-serif;text-transform:none;letter-spacing:0;">— activa/desactiva con el switch</span></div>
             <div id="pub-lista"><p style="color:#555;text-align:center;padding:20px;font-size:13px;">Cargando espacios...</p></div>
@@ -380,9 +375,10 @@ let filtroActual = '';
 let imagenBase64 = null;
 
 function activarTab(id) {
+    const btn = event.target;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activo'));
-    event.target.classList.add('activo');
+    btn.classList.add('activo');
     document.getElementById('tab-' + id).classList.add('activo');
     if (id === 'noticias') cargarNoticias();
     if (id === 'analytics') cargarAnalytics();
@@ -581,9 +577,6 @@ async function guardarGA() {
 
 function abrirGA() { window.open('https://analytics.google.com','_blank'); }
 
-// ══════════════════════════════════════════════════════
-// 📢 PUBLICIDAD — con ancho_px y alto_px
-// ══════════════════════════════════════════════════════
 async function cargarPublicidad() {
     try {
         const res = await fetch('/api/publicidad',{headers:{'Authorization':AUTH}});
@@ -610,7 +603,6 @@ async function cargarPublicidad() {
             <input type="url" class="pub-input" id="url-${a.id}" value="${esc(a.url_afiliado||'')}" placeholder="https://amazon.com/tu-link">
             <div style="font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px;">URL imagen del banner</div>
             <input type="url" class="pub-input" id="img-${a.id}" value="${esc(a.imagen_url||'')}" placeholder="https://imagen-banner.jpg" oninput="previewBanner(${a.id}, this.value)">
-            <!-- ── NUEVO: Ancho y Alto px ── -->
             <div class="pub-dim-row">
                 <div>
                     <div class="pub-dim-label">📐 Ancho (px) — 0 = auto</div>
