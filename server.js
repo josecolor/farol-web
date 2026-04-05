@@ -422,12 +422,20 @@ function nextKey(pool_llaves) {
 
 async function _callGemini(apiKey, prompt, intento, maxTokens = 8000) {
     const st = getKeyState(apiKey);
+
+    // ✅ V39.1 FIX TIEMPOS:
+    // Si la llave está en penalidad 429, espera SU resetTime (no bloquea otras llaves)
     if (Date.now() < st.resetTime) {
-        const wait = Math.min(st.resetTime - Date.now(), 12000);
-        await new Promise(r => setTimeout(r, wait));
+        const espera = st.resetTime - Date.now();
+        // Solo espera si la penalidad es corta (< 20s), si no, el llamador debería usar otra llave
+        if (espera > 20000) throw new Error('RATE_LIMIT_429'); // fuerza el cambio de llave
+        await new Promise(r => setTimeout(r, espera));
     }
+
+    // ✅ Gap mínimo de 15s entre requests por llave — evita saturar la cuota
     const gap = Date.now() - st.lastRequest;
-    if (gap < 5000) await new Promise(r => setTimeout(r, 5000 - gap));
+    const GAP_MINIMO = 15000; // 15 segundos
+    if (gap < GAP_MINIMO) await new Promise(r => setTimeout(r, GAP_MINIMO - gap));
     st.lastRequest = Date.now();
 
     let res;
@@ -443,9 +451,12 @@ async function _callGemini(apiKey, prompt, intento, maxTokens = 8000) {
     } catch(err) { throw new Error(`RED: ${err.message}`); }
 
     if (res.status === 429) {
-        const wait = Math.min(60000 + Math.pow(2, intento) * 20000, 360000);
-        st.resetTime = Date.now() + wait;
+        // ✅ V39.1: Penalidad solo para ESTA llave, progresiva por intento
+        // intento 0 → 80s | intento 1 → 100s | intento 2 → 140s | máx 360s (6 min)
+        const penalidad = Math.min(60000 + Math.pow(2, intento) * 20000, 360000);
+        st.resetTime = Date.now() + penalidad;
         st.errores++;
+        console.warn(`   ⏳ KEY bloqueada ${Math.round(penalidad/1000)}s por rate-limit 429`);
         throw new Error('RATE_LIMIT_429');
     }
     if (res.status === 503 || res.status === 502) {
@@ -483,8 +494,9 @@ async function llamarGemini(prompt, reintentos = 3, maxTokens = 8000) {
             }
         }
         if (intento < reintentos - 1) {
-            console.warn(`   ⏳ Todas las llaves fallaron — esperando 18s...`);
-            await new Promise(r => setTimeout(r, 18000));
+            // ✅ V39.1: 25 segundos entre rondas completas (antes 18s)
+            console.warn(`   ⏳ Todas las llaves fallaron — esperando 25s antes de ronda ${intento+2}...`);
+            await new Promise(r => setTimeout(r, 25000));
         }
     }
     throw new Error(`Gemini falló: ${ultimoError?.message}`);
@@ -1324,7 +1336,7 @@ async function inicializarBase() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req,res) => res.json({ status:'OK', version:'39.0', gemini_keys:TODAS_LLAVES_GEMINI.length }));
+app.get('/health', (req,res) => res.json({ status:'OK', version:'39.1', gemini_keys:TODAS_LLAVES_GEMINI.length, gap_entre_llaves:'15s', penalidad_429:'80-360s' }));
 
 app.get('/api/noticias', async (req,res) => {
     res.setHeader('Access-Control-Allow-Origin','*');
@@ -1671,7 +1683,7 @@ app.get('/status', async (req,res) => {
         const minS=ult.rows.length?Math.round((Date.now()-new Date(ult.rows[0].fecha))/60000):9999;
         const llaves=TODAS_LLAVES_GEMINI.map((k,i)=>{const st=getKeyState(k);return`KEY${i+1}:${Date.now()>=st.resetTime?'✅':'⏳'}`;}).join(' ');
         res.json({
-            status:'OK', version:'39.0-ULTIMATE',
+            status:'OK', version:'39.1-ULTIMATE',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minS, ultima_noticia:ult.rows[0]?.titulo?.substring(0,60)||'—',
             gemini:`${TODAS_LLAVES_GEMINI.length}/8 llaves`, gemini_llaves:llaves,
@@ -1710,9 +1722,10 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V39.0 ULTIMATE EDITION                  ║
+║  🏮 EL FAROL AL DÍA — V39.1 ULTIMATE EDITION                  ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║  🔑 ${TODAS_LLAVES_GEMINI.length}/8 llaves Gemini | maxTokens: 8000                   ║
+║  ⏱️  Gap entre llaves: 15s | Penalidad 429: 80-360s            ║
 ║  🧠 Prompt V39: 10 secciones, calles SDE, 8 párrafos          ║
 ║  🎰 Títulos A/B — elige automáticamente el más clickbait       ║
 ║  📊 Auto-aprendizaje de frases exitosas en BD                  ║
