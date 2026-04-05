@@ -245,7 +245,7 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
         <textarea class="com-input com-textarea" id="comTexto" placeholder="Escribe tu comentario..." maxlength="1000"></textarea>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
           <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="comChars">0/1000</span>
-          <button class="btn-comentar" id="btnComentar" onclick="publicarComentario()">💬 PUBLICAR COMENTARIO</button>
+          <button class="btn-comentar" id="btnComentar">💬 PUBLICAR COMENTARIO</button>
         </div>
         <div class="com-msg" id="comMsg"></div>
       </div>
@@ -359,8 +359,14 @@ async function iniciar() {
     const r = await fetch('/api/noticias');
     const d = await r.json();
     
-    // El servidor modular envía el Array directo
-    todasNoticias = Array.isArray(d) ? d : (d.noticias || []);
+    // CORREGIDO: soporta el formato del servidor modular
+    if (d.success && Array.isArray(d.noticias)) {
+      todasNoticias = d.noticias;
+    } else if (Array.isArray(d)) {
+      todasNoticias = d;
+    } else {
+      todasNoticias = d.noticias || [];
+    }
     
     const actual = todasNoticias.find(n => n.slug === SLUG);
     if (actual) {
@@ -371,7 +377,10 @@ async function iniciar() {
     }
     cargarRelacionadas(actual);
     cargarSidebar();
-  } catch(e) { console.error("Error al cargar datos:", e); }
+  } catch(e) { 
+    console.error("Error:", e);
+    document.getElementById('relacionadas').innerHTML = '<p style="color:var(--muted)">⚠️ Error cargando</p>';
+  }
 }
 
 function actualizarBreadcrumb(noticia) {
@@ -402,16 +411,24 @@ function navegacionAnteriorSiguiente(actual) {
 
 function cargarRelacionadas(actual) {
   const c = document.getElementById('relacionadas');
-  if (!todasNoticias.length) { c.innerHTML = ''; return; }
+  if (!todasNoticias.length) { 
+    c.innerHTML = '<p style="color:var(--muted)">No hay noticias</p>';
+    return; 
+  }
   const idActual = actual?.id;
   const rel = todasNoticias.filter(n => n.id !== idActual).slice(0, 4);
+  
+  if (!rel.length) {
+    c.innerHTML = '<p style="color:var(--muted)">No hay más noticias</p>';
+    return;
+  }
   
   c.innerHTML = rel.map(n => `
     <a class="rel-card" href="/noticia/${n.slug}">
       <img src="${n.imagen}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
       <div class="rel-body">
         <div class="rel-seccion">${n.seccion}</div>
-        <div class="rel-titulo">${n.titulo}</div>
+        <div class="rel-titulo">${n.titulo.substring(0, 60)}</div>
         <div class="rel-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>
       </div>
     </a>`).join('');
@@ -420,12 +437,15 @@ function cargarRelacionadas(actual) {
 function cargarSidebar() {
   const nav = document.getElementById('sidebarNoticias');
   const ultimas = todasNoticias.slice(0, 8);
-  if (!ultimas.length) return;
+  if (!ultimas.length) {
+    nav.innerHTML = '<div style="color:var(--muted)">Cargando...</div>';
+    return;
+  }
   nav.innerHTML = ultimas.map(n => `
     <a class="sidebar-noticia" href="/noticia/${n.slug}">
-      <img class="sidebar-thumb" src="${n.imagen}" alt="${n.titulo}">
+      <img class="sidebar-thumb" src="${n.imagen}" alt="${n.titulo}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
       <div class="sidebar-info">
-        <div class="sidebar-titulo">${n.titulo}</div>
+        <div class="sidebar-titulo">${n.titulo.substring(0, 55)}</div>
         <div class="sidebar-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>
       </div>
     </a>`).join('');
@@ -450,10 +470,10 @@ async function cargarComentarios() {
       <div class="comentario-item">
         <div class="com-header">
           <div class="com-avatar">${c.nombre.charAt(0).toUpperCase()}</div>
-          <span class="com-nombre">${c.nombre}</span>
+          <span class="com-nombre">${escapeHtml(c.nombre)}</span>
           <span class="com-fecha">📅 ${new Date(c.fecha).toLocaleDateString()}</span>
         </div>
-        <p class="com-texto">${c.texto}</p>
+        <p class="com-texto">${escapeHtml(c.texto)}</p>
       </div>`).join('');
   } catch(e) { console.error(e); }
 }
@@ -461,21 +481,71 @@ async function cargarComentarios() {
 async function publicarComentario() {
   const nombre = document.getElementById('comNombre').value.trim();
   const texto  = document.getElementById('comTexto').value.trim();
-  if (!nombre || !texto) return;
+  const btn = document.getElementById('btnComentar');
+  const msg = document.getElementById('comMsg');
+  
+  if (!nombre) { mostrarMsg('Escribe tu nombre', 'err'); return; }
+  if (!texto) { mostrarMsg('Escribe un comentario', 'err'); return; }
+  if (texto.length < 5) { mostrarMsg('Comentario muy corto', 'err'); return; }
+  
+  btn.disabled = true;
+  btn.textContent = '⏳ ENVIANDO...';
+  
   try {
     const r = await fetch(`/api/comentarios/${NOTICIA_ID}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({nombre, texto})
     });
-    if (r.ok) {
+    const data = await r.json();
+    if (data.success) {
       document.getElementById('comNombre').value = '';
       document.getElementById('comTexto').value = '';
+      document.getElementById('comChars').textContent = '0/1000';
+      mostrarMsg('✅ Comentario publicado', 'ok');
       cargarComentarios();
+    } else {
+      mostrarMsg(data.error || 'Error al publicar', 'err');
     }
-  } catch(e) { console.error(e); }
+  } catch(e) { 
+    mostrarMsg('Error de conexión', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💬 PUBLICAR COMENTARIO';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  }
 }
 
-document.addEventListener('DOMContentLoaded', iniciar);
+function mostrarMsg(texto, tipo) {
+  const msg = document.getElementById('comMsg');
+  msg.textContent = texto;
+  msg.className = `com-msg ${tipo}`;
+  msg.style.display = 'block';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const textarea = document.getElementById('comTexto');
+  if (textarea) {
+    textarea.addEventListener('input', function() {
+      document.getElementById('comChars').textContent = this.value.length + '/1000';
+    });
+  }
+  iniciar();
+});
+
+// Hacer pública la función para el onclick del botón
+window.publicarComentario = publicarComentario;
+window.toggleSidebar = toggleSidebar;
 </script>
 </body>
 </html>
