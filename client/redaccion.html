@@ -3,162 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción 🏮 El Farol al Día</title>
+    <title>Redacción V37 🏮 El Farol al Día</title>
     <style>
-        :root { --fuego: #FF5500; --fuego2: #FF7A00; --negro: #070707; --tarjeta: #111; --borde: #222; --crema: #EDE8DF; --muted: #555; }
-        body { background: var(--negro); color: var(--crema); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
-        .card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative; }
-        h2 { color: var(--fuego); font-size: 14px; margin-top: 0; border-bottom: 1px solid var(--borde); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; display: flex; align-items: center; gap: 8px; }
-        
-        /* BOTONES Y INPUTS */
-        .grupo { margin-bottom: 15px; }
-        label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 1px; }
-        select, input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--borde); color: #fff; border-radius: 8px; font-size: 14px; }
-        .btn { background: linear-gradient(135deg, var(--fuego), var(--fuego2)); color: #fff; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.3s; box-shadow: 0 4px 15px rgba(255,85,0,0.2); }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,85,0,0.4); }
-        .btn-rss { background: #1a1a1a; color: #888; border: 1px solid var(--borde); margin-top: 10px; box-shadow: none; }
-
-        /* ESTADISTICAS BOX */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .stat-item { background: #000; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--borde); }
-        .stat-val { display: block; font-size: 20px; font-weight: 900; color: var(--fuego); }
-        .stat-lab { font-size: 9px; color: var(--muted); text-transform: uppercase; }
-
-        /* LOG Y ESTADO */
-        #log { background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; height: 220px; overflow-y: auto; border-left: 4px solid var(--fuego); color: #aaa; line-height: 1.6; }
-        .sys-info { font-size: 12px; margin-top: 15px; display: grid; gap: 8px; }
-        .sys-row { display: flex; justify-content: space-between; padding-bottom: 5px; border-bottom: 1px solid #1a1a1a; }
-        .sys-val { color: var(--fuego); font-weight: bold; }
-        
-        .error { color: #ff4444; } .exito { color: #22C55E; }
-        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+        :root { --fuego: #FF5500; --negro: #070707; --tarjeta: #111; --crema: #EDE8DF; }
+        body { background: var(--negro); color: var(--crema); font-family: sans-serif; padding: 20px; }
+        .card { background: var(--tarjeta); border: 1px solid #222; border-radius: 12px; padding: 20px; max-width: 500px; margin: 0 auto; }
+        h2 { color: var(--fuego); text-transform: uppercase; font-size: 14px; letter-spacing: 2px; }
+        select, input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #000; color: #fff; }
+        button { background: var(--fuego); border: none; font-weight: bold; cursor: pointer; }
+        #log { background: #000; padding: 10px; font-family: monospace; font-size: 11px; color: #888; border-left: 3px solid var(--fuego); height: 100px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="main-panel">
-        <!-- GENERADOR -->
-        <div class="card">
-            <h2>⚡ GENERAR NOTICIA CON IA</h2>
-            <div class="grupo">
-                <label>CATEGORÍA PARA PUBLICAR</label>
-                <select id="categoria">
-                    <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
-                    <option value="Deportes">⚽ Deportes</option>
-                    <option value="Internacionales">🌍 Internacionales</option>
-                    <option value="Economía">💰 Economía</option>
-                    <option value="Tecnología">💻 Tecnología</option>
-                    <option value="Espectáculos">🎬 Espectáculos</option>
-                </select>
-            </div>
-            <button class="btn" id="btnGen" onclick="ejecutar('/api/generar', 'POST')">⚡ GENERAR CON IA</button>
-            <button class="btn btn-rss" onclick="ejecutar('/api/generar', 'GET')">📡 PROCESAR RSS AHORA</button>
-            <div id="msg" style="margin-top:12px; font-size:12px; text-align:center;"></div>
-        </div>
-
-        <!-- LOG DE SISTEMA -->
-        <div class="card">
-            <h2>📡 ESTADO DEL SISTEMA</h2>
-            <div id="log">Esperando órdenes de redacción...</div>
-            
-            <div class="sys-info">
-                <div class="sys-row"><span>🤖 Modelo:</span> <span class="sys-val" id="sysModel">gemini-2.0-flash</span></div>
-                <div class="sys-row"><span>📝 Texto:</span> <span class="sys-val" id="sysText">—</span></div>
-                <div class="sys-row"><span>🖼️ Imagen:</span> <span class="sys-val" id="sysImg">—</span></div>
-                <div class="sys-row"><span>🏮 Watermark:</span> <span class="sys-val" id="sysWM">—</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="side-panel">
-        <!-- ACCESO -->
-        <div class="card">
-            <h2>🔐 ACCESO ADMIN</h2>
-            <div class="grupo">
-                <label>PIN DE SEGURIDAD (MXL)</label>
-                <input type="password" id="pin" placeholder="Ingresa tu PIN">
-            </div>
-            <p style="font-size: 10px; color: var(--muted);">MXL GOLD EDITION v35.3</p>
-        </div>
-
-        <!-- ANALITICA -->
-        <div class="card">
-            <h2>📈 ANALÍTICA RÁPIDA</h2>
-            <div class="stats-grid">
-                <div class="stat-item"><span class="stat-val" id="statTotal">0</span><span class="stat-lab">Publicadas</span></div>
-                <div class="stat-item"><span class="stat-val" id="statHoy">0</span><span class="stat-lab">Hoy</span></div>
-                <div class="stat-item"><span class="stat-val" id="statVistas">0</span><span class="stat-lab">Vistas</span></div>
-            </div>
-            <div style="margin-top:15px; font-size:11px; color:var(--muted); text-align:center;">
-                Última: <span id="statLast" style="color:var(--crema)">...</span>
-            </div>
-        </div>
-    </div>
+<div class="card">
+    <h2>🏮 REDACCIÓN V37.0</h2>
+    <label>Categoría:</label>
+    <select id="categoria">
+        <option value="Nacionales">🏛️ Nacionales</option>
+        <option value="Deportes">⚽ Deportes</option>
+        <option value="Economía">💰 Economía</option>
+    </select>
+    
+    <button id="btn" onclick="generar()">⚡ PUBLICAR AHORA</button>
+    
+    <div id="log">Listo para el reporte diario...</div>
 </div>
 
 <script>
-    async function ejecutar(ruta, metodo) {
+    async function generar() {
         const log = document.getElementById('log');
-        const btn = document.getElementById('btnGen');
-        const pin = document.getElementById('pin').value;
         const cat = document.getElementById('categoria').value;
-
-        if (!pin) { alert("¡mxl, pon el PIN!"); return; }
-
-        btn.disabled = true;
-        btn.innerHTML = "⏳ TRABAJANDO...";
-        log.innerHTML += `\n[${new Date().toLocaleTimeString()}] > Iniciando motor en ${cat}...`;
-
+        log.innerHTML = "📡 Conectando como 'director'...";
+        
         try {
-            const auth = btoa(`mxl:${pin}`);
-            const response = await fetch(ruta, {
-                method: metodo,
-                headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' },
-                body: metodo === 'POST' ? JSON.stringify({ categoria: cat }) : null
+            // BASIC AUTH PARA V37 (director:311)
+            const auth = btoa("director:311");
+            
+            const r = await fetch('/api/generar-noticia', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Basic ${auth}`,
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({ categoria: cat })
             });
 
-            const data = await response.json();
-
+            const data = await r.json();
             if (data.success) {
-                log.innerHTML += `\n<span class="exito">✅ ÉXITO: Publicada Noticia /noticia/${data.slug}</span>`;
-                document.getElementById('sysText').innerText = "OK";
-                document.getElementById('sysImg').innerText = "OK";
-                document.getElementById('sysWM').innerText = "OK";
-                actualizarStats();
+                log.innerHTML = `✅ ¡PUBLICADA!\nSlug: ${data.slug}\nBarrios: ${data.stats.barrios.join(', ')}`;
             } else {
-                log.innerHTML += `\n<span class="error">❌ ERROR: ${data.error}</span>`;
+                log.innerHTML = `❌ ERROR: ${data.error}`;
             }
         } catch (e) {
-            log.innerHTML += `\n<span class="error">❌ ERROR DE RED: Servidor no responde.</span>`;
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = "⚡ GENERAR CON IA";
-            log.scrollTop = log.scrollHeight;
+            log.innerHTML = "❌ Error de Red: El servidor no respondió.";
         }
     }
-
-    async function actualizarStats() {
-        try {
-            const r = await fetch('/api/noticias');
-            const noticias = await r.json();
-            const hoy = new Date().toLocaleDateString();
-            
-            const total = noticias.length;
-            const vistas = noticias.reduce((acc, n) => acc + (n.vistas || 0), 0);
-            const publicadasHoy = noticias.filter(n => new Date(n.fecha).toLocaleDateString() === hoy).length;
-            
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statHoy').innerText = publicadasHoy;
-            document.getElementById('statVistas').innerText = vistas;
-            if(noticias[0]) document.getElementById('statLast').innerText = new Date(noticias[0].fecha).toLocaleTimeString();
-        } catch(e) {}
-    }
-
-    actualizarStats();
-    setInterval(actualizarStats, 30000);
 </script>
-
 </body>
 </html>
