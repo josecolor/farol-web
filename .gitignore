@@ -1,0 +1,26 @@
+# ══════════════════════════════════════════
+# 🔒 EL FAROL AL DÍA — .gitignore
+# ══════════════════════════════════════════
+
+# Dependencias
+node_modules/
+npm-debug.log*
+
+# 🔑 SECRETOS — NUNCA subir al repo
+google-creds.json
+google-creds*.json
+*.json.secret
+.env
+.env.*
+!.env.example
+
+# Archivos temporales
+/tmp/
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
