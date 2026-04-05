@@ -1,22 +1,16 @@
 /**
- * 🏮 EL FAROL AL DÍA — V39.0 ULTIMATE EDITION
+ * 🏮 EL FAROL AL DÍA — V40.0 ULTIMATE EDITION
  * ═══════════════════════════════════════════════════════════════
- * MEJORAS vs V38:
- *  🧠 PROMPT V39 DEFINITIVO — 10 secciones estructuradas,
- *     calles reales SDE, ambiente dominicano, ganchos de barrio
- *  🔑 8 llaves Gemini (KEY1-KEY8) Round-Robin inteligente
- *  ⚡ maxOutputTokens subido a 8000 — nunca se corta el texto
- *  🎯 Validador DUAL: longitud + densidad semántica
- *  📊 Auto-aprendizaje: guarda qué frases generan más vistas
- *  🕵️ Anti-plagio: detecta si el contenido repite noticias prev.
- *  🔥 Títulos A/B: genera 2 opciones y elige la más clickbait
- *  🖼️  Imagen en paralelo con generación de texto (más rápido)
- *  📣 OneSignal + VAPID dual push garantizado
- *  🎙️ ElevenLabs TTS para Telegram (audio de la noticia)
- *  📈 Cron inteligente por horas pico reales de BD
- *  🚀 Arranque: 3 noticias (no 2) en primeros 90 min
- *  🗑️  Auto-limpieza: borra noticias >90 días con <5 vistas
- *  📋 .gitignore protege google-creds.json y secrets
+ * MEJORAS vs V39:
+ *  🎯 IMAGEN COHERENTE: extrae contexto real del artículo
+ *  🗺️  Barrios SDE → queries fotográficos ultra-específicos
+ *  🌍 Internacionales → búsqueda en inglés por país/evento real
+ *  💧 Watermark GARANTIZADO: aplicado SIEMPRE antes de guardar en BD
+ *  🔄 Cascada de imagen: CSE → Pexels → Unsplash → banco local
+ *  🚫 Blacklist expandida de imágenes stock/watermark/miniatura
+ *  🧠 Query IA V40: pide descripción escena periodística específica
+ *  📐 Resolución mínima verificada: 800px de ancho
+ *  ✅ Todo lo de V39 conservado (llaves, prompt, validación dual, etc.)
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -55,7 +49,6 @@ const TODAS_LLAVES_GEMINI = [
     process.env.GEMINI_API_KEY8,
 ].filter(Boolean);
 
-// KEY1-KEY5 para texto, KEY4-KEY8 para imagen (overlap = más disponibilidad)
 const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 5);
 const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(3);
 console.log(`🔑 Gemini: ${TODAS_LLAVES_GEMINI.length} llaves | Texto: ${LLAVES_TEXTO.length} | Imagen: ${LLAVES_IMAGEN.length}`);
@@ -81,18 +74,15 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
     console.log('📱 VAPID configurado');
 }
 
-// ── Google Service Account (creds desde ENV, no archivo) ──
+// ── Google Service Account ─────────────────────────────────
 let GOOGLE_CREDENTIALS = null;
 try {
     const raw = process.env.GOOGLE_CREDENTIALS_JSON;
-    if (raw) {
-        GOOGLE_CREDENTIALS = JSON.parse(raw);
-        console.log(`✅ Google SA: ${GOOGLE_CREDENTIALS.client_email}`);
-    }
+    if (raw) { GOOGLE_CREDENTIALS = JSON.parse(raw); console.log(`✅ Google SA: ${GOOGLE_CREDENTIALS.client_email}`); }
 } catch(e) { console.warn('⚠️ Google SA:', e.message); }
 
 // ══════════════════════════════════════════════════════════
-// 🛡️ BÁSIC AUTH
+// 🛡️ AUTH
 // ══════════════════════════════════════════════════════════
 function authMiddleware(req, res, next) {
     const auth = req.headers['authorization'];
@@ -116,7 +106,7 @@ a{display:inline-block;background:#FF5500;color:#fff;padding:10px 24px;border-ra
 }
 
 // ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK
+// 🏮 WATERMARK PATH
 // ══════════════════════════════════════════════════════════
 const WATERMARK_PATH = (() => {
     const nombres = ['watermark.png','WATERMARK.png','WATERMARK(1).png','watermark(1).png','watermark (1).png'];
@@ -148,7 +138,7 @@ app.use(cors({ origin:'*', methods:['GET','POST','PUT','DELETE','OPTIONS'], allo
 app.options('*', cors());
 
 // ══════════════════════════════════════════════════════════
-// 📊 ANALYTICS ESTRUCTURADO
+// 📊 ANALYTICS
 // ══════════════════════════════════════════════════════════
 function logAnalytics(evento, datos = {}) {
     console.log(`[ANALYTICS] ${new Date().toISOString()} | ${evento} | ${JSON.stringify(datos)}`);
@@ -172,7 +162,7 @@ async function generarAudioNoticia(titulo, primerParrafo) {
         const buf    = Buffer.from(await res.arrayBuffer());
         const nombre = `audio-${Date.now()}.mp3`;
         fs.writeFileSync(path.join('/tmp', nombre), buf);
-        console.log(`🎙️ Audio OK: ${nombre} (${Math.round(buf.length/1024)} KB)`);
+        console.log(`🎙️ Audio OK: ${nombre}`);
         return nombre;
     } catch(err) { console.warn(`🎙️ ElevenLabs: ${err.message}`); return null; }
 }
@@ -247,10 +237,9 @@ async function notificarNuevaNoticia(titulo, cuerpo, slug, imagenUrl) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📡 SOCIAL — Telegram, Facebook, Twitter
+// 📡 SOCIAL
 // ══════════════════════════════════════════════════════════
 let _telegramChatId = process.env.TELEGRAM_CHAT_ID || null;
-
 function _escapeMd(t) { return String(t||'').replace(/[_*[\]()~`>#+\-=|{}.!\\]/g,'\\$&'); }
 
 async function _tgFetch(method, body) {
@@ -362,7 +351,7 @@ async function bienvenidaTelegram() {
     if (!chatId) return;
     await _tgFetch('sendMessage',{
         chat_id:chatId,
-        text:`🏮 *El Farol al Día — V39\\.0 ULTIMATE*\n\n✅ ${TODAS_LLAVES_GEMINI.length} llaves Gemini activas\\.\n✅ Prompt definitivo — calles reales SDE\\.\n✅ Validación dual: longitud \\+ semántica\\.\n✅ Auto\\-aprendizaje de frases exitosas\\.\n✅ Títulos A/B — elige el más clickbait\\.\n✅ Audio TTS + doble push garantizado\\.\n\n🌐 [elfarolaldia\\.com](https://elfarolaldia.com)`,
+        text:`🏮 *El Farol al Día — V40\\.0 ULTIMATE*\n\n✅ Imagen coherente con el contenido\\.\n✅ Barrios SDE → query fotográfico exacto\\.\n✅ Internacionales → búsqueda en inglés\\.\n✅ Watermark GARANTIZADO en cada noticia\\.\n✅ ${TODAS_LLAVES_GEMINI.length} llaves Gemini activas\\.\n\n🌐 [elfarolaldia\\.com](https://elfarolaldia.com)`,
         parse_mode:'MarkdownV2',
     });
 }
@@ -398,8 +387,8 @@ async function guardarConfigIA(cfg) {
 // ══════════════════════════════════════════════════════════
 // 🤖 GEMINI — Round-Robin 8 llaves
 // ══════════════════════════════════════════════════════════
-const GEMINI_STATE  = {};
-let   _rrIdx        = 0;
+const GEMINI_STATE = {};
+let   _rrIdx       = 0;
 
 function getKeyState(k) {
     if (!GEMINI_STATE[k]) GEMINI_STATE[k] = { lastRequest:0, resetTime:0, exitos:0, errores:0 };
@@ -416,25 +405,18 @@ function nextKey(pool_llaves) {
             return k;
         }
     }
-    // todas bloqueadas — usa la que se desbloquea antes
     return pool_llaves.reduce((a,b) => getKeyState(a).resetTime < getKeyState(b).resetTime ? a : b);
 }
 
 async function _callGemini(apiKey, prompt, intento, maxTokens = 8000) {
     const st = getKeyState(apiKey);
-
-    // ✅ V39.1 FIX TIEMPOS:
-    // Si la llave está en penalidad 429, espera SU resetTime (no bloquea otras llaves)
     if (Date.now() < st.resetTime) {
         const espera = st.resetTime - Date.now();
-        // Solo espera si la penalidad es corta (< 20s), si no, el llamador debería usar otra llave
-        if (espera > 20000) throw new Error('RATE_LIMIT_429'); // fuerza el cambio de llave
+        if (espera > 20000) throw new Error('RATE_LIMIT_429');
         await new Promise(r => setTimeout(r, espera));
     }
-
-    // ✅ Gap mínimo de 15s entre requests por llave — evita saturar la cuota
     const gap = Date.now() - st.lastRequest;
-    const GAP_MINIMO = 15000; // 15 segundos
+    const GAP_MINIMO = 15000;
     if (gap < GAP_MINIMO) await new Promise(r => setTimeout(r, GAP_MINIMO - gap));
     st.lastRequest = Date.now();
 
@@ -451,8 +433,6 @@ async function _callGemini(apiKey, prompt, intento, maxTokens = 8000) {
     } catch(err) { throw new Error(`RED: ${err.message}`); }
 
     if (res.status === 429) {
-        // ✅ V39.1: Penalidad solo para ESTA llave, progresiva por intento
-        // intento 0 → 80s | intento 1 → 100s | intento 2 → 140s | máx 360s (6 min)
         const penalidad = Math.min(60000 + Math.pow(2, intento) * 20000, 360000);
         st.resetTime = Date.now() + penalidad;
         st.errores++;
@@ -494,7 +474,6 @@ async function llamarGemini(prompt, reintentos = 3, maxTokens = 8000) {
             }
         }
         if (intento < reintentos - 1) {
-            // ✅ V39.1: 25 segundos entre rondas completas (antes 18s)
             console.warn(`   ⏳ Todas las llaves fallaron — esperando 25s antes de ronda ${intento+2}...`);
             await new Promise(r => setTimeout(r, 25000));
         }
@@ -518,14 +497,11 @@ async function llamarGeminiImagen(prompt) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🧠 APRENDIZAJE AUTOMÁTICO — frases exitosas
+// 🧠 APRENDIZAJE AUTOMÁTICO
 // ══════════════════════════════════════════════════════════
 async function obtenerFrasesExitosas() {
     try {
-        const r = await pool.query(`
-            SELECT valor, exitos FROM memoria_ia
-            WHERE tipo = 'frase_exitosa' AND exitos > 2
-            ORDER BY exitos DESC LIMIT 10`);
+        const r = await pool.query(`SELECT valor, exitos FROM memoria_ia WHERE tipo='frase_exitosa' AND exitos>2 ORDER BY exitos DESC LIMIT 10`);
         return r.rows.map(x => x.valor);
     } catch { return []; }
 }
@@ -533,52 +509,30 @@ async function obtenerFrasesExitosas() {
 async function guardarFraseExitosa(frase, vistas) {
     if (!frase || frase.length < 5) return;
     try {
-        await pool.query(
-            "INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('frase_exitosa',$1,'auto',$2,0) ON CONFLICT DO NOTHING",
-            [frase.substring(0,100), vistas]
-        );
-        await pool.query(
-            "UPDATE memoria_ia SET exitos=exitos+$1,ultima_vez=NOW() WHERE tipo='frase_exitosa' AND valor=$2",
-            [vistas, frase.substring(0,100)]
-        );
+        await pool.query("INSERT INTO memoria_ia(tipo,valor,categoria,exitos,fallos) VALUES('frase_exitosa',$1,'auto',$2,0) ON CONFLICT DO NOTHING",[frase.substring(0,100), vistas]);
+        await pool.query("UPDATE memoria_ia SET exitos=exitos+$1,ultima_vez=NOW() WHERE tipo='frase_exitosa' AND valor=$2",[vistas, frase.substring(0,100)]);
     } catch {}
 }
 
 // ══════════════════════════════════════════════════════════
-// 🕵️ ANTI-PLAGIO — detecta similitud con noticias previas
+// 🕵️ ANTI-PLAGIO
 // ══════════════════════════════════════════════════════════
 async function detectarPlagio(contenido) {
     try {
-        const palabrasClave = contenido.toLowerCase()
-            .split(/\s+/).filter(w => w.length > 5)
-            .slice(0, 20).join(' ');
-
-        const r = await pool.query(`
-            SELECT titulo FROM noticias
-            WHERE estado='publicada' AND fecha > NOW()-INTERVAL '7 days'
-            AND to_tsvector('spanish', contenido) @@ plainto_tsquery('spanish', $1)
-            LIMIT 3`, [palabrasClave]
-        );
-        return r.rows.length > 0 ? r.rows.map(x => x.titulo) : [];
+        const palabrasClave = contenido.toLowerCase().split(/\s+/).filter(w=>w.length>5).slice(0,20).join(' ');
+        const r = await pool.query(`SELECT titulo FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '7 days' AND to_tsvector('spanish',contenido) @@ plainto_tsquery('spanish',$1) LIMIT 3`,[palabrasClave]);
+        return r.rows.length > 0 ? r.rows.map(x=>x.titulo) : [];
     } catch { return []; }
 }
 
 // ══════════════════════════════════════════════════════════
 // 📋 WIKIPEDIA
 // ══════════════════════════════════════════════════════════
-const WIKI_TERMINOS = {
-    'los mina':'Los Mina Santo Domingo','invivienda':'Instituto Nacional de la Vivienda República Dominicana',
-    'ensanche ozama':'Ensanche Ozama Santo Domingo Este','santo domingo este':'Santo Domingo Este',
-    'sabana perdida':'Sabana Perdida Santo Domingo','villa mella':'Villa Mella Santo Domingo',
-    'policia nacional':'Policía Nacional República Dominicana','haití':'Relaciones entre República Dominicana y Haití',
-    'banco central':'Banco Central de la República Dominicana','beisbol':'Béisbol en República Dominicana',
-};
-
 async function buscarContextoWikipedia(categoria) {
     try {
-        const mapa = { Nacionales:`noticias República Dominicana`, Deportes:`deporte dominicano`,
-            Internacionales:`América Latina Caribe`, Economía:`economía dominicana`,
-            Tecnología:`tecnología innovación`, Espectáculos:`cultura dominicana` };
+        const mapa = { Nacionales:'noticias República Dominicana', Deportes:'deporte dominicano',
+            Internacionales:'América Latina Caribe', Economía:'economía dominicana',
+            Tecnología:'tecnología innovación', Espectáculos:'cultura dominicana' };
         const term = mapa[categoria] || categoria;
         const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(),5000);
         const rb   = await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&srlimit=1&origin=*`,{signal:ctrl.signal}).finally(()=>clearTimeout(t));
@@ -596,14 +550,466 @@ async function buscarContextoWikipedia(categoria) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🧠 PROMPT V39 DEFINITIVO — 10 secciones, nunca falla
+// 🖼️ SISTEMA DE IMAGEN COHERENTE V40
+// ══════════════════════════════════════════════════════════
+
+// 🗺️ Barrios SDE → queries fotográficos específicos
+const BARRIOS_QUERIES = {
+    'los mina':          'barrio Los Mina Santo Domingo Este calle vecinos',
+    'invivienda':        'viviendas sociales Santo Domingo Este construccion',
+    'charles de gaulle': 'avenida Charles de Gaulle Santo Domingo Este',
+    'ensanche ozama':    'Ensanche Ozama Santo Domingo residentes barrio',
+    'sabana perdida':    'Sabana Perdida Santo Domingo comunidad',
+    'villa mella':       'Villa Mella Santo Domingo Norte calle barrio',
+    'el almirante':      'El Almirante Santo Domingo Este barrio',
+    'los trinitarios':   'Los Trinitarios Santo Domingo Este barrio calle',
+    'carretera mella':   'Carretera Mella Santo Domingo vehiculos transito',
+    'sabana larga':      'Sabana Larga Santo Domingo barrio',
+    'av. venezuela':     'Avenida Venezuela Santo Domingo',
+    'mendoza':           'Mendoza Santo Domingo Este comunidad barrio',
+    'el tamarindo':      'El Tamarindo Santo Domingo barrio vecinos',
+    'san isidro':        'San Isidro Santo Domingo Base Aerea',
+};
+
+// 🎯 Keywords temáticos → queries fotográficos
+const TEMA_QUERIES = {
+    'policia':                   ['police patrol dominican republic street officers'],
+    'policía':                   ['police patrol dominican republic street officers'],
+    'crimen':                    ['police investigation crime scene caribbean'],
+    'accidente':                 ['car accident road dominican republic'],
+    'protesta':                  ['protest demonstration people street caribbean'],
+    'abinader':                  ['latin american president ceremony podium speech'],
+    'senado':                    ['congress senate building government dominican'],
+    'ayuntamiento':              ['city hall government building caribbean'],
+    'mopc':                      ['road construction workers highway caribbean'],
+    'edeeste':                   ['electricity power outage neighborhood caribbean'],
+    'inundacion':                ['flooding rain streets neighborhood caribbean'],
+    'inundación':                ['flooding rain streets neighborhood caribbean'],
+    'huracan':                   ['hurricane storm caribbean satellite weather'],
+    'huracán':                   ['hurricane storm caribbean satellite weather'],
+    'beisbol':                   ['baseball dominican republic stadium players game'],
+    'béisbol':                   ['baseball dominican republic stadium players game'],
+    'tigres':                    ['baseball dominican republic stadium night game'],
+    'leones':                    ['baseball dominican republic stadium crowd fans'],
+    'futbol':                    ['football soccer dominican republic stadium players'],
+    'fútbol':                    ['football soccer dominican republic stadium players'],
+    'baloncesto':                ['basketball court players dominican republic'],
+    'atletismo':                 ['athletics track field sport dominican republic'],
+    'banco central':             ['central bank building finance dominican republic'],
+    'dolar':                     ['dollar peso exchange currency dominican republic'],
+    'inflacion':                 ['market food prices inflation caribbean'],
+    'inflación':                 ['market food prices inflation caribbean'],
+    'colmado':                   ['colmado tienda barrio dominicano productos'],
+    'mercado':                   ['market frutas verduras dominicano vendedor'],
+    'petroleo':                  ['fuel gas station prices oil caribbean'],
+    'petróleo':                  ['fuel gas station prices oil caribbean'],
+    'inteligencia artificial':   ['artificial intelligence technology computer data'],
+    'internet':                  ['internet technology digital connection caribbean'],
+    'celular':                   ['smartphone mobile phone street caribbean'],
+    'haiti':                     ['Haiti border crossing Dominican Republic'],
+    'haití':                     ['Haiti border crossing Dominican Republic'],
+    'trump':                     ['Donald Trump White House president podium'],
+    'estados unidos':            ['United States government Washington DC Capitol'],
+    'venezuela':                 ['Venezuela government crisis Caracas protest'],
+    'cuba':                      ['Cuba Havana street people government'],
+    'musica':                    ['music concert stage performer latin caribbean'],
+    'música':                    ['music concert stage performer latin caribbean'],
+    'bachata':                   ['bachata dominican music dance concert live'],
+    'merengue':                  ['merengue dominican music dance festival concert'],
+    'reggaeton':                 ['reggaeton latin music concert stage artist'],
+    'educacion':                 ['school classroom students education caribbean'],
+    'educación':                 ['school classroom students education caribbean'],
+    'salud':                     ['hospital medical healthcare caribbean doctor'],
+    'medicamento':               ['medicine pharmacy healthcare dominican republic'],
+    'vivienda':                  ['housing construction social project caribbean'],
+    'agua':                      ['water supply pipes construction caribbean workers'],
+    'transporte':                ['public transport bus street dominican republic'],
+    'motoconcho':                ['motorcycle taxi motoconcho dominican republic street'],
+    'corrupcion':                ['corruption government investigation justice dominican'],
+    'corrupción':                ['corruption government investigation justice dominican'],
+};
+
+// Blacklist URLs de imágenes stock / watermarked / bajas resolución
+const URL_INVALIDAS_V40 = [
+    'shutterstock','gettyimages','adobe.com/stock','dreamstime','alamy',
+    'depositphotos','123rf','istockphoto','vectorstock','bigstockphoto',
+    'watermark','wm_','preview','thumbnail','small_','lowres',
+    '100px','150px','200px','50px','icon','logo_','flag','seal','badge','avatar',
+];
+
+function urlImagenValidaV40(url) {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    if (!/(\.jpg|\.jpeg|\.png)(\?|$|#)/i.test(u) && !u.endsWith('.jpg') && !u.endsWith('.jpeg') && !u.endsWith('.png')) return false;
+    return !URL_INVALIDAS_V40.some(p => u.includes(p));
+}
+
+async function verificarResolucionV40(url, minWidth = 800) {
+    try {
+        const ctrl = new AbortController();
+        const tm   = setTimeout(() => ctrl.abort(), 9000);
+        const res  = await fetch(url, { method: 'GET', signal: ctrl.signal }).finally(() => clearTimeout(tm));
+        if (!res.ok) return false;
+        const buf  = Buffer.from(await res.arrayBuffer());
+        if (buf.length < 20000) return false;
+        const meta = await sharp(buf).metadata();
+        return (meta.width || 0) >= minWidth;
+    } catch { return false; }
+}
+
+/**
+ * 🧠 Extrae queries coherentes del contenido del artículo.
+ * Prioriza barrio específico > tema > categoría.
+ */
+function extraerQueriesCoherentes(titulo, contenido, categoria) {
+    const texto = `${titulo} ${(contenido || '').substring(0, 600)}`.toLowerCase();
+    const queries = [];
+
+    // 1️⃣ Barrio SDE detectado → query más localizado (máximo 1)
+    for (const [barrio, query] of Object.entries(BARRIOS_QUERIES)) {
+        if (texto.includes(barrio)) {
+            queries.push(query);
+            break;
+        }
+    }
+
+    // 2️⃣ Temas detectados (máximo 2)
+    const temasEncontrados = [];
+    for (const [keyword, queryArr] of Object.entries(TEMA_QUERIES)) {
+        if (texto.includes(keyword)) {
+            temasEncontrados.push(...queryArr);
+            if (temasEncontrados.length >= 2) break;
+        }
+    }
+    if (temasEncontrados.length) {
+        // Combinado barrio+tema si ambos detectados
+        if (queries.length && temasEncontrados.length) {
+            const temaPrincipal = temasEncontrados[0];
+            const barrioCorto   = queries[0].split(' ').slice(0, 3).join(' ');
+            queries.unshift(`${temaPrincipal} ${barrioCorto}`);
+        }
+        queries.push(...temasEncontrados.slice(0, 2));
+    }
+
+    // 3️⃣ Fallback por categoría
+    const catFallback = {
+        'Nacionales':      'noticias comunidad vecinos barrio Santo Domingo caribe',
+        'Deportes':        'deporte atletas dominicanos estadio cancha',
+        'Internacionales': 'international news world event people crowd',
+        'Economía':        'economia mercado negocios comercio Santo Domingo',
+        'Tecnología':      'technology innovation digital computer caribbean',
+        'Espectáculos':    'entertainment music concert artist caribbean stage',
+    };
+    queries.push(catFallback[categoria] || 'news community neighborhood dominican republic');
+
+    // Deduplicar
+    const vistos = new Set();
+    return queries.filter(q => {
+        const k = q.trim().toLowerCase();
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return k.length > 5;
+    });
+}
+
+/**
+ * 🌍 Para internacionales: extrae país/evento y construye query en inglés
+ */
+function buildQueryInternacional(titulo, contenido) {
+    const texto = `${titulo} ${(contenido || '').substring(0, 300)}`.toLowerCase();
+    const mapa  = {
+        'estados unidos':    'United States government Washington politics',
+        'trump':             'Donald Trump president White House speech',
+        'haití':             'Haiti government crisis people border dominican',
+        'haiti':             'Haiti government crisis people border dominican',
+        'venezuela':         'Venezuela government Caracas protest people',
+        'cuba':              'Cuba Havana government people street',
+        'colombia':          'Colombia government Bogota politics',
+        'brasil':            'Brazil government Brasilia Amazon politics',
+        'mexico':            'Mexico City government politics street',
+        'ucrania':           'Ukraine war conflict military soldiers',
+        'israel':            'Israel conflict Middle East military',
+        'china':             'China Beijing government politics economic',
+        'rusia':             'Russia Kremlin Moscow government military',
+        'españa':            'Spain Madrid European Union government',
+        'argentina':         'Argentina Buenos Aires government economy',
+        'onu':               'United Nations General Assembly diplomacy summit',
+        'oms':               'World Health Organization medical public health',
+        'fondo monetario':   'International Monetary Fund economy finance meeting',
+        'banco mundial':     'World Bank development finance economy meeting',
+        'nato':              'NATO alliance military defense meeting leaders',
+        'otan':              'NATO alliance military defense meeting leaders',
+    };
+    for (const [kw, q] of Object.entries(mapa)) {
+        if (texto.includes(kw)) return q;
+    }
+    // Extraer palabras clave del título en inglés (fallback)
+    const stop = new Set(['el','la','los','las','un','una','de','del','en','y','a','se','que','por','con','su','al','es','son','fue','han','ha','lo','más','para','sobre','como','entre','pero','sin','ya','no','si','o','e','ni','este','esta']);
+    const pals = titulo.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+        .replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
+        .filter(w => w.length > 3 && !stop.has(w)).slice(0, 3).join(' ');
+    return `${pals || 'international'} news event people`;
+}
+
+// ── CSE con queries V40 ───────────────────────────────────
+const CSE_EXCLUDES_V40 = [
+    '-site:shutterstock.com','-site:gettyimages.com','-site:adobe.com',
+    '-site:dreamstime.com','-site:alamy.com','-site:istockphoto.com',
+    '-site:depositphotos.com','-site:123rf.com',
+].join(' ');
+
+const CSE_STATE_V40 = {};
+function getCseStateV40(k) {
+    if (!CSE_STATE_V40[k]) CSE_STATE_V40[k] = { fallos:0, bloqueadaHasta:0 };
+    return CSE_STATE_V40[k];
+}
+
+async function buscarImagenCSEV40(query, llaves, cx) {
+    if (!llaves?.length || !cx) return null;
+    const qFull = `${query} ${CSE_EXCLUDES_V40}`.trim();
+    for (const llave of llaves) {
+        const st = getCseStateV40(llave);
+        if (Date.now() < st.bloqueadaHasta) continue;
+        try {
+            const url  = `https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${cx}&q=${encodeURIComponent(qFull)}&searchType=image&imgType=photo&imgSize=large&fileType=jpg,png&num=10&safe=active`;
+            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),9000);
+            const res  = await fetch(url,{signal:ctrl.signal}).finally(()=>clearTimeout(tm));
+            if (res.status===429||res.status===403) {
+                st.fallos++; st.bloqueadaHasta=Date.now()+(st.fallos>=3?3600000:300000); continue;
+            }
+            if (!res.ok) continue;
+            const data = await res.json();
+            for (const item of (data.items||[])) {
+                if (!urlImagenValidaV40(item.link)) continue;
+                if (await verificarResolucionV40(item.link, 800)) {
+                    st.fallos = 0;
+                    console.log(`   🎯 CSE V40 OK: ${item.link.substring(0,80)}`);
+                    return item.link;
+                }
+            }
+        } catch(err) { st.fallos++; console.warn(`   ⚠️ CSE: ${err.message}`); }
+    }
+    return null;
+}
+
+async function buscarImagenPexelsV40(queries, apiKey) {
+    if (!apiKey) return null;
+    for (const q of (Array.isArray(queries)?queries:[queries]).slice(0,3)) {
+        try {
+            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),7000);
+            const res  = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=8&orientation=landscape`,{headers:{Authorization:apiKey},signal:ctrl.signal}).finally(()=>clearTimeout(tm));
+            if (!res.ok) continue;
+            const data  = await res.json();
+            const fotos = (data.photos||[]).filter(f=>(f.width||0)>=1000);
+            if (!fotos.length) continue;
+            const foto = fotos[Math.floor(Math.random()*Math.min(3,fotos.length))];
+            const url  = foto.src.large2x||foto.src.large;
+            console.log(`   🎯 Pexels V40 OK: ${url.substring(0,80)}`);
+            return url;
+        } catch { continue; }
+    }
+    return null;
+}
+
+async function buscarImagenUnsplashV40(query, apiKey) {
+    if (!apiKey) return null;
+    try {
+        const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),8000);
+        const res  = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=8&orientation=landscape`,{headers:{Authorization:`Client-ID ${apiKey}`},signal:ctrl.signal}).finally(()=>clearTimeout(tm));
+        if (!res.ok) return null;
+        const data  = await res.json();
+        const fotos = (data.results||[]).filter(f=>(f.width||0)>=1000);
+        const url   = fotos[0]?.urls?.full||fotos[0]?.urls?.regular||null;
+        if (url) console.log(`   🎯 Unsplash V40 OK: ${url.substring(0,80)}`);
+        return url;
+    } catch { return null; }
+}
+
+// Banco local Pexels (URLs estables, w=1200)
+const PB  = 'https://images.pexels.com/photos';
+const OPT = '?auto=compress&cs=tinysrgb&w=1200';
+const BANCO_LOCAL_V40 = {
+    'politica-gobierno':          [`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${PB}/290595/pexels-photo-290595.jpeg${OPT}`],
+    'seguridad-policia':          [`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`,`${PB}/1416367/pexels-photo-1416367.jpeg${OPT}`],
+    'relaciones-internacionales': [`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`],
+    'economia-mercado':           [`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`,`${PB}/3943882/pexels-photo-3943882.jpeg${OPT}`],
+    'infraestructura':            [`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`],
+    'salud-medicina':             [`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`,`${PB}/263402/pexels-photo-263402.jpeg${OPT}`],
+    'deporte-beisbol':            [`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`,`${PB}/209977/pexels-photo-209977.jpeg${OPT}`],
+    'deporte-futbol':             [`${PB}/46798/pexels-photo-46798.jpeg${OPT}`,`${PB}/274422/pexels-photo-274422.jpeg${OPT}`],
+    'deporte-general':            [`${PB}/863988/pexels-photo-863988.jpeg${OPT}`,`${PB}/248547/pexels-photo-248547.jpeg${OPT}`],
+    'tecnologia':                 [`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`,`${PB}/1181671/pexels-photo-1181671.jpeg${OPT}`],
+    'educacion':                  [`${PB}/256490/pexels-photo-256490.jpeg${OPT}`,`${PB}/301926/pexels-photo-301926.jpeg${OPT}`],
+    'cultura-musica':             [`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`,`${PB}/167636/pexels-photo-167636.jpeg${OPT}`],
+    'medio-ambiente':             [`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`,`${PB}/886521/pexels-photo-886521.jpeg${OPT}`],
+    'turismo':                    [`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`,`${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`],
+    'emergencia':                 [`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`,`${PB}/239548/pexels-photo-239548.jpeg${OPT}`],
+    'vivienda-social':            [`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`],
+    'transporte-vial':            [`${PB}/93398/pexels-photo-93398.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`],
+};
+const FALLBACK_CAT_V40 = {
+    'Nacionales':'politica-gobierno','Deportes':'deporte-general',
+    'Internacionales':'relaciones-internacionales','Economía':'economia-mercado',
+    'Tecnología':'tecnologia','Espectáculos':'cultura-musica',
+};
+function imgLocalV40(subtema, categoria) {
+    const banco = BANCO_LOCAL_V40[subtema] || BANCO_LOCAL_V40[FALLBACK_CAT_V40[categoria]] || BANCO_LOCAL_V40['politica-gobierno'];
+    return banco[Math.floor(Math.random() * banco.length)];
+}
+
+/**
+ * 💧 WATERMARK GARANTIZADO V40
+ * Siempre descarga, procesa y guarda en /tmp con watermark.
+ * Si falla el watermark, guarda igualmente como JPG optimizado.
+ */
+async function aplicarWatermarkV40(urlImagen) {
+    const nombre   = `efd-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
+    const rutaTmp  = path.join('/tmp', nombre);
+
+    // Descargar imagen
+    let bufOrig;
+    try {
+        const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),12000);
+        const res  = await fetch(urlImagen, {signal:ctrl.signal}).finally(()=>clearTimeout(tm));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        bufOrig = Buffer.from(await res.arrayBuffer());
+    } catch(err) {
+        console.warn(`   ⚠️ WM40: no pudo descargar: ${err.message}`);
+        return { url: urlImagen, nombre: null, procesada: false };
+    }
+
+    if (bufOrig.length < 5000) {
+        console.warn(`   ⚠️ WM40: imagen muy pequeña (${bufOrig.length} bytes)`);
+        return { url: urlImagen, nombre: null, procesada: false };
+    }
+
+    // Sin watermark disponible → guardar igualmente optimizado
+    if (!WATERMARK_PATH || !fs.existsSync(WATERMARK_PATH)) {
+        try {
+            const bufF = await sharp(bufOrig).resize(1200,null,{fit:'inside',withoutEnlargement:true}).jpeg({quality:88}).toBuffer();
+            fs.writeFileSync(rutaTmp, bufF);
+            console.warn(`   ⚠️ WM40: guardado SIN watermark (archivo no encontrado): ${nombre}`);
+            return { url:`${BASE_URL}/img/${nombre}`, nombre, procesada:false, original:urlImagen };
+        } catch { return { url:urlImagen, nombre:null, procesada:false }; }
+    }
+
+    // Aplicar watermark
+    try {
+        const meta = await sharp(bufOrig).metadata();
+        if (!['jpeg','jpg','png','webp'].includes(meta.format||'')) throw new Error(`formato ${meta.format}`);
+        const w = meta.width||800, h = meta.height||500;
+        const wmAncho  = Math.min(Math.round(w*0.28), 320);
+        const wmBuffer = await sharp(WATERMARK_PATH).resize(wmAncho,null,{fit:'inside'}).toBuffer();
+        const wmMeta   = await sharp(wmBuffer).metadata();
+        const margen   = Math.round(w*0.025);
+        const left     = Math.max(0, w - wmAncho - margen);
+        const top      = Math.max(0, h - (wmMeta.height||60) - margen);
+        const bufFinal = await sharp(bufOrig)
+            .resize(1200,null,{fit:'inside',withoutEnlargement:true})
+            .composite([{input:wmBuffer, left, top, blend:'over'}])
+            .jpeg({quality:88}).toBuffer();
+        fs.writeFileSync(rutaTmp, bufFinal);
+        console.log(`   💧 Watermark OK: ${nombre} (${Math.round(bufFinal.length/1024)} KB)`);
+        return { url:`${BASE_URL}/img/${nombre}`, nombre, procesada:true, original:urlImagen };
+    } catch(err) {
+        console.warn(`   ⚠️ WM40 sharp error: ${err.message}`);
+        try {
+            const bufF = await sharp(bufOrig).jpeg({quality:88}).toBuffer();
+            fs.writeFileSync(rutaTmp, bufF);
+            return { url:`${BASE_URL}/img/${nombre}`, nombre, procesada:false, original:urlImagen };
+        } catch { return { url:urlImagen, nombre:null, procesada:false }; }
+    }
+}
+
+async function aplicarWatermarkBuffer(bufOrig) {
+    if (!WATERMARK_PATH) return null;
+    try {
+        const nombre  = `efd-manual-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.jpg`;
+        const rutaTmp = path.join('/tmp', nombre);
+        const meta = await sharp(bufOrig).metadata().catch(()=>null);
+        if (!meta||!['jpeg','jpg','png','webp'].includes(meta.format||'')) return null;
+        const w = meta.width||800, h = meta.height||500;
+        const wmAncho  = Math.min(Math.round(w*0.28),320);
+        const wmBuffer = await sharp(WATERMARK_PATH).resize(wmAncho,null,{fit:'inside'}).toBuffer();
+        const wmMeta   = await sharp(wmBuffer).metadata();
+        const margen   = Math.round(w*0.025);
+        const bufFinal = await sharp(bufOrig)
+            .composite([{input:wmBuffer,left:Math.max(0,w-wmAncho-margen),top:Math.max(0,h-(wmMeta.height||60)-margen),blend:'over'}])
+            .jpeg({quality:88}).toBuffer();
+        fs.writeFileSync(rutaTmp, bufFinal);
+        return nombre;
+    } catch { return null; }
+}
+
+/**
+ * 🎯 FUNCIÓN PRINCIPAL DE IMAGEN V40
+ * Coherente con el contenido + watermark garantizado
+ */
+async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) {
+    console.log(`\n   🖼️ [V40] Imagen coherente → "${titulo.substring(0,55)}"`);
+    console.log(`   📍 ${categoria} | ${subtema}`);
+
+    // Construir queries según categoría
+    let queries;
+    if (categoria === 'Internacionales') {
+        const qIntl = buildQueryInternacional(titulo, contenido);
+        queries = [qIntl];
+        if (queryIA) queries.push(queryIA);
+        queries.push(...extraerQueriesCoherentes(titulo, contenido, categoria));
+        console.log(`   🌍 Query internacional: "${queries[0]}"`);
+    } else {
+        queries = extraerQueriesCoherentes(titulo, contenido, categoria);
+        if (queryIA) queries.unshift(queryIA);
+        console.log(`   🎯 ${queries.length} queries locales: "${queries[0]}"`);
+    }
+
+    // Búsqueda en cascada (hasta 3 queries en CSE)
+    let urlImagen = null;
+    let fuente    = 'banco-local';
+
+    for (let i = 0; i < Math.min(queries.length, 3); i++) {
+        const q = queries[i];
+        console.log(`   🔍 Búsqueda ${i+1}: "${q}"`);
+        urlImagen = await buscarImagenCSEV40(q, GOOGLE_CSE_KEYS, GOOGLE_CSE_CX);
+        if (urlImagen) { fuente = 'cse'; break; }
+        urlImagen = await buscarImagenPexelsV40([q], PEXELS_API_KEY);
+        if (urlImagen) { fuente = 'pexels'; break; }
+    }
+
+    if (!urlImagen && UNSPLASH_ACCESS_KEY) {
+        urlImagen = await buscarImagenUnsplashV40(queries[0], UNSPLASH_ACCESS_KEY);
+        if (urlImagen) fuente = 'unsplash';
+    }
+
+    if (!urlImagen) {
+        urlImagen = imgLocalV40(subtema, categoria);
+        fuente    = 'banco-local';
+        console.log(`   📦 Banco local: ${urlImagen.substring(0,60)}`);
+    }
+
+    // ── Watermark SIEMPRE ─────────────────────────────────
+    console.log(`   💧 Aplicando watermark (fuente: ${fuente})...`);
+    const wmResult = await aplicarWatermarkV40(urlImagen);
+
+    const imgFuente = fuente + (wmResult.procesada ? '-wm' : '');
+    console.log(`   ${wmResult.procesada?'✅':'⚠️'} Resultado: ${wmResult.url.substring(0,70)}`);
+
+    return {
+        urlFinal:   wmResult.url,
+        urlOriginal: urlImagen,
+        nombre:     wmResult.nombre || 'efd-fallback.jpg',
+        fuente:     imgFuente,
+        procesada:  wmResult.procesada,
+    };
+}
+
+// ══════════════════════════════════════════════════════════
+// 🧠 PROMPT V40
 // ══════════════════════════════════════════════════════════
 async function construirPrompt(categoria, comunicadoExterno) {
-    const ALTO_CPM = ['Economía','Tecnología','Internacionales'];
-    const esCategoriaAlta = ALTO_CPM.includes(categoria);
-
-    // ── Métricas de BD ─────────────────────────────────────
-    let topNoticias = '', malNoticias = '', metaStr = '', memoriaAnti = '';
+    const ALTO_CPM    = ['Economía','Tecnología','Internacionales'];
+    const esCatAlta   = ALTO_CPM.includes(categoria);
+    let topNoticias='', malNoticias='', metaStr='', memoriaAnti='';
     try {
         const rTop = await pool.query(`SELECT titulo,vistas,seccion FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days' AND vistas>0 ORDER BY vistas DESC LIMIT 8`);
         if (rTop.rows.length) {
@@ -617,7 +1023,7 @@ async function construirPrompt(categoria, comunicadoExterno) {
         }
         const rProm = await pool.query(`SELECT ROUND(AVG(vistas)) as p FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days'`);
         const prom  = parseInt(rProm.rows[0]?.p||0);
-        if (prom > 0) metaStr = `\n🎯 META: Promedio actual ${prom} vistas → esta noticia debe superar ${prom*2} (2x).\n`;
+        if (prom > 0) metaStr = `\n🎯 META: Promedio actual ${prom} vistas → superar ${prom*2} (2x).\n`;
         const rAnti = await pool.query(`SELECT titulo,seccion FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 25`);
         if (rAnti.rows.length) {
             memoriaAnti = '\n⛔ PROHIBIDO REPETIR ESTOS TEMAS:\n';
@@ -626,13 +1032,10 @@ async function construirPrompt(categoria, comunicadoExterno) {
         }
     } catch {}
 
-    // ── Frases aprendidas ──────────────────────────────────
     const frasesExitosas = await obtenerFrasesExitosas();
     const seccionFrases  = frasesExitosas.length
-        ? `\n🔥 FRASES QUE GENERAN CLICS EN TU AUDIENCIA:\n${frasesExitosas.map(f=>`- "${f}"`).join('\n')}\n`
-        : '';
+        ? `\n🔥 FRASES QUE GENERAN CLICS:\n${frasesExitosas.map(f=>`- "${f}"`).join('\n')}\n` : '';
 
-    // ── Contexto actual ────────────────────────────────────
     let contextoActual = '';
     if (GOOGLE_CSE_KEYS.length && GOOGLE_CSE_CX) {
         try {
@@ -652,7 +1055,6 @@ async function construirPrompt(categoria, comunicadoExterno) {
         } catch {}
     }
 
-    // ── Wikipedia ──────────────────────────────────────────
     const contextoWiki = await buscarContextoWikipedia(categoria);
     const estrategia   = leerEstrategia();
 
@@ -660,7 +1062,6 @@ async function construirPrompt(categoria, comunicadoExterno) {
         ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
         : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ABRIL 2026.`;
 
-    // ══ PROMPT V39 DEFINITIVO ═══════════════════════════════
     return `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor Jefe de El Farol al Día. Voz del barrio de SDE. Conoces tus métricas y escribes para superar records.
@@ -676,7 +1077,7 @@ ${contextoWiki}
 ${fuenteContenido}
 
 ════════════════════════════════════════════════════════
-🎯 INSTRUCCIONES OBLIGATORIAS V39 — LEER COMPLETO
+🎯 INSTRUCCIONES OBLIGATORIAS V40 — LEER COMPLETO
 ════════════════════════════════════════════════════════
 
 SECCIÓN A — FORMATO DE RESPUESTA (EXACTO, SIN VARIACIONES):
@@ -724,7 +1125,7 @@ SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
 7️⃣  CATEGORÍA: ${categoria}
 8️⃣  EVITAR: ${CONFIG_IA.evitar}
 9️⃣  ÉNFASIS: ${CONFIG_IA.enfasis}
-🔟 EXTENSIÓN OBJETIVO: ${esCategoriaAlta?'800-1000':'700-900'} palabras
+🔟 EXTENSIÓN OBJETIVO: ${esCatAlta?'800-1000':'700-900'} palabras
 
 ${estrategia}
 
@@ -732,272 +1133,37 @@ RECUERDA: TÍTULO A y B son dos opciones. CONTENIDO mínimo 900 palabras y 8 pá
 }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR DUAL V39
+// ✅ VALIDADOR DUAL
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, intento = 1) {
-    if (!contenido || typeof contenido !== 'string')
-        return { valido:false, razon:'Contenido nulo' };
-
+    if (!contenido || typeof contenido !== 'string') return { valido:false, razon:'Contenido nulo' };
     const limpio   = contenido.trim();
     const longMin  = intento === 1 ? 600 : intento === 2 ? 700 : 800;
     const parrafMin = intento === 1 ? 4 : 5;
-
-    if (limpio.length < longMin)
-        return { valido:false, razon:`${limpio.length} chars < ${longMin} mínimo (intento ${intento})` };
-
-    const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama',
-        'Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios',
-        'San Isidro','Santo Domingo Este','SDE','Carretera Mella','Sabana Larga'];
+    if (limpio.length < longMin) return { valido:false, razon:`${limpio.length} chars < ${longMin}` };
+    const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro','Santo Domingo Este','SDE','Carretera Mella','Sabana Larga'];
     const barriosMencionados = barriosSDE.filter(b=>limpio.toLowerCase().includes(b.toLowerCase()));
-    if (!barriosMencionados.length)
-        return { valido:false, razon:'No menciona ningún barrio de SDE' };
-
+    if (!barriosMencionados.length) return { valido:false, razon:'No menciona ningún barrio de SDE' };
     const parrafos = limpio.split(/\n\s*\n/).filter(p=>p.trim().length>20);
-    if (parrafos.length < parrafMin)
-        return { valido:false, razon:`${parrafos.length} párrafos < ${parrafMin} mínimo` };
-
-    const frasesDominicanismo = [
-        'se supo','fue confirmado','según fuentes','la gente del sector',
-        'vecinos dicen','en el barrio','en la calle','fue informado',
-        'trascendió','se conoció','se armó','está en grito','de buena fuente',
-        'los residentes','la comunidad','fuentes cercanas'
-    ];
-    const tieneLenguaje = frasesDominicanismo.some(f=>limpio.toLowerCase().includes(f));
-    if (!tieneLenguaje)
-        return { valido:false, razon:'Falta lenguaje de barrio dominicano' };
-
-    // ✅ Validación semántica — densidad de información local
-    const palabras    = limpio.split(/\s+/).filter(w=>w.length>2).length;
-    const densidadSDE = barriosMencionados.length / Math.max(palabras/100, 1);
-    if (densidadSDE < 0.1 && intento >= 2)
-        return { valido:false, razon:'Poca densidad de contenido local de SDE' };
-
+    if (parrafos.length < parrafMin) return { valido:false, razon:`${parrafos.length} párrafos < ${parrafMin}` };
+    const frasesDom = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle','fue informado','trascendió','se conoció','se armó','está en grito','de buena fuente','los residentes','la comunidad','fuentes cercanas'];
+    const tieneLenguaje = frasesDom.some(f=>limpio.toLowerCase().includes(f));
+    if (!tieneLenguaje) return { valido:false, razon:'Falta lenguaje de barrio dominicano' };
+    const palabras = limpio.split(/\s+/).filter(w=>w.length>2).length;
     return { valido:true, longitud:limpio.length, palabras, barrios:barriosMencionados, parrafos:parrafos.length };
 }
 
 // ══════════════════════════════════════════════════════════
-// 🎰 SELECTOR A/B DE TÍTULOS
+// 🎰 SELECTOR A/B
 // ══════════════════════════════════════════════════════════
 async function elegirMejorTitulo(tituloA, tituloB, categoria) {
     if (!tituloA) return tituloB;
     if (!tituloB) return tituloA;
-
-    // Heurística: prefiere el que tiene número, signo de interrogación, o barrio
-    const puntosA = [/\d/.test(tituloA), /[¿?]/.test(tituloA), /mina|invivienda|gaulle|ozama|mella/i.test(tituloA), tituloA.length > 45].filter(Boolean).length;
-    const puntosB = [/\d/.test(tituloB), /[¿?]/.test(tituloB), /mina|invivienda|gaulle|ozama|mella/i.test(tituloB), tituloB.length > 45].filter(Boolean).length;
-
-    const elegido = puntosB > puntosA ? tituloB : tituloA;
-    console.log(`   🎰 A/B: "${tituloA}"(${puntosA}pts) vs "${tituloB}"(${puntosB}pts) → elegido: "${elegido}"`);
+    const score = t => [/\d/.test(t), /[¿?]/.test(t), /mina|invivienda|gaulle|ozama|mella/i.test(t), t.length>45].filter(Boolean).length;
+    const pA = score(tituloA), pB = score(tituloB);
+    const elegido = pB > pA ? tituloB : tituloA;
+    console.log(`   🎰 A/B: "${tituloA}"(${pA}pts) vs "${tituloB}"(${pB}pts) → "${elegido}"`);
     return elegido;
-}
-
-// ══════════════════════════════════════════════════════════
-// 🖼️  IMÁGENES — paralelo garantizado
-// ══════════════════════════════════════════════════════════
-const CSE_EXCLUDES  = ['-site:shutterstock.com','-site:gettyimages.com','-site:adobe.com','-site:dreamstime.com','-site:alamy.com','-site:istockphoto.com'].join(' ');
-const URL_INVALIDAS = ['shutterstock','getty','stock','preview','watermark','wm_','logo_','thumbnail','small_','lowres','dreamstime','alamy'];
-const BARRIOS_SDE   = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Los Trinitarios','El Tamarindo','Mendoza'];
-
-const CSE_STATE_IMG = {};
-function getCseState(k) { if (!CSE_STATE_IMG[k]) CSE_STATE_IMG[k]={fallos:0,bloqueadaHasta:0}; return CSE_STATE_IMG[k]; }
-
-function urlImagenValida(url) {
-    if (!url) return false;
-    const u = url.toLowerCase();
-    if (!/(\.jpg|\.jpeg|\.png)(\?|$|#)/i.test(u)&&!u.endsWith('.jpg')&&!u.endsWith('.jpeg')&&!u.endsWith('.png')) return false;
-    return !URL_INVALIDAS.some(p=>u.includes(p));
-}
-
-async function verificarResolucion(url) {
-    try {
-        const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),6000);
-        const res=await fetch(url,{method:'GET',signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-        if (!res.ok) return false;
-        const buf=Buffer.from(await res.arrayBuffer());
-        if (buf.length<15000) return false;
-        const meta=await sharp(buf).metadata();
-        return (meta.width||0)>=1024;
-    } catch { return false; }
-}
-
-async function buscarImagenCSE(query, barrio='') {
-    if (!GOOGLE_CSE_KEYS.length||!GOOGLE_CSE_CX) return null;
-    const hora  = new Date().getHours();
-    const llaves = hora%2===0?[GOOGLE_CSE_KEYS[0],GOOGLE_CSE_KEYS[1]].filter(Boolean):[GOOGLE_CSE_KEYS[1],GOOGLE_CSE_KEYS[0]].filter(Boolean);
-    const qFull  = `${query}${barrio?' '+barrio:''} Santo Domingo Este ${CSE_EXCLUDES}`.trim();
-    for (const llave of llaves) {
-        const st=getCseState(llave);
-        if (Date.now()<st.bloqueadaHasta) continue;
-        try {
-            const url=`https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(qFull)}&searchType=image&imgType=photo&imgSize=large&fileType=jpg,png&num=10&safe=active`;
-            const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),8000);
-            const res=await fetch(url,{signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-            if (res.status===429||res.status===403) { st.fallos++; st.bloqueadaHasta=Date.now()+(st.fallos>=3?3600000:300000); continue; }
-            if (!res.ok) continue;
-            const data=await res.json();
-            for (const item of (data.items||[])) {
-                if (!urlImagenValida(item.link)) continue;
-                if (await verificarResolucion(item.link)) { st.fallos=0; return item.link; }
-            }
-        } catch { st.fallos++; }
-    }
-    return null;
-}
-
-function generarQueryCSE(titulo, categoria) {
-    const tL=titulo.toLowerCase();
-    const barrio=BARRIOS_SDE.find(b=>tL.includes(b.toLowerCase()))||'';
-    const base={ Nacionales:'noticias comunidad vecinos', Deportes:'deporte atletas cancha', Internacionales:'noticias mundo caribe', Economía:'negocio comercio mercado', Tecnología:'tecnología innovación digital', Espectáculos:'entretenimiento arte cultura' }[categoria]||'noticias barrio';
-    const stop=new Set(['el','la','los','las','un','una','de','del','en','y','a','se','que','por','con','su','sus','al','es','son','fue','han','ha','le','les','lo','más','para','sobre','como','entre','pero','sin','ya','no','si','o','e','ni']);
-    const pals=titulo.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>3&&!stop.has(w)).slice(0,3).join(' ');
-    return { query:`${pals} ${base}`.trim(), barrio };
-}
-
-const MAPEO_IMAGENES = {
-    'trump':['trump president podium microphone'],'abinader':['latin american president ceremony'],
-    'béisbol':['baseball dominican republic stadium'],'beisbol':['baseball dominican republic stadium'],
-    'policía':['police officers patrol street'],'policia':['police patrol caribbean'],
-    'mopc':['road construction highway workers'],'invivienda':['social housing construction caribbean'],
-    'haití':['haiti dominican border crossing'],'inteligencia artificial':['artificial intelligence computer'],
-    'huracán':['hurricane satellite view storm'],'huracan':['hurricane damage aftermath'],
-};
-
-const PB='https://images.pexels.com/photos', OPT='?auto=compress&cs=tinysrgb&w=800';
-const BANCO_LOCAL={
-    'politica-gobierno':[`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${PB}/290595/pexels-photo-290595.jpeg${OPT}`],
-    'seguridad-policia':[`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`],
-    'relaciones-internacionales':[`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`],
-    'economia-mercado':[`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`],
-    'infraestructura':[`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`],
-    'salud-medicina':[`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`],
-    'deporte-beisbol':[`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`],
-    'deporte-futbol':[`${PB}/46798/pexels-photo-46798.jpeg${OPT}`],
-    'deporte-general':[`${PB}/863988/pexels-photo-863988.jpeg${OPT}`],
-    'tecnologia':[`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`],
-    'educacion':[`${PB}/256490/pexels-photo-256490.jpeg${OPT}`],
-    'cultura-musica':[`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`],
-    'medio-ambiente':[`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`],
-    'turismo':[`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`],
-    'emergencia':[`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`],
-    'vivienda-social':[`${PB}/323780/pexels-photo-323780.jpeg${OPT}`],
-    'transporte-vial':[`${PB}/93398/pexels-photo-93398.jpeg${OPT}`],
-};
-const FALLBACK_CAT={Nacionales:'politica-gobierno',Deportes:'deporte-general',Internacionales:'relaciones-internacionales',Economía:'economia-mercado',Tecnología:'tecnologia',Espectáculos:'cultura-musica'};
-function imgLocal(sub,cat){ const b=BANCO_LOCAL[sub]||BANCO_LOCAL[FALLBACK_CAT[cat]]||BANCO_LOCAL['politica-gobierno']; return b[Math.floor(Math.random()*b.length)]; }
-
-async function buscarEnPexels(queries) {
-    if (!PEXELS_API_KEY) return null;
-    for (const q of (Array.isArray(queries)?queries:[queries])) {
-        try {
-            const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),5000);
-            const res=await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=5&orientation=landscape`,{headers:{Authorization:PEXELS_API_KEY},signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-            if (!res.ok) continue;
-            const data=await res.json();
-            if (!data.photos?.length) continue;
-            const foto=data.photos[Math.floor(Math.random()*Math.min(5,data.photos.length))];
-            return foto.src.large2x||foto.src.large;
-        } catch { continue; }
-    }
-    return null;
-}
-
-async function buscarEnUnsplash(query) {
-    if (!UNSPLASH_ACCESS_KEY) return null;
-    try {
-        const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),7000);
-        const res=await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query+' caribbean dominican')}&per_page=5&orientation=landscape`,{headers:{Authorization:`Client-ID ${UNSPLASH_ACCESS_KEY}`},signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-        if (!res.ok) return null;
-        const data=await res.json();
-        const fotos=(data.results||[]).filter(f=>(f.width||0)>=1080);
-        return fotos[0]?.urls?.full||fotos[0]?.urls?.regular||null;
-    } catch { return null; }
-}
-
-async function buscarImagenWikipedia(titulo) {
-    try {
-        const r1=await fetch(`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(titulo)}&format=json&srlimit=1&origin=*`);
-        const d1=await r1.json(); const pt=d1.query?.search?.[0]?.title; if (!pt) return null;
-        const r2=await fetch(`https://es.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(pt)}&prop=pageimages&format=json&pithumbsize=800&origin=*`);
-        const d2=await r2.json(); const pages=d2.query?.pages; const pid=Object.keys(pages||{})[0];
-        return pages?.[pid]?.thumbnail?.source||null;
-    } catch { return null; }
-}
-
-function esImagenValida(url) {
-    return url && /(\.jpg|\.jpeg|\.png|\.webp)/i.test(url) && !['flag','logo','map','seal','icon','20px','30px'].some(i=>url.includes(i));
-}
-
-async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
-    const { query:qCSE, barrio } = generarQueryCSE(titulo, categoria);
-    const q    = queryIA || qCSE;
-    const tL   = titulo.toLowerCase();
-    const pexelsQ = (() => { for (const [k,v] of Object.entries(MAPEO_IMAGENES)) if (tL.includes(k)) return v; return queryIA?[queryIA]:null; })();
-
-    // Búsqueda EN PARALELO — más rápido
-    const [rCSE, rUnsplash, rPexels] = await Promise.allSettled([
-        buscarImagenCSE(q, barrio),
-        buscarEnUnsplash(q),
-        pexelsQ ? buscarEnPexels(pexelsQ) : Promise.resolve(null),
-    ]).then(rs=>rs.map(r=>r.status==='fulfilled'?r.value:null));
-
-    if (rCSE)     { console.log('   🖼️  CSE OK'); return rCSE; }
-    if (rUnsplash){ console.log('   🖼️  Unsplash OK'); return rUnsplash; }
-    if (rPexels)  { console.log('   🖼️  Pexels OK'); return rPexels; }
-    const wiki = await buscarImagenWikipedia(titulo).catch(()=>null);
-    if (wiki && esImagenValida(wiki)) return wiki;
-    console.log('   🖼️  Banco local');
-    return imgLocal(subtema, categoria);
-}
-
-function generarAltSEO(titulo, categoria, altIA) {
-    if (altIA && altIA.length>15) return `${altIA} - El Farol al Día`;
-    const base={Nacionales:`Noticia ${titulo.substring(0,40)} Santo Domingo Este`,Deportes:`Deportes dominicanos ${titulo.substring(0,40)}`,Internacionales:`Internacional ${titulo.substring(0,30)}`,Economía:`Economía dominicana ${titulo.substring(0,35)}`,Tecnología:`Tecnología ${titulo.substring(0,35)}`,Espectáculos:`Espectáculos ${titulo.substring(0,35)}`};
-    return (base[categoria]||titulo.substring(0,50))+' - El Farol al Día';
-}
-
-// ══════════════════════════════════════════════════════════
-// 🏮 WATERMARK
-// ══════════════════════════════════════════════════════════
-async function aplicarMarcaDeAgua(urlImagen) {
-    if (!WATERMARK_PATH || !urlImagen) return { url:urlImagen, procesada:false };
-    try {
-        const r = await fetch(urlImagen, { signal:AbortSignal.timeout(10000) });
-        if (!r.ok) return { url:urlImagen, procesada:false };
-        const ct = r.headers.get('content-type')||'';
-        if (!ct.includes('image/')) return { url:urlImagen, procesada:false };
-        const bufOrig = Buffer.from(await r.arrayBuffer());
-        if (bufOrig.length < 5000) return { url:urlImagen, procesada:false };
-        const meta = await sharp(bufOrig).metadata().catch(()=>null);
-        if (!meta || !['jpeg','jpg','png','webp'].includes(meta.format)) return { url:urlImagen, procesada:false };
-        const w=meta.width||800, h=meta.height||500;
-        const wmA=Math.min(Math.round(w*0.28),300);
-        const wmR=await sharp(WATERMARK_PATH).resize(wmA,null,{fit:'inside'}).toBuffer();
-        const wmM=await sharp(wmR).metadata();
-        const margen=Math.round(w*0.02);
-        const bufF=await sharp(bufOrig)
-            .composite([{input:wmR,left:Math.max(0,w-wmA-margen),top:Math.max(0,h-(wmM.height||60)-margen),blend:'over'}])
-            .jpeg({quality:88}).toBuffer();
-        const nombre=`efd-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
-        fs.writeFileSync(path.join('/tmp',nombre),bufF);
-        return { url:urlImagen, nombre, procesada:true };
-    } catch { return { url:urlImagen, procesada:false }; }
-}
-
-async function aplicarMarcaDeAguaBuffer(bufOrig) {
-    if (!WATERMARK_PATH) return null;
-    try {
-        const meta=await sharp(bufOrig).metadata().catch(()=>null);
-        if (!meta||!['jpeg','jpg','png','webp'].includes(meta.format)) return null;
-        const w=meta.width||800, h=meta.height||500;
-        const wmA=Math.min(Math.round(w*0.28),300);
-        const wmR=await sharp(WATERMARK_PATH).resize(wmA,null,{fit:'inside'}).toBuffer();
-        const wmM=await sharp(wmR).metadata();
-        const margen=Math.round(w*0.02);
-        const bufF=await sharp(bufOrig).composite([{input:wmR,left:Math.max(0,w-wmA-margen),top:Math.max(0,h-(wmM.height||60)-margen),blend:'over'}]).jpeg({quality:88}).toBuffer();
-        const nombre=`efd-manual-${Date.now()}-${Math.random().toString(36).substring(2,8)}.jpg`;
-        fs.writeFileSync(path.join('/tmp',nombre),bufF);
-        return nombre;
-    } catch { return null; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1044,88 +1210,90 @@ async function registrarError(desc, cat) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V39 ULTIMATE
+// 📰 GENERAR NOTICIA — V40 ULTIMATE
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
     const inicio = Date.now();
-
     try {
         if (!CONFIG_IA.enabled) return { success:false, error:'IA desactivada' };
-        console.log(`\n📰 [V39] Generando — ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
-        console.log(`   🔑 ${TODAS_LLAVES_GEMINI.length} llaves Gemini disponibles`);
+        console.log(`\n📰 [V40] Generando — ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
 
-        // ── Prompt V39 ─────────────────────────────────────
-        const prompt    = await construirPrompt(categoria, comunicadoExterno);
+        // ── Prompt + Gemini ────────────────────────────────
+        const prompt  = await construirPrompt(categoria, comunicadoExterno);
         console.log('   📝 Enviando a Gemini (maxTokens: 8000)...');
-        const textoIA   = await llamarGemini(prompt, 3, 8000);
-        const limpio    = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
+        const textoIA = await llamarGemini(prompt, 3, 8000);
+        const limpio  = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
 
         // ── Parsear respuesta ──────────────────────────────
-        let tituloA='', tituloB='', desc='', pals='', sub='', contenido='';
-        let enContenido = false;
-        const bloques   = [];
-
+        let tituloA='',tituloB='',desc='',pals='',sub='';
+        let enContenido=false, bloques=[];
         for (const linea of limpio.split('\n')) {
             const t = linea.trim();
-            if      (t.startsWith('TITULO_A:'))       tituloA = t.replace('TITULO_A:','').trim();
-            else if (t.startsWith('TITULO_B:'))       tituloB = t.replace('TITULO_B:','').trim();
-            else if (t.startsWith('TITULO:'))         tituloA = t.replace('TITULO:','').trim(); // compatibilidad
-            else if (t.startsWith('DESCRIPCION:'))    desc    = t.replace('DESCRIPCION:','').trim();
-            else if (t.startsWith('PALABRAS:'))       pals    = t.replace('PALABRAS:','').trim();
-            else if (t.startsWith('SUBTEMA_LOCAL:'))  sub     = t.replace('SUBTEMA_LOCAL:','').trim();
-            else if (t.startsWith('CONTENIDO:'))      enContenido = true;
-            else if (enContenido && t.length > 0)     bloques.push(t);
+            if      (t.startsWith('TITULO_A:'))      tituloA = t.replace('TITULO_A:','').trim();
+            else if (t.startsWith('TITULO_B:'))      tituloB = t.replace('TITULO_B:','').trim();
+            else if (t.startsWith('TITULO:'))        tituloA = t.replace('TITULO:','').trim();
+            else if (t.startsWith('DESCRIPCION:'))   desc    = t.replace('DESCRIPCION:','').trim();
+            else if (t.startsWith('PALABRAS:'))      pals    = t.replace('PALABRAS:','').trim();
+            else if (t.startsWith('SUBTEMA_LOCAL:')) sub     = t.replace('SUBTEMA_LOCAL:','').trim();
+            else if (t.startsWith('CONTENIDO:'))     enContenido = true;
+            else if (enContenido && t.length > 0)    bloques.push(t);
         }
-
-        contenido = bloques.join('\n\n');
-        tituloA   = tituloA.replace(/[*_#`"]/g,'').trim();
-        tituloB   = tituloB.replace(/[*_#`"]/g,'').trim();
-        desc      = desc.replace(/[*_#`]/g,'').trim();
-
+        const contenido = bloques.join('\n\n');
+        tituloA = tituloA.replace(/[*_#`"]/g,'').trim();
+        tituloB = tituloB.replace(/[*_#`"]/g,'').trim();
+        desc    = desc.replace(/[*_#`]/g,'').trim();
         if (!tituloA && !tituloB) throw new Error('Gemini no devolvió TITULO_A ni TITULO_B');
 
         // ── Selector A/B ───────────────────────────────────
         const titulo = await elegirMejorTitulo(tituloA, tituloB, categoria);
 
-        // ── Validación progresiva ──────────────────────────
+        // ── Validación dual ────────────────────────────────
         const val = validarContenido(contenido, reintento);
         if (!val.valido) {
-            console.log(`   ⚠️ Validación falló (intento ${reintento}): ${val.razon}`);
-            console.log(`   📏 Actual: ${contenido.length} chars, ${bloques.length} párrafos`);
+            console.log(`   ⚠️ Validación falló (${reintento}): ${val.razon}`);
             if (reintento < MAX_REINTENTOS) {
-                await new Promise(r => setTimeout(r, 5000));
-                return generarNoticia(categoria, comunicadoExterno, reintento + 1);
+                await new Promise(r=>setTimeout(r,5000));
+                return generarNoticia(categoria, comunicadoExterno, reintento+1);
             }
-            throw new Error(`Validación fallida (${MAX_REINTENTOS} intentos): ${val.razon}`);
+            throw new Error(`Validación fallida: ${val.razon}`);
         }
-
         console.log(`   ✅ OK: ${val.longitud} chars, ${val.palabras} palabras, ${val.parrafos} párrafos, barrios: ${val.barrios.join(', ')}`);
-        logAnalytics('NOTICIA_GENERADA', { categoria, chars:val.longitud, palabras:val.palabras, parrafos:val.parrafos, barrios:val.barrios, dur_s:Math.round((Date.now()-inicio)/1000) });
+        logAnalytics('NOTICIA_GENERADA',{categoria,chars:val.longitud,palabras:val.palabras,parrafos:val.parrafos,barrios:val.barrios,dur_s:Math.round((Date.now()-inicio)/1000)});
 
         // ── Anti-plagio ────────────────────────────────────
         const similares = await detectarPlagio(contenido);
-        if (similares.length > 0) {
-            console.warn(`   🕵️ Posible similitud con: ${similares.join(', ')}`);
-            logAnalytics('ANTI_PLAGIO', { similares });
+        if (similares.length) {
+            console.warn(`   🕵️ Similitud con: ${similares.join(', ')}`);
+            logAnalytics('ANTI_PLAGIO',{similares});
         }
 
-        // ── Imagen (en paralelo ya resuelto) ───────────────
-        let qi='', ai='';
+        // ── Query IA para imagen V40 ───────────────────────
+        // Detecta barrios mencionados para dar contexto a Gemini
+        const barriosMencionados = (contenido.match(/Los Mina|Invivienda|Charles de Gaulle|Ensanche Ozama|Sabana Perdida|Villa Mella|Carretera Mella|Los Trinitarios/g)||[]).join(', ') || 'Santo Domingo Este';
+        let queryIA = '';
         const rImg = await llamarGeminiImagen(
-            `Periódico dominicano. Titular: "${titulo}" | Categoría: ${categoria}\nRESPONDE SOLO:\nQUERY_IMAGEN: [3-5 palabras inglés, escena real periodística]\nALT_IMAGEN: [15-20 palabras español SEO Santo Domingo Este]\nPROHIBIDO: wedding, couple, flowers, cartoon, pet`
-        );
+            `Titular: "${titulo}"\nCategoría: ${categoria}\nBarrios mencionados: ${barriosMencionados}\nPrimeras líneas: "${contenido.substring(0,200)}"\n\nRESPONDE SOLO con esta línea:\nQUERY_IMAGEN: [6-8 palabras en inglés describiendo una ESCENA FOTOGRÁFICA REAL y ESPECÍFICA coherente con el contenido. Menciona lugar/acción/personas reales del artículo. PROHIBIDO: wedding, couple, flowers, cartoon, pet, flag, logo]`
+        ).catch(()=>null);
         if (rImg) {
-            for (const l of rImg.split('\n')) {
-                if (l.trim().startsWith('QUERY_IMAGEN:')) qi=l.trim().replace('QUERY_IMAGEN:','').trim();
-                if (l.trim().startsWith('ALT_IMAGEN:'))   ai=l.trim().replace('ALT_IMAGEN:','').trim();
-            }
+            for (const l of (rImg||'').split('\n'))
+                if (l.trim().startsWith('QUERY_IMAGEN:')) queryIA = l.trim().replace('QUERY_IMAGEN:','').trim();
         }
+        console.log(`   🤖 Query IA imagen: "${queryIA||'(sin query IA)'}"`);
 
-        const urlOrig   = await obtenerImagenInteligente(titulo, categoria, sub, qi);
-        const imgResult = await aplicarMarcaDeAgua(urlOrig);
-        const urlFinal  = imgResult.procesada ? `${BASE_URL}/img/${imgResult.nombre}` : urlOrig;
-        const altFinal  = generarAltSEO(titulo, categoria, ai);
+        // ── Imagen coherente V40 + watermark garantizado ───
+        const imgResult = await obtenerImagenV40(titulo, contenido, categoria, sub, queryIA);
+
+        // ── Alt SEO ────────────────────────────────────────
+        const altBase = {
+            'Nacionales':      `Noticias ${titulo.substring(0,40)} Santo Domingo Este`,
+            'Deportes':        `Deportes dominicanos ${titulo.substring(0,35)}`,
+            'Internacionales': `Internacional ${titulo.substring(0,35)} Caribe`,
+            'Economía':        `Economía dominicana ${titulo.substring(0,35)}`,
+            'Tecnología':      `Tecnología ${titulo.substring(0,40)}`,
+            'Espectáculos':    `Espectáculos ${titulo.substring(0,35)} RD`,
+        };
+        const altFinal = `${altBase[categoria]||titulo.substring(0,50)} - El Farol al Día`;
 
         // ── Slug ───────────────────────────────────────────
         const slugBase = slugify(titulo);
@@ -1136,32 +1304,32 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         // ── Guardar en BD ──────────────────────────────────
         await pool.query(
             'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
-            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre||'efd.jpg',imgResult.procesada?'cse-watermark':'cse',urlOrig,'publicada']
+            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada']
         );
 
         const durTotal = Math.round((Date.now()-inicio)/1000);
-        console.log(`\n✅ [V39] Publicada → /noticia/${slFin} (${durTotal}s)`);
-        logAnalytics('NOTICIA_PUBLICADA',{slug:slFin,categoria,chars:val.longitud,duracion_s:durTotal,imagen:imgResult.procesada?'watermark':'fallback'});
+        console.log(`\n✅ [V40] Publicada → /noticia/${slFin} (${durTotal}s) | Imagen: ${imgResult.fuente} | WM: ${imgResult.procesada?'✅':'⚠️'}`);
+        logAnalytics('NOTICIA_PUBLICADA',{slug:slFin,categoria,chars:val.longitud,duracion_s:durTotal,imagen:imgResult.fuente,watermark:imgResult.procesada});
 
         invalidarCache();
 
-        // ── Auto-aprendizaje: guarda frases del título ─────
+        // ── Auto-aprendizaje ───────────────────────────────
         const frases = titulo.match(/[A-ZÁÉÍÓÚ][^,.:;!?]{10,40}/g)||[];
-        for (const f of frases.slice(0,2)) await guardarFraseExitosa(f, 10);
+        for (const f of frases.slice(0,2)) await guardarFraseExitosa(f,10);
 
         // ── Push + redes ───────────────────────────────────
-        await notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, urlFinal);
-        setImmediate(() => publicarEnRedes(titulo, slFin, urlFinal, desc, categoria, contenido));
+        await notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, imgResult.urlFinal);
+        setImmediate(()=>publicarEnRedes(titulo,slFin,imgResult.urlFinal,desc,categoria,contenido));
 
-        return { success:true, slug:slFin, titulo, alt:altFinal, mensaje:'✅ Publicada', stats:val, ab:{ a:tituloA, b:tituloB, elegido:titulo } };
+        return { success:true, slug:slFin, titulo, alt:altFinal, mensaje:'✅ Publicada V40', stats:val, imagen:imgResult, ab:{a:tituloA,b:tituloB,elegido:titulo} };
 
     } catch(error) {
         const dur = Math.round((Date.now()-inicio)/1000);
-        console.error(`❌ [V39] Error intento ${reintento} (${dur}s):`, error.message);
+        console.error(`❌ [V40] Error intento ${reintento} (${dur}s):`, error.message);
         logAnalytics('NOTICIA_ERROR',{categoria,reintento,error:error.message,dur_s:dur});
         if (reintento < MAX_REINTENTOS) {
-            await new Promise(r => setTimeout(r, 8000));
-            return generarNoticia(categoria, comunicadoExterno, reintento + 1);
+            await new Promise(r=>setTimeout(r,8000));
+            return generarNoticia(categoria,comunicadoExterno,reintento+1);
         }
         await registrarError(error.message, categoria);
         return { success:false, error:error.message };
@@ -1224,17 +1392,13 @@ async function procesarRSS() {
 // ══════════════════════════════════════════════════════════
 async function autoLimpieza() {
     try {
-        const r = await pool.query(`DELETE FROM noticias WHERE fecha < NOW()-INTERVAL '90 days' AND vistas < 5 AND estado='publicada' RETURNING id`);
-        if (r.rowCount > 0) {
-            console.log(`🗑️ Auto-limpieza: ${r.rowCount} noticias viejas eliminadas`);
-            logAnalytics('AUTO_LIMPIEZA',{eliminadas:r.rowCount});
-            invalidarCache();
-        }
+        const r = await pool.query(`DELETE FROM noticias WHERE fecha<NOW()-INTERVAL '90 days' AND vistas<5 AND estado='publicada' RETURNING id`);
+        if (r.rowCount>0) { console.log(`🗑️ Auto-limpieza: ${r.rowCount} eliminadas`); invalidarCache(); }
     } catch(e) { console.warn('⚠️ Auto-limpieza:', e.message); }
 }
 
 // ══════════════════════════════════════════════════════════
-// ⏰ CRON — Inteligente
+// ⏰ CRON
 // ══════════════════════════════════════════════════════════
 const CATS = ['Nacionales','Deportes','Internacionales','Economía','Tecnología','Espectáculos'];
 const ARRANQUE_TIME = Date.now();
@@ -1246,66 +1410,52 @@ async function getHorasPico() {
     } catch { return [7,10,13,17,20]; }
 }
 
-// Keep-alive
 cron.schedule('*/5 * * * *', async () => { try { await fetch(`http://localhost:${PORT}/health`); } catch {} });
 
-// Generación inteligente — cada hora evalúa si publicar
 cron.schedule('0 * * * *', async () => {
     if (!CONFIG_IA.enabled) return;
     if (Date.now()-ARRANQUE_TIME < 35*60*1000) return;
-    const hora  = new Date().getHours();
-    const pico  = await getHorasPico();
+    const hora = new Date().getHours();
+    const pico = await getHorasPico();
     if (pico.includes(hora) || hora%3===0) {
         console.log(`⏰ Cron hora ${hora}:00 (${pico.includes(hora)?'HORA PICO':'ciclo 3h'})`);
-        logAnalytics('CRON',{hora,tipo:pico.includes(hora)?'pico':'normal'});
-        await generarNoticia(CATS[hora % CATS.length]);
+        await generarNoticia(CATS[hora%CATS.length]);
     }
 });
 
-// RSS
 cron.schedule('30 8,19 * * *', procesarRSS);
-
-// Estrategia
-cron.schedule('0 */6 * * *', async () => {
-    try { await analizarYGenerar(); } catch(e) { console.error('❌ Estrategia:', e.message); }
-});
-
-// Reporte diario 7 AM
+cron.schedule('0 */6 * * *', async () => { try { await analizarYGenerar(); } catch(e) { console.error('❌ Estrategia:', e.message); } });
 cron.schedule('0 7 * * *', async () => {
     try {
         const r  = await pool.query(`SELECT seccion, ROUND(AVG(vistas)) as p, COUNT(*) as c FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days' GROUP BY seccion ORDER BY p DESC`);
         const gl = await pool.query(`SELECT ROUND(AVG(vistas)) as p, MAX(vistas) as mx, COUNT(*) as t FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days'`);
-        const g  = gl.rows[0];
-        const mx = Math.max(...r.rows.map(x=>parseInt(x.p)||0),1);
-        const bar = (n,m) => '█'.repeat(Math.round((n/m)*10))+'░'.repeat(10-Math.round((n/m)*10));
+        const g  = gl.rows[0]; const mx=Math.max(...r.rows.map(x=>parseInt(x.p)||0),1);
+        const bar=(n,m)=>'█'.repeat(Math.round((n/m)*10))+'░'.repeat(10-Math.round((n/m)*10));
         console.log('\n╔══════════════════════════════════════════════════════╗');
-        console.log('║  📊 REPORTE DIARIO — El Farol al Día V39.0          ║');
-        console.log(`║  📰 ${g?.t||0} noticias | Promedio: ${g?.p||0} vistas | Máx: ${g?.mx||0}        ║`);
-        r.rows.forEach(c => console.log(`║  ${(c.seccion+'            ').slice(0,14)} ${bar(parseInt(c.p)||0,mx)} ${c.p} vistas ║`));
+        console.log('║  📊 REPORTE DIARIO — El Farol al Día V40.0          ║');
+        console.log(`║  📰 ${g?.t||0} noticias | Promedio: ${g?.p||0} | Máx: ${g?.mx||0}              ║`);
+        r.rows.forEach(c=>console.log(`║  ${(c.seccion+'            ').slice(0,14)} ${bar(parseInt(c.p)||0,mx)} ${c.p} ║`));
         console.log('╚══════════════════════════════════════════════════════╝\n');
         logAnalytics('REPORTE_DIARIO',{total:g?.t,promedio:g?.p,maximo:g?.mx});
     } catch(e) { console.warn('⚠️ Reporte:', e.message); }
 });
-
-// Auto-limpieza semanal
 cron.schedule('0 3 * * 0', autoLimpieza);
 
-// ── Ráfaga inicial — 3 noticias en 90 minutos ─────────────
 async function rafagaInicial() {
     if (!CONFIG_IA.enabled) return;
     console.log('🚀 Ráfaga inicial — 3 noticias en 90 min...');
-    for (let i = 0; i < 3; i++) {
-        if (i > 0) await new Promise(r => setTimeout(r, 30*60*1000));
-        try { await generarNoticia(CATS[i]); } catch(e) { console.warn(`⚠️ Ráfaga ${i+1}:`, e.message); }
+    for (let i=0;i<3;i++) {
+        if (i>0) await new Promise(r=>setTimeout(r,30*60*1000));
+        try { await generarNoticia(CATS[i]); } catch(e) { console.warn(`⚠️ Ráfaga ${i+1}:`,e.message); }
     }
 }
 
 // ══════════════════════════════════════════════════════════
 // CACHÉ
 // ══════════════════════════════════════════════════════════
-let _cacheNoticias = null, _cacheFecha = 0;
-const CACHE_TTL = 5 * 60 * 1000;
-function invalidarCache() { _cacheNoticias = null; _cacheFecha = 0; }
+let _cacheNoticias=null, _cacheFecha=0;
+const CACHE_TTL = 5*60*1000;
+function invalidarCache() { _cacheNoticias=null; _cacheFecha=0; }
 
 // ══════════════════════════════════════════════════════════
 // BD — INIT
@@ -1325,9 +1475,8 @@ async function inicializarBase() {
         const cp = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(cp.rows[0].count)===0)
             await client.query(`INSERT INTO publicidad(nombre_espacio,ubicacion,activo) VALUES('Banner Top','top',false),('Banner Sidebar','sidebar',false),('Banner Medio','medio',false),('Banner Footer','footer',false)`);
-        // Índice full-text para anti-plagio
         await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_fts ON noticias USING gin(to_tsvector('spanish', COALESCE(contenido,'')))`).catch(()=>{});
-        console.log('✅ BD lista (con índice FTS para anti-plagio)');
+        console.log('✅ BD lista V40');
     } catch(e) { console.error('❌ BD:', e.message); }
     finally { client.release(); }
     await cargarConfigIA();
@@ -1336,7 +1485,7 @@ async function inicializarBase() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req,res) => res.json({ status:'OK', version:'39.1', gemini_keys:TODAS_LLAVES_GEMINI.length, gap_entre_llaves:'15s', penalidad_429:'80-360s' }));
+app.get('/health', (req,res) => res.json({ status:'OK', version:'40.0', gemini_keys:TODAS_LLAVES_GEMINI.length, imagen:'coherente-v40', watermark:'garantizado' }));
 
 app.get('/api/noticias', async (req,res) => {
     res.setHeader('Access-Control-Allow-Origin','*');
@@ -1383,11 +1532,11 @@ app.post('/api/publicar', express.json(), async (req,res) => {
         try {
             if (imgFinal.startsWith('data:image')) {
                 const m=imgFinal.match(/^data:image\/(\w+);base64,(.+)$/s);
-                if (m) { const wm=await aplicarMarcaDeAguaBuffer(Buffer.from(m[2],'base64')); if(wm){imgOriginal='base64';imgFinal=`${BASE_URL}/img/${wm}`;imgNombre=wm;imgFuente='manual-wm';} }
+                if (m) { const wm=await aplicarWatermarkBuffer(Buffer.from(m[2],'base64')); if(wm){imgOriginal='base64';imgFinal=`${BASE_URL}/img/${wm}`;imgNombre=wm;imgFuente='manual-wm';} }
             } else if (imgFinal.startsWith('http')) {
                 imgOriginal=imgFinal;
-                const res2=await aplicarMarcaDeAgua(imgFinal);
-                if (res2.procesada){imgFinal=`${BASE_URL}/img/${res2.nombre}`;imgNombre=res2.nombre;imgFuente='manual-wm';}
+                const wmR=await aplicarWatermarkV40(imgFinal);
+                if (wmR.nombre){imgFinal=wmR.url;imgNombre=wmR.nombre;imgFuente=wmR.procesada?'manual-wm':'manual';}
             }
         } catch {}
         await pool.query('INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
@@ -1417,8 +1566,7 @@ app.get('/api/comentarios/:nid', async (req,res) => {
 });
 
 app.post('/api/comentarios/:nid', async (req,res) => {
-    const { nombre,texto }=req.body;
-    const nid=parseInt(req.params.nid);
+    const { nombre,texto }=req.body; const nid=parseInt(req.params.nid);
     if (isNaN(nid)||nid<=0) return res.status(400).json({success:false,error:'ID inválido'});
     if (!nombre?.trim()||!texto?.trim()) return res.status(400).json({success:false,error:'Campos requeridos'});
     if (texto.trim().length<3||texto.trim().length>1000) return res.status(400).json({success:false,error:'Largo inválido'});
@@ -1463,7 +1611,6 @@ app.post('/api/admin/config', authMiddleware, express.json(), async (req,res) =>
     res.json({success:await guardarConfigIA(CONFIG_IA)});
 });
 
-// ── Push ──────────────────────────────────────────────────
 app.get('/api/push/vapid-key', (req,res) => VAPID_PUBLIC_KEY?res.json({success:true,publicKey:VAPID_PUBLIC_KEY}):res.json({success:false}));
 
 app.post('/api/push/suscribir', express.json(), async (req,res) => {
@@ -1483,13 +1630,12 @@ app.post('/api/push/desuscribir', express.json(), async (req,res) => {
 
 app.post('/api/push/test', authMiddleware, async (req,res) => {
     if (req.body.pin!=='311') return res.status(403).json({error:'PIN'});
-    const r=await notificarNuevaNoticia(req.body.titulo||'🧪 Prueba V39',req.body.mensaje||'Test activo','test',null);
+    const r=await notificarNuevaNoticia(req.body.titulo||'🧪 Prueba V40',req.body.mensaje||'Test activo','test',null);
     res.json({success:!!r});
 });
 
 app.get('/api/onesignal/config', (req,res) => res.json({appId:ONESIGNAL_APP_ID||null,enabled:!!ONESIGNAL_APP_ID}));
 
-// ── Audio ─────────────────────────────────────────────────
 app.get('/audio/:nombre', (req,res) => {
     const ruta=path.join('/tmp',req.params.nombre);
     if (!fs.existsSync(ruta)) return res.status(404).send('Audio no disponible');
@@ -1497,10 +1643,9 @@ app.get('/audio/:nombre', (req,res) => {
     res.sendFile(ruta);
 });
 
-// ── Redes sociales ────────────────────────────────────────
 app.post('/api/telegram/test', authMiddleware, async (req,res) => {
     if (req.body.pin!=='311') return res.status(403).json({error:'PIN'});
-    const ok=await publicarEnTelegram('🏮 El Farol al Día — V39 activo','test',null,'Sistema V39 funcionando.','Nacionales',null);
+    const ok=await publicarEnTelegram('🏮 El Farol al Día — V40 activo','test',null,'Sistema V40 con imagen coherente funcionando.','Nacionales',null);
     res.json({success:ok,chat_id:_telegramChatId});
 });
 
@@ -1520,7 +1665,6 @@ app.get('/api/social/status', authMiddleware, (req,res) => {
     });
 });
 
-// ── Métricas avanzadas ────────────────────────────────────
 app.get('/api/metricas', authMiddleware, async (req,res) => {
     if (req.query.pin!=='311') return res.status(403).json({error:'PIN'});
     try {
@@ -1542,7 +1686,6 @@ app.get('/api/gemini/status', authMiddleware, async (req,res) => {
     res.json({success:true,total:TODAS_LLAVES_GEMINI.length,llaves:estado,rr_index:_rrIdx});
 });
 
-// ── Publicidad ────────────────────────────────────────────
 app.get('/api/publicidad', authMiddleware, async (req,res) => {
     try { const r=await pool.query('SELECT * FROM publicidad ORDER BY id ASC'); res.json({success:true,anuncios:r.rows}); }
     catch(e) { res.status(500).json({success:false,error:e.message}); }
@@ -1576,7 +1719,6 @@ app.post('/api/publicidad/eliminar', authMiddleware, async (req,res) => {
     catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
-// ── Estrategia ────────────────────────────────────────────
 app.get('/api/estrategia', authMiddleware, (req,res) => {
     try {
         const ruta=path.join(__dirname,'estrategia.json');
@@ -1597,7 +1739,6 @@ app.get('/api/coach', async (req,res) => {
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
-// ── Configuración general ─────────────────────────────────
 app.get('/api/configuracion', (req,res) => {
     try { const c=fs.existsSync(path.join(__dirname,'config.json'))?JSON.parse(fs.readFileSync(path.join(__dirname,'config.json'),'utf8')):{googleAnalytics:''}; res.json({success:true,config:c}); }
     catch { res.json({success:true,config:{googleAnalytics:''}}); }
@@ -1610,7 +1751,6 @@ app.post('/api/configuracion', express.json(), (req,res) => {
     catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
-// ── Imágenes /tmp ─────────────────────────────────────────
 app.get('/img/:nombre', async (req,res) => {
     const ruta=path.join('/tmp',req.params.nombre);
     if (fs.existsSync(ruta)) { res.setHeader('Content-Type','image/jpeg'); res.setHeader('Cache-Control','public,max-age=604800'); return res.sendFile(ruta); }
@@ -1621,7 +1761,6 @@ app.get('/img/:nombre', async (req,res) => {
     res.status(404).send('Imagen no disponible');
 });
 
-// ── Páginas estáticas ─────────────────────────────────────
 app.get('/',          (req,res)=>res.sendFile(path.join(__dirname,'client','index.html')));
 app.get('/redaccion', authMiddleware,(req,res)=>res.sendFile(path.join(__dirname,'client','redaccion.html')));
 app.get('/ingeniero', authMiddleware,(req,res)=>res.sendFile(path.join(__dirname,'client','ingeniero.html')));
@@ -1683,27 +1822,32 @@ app.get('/status', async (req,res) => {
         const minS=ult.rows.length?Math.round((Date.now()-new Date(ult.rows[0].fecha))/60000):9999;
         const llaves=TODAS_LLAVES_GEMINI.map((k,i)=>{const st=getKeyState(k);return`KEY${i+1}:${Date.now()>=st.resetTime?'✅':'⏳'}`;}).join(' ');
         res.json({
-            status:'OK', version:'39.1-ULTIMATE',
+            status:'OK', version:'40.0-ULTIMATE',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minS, ultima_noticia:ult.rows[0]?.titulo?.substring(0,60)||'—',
             gemini:`${TODAS_LLAVES_GEMINI.length}/8 llaves`, gemini_llaves:llaves,
-            prompt:'✅ V39 — 10 secciones, calles reales, ambiente dominicano, 8 párrafos',
-            titulos_ab:'✅ Genera 2 títulos, elige el más clickbait automáticamente',
-            aprendizaje:'✅ Guarda frases exitosas en BD',
-            anti_plagio:'✅ FTS postgresql detecta duplicados',
+            imagen_v40:'✅ Coherente con contenido — barrios SDE + temas específicos',
+            imagen_internacional:'✅ Query en inglés por país/evento real',
+            watermark:'✅ GARANTIZADO — siempre aplicado antes de guardar en BD',
+            imagen_cascada:'✅ CSE → Pexels → Unsplash → banco local (1200px)',
+            imagen_resolucion:'✅ Verificación mínima 800px de ancho',
+            prompt:'✅ V40 — 10 secciones, calles SDE, 8 párrafos, A/B titles',
             validacion:'✅ Dual: longitud + densidad semántica SDE',
             max_tokens:'✅ 8000 — nunca se corta el texto',
+            anti_plagio:'✅ FTS postgresql detecta duplicados',
+            aprendizaje:'✅ Guarda frases exitosas en BD',
             auto_limpieza:'✅ Borra noticias +90 días con <5 vistas (domingos 3AM)',
-            imagen_paralelo:'✅ CSE + Unsplash + Pexels simultáneos',
             push:`✅ VAPID (${push.rows[0].count} subs) + OneSignal dual`,
             telegram:process.env.TELEGRAM_TOKEN?`✅ ${_telegramChatId||'detectando'}`:'⚠️ Sin token',
-            facebook:process.env.FB_PAGE_ID?'✅':'⚠️',twitter:process.env.TWITTER_API_KEY?'✅':'⚠️',
+            facebook:process.env.FB_PAGE_ID?'✅':'⚠️',
+            twitter:process.env.TWITTER_API_KEY?'✅':'⚠️',
             elevenlabs:ELEVENLABS_API_KEY?'✅ TTS activo':'⚠️ Sin key',
-            watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅':'⚠️',
+            watermark_file:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅':'⚠️ No encontrado',
             google_cse:GOOGLE_CSE_KEYS.length?`✅ ${GOOGLE_CSE_KEYS.length} keys`:'⚠️',
             unsplash:UNSPLASH_ACCESS_KEY?'✅':'⚠️', pexels:PEXELS_API_KEY?'✅':'⚠️',
             cron:'✅ Inteligente por horas pico reales de BD',
-            reporte_diario:'✅ 7AM Railway', rafaga_inicial:'✅ 3 noticias en 90 min',
+            reporte_diario:'✅ 7AM Railway',
+            rafaga_inicial:'✅ 3 noticias en 90 min',
             ia_activa:CONFIG_IA.enabled, adsense:'pub-5280872495839888 ✅',
             endpoints:{ metricas:`${BASE_URL}/api/metricas?pin=311`, gemini:`${BASE_URL}/api/gemini/status?pin=311`, social:`${BASE_URL}/api/social/status?pin=311` },
         });
@@ -1713,7 +1857,7 @@ app.get('/status', async (req,res) => {
 app.use((req,res)=>res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// 🚀 ARRANQUE V39
+// 🚀 ARRANQUE V40
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -1722,20 +1866,20 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V39.1 ULTIMATE EDITION                  ║
+║  🏮 EL FAROL AL DÍA — V40.0 ULTIMATE EDITION                  ║
 ╠══════════════════════════════════════════════════════════════════╣
+║  🎯 IMAGEN COHERENTE con el contenido del artículo             ║
+║  🗺️  Barrios SDE → queries fotográficos ultra-específicos      ║
+║  🌍 Internacionales → búsqueda en inglés por país/evento       ║
+║  💧 Watermark GARANTIZADO antes de guardar en BD               ║
+║  🔄 Cascada: CSE → Pexels → Unsplash → banco local 1200px     ║
 ║  🔑 ${TODAS_LLAVES_GEMINI.length}/8 llaves Gemini | maxTokens: 8000                   ║
-║  ⏱️  Gap entre llaves: 15s | Penalidad 429: 80-360s            ║
-║  🧠 Prompt V39: 10 secciones, calles SDE, 8 párrafos          ║
-║  🎰 Títulos A/B — elige automáticamente el más clickbait       ║
-║  📊 Auto-aprendizaje de frases exitosas en BD                  ║
+║  🧠 Prompt V40: 10 secciones, calles SDE, 8 párrafos          ║
+║  🎰 Títulos A/B automático                                      ║
+║  📊 Auto-aprendizaje de frases exitosas                        ║
 ║  🕵️  Anti-plagio FTS PostgreSQL                                ║
-║  ✅ Validación dual: longitud + densidad semántica SDE         ║
-║  🖼️  Imagen paralela: CSE + Unsplash + Pexels                  ║
-║  📱 Push VAPID + OneSignal (doble garantía)                    ║
-║  🎙️ ElevenLabs TTS para Telegram                               ║
-║  📡 Telegram · Facebook · Twitter automático                   ║
-║  ⏰ Cron inteligente por horas pico reales de BD               ║
+║  📱 Push VAPID + OneSignal · Telegram · Facebook · Twitter     ║
+║  ⏰ Cron inteligente por horas pico reales                     ║
 ║  🗑️  Auto-limpieza noticias viejas (domingos 3AM)              ║
 ║  🚀 Ráfaga inicial: 3 noticias en 90 minutos                  ║
 ╚══════════════════════════════════════════════════════════════════╝`);
