@@ -1,48 +1,37 @@
 /**
- * 🎯 ESTRATEGIA LOADER - MXL EDITION V35.3
- * Este archivo carga las tendencias de Santo Domingo Este (SDE)
- * y las inyecta en el prompt de la IA.
+ * 🎯 ESTRATEGIA LOADER — V38.1
+ * Carga estrategia.json e inyecta el resumen en el prompt de Gemini.
+ * FIX: variable 'ahora' declarada antes de usarse.
  */
-
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
-/**
- * Carga el archivo estrategia.json y devuelve el resumen para la IA.
- * Nombre de función: leerEstrategia (Para coincidir con el server.js)
- */
 function leerEstrategia() {
     const rutaArchivo = path.join(__dirname, 'estrategia.json');
-
     try {
-        // 1. Verificar si el archivo existe
         if (!fs.existsSync(rutaArchivo)) {
-            console.log("⚠️ [MXL LOADER]: estrategia.json no encontrado. Usando prompt genérico.");
-            return "";
+            console.log('⚠️ [LOADER]: estrategia.json no encontrado. Usando prompt genérico.');
+            return '';
         }
 
-        // 2. Leer y parsear el JSON
-        const contenido = fs.readFileSync(rutaArchivo, 'utf8');
+        const contenido  = fs.readFileSync(rutaArchivo, 'utf8');
         const estrategia = JSON.parse(contenido);
 
-        // 3. Validar frescura de datos (7 horas)
-        const fechaGenerado = new Date(estrategia.generado || ahora);
-        const ahora = new Date();
+        // ✅ FIX: ahora declarado ANTES de usarlo
+        const ahora           = new Date();
+        const fechaGenerado   = new Date(estrategia.generado || ahora);
         const horasTranscurridas = (ahora - fechaGenerado) / (1000 * 60 * 60);
 
         if (horasTranscurridas > 7) {
-            console.log(`🕒 [MXL LOADER]: Datos con ${horasTranscurridas.toFixed(1)}h de antigüedad.`);
+            console.log(`🕒 [LOADER]: Estrategia con ${horasTranscurridas.toFixed(1)}h de antigüedad — se regenerará pronto.`);
         }
 
-        // 4. Retornar el resumen para Gemini/DeepSeek
-        console.log("✅ [MXL LOADER]: Estrategia inyectada correctamente.");
-        return estrategia.resumen_para_gemini || "";
-
+        console.log('✅ [LOADER]: Estrategia inyectada.');
+        return estrategia.resumen_para_gemini || '';
     } catch (error) {
-        console.error("❌ [MXL LOADER] Error crítico:", error.message);
-        return "";
+        console.error('❌ [LOADER] Error:', error.message);
+        return '';
     }
 }
 
-// 🔑 Exportado con el nombre exacto que pide tu servidor
 module.exports = { leerEstrategia };
