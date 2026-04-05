@@ -3,765 +3,447 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción 🏮 El Farol al Día</title>
+    <title>El Farol al Día · Último Minuto Santo Domingo Este</title>
+    <meta name="description" content="Noticias de último minuto de Santo Domingo Este y República Dominicana. Los Mina, Invivienda, Ensanche Ozama y toda el Área Metropolitana.">
+    <meta name="keywords" content="noticias santo domingo este, último minuto RD, los mina noticias, invivienda noticias, el farol al día">
+    <meta name="robots" content="index,follow">
+    <meta name="geo.region" content="DO-01">
+    <meta name="geo.placename" content="Santo Domingo Este, República Dominicana">
+    <link rel="canonical" href="https://elfarolaldia.com/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="El Farol al Día · Último Minuto SDE">
+    <meta property="og:description" content="Noticias de Santo Domingo Este y República Dominicana en tiempo real.">
+    <meta property="og:site_name" content="El Farol al Día">
+    <meta property="og:url" content="https://elfarolaldia.com/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@elfarolaldia">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@400;600&display=swap');
-        :root {
-            --naranja: #FF5500; --naranja2: #FF7733; --fondo: #070707;
-            --tarjeta: #111115; --tarjeta2: #0d0d11; --texto: #EDE8DF;
-            --texto2: #A89F94; --borde: #1e1e24; --verde: #22c55e;
-            --rojo: #ef4444; --azul: #3b82f6; --amarillo: #f59e0b;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--fondo); color: var(--texto); font-family: 'Source Sans 3', Arial, sans-serif; min-height: 100vh; }
-        header { background: #000; border-bottom: 3px solid var(--naranja); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-        .header-left { display: flex; align-items: center; gap: 14px; }
-        .header-logo { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; color: var(--naranja); letter-spacing: 2px; }
-        .header-badge { background: var(--naranja); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase; }
-        header a { color: #555; font-size: 12px; text-decoration: none; transition: color .2s; }
-        header a:hover { color: var(--naranja); }
-        .tabs-nav { background: #0a0a0a; border-bottom: 1px solid var(--borde); display: flex; gap: 0; padding: 0 24px; overflow-x: auto; }
-        .tab-btn { padding: 12px 20px; font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #555; background: transparent; border: none; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; transition: .2s; }
-        .tab-btn:hover { color: var(--texto2); }
-        .tab-btn.activo { color: var(--naranja); border-bottom-color: var(--naranja); }
-        .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
-        .tab-panel { display: none; }
-        .tab-panel.activo { display: block; }
-        .two-col { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
-        .card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 10px; padding: 22px; margin-bottom: 16px; }
-        .card-title { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; color: var(--naranja); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--borde); display: flex; align-items: center; gap: 8px; }
-        .field { margin-bottom: 14px; }
-        .field label { display: block; font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; font-weight: 600; }
-        .field select, .field input[type=text], .field input[type=url], .field input[type=number], .field textarea { width: 100%; background: #0a0a0a; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 10px 12px; font-size: 14px; font-family: 'Source Sans 3', sans-serif; transition: border-color .2s; }
-        .field select:focus, .field input:focus, .field textarea:focus { outline: none; border-color: var(--naranja); }
-        .field textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
-        .upload-zone { border: 2px dashed var(--borde); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: .2s; background: #0a0a0a; position: relative; }
-        .upload-zone:hover { border-color: var(--naranja); background: #0f0f0f; }
-        .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-        .upload-zone .upload-icon { font-size: 28px; margin-bottom: 6px; }
-        .upload-zone .upload-text { font-size: 12px; color: #555; }
-        .upload-zone .upload-text span { color: var(--naranja); }
-        .upload-preview { margin-top: 10px; border-radius: 6px; overflow: hidden; display: none; position: relative; }
-        .upload-preview img { width: 100%; height: 140px; object-fit: cover; display: block; }
-        .upload-preview-remove { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.8); border: none; color: #fff; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
-        .upload-url-sep { text-align: center; color: #333; font-size: 11px; margin: 8px 0; position: relative; }
-        .upload-url-sep::before, .upload-url-sep::after { content: ''; position: absolute; top: 50%; width: 42%; height: 1px; background: var(--borde); }
-        .upload-url-sep::before { left: 0; }
-        .upload-url-sep::after { right: 0; }
-        .btn { width: 100%; padding: 13px; background: var(--naranja); color: #fff; border: none; border-radius: 7px; font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: background .2s, transform .1s; text-transform: uppercase; }
-        .btn:hover { background: #cc4400; }
-        .btn:active { transform: scale(0.98); }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-        .btn-outline { background: transparent; border: 1px solid var(--borde); color: #666; margin-top: 8px; }
-        .btn-outline:hover { border-color: var(--naranja); color: var(--naranja); background: transparent; }
-        .btn-sm { width: auto; padding: 6px 14px; font-size: 11px; }
-        .spinner { width: 22px; height: 22px; border: 3px solid #222; border-top-color: var(--naranja); border-radius: 50%; animation: spin .7s linear infinite; display: none; margin: 10px auto 0; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .status-box { margin-top: 12px; padding: 10px 14px; border-radius: 6px; font-size: 13px; line-height: 1.5; min-height: 44px; text-align: center; background: #0a0a0a; border: 1px solid var(--borde); color: #666; }
-        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px; padding: 16px; text-align: center; }
-        .stat-num { font-family: 'Oswald', sans-serif; font-size: 30px; font-weight: 700; color: var(--naranja); line-height: 1; }
-        .stat-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
-        .filtros { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-        .filtros .f-btn { padding: 5px 14px; background: transparent; border: 1px solid var(--borde); border-radius: 4px; color: #555; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: .2s; font-family: 'Oswald', sans-serif; }
-        .filtros .f-btn:hover { border-color: #444; color: #888; }
-        .filtros .f-btn.activo { background: var(--naranja); border-color: var(--naranja); color: #fff; }
-        .noticia-item { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--borde); }
-        .noticia-item:last-child { border-bottom: none; }
-        .noticia-thumb { width: 82px; height: 62px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #1a1a1a; }
-        .noticia-info { flex: 1; min-width: 0; }
-        .noticia-badge { display: inline-block; background: var(--naranja); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-family: 'Oswald', sans-serif; }
-        .noticia-titulo { font-size: 13px; line-height: 1.35; color: #ddd; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .noticia-meta { font-size: 11px; color: #444; }
-        .noticia-acciones { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
-        .btn-accion { padding: 5px 11px; font-size: 10px; font-weight: 700; border: none; border-radius: 4px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: .2s; font-family: 'Oswald', sans-serif; white-space: nowrap; }
-        .btn-ver { background: #0f2a0f; color: var(--verde); }
-        .btn-ver:hover { background: #1a3a1a; }
-        .btn-del { background: #2a0f0f; color: var(--rojo); }
-        .btn-del:hover { background: #3a1a1a; }
-        .analytics-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
-        .analytics-card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px; padding: 18px; }
-        .analytics-card h3 { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; font-family: 'Oswald', sans-serif; }
-        .cat-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-        .cat-bar-label { font-size: 11px; color: var(--texto2); width: 90px; flex-shrink: 0; }
-        .cat-bar-track { flex: 1; background: #1a1a1a; border-radius: 2px; height: 6px; overflow: hidden; }
-        .cat-bar-fill { height: 100%; background: var(--naranja); border-radius: 2px; transition: width .5s; }
-        .cat-bar-num { font-size: 11px; color: #555; width: 30px; text-align: right; }
-        .top-noticia-item { padding: 8px 0; border-bottom: 1px solid var(--borde); }
-        .top-noticia-item:last-child { border-bottom: none; }
-        .top-noticia-rank { font-family: 'Oswald', sans-serif; font-size: 20px; color: var(--borde); font-weight: 700; display: inline; margin-right: 8px; }
-        .top-noticia-title { font-size: 12px; color: var(--texto2); line-height: 1.3; }
-        .top-noticia-views { font-size: 11px; color: var(--naranja); margin-top: 3px; }
-        .ga-status { display: flex; align-items: center; gap: 10px; padding: 14px; background: #0a0a0a; border: 1px solid var(--borde); border-radius: 8px; margin-bottom: 14px; }
-        .ga-dot { width: 10px; height: 10px; border-radius: 50%; background: #333; flex-shrink: 0; }
-        .ga-dot.activo { background: var(--verde); box-shadow: 0 0 8px var(--verde); }
-        .ga-info { flex: 1; }
-        .ga-info-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
-        .ga-info-val { font-size: 14px; color: var(--texto); margin-top: 2px; font-family: 'Oswald', sans-serif; }
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: var(--fondo); }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--naranja); }
-        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--borde); }
-        .toggle-row:last-child { border-bottom: none; }
-        .toggle-label { font-size: 13px; color: var(--texto2); }
-        .toggle-sub { font-size: 11px; color: #555; margin-top: 2px; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; inset: 0; background: #222; border-radius: 24px; cursor: pointer; transition: .3s; }
-        .slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #555; border-radius: 50%; transition: .3s; }
-        input:checked + .slider { background: var(--naranja); }
-        input:checked + .slider::before { transform: translateX(20px); background: #fff; }
-        .pub-card { background: #0a0a0a; border: 1px solid var(--borde); border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-        .pub-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .pub-nombre { font-family: 'Oswald', sans-serif; color: var(--naranja); font-size: 14px; }
-        .pub-ubicacion-badge { background: #1a1a24; color: #888; font-size: 10px; padding: 2px 8px; border-radius: 3px; font-family: 'Oswald', sans-serif; text-transform: uppercase; }
-        .pub-input { width: 100%; background: #111; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 8px 10px; font-size: 13px; font-family: 'Source Sans 3', sans-serif; margin-bottom: 8px; }
-        .pub-input:focus { outline: none; border-color: var(--naranja); }
-        .pub-input-num { width: 100%; background: #111; border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 8px 10px; font-size: 13px; font-family: 'Source Sans 3', sans-serif; }
-        .pub-input-num:focus { outline: none; border-color: var(--naranja); }
-        .pub-dim-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-        .pub-dim-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 4px; }
-        .pub-actions { display: flex; gap: 8px; margin-top: 8px; }
-        .pub-btn-save { flex: 1; background: var(--naranja); border: none; color: #fff; padding: 10px; border-radius: 6px; font-family: 'Oswald', sans-serif; font-size: 12px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: .2s; }
-        .pub-btn-save:hover { background: #cc4400; }
-        .pub-btn-del { background: #2a0f0f; border: 1px solid #5f1e1e; color: var(--rojo); padding: 10px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: .2s; }
-        .pub-btn-del:hover { background: #3a1a1a; }
-        .pub-preview-img { width: 100%; max-height: 70px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; display: none; }
-        .pub-status { font-size: 11px; text-align: center; min-height: 16px; color: #555; margin-top: 4px; }
-        @media (max-width: 900px) {
-            .two-col { grid-template-columns: 1fr; }
-            .stats-row { grid-template-columns: repeat(2,1fr); }
-            .analytics-grid { grid-template-columns: 1fr; }
-        }
+        :root { --naranja:#FF5500; --naranja-dark:#CC4400; --fondo:#070707; --tarjeta:#141418; --tarjeta-hover:#1a1a20; --texto:#EDE8DF; --texto-sec:#A89F94; --borde:#222228; }
+        *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--fondo);color:var(--texto);font-family:Arial,sans-serif;min-height:100vh}
+        header{background:#000;border-bottom:3px solid var(--naranja);position:sticky;top:0;z-index:100}
+        .header-top{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;max-width:1200px;margin:0 auto}
+        .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--naranja);font-size:20px;font-weight:900;letter-spacing:2px}
+        .logo-sub{font-size:10px;color:#666;font-weight:400;letter-spacing:1px;display:block}
+        .header-actions{display:flex;align-items:center;gap:10px}
+        .btn-push{background:var(--naranja);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;transition:background 0.2s}
+        .btn-push:hover{background:var(--naranja-dark)}.btn-push.activo{background:#2e7d32}
+        .hora-rd{font-size:11px;color:#555;font-family:monospace}
+        .ticker-wrap{background:var(--naranja);overflow:hidden;padding:5px 0;position:relative}
+        .ticker-label{position:absolute;left:0;top:0;bottom:0;background:#000;color:var(--naranja);font-weight:900;font-size:11px;padding:0 12px;display:flex;align-items:center;z-index:1;letter-spacing:1px}
+        .ticker-content{display:flex;animation:ticker 35s linear infinite;white-space:nowrap;padding-left:120px}
+        .ticker-item{font-size:12px;font-weight:bold;color:#fff;padding:0 30px;cursor:pointer}
+        .ticker-item:hover{text-decoration:underline}
+        @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+        nav.filtros{background:#0a0a0a;border-bottom:1px solid var(--borde);overflow-x:auto;scrollbar-width:none}
+        nav.filtros::-webkit-scrollbar{display:none}
+        .filtros-inner{display:flex;gap:4px;padding:8px 16px;max-width:1200px;margin:0 auto;min-width:max-content}
+        .filtro-btn{background:transparent;color:#666;border:1px solid transparent;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+        .filtro-btn:hover{color:var(--naranja);border-color:var(--naranja)}.filtro-btn.activo{background:var(--naranja);color:#fff;border-color:var(--naranja)}
+        .container{max-width:1200px;margin:0 auto;padding:16px}
+        .ad-banner{background:#0d0d0d;border:1px solid var(--borde);border-radius:8px;padding:8px;text-align:center;margin:12px 0;min-height:60px}
+        .ad-label{font-size:9px;color:#333;letter-spacing:1px;margin-bottom:4px}
+        .hero-card{position:relative;border-radius:12px;overflow:hidden;margin-bottom:20px;cursor:pointer;background:var(--tarjeta);border:1px solid var(--borde);min-height:380px;display:flex;flex-direction:column;justify-content:flex-end}
+        .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.4s}
+        .hero-card:hover .hero-img{transform:scale(1.02)}
+        .hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.95) 0%,rgba(0,0,0,0.6) 50%,transparent 100%)}
+        .hero-content{position:relative;z-index:1;padding:20px}
+        .hero-badge{display:inline-block;background:var(--naranja);color:#fff;font-size:10px;font-weight:bold;padding:3px 10px;border-radius:4px;margin-bottom:10px;letter-spacing:1px}
+        .hero-titulo{font-size:clamp(18px,3.5vw,28px);font-weight:900;color:#fff;line-height:1.25;margin-bottom:10px;font-family:Georgia,serif}
+        .hero-desc{font-size:13px;color:rgba(255,255,255,0.75);margin-bottom:12px;line-height:1.5}
+        .hero-meta{display:flex;align-items:center;gap:12px;font-size:11px;color:rgba(255,255,255,0.5)}
+        .seccion-titulo{font-size:12px;font-weight:bold;color:#555;letter-spacing:2px;text-transform:uppercase;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--borde);display:flex;align-items:center;gap:8px}
+        .seccion-titulo::before{content:'';display:block;width:3px;height:14px;background:var(--naranja);border-radius:2px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+        .tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform 0.2s,border-color 0.2s,background 0.2s;display:flex;flex-direction:column}
+        .tarjeta:hover{transform:translateY(-2px);border-color:#333;background:var(--tarjeta-hover)}
+        .tarjeta-img-wrap{position:relative;aspect-ratio:16/9;overflow:hidden;background:#0d0d0d}
+        .tarjeta-img{width:100%;height:100%;object-fit:cover;transition:transform 0.3s}
+        .tarjeta:hover .tarjeta-img{transform:scale(1.04)}
+        .tarjeta-seccion-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.8);color:var(--naranja);font-size:9px;font-weight:bold;padding:3px 8px;border-radius:4px;letter-spacing:1px;border:1px solid rgba(255,85,0,0.3)}
+        .tarjeta-body{padding:12px;flex:1;display:flex;flex-direction:column;gap:8px}
+        .tarjeta-titulo{font-size:14px;font-weight:bold;color:var(--texto);line-height:1.4;font-family:Georgia,serif;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+        .tarjeta-desc{font-size:12px;color:var(--texto-sec);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+        .tarjeta-footer{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#555;padding-top:8px;border-top:1px solid var(--borde)}
+        .estado-msg{text-align:center;padding:60px 20px;color:#555;font-size:14px}
+        .estado-msg .icono{font-size:40px;margin-bottom:12px}
+        .spinner{width:36px;height:36px;border:3px solid #222;border-top-color:var(--naranja);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        footer{background:#000;border-top:2px solid var(--naranja);padding:28px 20px;text-align:center;margin-top:60px}
+        .footer-logo{color:var(--naranja);font-size:18px;font-weight:900;margin-bottom:8px}
+        .footer-links{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:12px 0}
+        .footer-links a{color:#444;font-size:12px;text-decoration:none;padding:4px 10px}
+        .footer-links a:hover{color:var(--naranja)}
+        .footer-copy{font-size:11px;color:#333}
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;border:1px solid var(--naranja);color:var(--texto);padding:12px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;text-align:center;max-width:340px}
+        .toast.visible{opacity:1}
+        @media(max-width:640px){.hero-card{min-height:280px}.grid{grid-template-columns:1fr}.header-top{padding:8px 12px}.logo{font-size:16px}}
     </style>
 </head>
 <body>
-
 <header>
-    <div class="header-left">
-        <div class="header-logo">🏮 EL FAROL AL DÍA</div>
-        <div class="header-badge">Redacción</div>
+    <div class="header-top">
+        <a href="/" class="logo">🏮 EL FAROL AL DÍA<span class="logo-sub">ÚLTIMO MINUTO · SDE</span></a>
+        <div class="header-actions">
+            <span class="hora-rd" id="horaRD"></span>
+            <button class="btn-push" id="btnPush" onclick="window.togglePush()">🔔 Alertas</button>
+        </div>
     </div>
-    <a href="/">← Volver al periódico</a>
+    <div class="ticker-wrap">
+        <div class="ticker-label">🔴 ÚLTIMO MINUTO</div>
+        <div class="ticker-content" id="ticker">
+            <span class="ticker-item">Cargando últimas noticias de Santo Domingo Este...</span>
+        </div>
+    </div>
 </header>
-
-<nav class="tabs-nav">
-    <button class="tab-btn activo" onclick="activarTab('generar')">⚡ Generar IA</button>
-    <button class="tab-btn" onclick="activarTab('manual')">✍️ Publicar Manual</button>
-    <button class="tab-btn" onclick="activarTab('noticias')">📰 Noticias</button>
-    <button class="tab-btn" onclick="activarTab('analytics')">📊 Analítica</button>
-    <button class="tab-btn" onclick="activarTab('publicidad')">📢 Publicidad</button>
-    <button class="tab-btn" onclick="activarTab('configuracion')">⚙️ Configuración</button>
+<nav class="filtros">
+    <div class="filtros-inner">
+        <button class="filtro-btn activo" onclick="window.filtrar('todas',this)">🏠 Todas</button>
+        <button class="filtro-btn" onclick="window.filtrar('Nacionales',this)">🏛️ Nacionales</button>
+        <button class="filtro-btn" onclick="window.filtrar('Deportes',this)">⚽ Deportes</button>
+        <button class="filtro-btn" onclick="window.filtrar('Internacionales',this)">🌍 Internacionales</button>
+        <button class="filtro-btn" onclick="window.filtrar('Economía',this)">💰 Economía</button>
+        <button class="filtro-btn" onclick="window.filtrar('Tecnología',this)">💻 Tecnología</button>
+        <button class="filtro-btn" onclick="window.filtrar('Espectáculos',this)">🎬 Espectáculos</button>
+    </div>
 </nav>
-
 <div class="container">
-
-    <!-- TAB 1 — GENERAR IA -->
-    <div id="tab-generar" class="tab-panel activo">
-        <div class="two-col">
-            <aside>
-                <div class="card">
-                    <div class="card-title">⚡ Generar Noticia con IA</div>
-                    <div class="field">
-                        <label>Categoría</label>
-                        <select id="gen-categoria">
-                            <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
-                            <option value="Deportes">⚽ Deportes (LIDOM / MLB)</option>
-                            <option value="Economía">💰 Economía</option>
-                            <option value="Internacionales">🌍 Internacionales</option>
-                            <option value="Tecnología">💻 Tecnología</option>
-                            <option value="Espectáculos">🎬 Espectáculos</option>
-                        </select>
-                    </div>
-                    <button class="btn" id="btnGenerar" onclick="generarNoticia()">⚡ GENERAR CON IA</button>
-                    <button class="btn btn-outline" onclick="procesarRSS()">📡 PROCESAR RSS AHORA</button>
-                    <div class="spinner" id="gen-spinner"></div>
-                    <div class="status-box" id="gen-status">Esperando órdenes, socio...</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">📡 Estado del Sistema</div>
-                    <div id="sistema-status" style="font-size:12px;color:#555;line-height:2;">Cargando...</div>
-                </div>
-            </aside>
-            <section>
-                <div class="card">
-                    <div class="card-title">📰 Últimas Generadas</div>
-                    <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
-                        <div class="stat-card"><div class="stat-num" id="g-total">—</div><div class="stat-label">Publicadas</div></div>
-                        <div class="stat-card"><div class="stat-num" id="g-hoy">—</div><div class="stat-label">Hoy</div></div>
-                        <div class="stat-card"><div class="stat-num" id="g-vistas">—</div><div class="stat-label">Vistas</div></div>
-                    </div>
-                    <div id="gen-lista"><p style="text-align:center;color:#333;padding:30px 0;">Cargando...</p></div>
-                </div>
-            </section>
-        </div>
+    <div class="ad-banner"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>
+    <div id="heroWrap"></div>
+    <div class="seccion-titulo" id="seccionTitulo">📰 Últimas noticias</div>
+    <div class="grid" id="gridNoticias">
+        <div class="estado-msg" style="grid-column:1/-1"><div class="spinner"></div><p>Cargando noticias de Santo Domingo Este...</p></div>
     </div>
-
-    <!-- TAB 2 — PUBLICAR MANUAL -->
-    <div id="tab-manual" class="tab-panel">
-        <div class="two-col">
-            <aside>
-                <div class="card">
-                    <div class="card-title">✍️ Nueva Noticia Manual</div>
-                    <div class="field"><label>Título *</label><input type="text" id="m-titulo" placeholder="Título (60-70 caracteres ideal)"><div style="font-size:11px;color:#444;margin-top:4px;text-align:right;" id="titulo-contador">0 / 70</div></div>
-                    <div class="field"><label>Sección *</label><select id="m-seccion"><option value="Nacionales">🏛️ Nacionales</option><option value="Deportes">⚽ Deportes</option><option value="Economía">💰 Economía</option><option value="Internacionales">🌍 Internacionales</option><option value="Tecnología">💻 Tecnología</option><option value="Espectáculos">🎬 Espectáculos</option></select></div>
-                    <div class="field"><label>Etiquetas (separadas por coma)</label><input type="text" id="m-tags" placeholder="república dominicana, política, abinader"></div>
-                    <div class="field"><label>Descripción SEO (150-160 caracteres)</label><textarea id="m-desc" style="min-height:60px;" placeholder="Resumen para Google News..."></textarea><div style="font-size:11px;color:#444;margin-top:4px;text-align:right;" id="desc-contador">0 / 160</div></div>
-                    <div class="field"><label>Redactor</label><select id="m-redactor"><option value="Carlos Méndez">Carlos Méndez (Nacionales)</option><option value="Laura Santana">Laura Santana (Deportes)</option><option value="Roberto Peña">Roberto Peña (Internacional)</option><option value="Ana María Castillo">Ana María Castillo (Economía)</option><option value="José Miguel Fernández">José Miguel Fernández (Tecnología)</option><option value="Patricia Jiménez">Patricia Jiménez (Espectáculos)</option><option value="Editor Manual">Editor Manual</option></select></div>
-                </div>
-                <div class="card">
-                    <div class="card-title">🖼️ Imagen de Portada</div>
-                    <div class="upload-zone" id="uploadZone"><input type="file" id="img-file" accept="image/jpeg,image/png,image/webp" onchange="previsualizarImagen(event)"><div class="upload-icon">📷</div><div class="upload-text">Arrastra aquí o <span>haz clic</span><br>JPG, PNG, WEBP · máx 5MB</div></div>
-                    <div class="upload-preview" id="imgPreview"><img id="imgPreviewImg" src="" alt="Preview"><button class="upload-preview-remove" onclick="quitarImagen()">✕</button></div>
-                    <div class="upload-url-sep">o pega una URL</div>
-                    <div class="field" style="margin-bottom:0;"><input type="url" id="m-imagen-url" placeholder="https://ejemplo.com/foto.jpg" oninput="previewURL(this.value)"></div>
-                    <div class="field" style="margin-top:10px;"><label>Alt Text de la imagen (SEO)</label><input type="text" id="m-img-alt" placeholder="Descripción para SEO..."></div>
-                </div>
-                <button class="btn" onclick="publicarManual()">📝 PUBLICAR NOTICIA</button>
-                <div class="status-box" id="manual-status" style="margin-top:12px;">Completa los campos y publica.</div>
-            </aside>
-            <section>
-                <div class="card">
-                    <div class="card-title">✏️ Contenido *</div>
-                    <div class="field">
-                        <textarea id="m-contenido" style="min-height:420px;font-size:14px;line-height:1.7;" placeholder="Escribe el contenido de la noticia..."></textarea>
-                        <div style="font-size:11px;color:#444;margin-top:4px;display:flex;justify-content:space-between;"><span id="palabras-count">0 palabras</span><span>Mín. 300 palabras</span></div>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
-
-    <!-- TAB 3 — NOTICIAS -->
-    <div id="tab-noticias" class="tab-panel">
-        <div class="stats-row">
-            <div class="stat-card"><div class="stat-num" id="n-total">—</div><div class="stat-label">Total Noticias</div></div>
-            <div class="stat-card"><div class="stat-num" id="n-hoy">—</div><div class="stat-label">Publicadas Hoy</div></div>
-            <div class="stat-card"><div class="stat-num" id="n-vistas">—</div><div class="stat-label">Vistas Totales</div></div>
-            <div class="stat-card"><div class="stat-num" id="n-semana">—</div><div class="stat-label">Esta Semana</div></div>
-        </div>
-        <div class="card">
-            <div class="filtros" id="filtros-noticias">
-                <button class="f-btn activo" onclick="filtrarNoticias('')">Todas</button>
-                <button class="f-btn" onclick="filtrarNoticias('Nacionales')">🏛️ Nacionales</button>
-                <button class="f-btn" onclick="filtrarNoticias('Deportes')">⚽ Deportes</button>
-                <button class="f-btn" onclick="filtrarNoticias('Economía')">💰 Economía</button>
-                <button class="f-btn" onclick="filtrarNoticias('Internacionales')">🌍 Internacional</button>
-                <button class="f-btn" onclick="filtrarNoticias('Tecnología')">💻 Tecnología</button>
-                <button class="f-btn" onclick="filtrarNoticias('Espectáculos')">🎬 Espectáculos</button>
-            </div>
-            <div id="lista-noticias"><p style="text-align:center;color:#333;padding:30px 0;">Cargando noticias...</p></div>
-        </div>
-    </div>
-
-    <!-- TAB 4 — ANALÍTICA -->
-    <div id="tab-analytics" class="tab-panel">
-        <div class="card" style="margin-bottom:20px;">
-            <div class="card-title">📈 Google Analytics</div>
-            <div class="ga-status" id="ga-status-box"><div class="ga-dot" id="ga-dot"></div><div class="ga-info"><div class="ga-info-label">ID de Medición</div><div class="ga-info-val" id="ga-id-display">No configurado</div></div></div>
-            <div class="field"><label>ID de Google Analytics 4 (G-XXXXXXXXXX)</label><input type="text" id="ga-id-input" placeholder="G-XXXXXXXXXX"></div>
-            <div style="display:flex;gap:10px;"><button class="btn" style="flex:1;" onclick="guardarGA()">💾 GUARDAR Y ACTIVAR</button><button class="btn btn-outline btn-sm" onclick="abrirGA()">🔗 Abrir GA</button></div>
-            <div class="status-box" id="ga-status" style="margin-top:10px;">Configura tu ID de Analytics.</div>
-        </div>
-        <div class="analytics-grid">
-            <div class="analytics-card"><h3>📊 Vistas por Categoría</h3><div id="cat-vistas"></div></div>
-            <div class="analytics-card"><h3>🏆 Top 5 Noticias</h3><div id="top-noticias"></div></div>
-            <div class="analytics-card"><h3>📅 Actividad por Hora</h3><div id="actividad-horas"></div></div>
-        </div>
-        <div class="card"><div class="card-title">🤖 Coach IA — Rendimiento</div><div id="coach-data"><p style="color:#333;text-align:center;padding:20px;">Cargando...</p></div></div>
-    </div>
-
-    <!-- TAB 5 — PUBLICIDAD -->
-    <div id="tab-publicidad" class="tab-panel">
-        <div class="card" style="margin-bottom:20px;">
-            <div class="card-title">➕ Nuevo Espacio Publicitario</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div class="field" style="margin:0;">
-                    <label>Nombre del espacio</label>
-                    <input type="text" id="pub-nuevo-nombre" placeholder="Ej: Banner Amazon Top">
-                </div>
-                <div class="field" style="margin:0;">
-                    <label>Ubicación</label>
-                    <select id="pub-nuevo-ubicacion">
-                        <option value="top">⬆️ Arriba (Top)</option>
-                        <option value="sidebar">➡️ Lateral (Sidebar)</option>
-                        <option value="medio">↕️ Entre noticias</option>
-                        <option value="footer">⬇️ Abajo (Footer)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="field" style="margin-top:12px;">
-                <label>Link de afiliado (URL destino al hacer clic)</label>
-                <input type="url" id="pub-nuevo-url" placeholder="https://amazon.com/tu-link-de-afiliado">
-            </div>
-            <div class="field">
-                <label>URL de la imagen del banner</label>
-                <input type="url" id="pub-nuevo-img" placeholder="https://tu-imagen-banner.jpg">
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-                <div>
-                    <div class="pub-dim-label">📐 Ancho (px) — 0 = automático</div>
-                    <input type="number" id="pub-nuevo-ancho" class="pub-input-num" placeholder="ej: 728" min="0" max="1200" value="0">
-                </div>
-                <div>
-                    <div class="pub-dim-label">📐 Alto (px) — 0 = automático</div>
-                    <input type="number" id="pub-nuevo-alto" class="pub-input-num" placeholder="ej: 90" min="0" max="600" value="0">
-                </div>
-            </div>
-            <button class="btn" onclick="crearAnuncio()">➕ CREAR ESPACIO</button>
-            <div class="status-box" id="pub-crear-status" style="margin-top:10px;">Completa los campos y crea el espacio.</div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">📢 Espacios Configurados <span style="font-size:11px;color:#555;font-family:sans-serif;text-transform:none;letter-spacing:0;">— activa/desactiva con el switch</span></div>
-            <div id="pub-lista"><p style="color:#555;text-align:center;padding:20px;font-size:13px;">Cargando espacios...</p></div>
-        </div>
-
-        <div class="card" style="background:#0a0f0a;border-color:#1a3a1a;">
-            <div class="card-title" style="color:#22c55e;">📖 Cómo aparecen en el sitio</div>
-            <div style="font-size:13px;color:#666;line-height:1.8;">
-                <p>• <strong style="color:#888;">top</strong> — aparece arriba de las noticias</p>
-                <p>• <strong style="color:#888;">sidebar</strong> — lateral derecho (en desktop)</p>
-                <p>• <strong style="color:#888;">medio</strong> — entre las noticias</p>
-                <p>• <strong style="color:#888;">footer</strong> — abajo del todo</p>
-                <p style="margin-top:8px;">• <strong style="color:#888;">Ancho/Alto = 0</strong> → imagen a tamaño automático (100% ancho contenedor)</p>
-                <p>• <strong style="color:#888;">Ancho/Alto > 0</strong> → imagen con píxeles exactos (ej: 728×90 para leaderboard)</p>
-                <p style="margin-top:8px;color:#555;">Solo los anuncios con switch <span style="color:#22c55e;">activado ✅</span> aparecen en el sitio.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- TAB 6 — CONFIGURACIÓN -->
-    <div id="tab-configuracion" class="tab-panel">
-        <div class="two-col">
-            <div>
-                <div class="card">
-                    <div class="card-title">🤖 Configuración IA</div>
-                    <div class="toggle-row">
-                        <div><div class="toggle-label">Generación Automática</div><div class="toggle-sub">1 noticia/2h + RSS x2/día</div></div>
-                        <label class="switch"><input type="checkbox" id="ia-enabled" checked onchange="guardarConfigIA()"><span class="slider"></span></label>
-                    </div>
-                    <div class="field" style="margin-top:14px;"><label>Tono editorial</label><select id="ia-tono" onchange="guardarConfigIA()"><option value="profesional">Profesional</option><option value="formal">Formal</option><option value="cercano">Cercano / comunitario</option><option value="urgente">Urgente / breaking news</option></select></div>
-                    <div class="field"><label>Instrucción principal</label><textarea id="ia-instruccion" style="min-height:80px;" onchange="guardarConfigIA()"></textarea></div>
-                    <div class="field"><label>Énfasis geográfico</label><textarea id="ia-enfasis" style="min-height:60px;" onchange="guardarConfigIA()"></textarea></div>
-                    <div class="field"><label>Temas a evitar</label><textarea id="ia-evitar" style="min-height:60px;" onchange="guardarConfigIA()"></textarea></div>
-                    <button class="btn" onclick="guardarConfigIA()">💾 GUARDAR CONFIGURACIÓN</button>
-                    <div class="status-box" id="ia-config-status" style="margin-top:10px;"></div>
-                </div>
-            </div>
-            <div>
-                <div class="card">
-                    <div class="card-title">📊 Estado Sistema</div>
-                    <div id="full-status" style="font-size:13px;line-height:2;color:var(--texto2);">Cargando...</div>
-                </div>
-                <div class="card">
-                    <div class="card-title">🧹 Mantenimiento</div>
-                    <div class="toggle-row"><div><div class="toggle-label">Procesar RSS manualmente</div><div class="toggle-sub">Busca y genera noticias RSS</div></div><button class="btn btn-outline btn-sm" onclick="procesarRSS()">▶ Iniciar</button></div>
-                    <div class="toggle-row"><div><div class="toggle-label">Probar Telegram</div><div class="toggle-sub">Envía mensaje de prueba</div></div><button class="btn btn-outline btn-sm" onclick="testTelegram()">▶ Probar</button></div>
-                    <div id="mant-status" style="font-size:12px;color:#555;margin-top:10px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <div class="ad-banner" style="margin-top:24px"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>
 </div>
+<footer>
+    <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
+    <p style="font-size:12px;color:#555;margin-bottom:12px;">El periódico digital de Santo Domingo Este · República Dominicana</p>
+    <div class="footer-links">
+        <a href="/">Inicio</a><a href="/nosotros">Nosotros</a><a href="/contacto">Contacto</a>
+        <a href="/privacidad">Privacidad</a><a href="/terminos">Términos</a><a href="/cookies">Cookies</a>
+    </div>
+    <p class="footer-copy">© 2026 El Farol al Día · José Gregorio Mañan Santana · Santo Domingo Este, RD</p>
+</footer>
+<div class="toast" id="toast"></div>
 
 <script>
-const PIN = '311';
-const AUTH = 'Basic ' + btoa('director:311');
-let todasNoticias = [];
-let filtroActual = '';
-let imagenBase64 = null;
+// VARIABLES GLOBALES
+let todasLasNoticias = [];
+let filtroActivo = 'todas';
 
-function activarTab(id) {
-    const btn = event.target;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('activo'));
-    btn.classList.add('activo');
-    document.getElementById('tab-' + id).classList.add('activo');
-    if (id === 'noticias') cargarNoticias();
-    if (id === 'analytics') cargarAnalytics();
-    if (id === 'configuracion') cargarConfiguracion();
-    if (id === 'publicidad') cargarPublicidad();
+// ============================================================
+// FUNCIONES AUXILIARES
+// ============================================================
+function actualizarHora() {
+    const el = document.getElementById('horaRD');
+    if (!el) return;
+    const hora = new Date().toLocaleTimeString('es-DO', {
+        timeZone: 'America/Santo_Domingo',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+    el.textContent = hora + ' RD';
 }
 
-async function generarNoticia() {
-    const btn = document.getElementById('btnGenerar');
-    const statusEl = document.getElementById('gen-status');
-    const spin = document.getElementById('gen-spinner');
-    const cat = document.getElementById('gen-categoria').value;
-    btn.disabled = true; spin.style.display = 'block';
-    statusEl.innerHTML = `<span style="color:#aaa">Generando <b>${cat}</b>...</span><br><small style="color:#555">Puede tomar 20-30 segundos</small>`;
-    try {
-        const res = await fetch('/api/generar-noticia', { method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH}, body:JSON.stringify({categoria:cat}) });
-        const data = await res.json();
-        if (data.success) {
-            statusEl.innerHTML = `<span style="color:#22c55e">✅ ¡PUBLICADA!</span><br><small style="color:#aaa">${data.titulo}</small><br><a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja);font-size:11px;">Ver noticia →</a>`;
-            await cargarEstadisticas(); await renderUltimasGeneradas();
-        } else { statusEl.innerHTML = `<span style="color:#ef4444">❌ ${data.error||'Error al generar'}</span>`; }
-    } catch(err) { statusEl.innerHTML = `<span style="color:#ef4444">❌ Error: ${err.message}</span>`; }
-    finally { btn.disabled = false; spin.style.display = 'none'; }
+function timeAgo(fecha) {
+    const diff = (Date.now() - new Date(fecha)) / 1000;
+    if (diff < 60) return 'Ahora mismo';
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
+    return `Hace ${Math.floor(diff / 86400)} días`;
 }
 
-async function procesarRSS() {
-    const el = document.getElementById('gen-status') || document.getElementById('mant-status');
-    if (el) el.innerHTML = '<span style="color:#f59e0b">📡 Procesando RSS...</span>';
-    try {
-        await fetch('/api/procesar-rss', { method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH}, body:JSON.stringify({pin:PIN}) });
-        if (el) el.innerHTML = '<span style="color:#22c55e">✅ RSS iniciado en segundo plano</span>';
-        setTimeout(() => { cargarEstadisticas(); renderUltimasGeneradas(); }, 15000);
-    } catch(e) { if (el) el.innerHTML = '<span style="color:#ef4444">❌ Error</span>'; }
+function toast(msg, duracion = 3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), duracion);
 }
 
-async function renderUltimasGeneradas() {
-    try {
-        const res = await fetch('/api/noticias', { headers:{'Authorization':AUTH} });
-        const data = await res.json();
-        if (!data.success) return;
-        todasNoticias = data.noticias;
-        const el = document.getElementById('gen-lista');
-        if (!el) return;
-        if (!data.noticias.length) { el.innerHTML = '<p style="text-align:center;color:#333;padding:20px;">Sin noticias aún.</p>'; return; }
-        el.innerHTML = data.noticias.slice(0,10).map(n => noticiaItemHTML(n)).join('');
-    } catch(e) {}
+function irANoticia(slug) {
+    window.location.href = `/noticia/${slug}`;
 }
 
-async function cargarEstadisticas() {
-    try {
-        const [resN, resE] = await Promise.all([fetch('/api/noticias',{headers:{'Authorization':AUTH}}), fetch('/api/estadisticas')]);
-        const dataN = await resN.json(); const dataE = await resE.json();
-        if (dataN.success) {
-            todasNoticias = dataN.noticias;
-            const hoy = new Date().toDateString();
-            const noticiasHoy = dataN.noticias.filter(n => new Date(n.fecha).toDateString() === hoy).length;
-            setEl('g-hoy', noticiasHoy); setEl('n-hoy', noticiasHoy);
-            const semana = new Date(); semana.setDate(semana.getDate()-7);
-            setEl('n-semana', dataN.noticias.filter(n => new Date(n.fecha) > semana).length);
+// ============================================================
+// RENDERIZADO
+// ============================================================
+function renderHero(noticia) {
+    const wrap = document.getElementById('heroWrap');
+    if (!noticia || !wrap) return;
+    
+    wrap.innerHTML = `
+        <div class="hero-card" onclick="irANoticia('${noticia.slug}')">
+            <img class="hero-img" src="${noticia.imagen}" alt="${noticia.imagen_alt || noticia.titulo}" loading="eager" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <div class="hero-badge">🏮 ${(noticia.seccion || 'ÚLTIMO MINUTO').toUpperCase()}</div>
+                <h1 class="hero-titulo">${noticia.titulo}</h1>
+                <p class="hero-desc">${noticia.seo_description || ''}</p>
+                <div class="hero-meta">
+                    <span>⏱️ ${timeAgo(noticia.fecha)}</span>
+                    <span>👁️ ${(noticia.vistas || 0).toLocaleString()} vistas</span>
+                    <span>✍️ ${noticia.redactor || 'Redacción EFD'}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function actualizarTicker(noticias) {
+    const t = document.getElementById('ticker');
+    if (!t || !noticias.length) return;
+    
+    const items = noticias.slice(0, 8).map(n => 
+        `<span class="ticker-item" onclick="irANoticia('${n.slug}')">🔴 ${n.titulo}</span>`
+    ).join('');
+    t.innerHTML = items + items;
+}
+
+function renderGrid(noticias) {
+    const grid = document.getElementById('gridNoticias');
+    if (!grid) return;
+    
+    if (!noticias.length) {
+        grid.innerHTML = `<div class="estado-msg" style="grid-column:1/-1"><div class="icono">📭</div><p>No hay noticias en esta categoría todavía.</p></div>`;
+        return;
+    }
+    
+    let html = '';
+    noticias.forEach((n, i) => {
+        if (i > 0 && i % 6 === 0) {
+            html += `<div class="ad-banner" style="grid-column:1/-1"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>`;
         }
-        if (dataE.success) {
-            const v = dataE.totalVistas||0; const vStr = v>9999?(v/1000).toFixed(1)+'k':v;
-            setEl('g-total', dataE.totalNoticias||0); setEl('n-total', dataE.totalNoticias||0);
-            setEl('g-vistas', vStr); setEl('n-vistas', vStr);
-        }
-    } catch(e) {}
+        html += `
+            <div class="tarjeta" onclick="irANoticia('${n.slug}')">
+                <div class="tarjeta-img-wrap">
+                    <img class="tarjeta-img" src="${n.imagen}" alt="${n.imagen_alt || n.titulo}" loading="lazy" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
+                    <div class="tarjeta-seccion-badge">${n.seccion || 'SDE'}</div>
+                </div>
+                <div class="tarjeta-body">
+                    <div class="tarjeta-titulo">${n.titulo}</div>
+                    <div class="tarjeta-desc">${n.seo_description || ''}</div>
+                    <div class="tarjeta-footer">
+                        <span>⏱️ ${timeAgo(n.fecha)}</span>
+                        <span>👁️ ${(n.vistas || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    grid.innerHTML = html;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const tit = document.getElementById('m-titulo');
-    const cont = document.getElementById('m-contenido');
-    const desc = document.getElementById('m-desc');
-    if (tit) tit.addEventListener('input', () => { document.getElementById('titulo-contador').textContent = tit.value.length+' / 70'; document.getElementById('titulo-contador').style.color = tit.value.length>70?'#ef4444':'#444'; });
-    if (desc) desc.addEventListener('input', () => { document.getElementById('desc-contador').textContent = desc.value.length+' / 160'; document.getElementById('desc-contador').style.color = desc.value.length>160?'#ef4444':'#444'; });
-    if (cont) cont.addEventListener('input', () => { const words = cont.value.trim().split(/\s+/).filter(w=>w).length; const el = document.getElementById('palabras-count'); el.textContent = words+' palabras'; el.style.color = words<300?'#f59e0b':'#22c55e'; });
-    cargarEstadisticas(); renderUltimasGeneradas(); cargarSistemaStatus(); cargarGAConfig();
-});
-
-function previsualizarImagen(event) {
-    const file = event.target.files[0]; if (!file) return;
-    if (file.size > 5*1024*1024) { alert('Máximo 5MB'); return; }
-    const reader = new FileReader();
-    reader.onload = (e) => { imagenBase64 = e.target.result; document.getElementById('imgPreviewImg').src=imagenBase64; document.getElementById('imgPreview').style.display='block'; document.getElementById('uploadZone').style.display='none'; document.getElementById('m-imagen-url').value=''; };
-    reader.readAsDataURL(file);
+// ============================================================
+// FILTRADO
+// ============================================================
+function filtrar(categoria, btn) {
+    filtroActivo = categoria;
+    
+    // Actualizar botones
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
+    if (btn) btn.classList.add('activo');
+    
+    // Actualizar título
+    const titulo = document.getElementById('seccionTitulo');
+    const emojis = {
+        'todas': '📰', 'Nacionales': '🏛️', 'Deportes': '⚽',
+        'Internacionales': '🌍', 'Economía': '💰', 'Tecnología': '💻', 'Espectáculos': '🎬'
+    };
+    const nombres = {
+        'todas': 'Últimas noticias', 'Nacionales': 'Nacionales', 'Deportes': 'Deportes',
+        'Internacionales': 'Internacionales', 'Economía': 'Economía',
+        'Tecnología': 'Tecnología', 'Espectáculos': 'Espectáculos'
+    };
+    if (titulo) titulo.textContent = `${emojis[categoria] || '📰'} ${nombres[categoria] || categoria}`;
+    
+    // Filtrar noticias
+    const filtradas = categoria === 'todas' 
+        ? todasLasNoticias.slice(1) 
+        : todasLasNoticias.filter(n => n.seccion === categoria);
+    
+    renderGrid(filtradas);
+    
+    // Hero para la categoría
+    const heroNoticia = categoria === 'todas' 
+        ? todasLasNoticias[0] 
+        : todasLasNoticias.find(n => n.seccion === categoria);
+    if (heroNoticia) renderHero(heroNoticia);
 }
 
-function quitarImagen() { imagenBase64=null; document.getElementById('imgPreview').style.display='none'; document.getElementById('uploadZone').style.display='block'; document.getElementById('img-file').value=''; }
-function previewURL(url) { if (!url||!url.startsWith('http')) return; imagenBase64=null; document.getElementById('imgPreviewImg').src=url; document.getElementById('imgPreview').style.display='block'; document.getElementById('uploadZone').style.display='none'; }
-
-async function publicarManual() {
-    const titulo = document.getElementById('m-titulo').value.trim();
-    const seccion = document.getElementById('m-seccion').value;
-    const contenido = document.getElementById('m-contenido').value.trim();
-    const statusEl = document.getElementById('manual-status');
-    if (!titulo) { statusEl.innerHTML='<span style="color:#ef4444">❌ El título es obligatorio</span>'; return; }
-    if (!contenido||contenido.length<100) { statusEl.innerHTML='<span style="color:#ef4444">❌ Contenido muy corto</span>'; return; }
-    statusEl.innerHTML='<span style="color:#f59e0b">⏳ Publicando...</span>';
-    const imagenFinal = imagenBase64||document.getElementById('m-imagen-url').value.trim()||'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800';
-    try {
-        const res = await fetch('/api/publicar', { method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH}, body:JSON.stringify({pin:PIN,titulo,seccion,contenido,redactor:document.getElementById('m-redactor').value,seo_description:document.getElementById('m-desc').value.trim()||titulo.substring(0,155),seo_keywords:document.getElementById('m-tags').value.trim(),imagen:imagenFinal,imagen_alt:document.getElementById('m-img-alt').value.trim()||`${titulo} - El Farol al Día`}) });
-        const data = await res.json();
-        if (data.success) {
-            statusEl.innerHTML=`<span style="color:#22c55e">✅ ¡Publicada!</span> — <a href="/noticia/${data.slug}" target="_blank" style="color:var(--naranja)">Ver →</a>`;
-            document.getElementById('m-titulo').value=''; document.getElementById('m-contenido').value=''; document.getElementById('m-tags').value=''; document.getElementById('m-desc').value=''; document.getElementById('m-imagen-url').value=''; document.getElementById('m-img-alt').value=''; quitarImagen();
-            await cargarEstadisticas();
-        } else { statusEl.innerHTML=`<span style="color:#ef4444">❌ ${data.error}</span>`; }
-    } catch(e) { statusEl.innerHTML=`<span style="color:#ef4444">❌ ${e.message}</span>`; }
-}
-
+// ============================================================
+// CARGA DE NOTICIAS DESDE API
+// ============================================================
 async function cargarNoticias() {
     try {
-        const res = await fetch('/api/noticias',{headers:{'Authorization':AUTH}});
-        const data = await res.json();
-        if (data.success) { todasNoticias=data.noticias; filtrarNoticias(filtroActual); await cargarEstadisticas(); }
-    } catch(e) { document.getElementById('lista-noticias').innerHTML='<p style="text-align:center;color:#ef4444;padding:30px;">Error al cargar.</p>'; }
-}
-
-function filtrarNoticias(cat) {
-    filtroActual = cat;
-    document.querySelectorAll('#filtros-noticias .f-btn').forEach(b => b.classList.remove('activo'));
-    const btnActivo = Array.from(document.querySelectorAll('#filtros-noticias .f-btn')).find(b => { const t = b.textContent.replace(/[🏛️⚽💰🌍💻🎬]/g,'').trim(); return cat===''?t==='Todas':t.includes(cat); });
-    if (btnActivo) btnActivo.classList.add('activo');
-    const filtradas = cat ? todasNoticias.filter(n=>n.seccion===cat) : todasNoticias;
-    const el = document.getElementById('lista-noticias');
-    if (!filtradas.length) { el.innerHTML='<p style="text-align:center;color:#333;padding:30px;">No hay noticias.</p>'; return; }
-    el.innerHTML = filtradas.slice(0,60).map(n=>noticiaItemHTML(n)).join('');
-}
-
-function noticiaItemHTML(n) {
-    const img = n.imagen&&n.imagen.startsWith('http')?n.imagen:'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200';
-    const fecha = new Date(n.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-    return `<div class="noticia-item"><img class="noticia-thumb" src="${img}" alt="${esc(n.titulo)}" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=200'"><div class="noticia-info"><span class="noticia-badge">${n.seccion}</span><div class="noticia-titulo">${esc(n.titulo)}</div><div class="noticia-meta">📅 ${fecha} · 👁️ ${n.vistas||0} vistas</div></div><div class="noticia-acciones"><button class="btn-accion btn-ver" onclick="window.open('/noticia/${n.slug}','_blank')">👁 Ver</button><button class="btn-accion btn-del" onclick="eliminarNoticia(${n.id})">🗑 Borrar</button></div></div>`;
-}
-
-async function eliminarNoticia(id) {
-    if (!confirm('¿Eliminar? No se puede deshacer.')) return;
-    try {
-        const res = await fetch(`/api/eliminar/${id}`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':AUTH},body:JSON.stringify({pin:PIN})});
-        const data = await res.json();
-        if (data.success) { await cargarNoticias(); await cargarEstadisticas(); }
-        else alert('Error: '+data.error);
-    } catch(e) { alert('Error de conexión'); }
-}
-
-async function cargarAnalytics() {
-    cargarGAConfig();
-    try {
-        const res = await fetch('/api/noticias',{headers:{'Authorization':AUTH}});
-        const data = await res.json(); if (!data.success) return;
-        const noticias = data.noticias;
-        const cats = ['Nacionales','Deportes','Economía','Internacionales','Tecnología','Espectáculos'];
-        const catData = cats.map(c=>({cat:c,vistas:noticias.filter(n=>n.seccion===c).reduce((s,n)=>s+(n.vistas||0),0)}));
-        const maxV = Math.max(...catData.map(c=>c.vistas),1);
-        document.getElementById('cat-vistas').innerHTML = catData.map(c=>`<div class="cat-bar"><div class="cat-bar-label">${c.cat}</div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(c.vistas/maxV*100)}%"></div></div><div class="cat-bar-num">${c.vistas}</div></div>`).join('');
-        const top5 = [...noticias].sort((a,b)=>(b.vistas||0)-(a.vistas||0)).slice(0,5);
-        document.getElementById('top-noticias').innerHTML = top5.map((n,i)=>`<div class="top-noticia-item"><span class="top-noticia-rank">${i+1}</span><div class="top-noticia-title">${esc(n.titulo)}</div><div class="top-noticia-views">👁 ${n.vistas||0} · ${n.seccion}</div></div>`).join('');
-        const horas = new Array(24).fill(0);
-        noticias.forEach(n=>{const h=new Date(n.fecha).getHours();horas[h]++;});
-        const maxH = Math.max(...horas,1);
-        document.getElementById('actividad-horas').innerHTML = horas.map((v,h)=>v>0?`<div class="cat-bar"><div class="cat-bar-label">${h}:00h</div><div class="cat-bar-track"><div class="cat-bar-fill" style="width:${Math.round(v/maxH*100)}%"></div></div><div class="cat-bar-num">${v}</div></div>`:'').join('')||'<p style="color:#333;font-size:12px;">Sin datos</p>';
-    } catch(e) {}
-    try {
-        const res = await fetch('/api/coach?dias=7',{headers:{'Authorization':AUTH}});
-        const data = await res.json();
-        if (data.success&&data.categorias) {
-            document.getElementById('coach-data').innerHTML = `<p style="font-size:12px;color:#555;margin-bottom:14px;">Rendimiento vs promedio · 7 días · Promedio: ${data.promedio_general} vistas/noticia</p>`+Object.entries(data.categorias).map(([cat,info])=>`<div class="cat-bar" style="margin-bottom:10px;"><div class="cat-bar-label" style="width:110px;">${cat} <span style="color:#555;font-size:10px;">(${info.total})</span></div><div class="cat-bar-track" style="flex:1;height:8px;"><div class="cat-bar-fill" style="width:${Math.min(info.rendimiento,100)}%;${info.rendimiento>=100?'background:#22c55e':info.rendimiento>=75?'background:var(--naranja)':'background:#ef4444'}"></div></div><div class="cat-bar-num" style="width:50px;color:${info.rendimiento>=100?'#22c55e':info.rendimiento>=75?'var(--naranja)':'#ef4444'}">${info.rendimiento}%</div></div>`).join('');
+        const response = await fetch('/api/noticias');
+        const data = await response.json();
+        
+        // Soporta ambos formatos de API
+        let noticiasArray = [];
+        if (data.success && Array.isArray(data.noticias)) {
+            noticiasArray = data.noticias;
+        } else if (Array.isArray(data)) {
+            noticiasArray = data;
+        } else {
+            noticiasArray = [];
         }
-    } catch(e) {}
-}
-
-async function cargarGAConfig() {
-    try {
-        const res = await fetch('/api/configuracion');
-        const data = await res.json();
-        const gaId = data.config?.googleAnalytics||'';
-        const input = document.getElementById('ga-id-input');
-        const display = document.getElementById('ga-id-display');
-        const dot = document.getElementById('ga-dot');
-        if (input) input.value = gaId;
-        if (display) display.textContent = gaId||'No configurado';
-        if (dot) dot.className = 'ga-dot '+(gaId?'activo':'');
-    } catch(e) {}
-}
-
-async function guardarGA() {
-    const gaId = document.getElementById('ga-id-input').value.trim();
-    const statusEl = document.getElementById('ga-status');
-    statusEl.innerHTML = '<span style="color:#f59e0b">Guardando...</span>';
-    try {
-        const res = await fetch('/api/configuracion',{method:'POST',headers:{'Content-Type':'application/json','Authorization':AUTH},body:JSON.stringify({pin:PIN,googleAnalytics:gaId})});
-        const data = await res.json();
-        if (data.success) { statusEl.innerHTML=`<span style="color:#22c55e">✅ Guardado</span>`; document.getElementById('ga-id-display').textContent=gaId||'No configurado'; document.getElementById('ga-dot').className='ga-dot '+(gaId?'activo':''); }
-        else { statusEl.innerHTML=`<span style="color:#ef4444">❌ ${data.error}</span>`; }
-    } catch(e) { statusEl.innerHTML=`<span style="color:#ef4444">❌ Error</span>`; }
-}
-
-function abrirGA() { window.open('https://analytics.google.com','_blank'); }
-
-async function cargarPublicidad() {
-    try {
-        const res = await fetch('/api/publicidad',{headers:{'Authorization':AUTH}});
-        const data = await res.json();
-        const lista = document.getElementById('pub-lista');
-        if (!data.success||!data.anuncios.length) {
-            lista.innerHTML = '<p style="color:#555;text-align:center;padding:20px;font-size:13px;">No hay espacios. Crea uno arriba.</p>';
+        
+        if (!noticiasArray.length) {
+            document.getElementById('gridNoticias').innerHTML = `
+                <div class="estado-msg" style="grid-column:1/-1">
+                    <div class="icono">📡</div>
+                    <p>Cargando las primeras noticias...<br><small style="color:#444">Vuelve en unos minutos.</small></p>
+                </div>
+            `;
             return;
         }
-        lista.innerHTML = data.anuncios.map(a => `
-        <div class="pub-card" id="pub-card-${a.id}">
-            <div class="pub-card-header">
-                <div>
-                    <span class="pub-nombre">${esc(a.nombre_espacio)}</span>
-                    <span class="pub-ubicacion-badge" style="margin-left:8px;">${esc(a.ubicacion)}</span>
-                </div>
-                <label class="switch" title="${a.activo?'Activo':'Pausado'}">
-                    <input type="checkbox" ${a.activo?'checked':''} onchange="toggleAnuncio(${a.id}, this.checked)">
-                    <span class="slider"></span>
-                </label>
+        
+        todasLasNoticias = noticiasArray;
+        renderHero(todasLasNoticias[0]);
+        actualizarTicker(todasLasNoticias);
+        renderGrid(todasLasNoticias.slice(1));
+        
+    } catch (error) {
+        console.error('Error cargando noticias:', error);
+        document.getElementById('gridNoticias').innerHTML = `
+            <div class="estado-msg" style="grid-column:1/-1">
+                <div class="icono">⚠️</div>
+                <p>Error al cargar noticias. Recarga la página.</p>
             </div>
-            ${a.imagen_url ? `<img src="${esc(a.imagen_url)}" class="pub-preview-img" style="display:block;" onerror="this.style.display='none'" alt="preview">` : ''}
-            <div style="font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px;">Link de afiliado</div>
-            <input type="url" class="pub-input" id="url-${a.id}" value="${esc(a.url_afiliado||'')}" placeholder="https://amazon.com/tu-link">
-            <div style="font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px;">URL imagen del banner</div>
-            <input type="url" class="pub-input" id="img-${a.id}" value="${esc(a.imagen_url||'')}" placeholder="https://imagen-banner.jpg" oninput="previewBanner(${a.id}, this.value)">
-            <div class="pub-dim-row">
-                <div>
-                    <div class="pub-dim-label">📐 Ancho (px) — 0 = auto</div>
-                    <input type="number" class="pub-input-num" id="ancho-${a.id}" value="${parseInt(a.ancho_px)||0}" min="0" max="1200" placeholder="ej: 728">
-                </div>
-                <div>
-                    <div class="pub-dim-label">📐 Alto (px) — 0 = auto</div>
-                    <input type="number" class="pub-input-num" id="alto-${a.id}" value="${parseInt(a.alto_px)||0}" min="0" max="600" placeholder="ej: 90">
-                </div>
-            </div>
-            <div class="pub-actions">
-                <button class="pub-btn-save" onclick="guardarAnuncio(${a.id}, '${esc(a.nombre_espacio)}', '${esc(a.ubicacion)}', ${a.activo})">💾 GUARDAR</button>
-                <button class="pub-btn-del" onclick="eliminarAnuncio(${a.id})" title="Eliminar">🗑</button>
-            </div>
-            <div class="pub-status" id="pub-st-${a.id}"></div>
-        </div>`).join('');
-    } catch(e) {
-        document.getElementById('pub-lista').innerHTML = '<p style="color:#ef4444;text-align:center;padding:20px;">Error al cargar publicidad</p>';
+        `;
     }
 }
 
-function previewBanner(id, url) {
-    const card = document.getElementById(`pub-card-${id}`);
-    if (!card) return;
-    let img = card.querySelector('.pub-preview-img');
-    if (!img) { img = document.createElement('img'); img.className = 'pub-preview-img'; card.querySelector('.pub-card-header').insertAdjacentElement('afterend', img); }
-    if (url && url.startsWith('http')) { img.src = url; img.style.display = 'block'; img.onerror = () => img.style.display = 'none'; }
-    else { img.style.display = 'none'; }
+// ============================================================
+// PUSH NOTIFICATIONS
+// ============================================================
+const PUSH_KEY = 'push_suscrito_efd';
+
+async function togglePush() {
+    if (localStorage.getItem(PUSH_KEY)) {
+        await desuscribirse();
+    } else {
+        await suscribirse();
+    }
 }
 
-async function guardarAnuncio(id, nombre, ubicacion, activoActual) {
-    const url    = document.getElementById(`url-${id}`)?.value.trim() || '';
-    const img    = document.getElementById(`img-${id}`)?.value.trim() || '';
-    const ancho  = parseInt(document.getElementById(`ancho-${id}`)?.value) || 0;
-    const alto   = parseInt(document.getElementById(`alto-${id}`)?.value) || 0;
-    const chk    = document.querySelector(`#pub-card-${id} input[type=checkbox]`);
-    const activo = chk ? chk.checked : activoActual;
-    const st     = document.getElementById(`pub-st-${id}`);
-    if (st) st.innerHTML = '<span style="color:#f59e0b">Guardando...</span>';
+async function suscribirse() {
+    const btn = document.getElementById('btnPush');
+    
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast('⚠️ Tu navegador no soporta notificaciones push');
+        return;
+    }
+    
     try {
-        const res = await fetch('/api/publicidad/actualizar', {
-            method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH},
-            body: JSON.stringify({pin:PIN, id, nombre_espacio:nombre, url_afiliado:url, imagen_url:img, ubicacion, activo, ancho_px:ancho, alto_px:alto})
+        const permiso = await Notification.requestPermission();
+        if (permiso !== 'granted') {
+            toast('❌ Permiso de notificaciones denegado');
+            return;
+        }
+        
+        const respuesta = await fetch('/api/push/vapid-key');
+        const datos = await respuesta.json();
+        
+        if (!datos.publicKey) {
+            toast('⚠️ Push no configurado en el servidor');
+            return;
+        }
+        
+        let sw;
+        try {
+            sw = await navigator.serviceWorker.register('/sw.js');
+        } catch (e) {
+            sw = await navigator.serviceWorker.ready;
+        }
+        
+        const suscripcion = await sw.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(datos.publicKey)
         });
-        const data = await res.json();
-        if (st) st.innerHTML = data.success ? '<span style="color:#22c55e">✅ Guardado</span>' : `<span style="color:#ef4444">❌ ${data.error}</span>`;
-        setTimeout(() => { if (st) st.innerHTML = ''; }, 3000);
-    } catch(e) { if (st) st.innerHTML = '<span style="color:#ef4444">❌ Error</span>'; }
-}
-
-async function toggleAnuncio(id, activo) {
-    const url   = document.getElementById(`url-${id}`)?.value || '';
-    const img   = document.getElementById(`img-${id}`)?.value || '';
-    const ancho = parseInt(document.getElementById(`ancho-${id}`)?.value) || 0;
-    const alto  = parseInt(document.getElementById(`alto-${id}`)?.value) || 0;
-    const st    = document.getElementById(`pub-st-${id}`);
-    try {
-        await fetch('/api/publicidad/actualizar', {
-            method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH},
-            body: JSON.stringify({pin:PIN, id, nombre_espacio:'', url_afiliado:url, imagen_url:img, ubicacion:'top', activo, ancho_px:ancho, alto_px:alto})
+        
+        await fetch('/api/push/suscribir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: suscripcion, userAgent: navigator.userAgent })
         });
-        if (st) { st.innerHTML = `<span style="color:${activo?'#22c55e':'#f59e0b'}">${activo?'✅ Activado':'⏸ Pausado'}</span>`; setTimeout(()=>{st.innerHTML='';},2000); }
-    } catch(e) {}
+        
+        localStorage.setItem(PUSH_KEY, '1');
+        btn.textContent = '🔔 Activado';
+        btn.classList.add('activo');
+        toast('✅ ¡Alertas activadas! Recibirás las noticias al instante.', 4000);
+        
+    } catch (error) {
+        toast('❌ Error al activar alertas: ' + error.message);
+    }
 }
 
-async function crearAnuncio() {
-    const nombre    = document.getElementById('pub-nuevo-nombre').value.trim();
-    const url       = document.getElementById('pub-nuevo-url').value.trim();
-    const img       = document.getElementById('pub-nuevo-img').value.trim();
-    const ubicacion = document.getElementById('pub-nuevo-ubicacion').value;
-    const ancho     = parseInt(document.getElementById('pub-nuevo-ancho').value) || 0;
-    const alto      = parseInt(document.getElementById('pub-nuevo-alto').value) || 0;
-    const st        = document.getElementById('pub-crear-status');
-    if (!nombre) { st.innerHTML = '<span style="color:#ef4444">❌ Pon un nombre al espacio</span>'; return; }
-    st.innerHTML = '<span style="color:#f59e0b">Creando...</span>';
+async function desuscribirse() {
+    const btn = document.getElementById('btnPush');
+    
     try {
-        const res = await fetch('/api/publicidad/crear', {
-            method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH},
-            body: JSON.stringify({pin:PIN, nombre_espacio:nombre, url_afiliado:url, imagen_url:img, ubicacion, ancho_px:ancho, alto_px:alto})
-        });
-        const data = await res.json();
-        if (data.success) {
-            st.innerHTML = '<span style="color:#22c55e">✅ Espacio creado</span>';
-            document.getElementById('pub-nuevo-nombre').value = '';
-            document.getElementById('pub-nuevo-url').value = '';
-            document.getElementById('pub-nuevo-img').value = '';
-            document.getElementById('pub-nuevo-ancho').value = '0';
-            document.getElementById('pub-nuevo-alto').value = '0';
-            cargarPublicidad();
-        } else { st.innerHTML = `<span style="color:#ef4444">❌ ${data.error}</span>`; }
-    } catch(e) { st.innerHTML = `<span style="color:#ef4444">❌ ${e.message}</span>`; }
+        if ('serviceWorker' in navigator) {
+            const sw = await navigator.serviceWorker.ready;
+            const sub = await sw.pushManager.getSubscription();
+            if (sub) {
+                await fetch('/api/push/desuscribir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: sub.endpoint })
+                });
+                await sub.unsubscribe();
+            }
+        }
+        
+        localStorage.removeItem(PUSH_KEY);
+        btn.textContent = '🔔 Alertas';
+        btn.classList.remove('activo');
+        toast('🔕 Alertas desactivadas');
+        
+    } catch (error) {
+        console.error('Error al desuscribir:', error);
+    }
 }
 
-async function eliminarAnuncio(id) {
-    if (!confirm('¿Eliminar este espacio publicitario? No se puede deshacer.')) return;
-    try {
-        await fetch('/api/publicidad/eliminar', { method:'POST', headers:{'Content-Type':'application/json','Authorization':AUTH}, body:JSON.stringify({pin:PIN,id}) });
-        cargarPublicidad();
-    } catch(e) {}
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
 }
 
-async function cargarConfiguracion() {
-    try {
-        const res = await fetch('/api/admin/config?pin=311',{headers:{'Authorization':AUTH}});
-        const data = await res.json();
-        if (data.enabled!==undefined) document.getElementById('ia-enabled').checked = data.enabled;
-        if (data.tono) document.getElementById('ia-tono').value = data.tono;
-        if (data.instruccion_principal) document.getElementById('ia-instruccion').value = data.instruccion_principal;
-        if (data.enfasis) document.getElementById('ia-enfasis').value = data.enfasis;
-        if (data.evitar) document.getElementById('ia-evitar').value = data.evitar;
-    } catch(e) {}
-    cargarFullStatus();
+function initPushButton() {
+    const btn = document.getElementById('btnPush');
+    if (!btn) return;
+    if (localStorage.getItem(PUSH_KEY)) {
+        btn.textContent = '🔔 Activado';
+        btn.classList.add('activo');
+    }
 }
 
-async function guardarConfigIA() {
-    const statusEl = document.getElementById('ia-config-status');
-    const body = {pin:PIN, enabled:document.getElementById('ia-enabled').checked, tono:document.getElementById('ia-tono').value, instruccion_principal:document.getElementById('ia-instruccion').value, enfasis:document.getElementById('ia-enfasis').value, evitar:document.getElementById('ia-evitar').value};
-    try {
-        const res = await fetch('/api/admin/config',{method:'POST',headers:{'Content-Type':'application/json','Authorization':AUTH},body:JSON.stringify(body)});
-        const data = await res.json();
-        if (statusEl) statusEl.innerHTML = data.success?'<span style="color:#22c55e">✅ Guardado</span>':'<span style="color:#ef4444">❌ Error</span>';
-    } catch(e) { if (statusEl) statusEl.innerHTML='<span style="color:#ef4444">❌ Error</span>'; }
-}
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+actualizarHora();
+setInterval(actualizarHora, 30000);
 
-async function cargarSistemaStatus() {
-    try {
-        const res = await fetch('/status');
-        const data = await res.json();
-        const el = document.getElementById('sistema-status');
-        if (!el) return;
-        el.innerHTML = `<div>🤖 Modelo: <span style="color:var(--naranja)">${data.modelo_gemini||'gemini-2.5-flash'}</span></div><div>📝 Texto: <span style="color:var(--verde)">${data.gemini_texto||'—'}</span></div><div>🖼️ Imagen: <span style="color:var(--verde)">${data.gemini_imagen||'—'}</span></div><div>📷 Unsplash: <span style="color:${data.unsplash?.includes('✅')?'var(--verde)':'#555'}">${data.unsplash||'—'}</span></div><div>📰 Total: <span style="color:var(--naranja)">${data.noticias||'—'}</span> noticias</div><div>🏮 Watermark: <span style="color:${data.watermark?.includes('✅')?'var(--verde)':'#f59e0b'}">${data.watermark||'—'}</span></div><div>📘 Facebook: <span style="color:${data.facebook?.includes('✅')?'var(--verde)':'#555'}">${data.facebook||'—'}</span></div><div>📱 Telegram: <span style="color:${data.telegram?.includes('✅')?'var(--verde)':'#555'}">${data.telegram||'—'}</span></div>`;
-    } catch(e) {}
-}
+document.addEventListener('DOMContentLoaded', () => {
+    cargarNoticias();
+    initPushButton();
+    setInterval(cargarNoticias, 5 * 60 * 1000);
+});
 
-async function cargarFullStatus() {
-    try {
-        const res = await fetch('/status');
-        const data = await res.json();
-        const el = document.getElementById('full-status');
-        if (!el) return;
-        const rows = [['Versión',data.version],['Noticias',data.noticias],['Min sin publicar',(data.min_sin_publicar||0)+' min'],['Modelo',data.modelo_gemini],['Unsplash',data.unsplash],['AdSense',data.adsense],['IA Activa',data.ia_activa?'✅ Sí':'⛔ No'],['Publicidad',data.publicidad||'✅ Activo']];
-        el.innerHTML = rows.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--borde);"><span style="color:#555;font-size:12px;">${k}</span><span style="color:var(--texto);font-size:12px;font-weight:600;">${v||'—'}</span></div>`).join('');
-    } catch(e) {}
-}
-
-async function testTelegram() {
-    const el = document.getElementById('mant-status');
-    el.innerHTML = '<span style="color:#f59e0b">Enviando...</span>';
-    try {
-        const res = await fetch('/api/telegram/test',{method:'POST',headers:{'Content-Type':'application/json','Authorization':AUTH},body:JSON.stringify({pin:PIN})});
-        const data = await res.json();
-        el.innerHTML = data.success?'<span style="color:#22c55e">✅ Enviado</span>':'<span style="color:#ef4444">❌ Error</span>';
-    } catch(e) { el.innerHTML='<span style="color:#ef4444">❌ Error</span>'; }
-}
-
-function setEl(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-setInterval(() => { cargarEstadisticas(); renderUltimasGeneradas(); }, 60000);
+// Exponer funciones globalmente para los onclick
+window.irANoticia = irANoticia;
+window.filtrar = filtrar;
+window.togglePush = togglePush;
 </script>
 </body>
 </html>
