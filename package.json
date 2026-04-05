@@ -1,7 +1,7 @@
-{{
+{
   "name": "farol-web",
   "version": "35.1.0",
-  "description": "El Farol al Día — Periódico Digital Santo Domingo Este",
+  "description": "El Farol al Dia - Periodico Digital Santo Domingo Este",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
