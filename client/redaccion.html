@@ -3,118 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Redacción · El Farol al Día</title>
+    <title>Redacción 🏮 El Farol al Día</title>
     <style>
-        :root { --naranja: #FF5500; --fondo: #0a0a0a; --tarjeta: #1a1a1a; --texto: #eee; --borde: #333; }
-        body { background: var(--fondo); color: var(--texto); font-family: sans-serif; margin: 0; padding: 20px; }
-        .panel { max-width: 800px; margin: 0 auto; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 25px; }
-        h1 { color: var(--naranja); font-size: 20px; border-bottom: 1px solid var(--borde); padding-bottom: 10px; margin-top: 0; }
-        .grupo { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 14px; color: #aaa; }
-        select, input, textarea { width: 100%; padding: 12px; background: #000; border: 1px solid var(--borde); color: #fff; border-radius: 6px; }
-        .btn { background: var(--naranja); color: #fff; border: none; padding: 15px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        .btn:hover { background: #ff7733; }
-        .btn:disabled { background: #555; cursor: not-allowed; }
-        #log { margin-top: 20px; padding: 15px; background: #000; border-radius: 6px; font-family: monospace; font-size: 12px; min-height: 50px; border-left: 4px solid var(--naranja); white-space: pre-wrap; }
-        .error { color: #ff4444; }
-        .exito { color: #44ff44; }
-        .loading { display: inline-block; animation: spin 1s linear infinite; margin-right: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        :root { --naranja: #FF5500; --fondo: #070707; --tarjeta: #111; --borde: #222; --texto: #eee; }
+        body { background: var(--fondo); color: var(--texto); font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        .card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        h2 { color: var(--naranja); font-size: 16px; margin-top: 0; border-bottom: 1px solid var(--borde); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .grupo { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; }
+        select, input { width: 100%; padding: 10px; background: #000; border: 1px solid var(--borde); color: #fff; border-radius: 5px; }
+        .btn { background: var(--naranja); color: #fff; border: none; padding: 12px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn:hover { background: #ff7733; transform: translateY(-2px); }
+        .btn-rss { background: #1a1a1a; border: 1px solid var(--borde); color: #888; margin-top: 10px; }
+        #log { background: #000; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; height: 180px; overflow-y: auto; border-left: 3px solid var(--naranja); white-space: pre-wrap; }
+        .error { color: #ff4444; } .exito { color: #44ff44; }
+        @media (max-width: 800px) { .container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<div class="panel">
-    <h1>🏮 PANEL DE REDACCIÓN MXL</h1>
-    
-    <div class="grupo">
-        <label>Usuario Administrador:</label>
-        <input type="text" id="user" value="mxl">
+<div class="container">
+    <!-- COLUMNA IZQUIERDA: ACCIONES -->
+    <div class="main-panel">
+        <div class="card">
+            <h2>⚡ GENERAR NOTICIA CON IA</h2>
+            <div class="grupo">
+                <label>CATEGORÍA</label>
+                <select id="categoria">
+                    <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
+                    <option value="Deportes">⚽ Deportes</option>
+                    <option value="Internacionales">🌍 Internacionales</option>
+                    <option value="Economía">💰 Economía</option>
+                    <option value="Tecnología">💻 Tecnología</option>
+                    <option value="Espectáculos">🎬 Espectáculos</option>
+                </select>
+            </div>
+            <button class="btn" onclick="ejecutarAccion('/api/generar', 'POST')">⚡ GENERAR CON IA</button>
+            <button class="btn btn-rss" onclick="ejecutarAccion('/api/generar', 'GET')">📡 PROCESAR RSS AHORA</button>
+            <div id="statusMsg" style="margin-top:10px; font-size:12px;"></div>
+        </div>
+
+        <div class="card">
+            <h2>🛰️ ESTADO DEL SISTEMA</h2>
+            <div id="log">Esperando órdenes de redacción...</div>
+        </div>
     </div>
 
-    <div class="grupo">
-        <label>PIN de Seguridad:</label>
-        <input type="password" id="pin" placeholder="****">
+    <!-- COLUMNA DERECHA: INFO -->
+    <div class="side-panel">
+        <div class="card">
+            <h2>🔐 ACCESO ADMIN</h2>
+            <div class="grupo">
+                <label>PIN DE SEGURIDAD (MXL)</label>
+                <input type="password" id="pin" placeholder="Ingresa tu PIN">
+            </div>
+            <p style="font-size: 10px; color: #444;">Sistema Modular Gold v35.3.0</p>
+        </div>
+        
+        <div class="card">
+            <h2>📈 ANALÍTICA RÁPIDA</h2>
+            <div id="stats" style="font-size: 12px; color: #888;">
+                Cargando datos del servidor...
+            </div>
+        </div>
     </div>
-
-    <div class="grupo">
-        <label>Categoría para generar:</label>
-        <select id="categoria">
-            <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
-            <option value="Deportes">⚽ Deportes</option>
-            <option value="Internacionales">🌍 Internacionales</option>
-            <option value="Economía">💰 Economía</option>
-            <option value="Tecnología">💻 Tecnología</option>
-            <option value="Espectáculos">🎬 Espectáculos</option>
-        </select>
-    </div>
-
-    <button class="btn" id="btnGenerar" onclick="mandarGenerar()">⚡ GENERAR NOTICIA CON IA</button>
-
-    <div id="log">Esperando orden...</div>
 </div>
 
 <script>
-    async function mandarGenerar() {
-        const btn = document.getElementById('btnGenerar');
+    async function ejecutarAccion(ruta, metodo) {
         const log = document.getElementById('log');
-        const user = document.getElementById('user').value;
+        const status = document.getElementById('statusMsg');
         const pin = document.getElementById('pin').value;
         const cat = document.getElementById('categoria').value;
 
-        if (!pin) {
-            log.innerHTML = '<span class="error">❌ Debes poner el PIN de seguridad.</span>';
+        if (!pin && metodo === 'POST') {
+            status.innerHTML = '<span class="error">❌ Falta el PIN de seguridad</span>';
             return;
         }
 
-        // Bloquear botón
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loading">⏳</span> PROCESANDO CON GEMINI...';
-        log.innerHTML = `📡 Conectando con el motor modular...\nCategoría: ${cat}\nPor favor, espera (esto toma 30-60 segundos)...`;
+        log.innerHTML += `\n> Iniciando proceso en ${ruta}...`;
+        status.innerHTML = '⏳ Procesando, espera un momento...';
 
         try {
-            // Creamos la credencial de acceso (Basic Auth)
-            const auth = btoa(`${user}:${pin}`);
+            const auth = btoa(`mxl:${pin}`);
+            const options = {
+                method: metodo,
+                headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' }
+            };
 
-            // IMPORTANTE: La ruta ahora es /api/generar
-            const response = await fetch('/api/generar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${auth}`
-                },
-                body: JSON.stringify({ categoria: cat })
-            });
+            if (metodo === 'POST') options.body = JSON.stringify({ categoria: cat });
 
-            // Si el servidor devuelve HTML en vez de JSON, aquí se captura
-            const textoRaw = await response.text();
-            let data;
-            
-            try {
-                data = JSON.parse(textoRaw);
-            } catch (e) {
-                console.error("Respuesta no es JSON:", textoRaw);
-                throw new Error("El servidor respondió con un error de página. Revisa los logs de Railway.");
-            }
+            const response = await fetch(ruta, options);
+            const data = await response.json();
 
             if (data.success) {
-                log.innerHTML = `<span class="exito">✅ ¡NOTICIA PUBLICADA CON ÉXITO!</span>\nSlug: ${data.slug}\n\nYa puedes verla en la página principal.`;
-                toast("¡Publicado!");
+                log.innerHTML += `\n<span class="exito">✅ ÉXITO: Publicada Noticia /noticia/${data.slug}</span>`;
+                status.innerHTML = '<span class="exito">✅ ¡Publicación completada!</span>';
             } else {
-                log.innerHTML = `<span class="error">❌ ERROR: ${data.error || 'No se pudo generar'}</span>`;
+                log.innerHTML += `\n<span class="error">❌ ERROR: ${data.error || 'Fallo desconocido'}</span>`;
+                status.innerHTML = '<span class="error">❌ Falló la generación</span>';
             }
-
         } catch (error) {
-            log.innerHTML = `<span class="error">❌ FALLO DE CONEXIÓN:</span>\n${error.message}`;
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '⚡ GENERAR NOTICIA CON IA';
+            log.innerHTML += `\n<span class="error">❌ ERROR DE RED: Servidor no responde.</span>`;
+            status.innerHTML = '<span class="error">❌ Revisa si Railway está encendido</span>';
         }
+        log.scrollTop = log.scrollHeight;
     }
 
-    function toast(msg) {
-        console.log("Notificación:", msg);
+    // Cargar estadísticas al entrar
+    async function cargarStats() {
+        try {
+            const r = await fetch('/api/noticias');
+            const d = await r.json();
+            const noticias = d.noticias || d;
+            document.getElementById('stats').innerHTML = `
+                Noticias totales: ${noticias.length}<br>
+                Última publicación: ${noticias[0] ? new Date(noticias[0].fecha).toLocaleTimeString() : 'N/A'}
+            `;
+        } catch(e) {}
     }
+    cargarStats();
 </script>
 
 </body>
