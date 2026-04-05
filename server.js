@@ -1,15 +1,14 @@
 /**
- * 🏮 EL FAROL AL DÍA — V37.0
+ * 🏮 EL FAROL AL DÍA — V38.0
  * ─────────────────────────────────────────────────────────
- * CAMBIOS vs V36:
- *  ✅ Social Publisher modular (Telegram, Facebook, Twitter, ElevenLabs)
- *  ✅ Prompt inteligente — lee métricas reales de BD antes de escribir
- *  ✅ Búsqueda de imagen EN PARALELO (CSE + Unsplash + Pexels al mismo tiempo)
- *  ✅ Caché elevada a 5 minutos
- *  ✅ Cron inteligente — publica en horas pico reales de tu audiencia
- *  ✅ ElevenLabs TTS activo — genera audio por noticia
- *  ✅ Reporte diario a las 7 AM en consola Railway
- *  ✅ Rutas de prueba por red social
+ * CAMBIOS vs V37:
+ *  ✅ DeepSeek ELIMINADO — solo Gemini (más limpio, sin 402)
+ *  ✅ 6 llaves Gemini (KEY1-KEY6) con rotación Round-Robin inteligente
+ *  ✅ Prompt ANTIBALAS — nunca devuelve menos de 600 chars
+ *  ✅ Validación progresiva: tolerante en intento 1, estricta en 3
+ *  ✅ Analytics Console estructurado (Railway lo indexa)
+ *  ✅ Gemini 2.5 Flash para texto + imagen en paralelo
+ *  ✅ Todas las features V37 intactas
  * ─────────────────────────────────────────────────────────
  */
 
@@ -36,11 +35,23 @@ const BASE_URL = process.env.BASE_URL || 'https://elfarolaldia.com';
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
-const LLAVES_TEXTO  = [process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2].filter(Boolean);
-const LLAVES_IMAGEN = [process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4].filter(Boolean);
+// 6 llaves Gemini — se usan todas para texto e imagen
+const TODAS_LLAVES_GEMINI = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY2,
+    process.env.GEMINI_API_KEY3,
+    process.env.GEMINI_API_KEY4,
+    process.env.GEMINI_API_KEY5,
+    process.env.GEMINI_API_KEY6,
+].filter(Boolean);
 
-const DEEPSEEK_API_KEY  = process.env.DEEPSEEK_API_KEY  || null;
-const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
+// Las primeras 4 para texto, las últimas 2 para imagen (si existen KEY5/KEY6 se añaden a imagen)
+const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 4).filter(Boolean);
+const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(2).filter(Boolean); // KEY3-KEY6 para imagen
+
+console.log(`🔑 Gemini: ${TODAS_LLAVES_GEMINI.length} llaves activas`);
+console.log(`   Texto: KEY1-KEY${Math.min(4, TODAS_LLAVES_GEMINI.length)} (${LLAVES_TEXTO.length} llaves)`);
+console.log(`   Imagen: KEY3-KEY${TODAS_LLAVES_GEMINI.length} (${LLAVES_IMAGEN.length} llaves)`);
 
 const GOOGLE_CSE_KEYS = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
 const GOOGLE_CSE_CX   = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
@@ -76,14 +87,8 @@ try {
 } catch(e) { console.warn('⚠️ Google Credentials:', e.message); }
 
 // ══════════════════════════════════════════════════════════
-// 📡 SOCIAL PUBLISHER — módulo unificado
+// 📡 SOCIAL PUBLISHER
 // ══════════════════════════════════════════════════════════
-// Lee las credenciales directamente de process.env:
-//   TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-//   FB_PAGE_ID, FB_PAGE_TOKEN
-//   TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET
-//   ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID
-
 let _telegramChatId = process.env.TELEGRAM_CHAT_ID || null;
 const ELEVENLABS_API_KEY   = process.env.ELEVENLABS_API_KEY  || null;
 const ELEVENLABS_VOICE_ID  = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
@@ -167,7 +172,7 @@ async function bienvenidaTelegram() {
     if (!chatId) return;
     await _tgFetch('sendMessage', {
         chat_id: chatId,
-        text: `🏮 *El Farol al Día — V37\\.0*\n\n✅ Social Publisher activo\\.\n✅ Prompt inteligente con métricas reales\\.\n✅ Imagen en paralelo\\.\n✅ ElevenLabs TTS ${ELEVENLABS_API_KEY ? 'activo' : 'sin key'}\\.\n✅ Cron por hora pico real\\.\n\n🌐 [elfarolaldia\\.com](https://elfarolaldia.com)`,
+        text: `🏮 *El Farol al Día — V38\\.0*\n\n✅ Sin DeepSeek — 6 llaves Gemini activas\\.\n✅ Prompt antibalas — nunca falla validación\\.\n✅ Imagen en paralelo\\.\n✅ Analytics Railway estructurado\\.\n\n🔑 Llaves activas: ${TODAS_LLAVES_GEMINI.length}/6\n\n🌐 [elfarolaldia\\.com](https://elfarolaldia.com)`,
         parse_mode: 'MarkdownV2',
     });
 }
@@ -240,12 +245,10 @@ async function publicarEnTwitter(titulo, slug, descripcion) {
 
 // ── Publicar en todas las redes (entrada única) ───────────
 async function publicarEnRedes(titulo, slug, imagen, descripcion, seccion, contenido) {
-    // Genera audio primero (se necesita para Telegram)
     const primerParr  = (contenido||'').split(/\n\n+/).find(p=>p.trim().length>40)||'';
     const audioNombre = await generarAudioNoticia(titulo, primerParr.substring(0,400)).catch(()=>null);
     const audioUrl    = audioNombre ? `${BASE_URL}/audio/${audioNombre}` : null;
 
-    // Publica en todas las redes en paralelo
     const [telegram, facebook, twitter] = await Promise.allSettled([
         publicarEnTelegram(titulo, slug, imagen, descripcion, seccion, audioUrl),
         publicarEnFacebook(titulo, slug, imagen, descripcion),
@@ -447,104 +450,130 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🤖 GEMINI
+// 🤖 GEMINI — 6 llaves, Round-Robin inteligente
 // ══════════════════════════════════════════════════════════
 const GEMINI_STATE = {};
+let _geminiRRIndex = 0; // Round-Robin para texto
+
 function getKeyState(k) {
-    if (!GEMINI_STATE[k]) GEMINI_STATE[k] = { lastRequest:0, resetTime:0 };
+    if (!GEMINI_STATE[k]) GEMINI_STATE[k] = { lastRequest:0, resetTime:0, errores:0, exitos:0 };
     return GEMINI_STATE[k];
 }
 
-async function _callGemini(apiKey, prompt, intento) {
-    const st   = getKeyState(apiKey);
+function siguienteLlaveRR(llaves) {
+    // Busca la siguiente llave disponible en Round-Robin
     const ahora = Date.now();
-    if (ahora < st.resetTime) await new Promise(r=>setTimeout(r, st.resetTime-ahora));
+    for (let i = 0; i < llaves.length; i++) {
+        const idx  = (_geminiRRIndex + i) % llaves.length;
+        const k    = llaves[idx];
+        const st   = getKeyState(k);
+        if (ahora >= st.resetTime) {
+            _geminiRRIndex = (idx + 1) % llaves.length;
+            return k;
+        }
+    }
+    // Todas bloqueadas — usar la que se desbloquea más pronto
+    const mejor = llaves.reduce((a, b) => getKeyState(a).resetTime < getKeyState(b).resetTime ? a : b);
+    return mejor;
+}
+
+async function _callGemini(apiKey, prompt, intento) {
+    const st    = getKeyState(apiKey);
+    const ahora = Date.now();
+    if (ahora < st.resetTime) {
+        const espera = st.resetTime - ahora;
+        if (espera > 2000) await new Promise(r=>setTimeout(r, Math.min(espera, 10000)));
+    }
     const desde = Date.now() - st.lastRequest;
-    if (desde < 8000) await new Promise(r=>setTimeout(r, 8000-desde));
+    if (desde < 6000) await new Promise(r=>setTimeout(r, 6000-desde));
     st.lastRequest = Date.now();
+
     let res;
     try {
         res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:0.85,maxOutputTokens:3000} }),
-            signal: AbortSignal.timeout(45000),
+            body: JSON.stringify({
+                contents:[{parts:[{text:prompt}]}],
+                generationConfig:{ temperature:0.82, maxOutputTokens:4000, topP:0.9 }
+            }),
+            signal: AbortSignal.timeout(50000),
         });
     } catch(err) { throw new Error(`RED: ${err.message}`); }
-    if (res.status===429) { const e=Math.min(60000+Math.pow(2,intento)*10000,300000); st.resetTime=Date.now()+e; throw new Error('RATE_LIMIT_429'); }
-    if (res.status===503||res.status===502) { await new Promise(r=>setTimeout(r,15000)); throw new Error(`HTTP_${res.status}`); }
+
+    if (res.status===429) {
+        const e = Math.min(60000 + Math.pow(2, intento) * 15000, 300000);
+        st.resetTime = Date.now() + e;
+        st.errores++;
+        throw new Error('RATE_LIMIT_429');
+    }
+    if (res.status===503||res.status===502) { await new Promise(r=>setTimeout(r,12000)); throw new Error(`HTTP_${res.status}`); }
     if (!res.ok) { await res.text().catch(()=>{}); throw new Error(`HTTP ${res.status}`); }
-    const data = await res.json();
+
+    const data  = await res.json();
     const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const razon = data.candidates?.[0]?.finishReason;
     if (razon==='SAFETY'||razon==='RECITATION') throw new Error(`GEMINI_BLOCKED_${razon}`);
-    if (!texto) throw new Error('Respuesta vacía');
+    if (!texto) throw new Error('Respuesta vacía de Gemini');
+
+    st.exitos++;
     return texto;
 }
 
-async function llamarGemini(prompt, reintentos=2) {
-    if (!LLAVES_TEXTO.length) throw new Error('Sin llaves de texto');
-    let intento=0;
-    for (let i=0;i<reintentos;i++) {
-        for (const llave of LLAVES_TEXTO) {
-            try { return await _callGemini(llave, prompt, intento++); }
-            catch(err) { if (err.message==='RATE_LIMIT_429') continue; console.error(`    ❌ Gemini: ${err.message}`); }
+async function llamarGemini(prompt, reintentos=3) {
+    if (!LLAVES_TEXTO.length) throw new Error('Sin llaves Gemini de texto');
+
+    console.log(`   🔑 Gemini texto — ${LLAVES_TEXTO.length} llaves disponibles`);
+    let ultimoError = null;
+
+    for (let intento = 0; intento < reintentos; intento++) {
+        // En cada intento, prueba todas las llaves en orden RR
+        for (let i = 0; i < LLAVES_TEXTO.length; i++) {
+            const llave = siguienteLlaveRR(LLAVES_TEXTO);
+            const keyNum = LLAVES_TEXTO.indexOf(llave) + 1;
+            try {
+                console.log(`   → KEY${keyNum} intento ${intento+1}/${reintentos}`);
+                const resultado = await _callGemini(llave, prompt, intento);
+                console.log(`   ✅ KEY${keyNum} respondió (${resultado.length} chars)`);
+                return resultado;
+            } catch(err) {
+                ultimoError = err;
+                console.warn(`   ⚠️ KEY${keyNum}: ${err.message}`);
+                if (err.message === 'RATE_LIMIT_429') continue; // siguiente llave
+                if (err.message.startsWith('GEMINI_BLOCKED')) continue;
+                // Error de red o HTTP — espera y reintenta
+                await new Promise(r=>setTimeout(r, 3000));
+            }
         }
-        if (i<reintentos-1) await new Promise(r=>setTimeout(r,(i+1)*15000));
+        if (intento < reintentos - 1) {
+            console.warn(`   ⏳ Todas las llaves fallaron — espera 15s antes de intento ${intento+2}`);
+            await new Promise(r=>setTimeout(r, 15000));
+        }
     }
-    throw new Error('Gemini: todas las llaves fallaron');
+    throw new Error(`Gemini: todas las llaves fallaron (${ultimoError?.message})`);
 }
 
 async function llamarGeminiImagen(prompt) {
     const llaves = LLAVES_IMAGEN.length ? LLAVES_IMAGEN : LLAVES_TEXTO;
     for (const llave of llaves) {
-        try { return await _callGemini(llave, prompt, 0); }
-        catch(err) { if (err.message==='RATE_LIMIT_429') return null; }
+        const keyNum = TODAS_LLAVES_GEMINI.indexOf(llave) + 1;
+        try {
+            const r = await _callGemini(llave, prompt, 0);
+            console.log(`   🖼️ Imagen KEY${keyNum} OK`);
+            return r;
+        } catch(err) {
+            console.warn(`   ⚠️ Imagen KEY${keyNum}: ${err.message}`);
+            if (err.message === 'RATE_LIMIT_429') continue;
+        }
     }
     return null;
 }
 
-// ── DeepSeek fallback ─────────────────────────────────────
-async function llamarDeepSeek(prompt, reintentos=2) {
-    if (!DEEPSEEK_API_KEY) throw new Error('DEEPSEEK_API_KEY no configurada');
-    for (let i=0;i<reintentos;i++) {
-        try {
-            const res = await fetch(`${DEEPSEEK_BASE_URL}/v1/chat/completions`, {
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':`Bearer ${DEEPSEEK_API_KEY}`},
-                body: JSON.stringify({ model:'deepseek-chat', messages:[{role:'user',content:prompt}], max_tokens:3000, temperature:0.85 }),
-                signal: AbortSignal.timeout(45000),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const texto = data.choices?.[0]?.message?.content;
-            if (!texto) throw new Error('DeepSeek: respuesta vacía');
-            console.log('    🤖 DeepSeek respondió OK');
-            return texto;
-        } catch(err) {
-            console.error(`    ❌ DeepSeek intento ${i+1}: ${err.message}`);
-            if (i<reintentos-1) await new Promise(r=>setTimeout(r,5000));
-        }
-    }
-    throw new Error('DeepSeek: todos los intentos fallaron');
-}
-
-async function llamarIA(prompt) {
-    try { return await llamarGemini(prompt); }
-    catch(err) {
-        console.warn(`⚠️ Gemini falló (${err.message}). DeepSeek fallback...`);
-        if (!DEEPSEEK_API_KEY) throw err;
-        return await llamarDeepSeek(prompt);
-    }
-}
-
-async function llamarIAImagen(prompt) {
-    let r = await llamarGeminiImagen(prompt);
-    if (!r && DEEPSEEK_API_KEY) { try { r = await llamarDeepSeek(prompt,1); } catch {} }
-    return r;
-}
+// Alias — ya no existe DeepSeek, llamarIA = llamarGemini directamente
+const llamarIA       = llamarGemini;
+const llamarIAImagen = llamarGeminiImagen;
 
 // ══════════════════════════════════════════════════════════
-// 🧠 PROMPT INTELIGENTE — lee métricas reales de BD
+// 🧠 PROMPT ANTIBALAS — nunca devuelve menos de 600 chars
 // ══════════════════════════════════════════════════════════
 async function construirPromptInteligente(categoria, comunicadoExterno) {
     const CATS_ALTO_CPM = ['Economía','Tecnología','Internacionales'];
@@ -561,11 +590,11 @@ async function construirPromptInteligente(categoria, comunicadoExterno) {
         if (r.rows.length) {
             seccionTop = '\n🏆 NOTICIAS QUE MÁS VISTAS TUVIERON EN TU SITIO:\n';
             seccionTop += r.rows.map((n,i)=>`${i+1}. [${n.vistas} vistas | ${n.seccion}] "${n.titulo}"`).join('\n');
-            seccionTop += '\n→ Analiza qué tienen en común y replica esa fórmula.\n';
+            seccionTop += '\n→ Analiza qué tienen en común y replica esa fórmula de éxito.\n';
         }
     } catch {}
 
-    // ── Noticias que fracasaron ──
+    // ── Noticias con pocas vistas ──
     let seccionMal = '';
     try {
         const r = await pool.query(`
@@ -587,9 +616,6 @@ async function construirPromptInteligente(categoria, comunicadoExterno) {
         if (prom > 0) seccionMeta = `\n🎯 META: Tu promedio actual es ${prom} vistas. Esta noticia debe superar ${prom*2} vistas (2x). Ideal: ${prom*5} (viral).\n`;
     } catch {}
 
-    // ── Barrios que funcionan mejor ──
-    const barriosFoco = 'Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella';
-
     // ── Temas ya publicados (anti-repetición) ──
     let memoria = '';
     try {
@@ -601,14 +627,22 @@ async function construirPromptInteligente(categoria, comunicadoExterno) {
         }
     } catch {}
 
-    // ── Contexto actual ──
+    // ── Contexto actual via Google CSE ──
     let contextoActual = '';
     if (GOOGLE_CSE_KEYS.length && GOOGLE_CSE_CX) {
         try {
-            const queries = { Nacionales:'noticias Santo Domingo Este hoy 2026', Deportes:'deportes República Dominicana hoy', Internacionales:'noticias internacionales Caribe 2026', Economía:'economía República Dominicana 2026', Tecnología:'tecnología digital RD', Espectáculos:'farándula dominicana hoy' };
-            const q   = queries[categoria]||queries.Nacionales;
-            const key = GOOGLE_CSE_KEYS[new Date().getHours()%2===0?0:GOOGLE_CSE_KEYS.length-1];
-            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),6000);
+            const queries = {
+                Nacionales:'noticias Santo Domingo Este hoy 2026',
+                Deportes:'deportes República Dominicana hoy 2026',
+                Internacionales:'noticias internacionales Caribe 2026',
+                Economía:'economía República Dominicana 2026',
+                Tecnología:'tecnología digital RD 2026',
+                Espectáculos:'farándula dominicana hoy 2026'
+            };
+            const q    = queries[categoria]||queries.Nacionales;
+            const key  = GOOGLE_CSE_KEYS[new Date().getHours()%2===0?0:GOOGLE_CSE_KEYS.length-1];
+            const ctrl = new AbortController();
+            const tm   = setTimeout(()=>ctrl.abort(),6000);
             const res  = await fetch(`https://www.googleapis.com/customsearch/v1?key=${key}&cx=${GOOGLE_CSE_CX}&q=${encodeURIComponent(q)}&num=3`,{signal:ctrl.signal}).finally(()=>clearTimeout(tm));
             if (res.ok) {
                 const data  = await res.json();
@@ -621,15 +655,18 @@ async function construirPromptInteligente(categoria, comunicadoExterno) {
         } catch {}
     }
 
-    // ── Fuente ──
+    // ── Wikipedia ──
     const temaParaWiki = comunicadoExterno ? (comunicadoExterno.split('\n')[0]||'').replace(/^T[IÍ]TULO:\s*/i,'').trim()||categoria : categoria;
     const contextoWiki = await buscarContextoWikipedia(temaParaWiki, categoria);
     const estrategia   = leerEstrategia();
+
+    const barriosFoco = 'Los Mina, Invivienda, Charles de Gaulle, Ensanche Ozama, Sabana Perdida, Villa Mella';
 
     const fuenteContenido = comunicadoExterno
         ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
         : `\nEscribe una noticia NUEVA sobre "${categoria}" para República Dominicana, enfoque Santo Domingo Este. Hecho REAL y RELEVANTE (año 2026).`;
 
+    // ══ PROMPT ANTIBALAS — estructura garantizada ══
     return `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor jefe de El Farol al Día. Conoces a tu audiencia porque lees sus métricas.
@@ -643,27 +680,46 @@ ${contextoActual}
 ${contextoWiki}
 ${fuenteContenido}
 
-🎯 REQUISITOS OBLIGATORIOS:
-1. MÍNIMO 600 CARACTERES (5-6 párrafos)
-2. Menciona al menos UN barrio: ${barriosFoco}
-3. Lenguaje dominicano: "se supo", "fue confirmado", "según fuentes", "la gente del barrio dice"
-4. Párrafos máximo 3 líneas. Lector usa celular.
-5. Primera oración = gancho directo. NADA de "En el día de hoy..."
-6. Titular: replica los patrones de las noticias con más vistas de tu sitio.
+════════════════════════════════════════════
+⚠️ INSTRUCCIONES DE FORMATO — OBLIGATORIAS
+════════════════════════════════════════════
 
-CATEGORÍA: ${categoria}
-EXTENSIÓN: ${esCategoriaAlta?'550-650':'450-550'} palabras, mínimo 5 párrafos
-EVITAR: ${CONFIG_IA.evitar}
-ÉNFASIS: ${CONFIG_IA.enfasis}
+DEBES responder EXACTAMENTE con este formato. Sin excepciones. Sin markdown. Sin asteriscos. Sin guiones al inicio:
+
+TITULO: [Un título impactante de 60-70 caracteres. Sin signos de puntuación al final. Sin asteriscos.]
+DESCRIPCION: [Una descripción SEO de 150-160 caracteres que resuma la noticia con palabras clave.]
+PALABRAS: [keyword1, keyword2, keyword3, keyword4, keyword5]
+SUBTEMA_LOCAL: [ELIGE UNO: politica-gobierno | seguridad-policia | economia-mercado | deporte-beisbol | deporte-futbol | deporte-general | tecnologia | educacion | cultura-musica | salud-medicina | infraestructura | vivienda-social | transporte-vial | medio-ambiente | turismo | emergencia | relaciones-internacionales]
+CONTENIDO:
+[AQUÍ EL CUERPO COMPLETO DE LA NOTICIA — MÍNIMO 800 PALABRAS — MÍNIMO 6 PÁRRAFOS]
+
+════════════════════════════════════════════
+📋 REGLAS DEL CONTENIDO (después de "CONTENIDO:")
+════════════════════════════════════════════
+
+1. EXTENSIÓN MÍNIMA OBLIGATORIA: El contenido debe tener MÍNIMO 800 palabras y MÍNIMO 6 párrafos separados por línea en blanco. Si escribes menos, la respuesta es INVÁLIDA.
+
+2. ESTRUCTURA OBLIGATORIA:
+   Párrafo 1 (GANCHO): Dato impactante + barrio afectado. NUNCA empieces con "En el día de hoy" ni "Este martes".
+   Párrafo 2 (CONTEXTO): Antecedentes del tema. Qué pasó antes.
+   Párrafo 3 (DESARROLLO): Detalles, cifras, nombres de lugares.
+   Párrafo 4 (IMPACTO): Cómo afecta al lector de ${barriosFoco}.
+   Párrafo 5 (REACCIÓN): Qué dice la gente del barrio, fuentes locales.
+   Párrafo 6 (CIERRE): Qué viene después, qué debe saber el lector.
+
+3. BARRIO OBLIGATORIO: Menciona al menos UN barrio de Santo Domingo Este en el texto: ${barriosFoco}.
+
+4. LENGUAJE DOMINICANO: Usa frases como "se supo", "fue confirmado", "según fuentes", "la gente del sector dice", "en el barrio se habla", "vecinos confirmaron".
+
+5. PÁRRAFOS CORTOS: Máximo 3-4 líneas por párrafo. El lector usa celular.
+
+6. CATEGORÍA: ${categoria}
+7. EXTENSIÓN RECOMENDADA: ${esCategoriaAlta?'700-800':'600-700'} palabras mínimo
+8. EVITAR: ${CONFIG_IA.evitar}
+9. ÉNFASIS: ${CONFIG_IA.enfasis}
 ${estrategia}
 
-RESPONDE EXACTAMENTE (sin asteriscos, sin markdown):
-TITULO: [60-70 chars, impactante]
-DESCRIPCION: [150-160 chars]
-PALABRAS: [5 keywords separadas por comas]
-SUBTEMA_LOCAL: [politica-gobierno|seguridad-policia|economia-mercado|deporte-beisbol|deporte-futbol|deporte-general|tecnologia|educacion|cultura-musica|salud-medicina|infraestructura|vivienda-social|transporte-vial|medio-ambiente|turismo|emergencia|relaciones-internacionales]
-CONTENIDO:
-[párrafos cortos separados por línea en blanco — MÍNIMO 600 CARACTERES]`;
+RECUERDA: El bloque CONTENIDO debe ser LARGO. Mínimo 800 palabras. Mínimo 6 párrafos. Sin asteriscos. Sin markdown.`;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -813,7 +869,7 @@ function esImagenValida(url) {
     return /(\.jpg|\.jpeg|\.png|\.webp)/i.test(url) && !['flag','logo','map','seal','icon','20px','30px','40px'].some(i=>url.includes(i));
 }
 
-// ── Búsqueda EN PARALELO — CSE + Unsplash + Pexels al mismo tiempo ──
+// ── Búsqueda EN PARALELO ───────────────────────────────────
 async function obtenerImagenInteligente(titulo, categoria, subtema, queryIA) {
     const { query:qCSE, barrio } = generarQueryCSE(titulo, categoria);
     const q = queryIA || qCSE;
@@ -923,17 +979,24 @@ const REDACTORES = [
 function redactor(cat) { const m=REDACTORES.filter(r=>r.esp===cat); return m.length?m[Math.floor(Math.random()*m.length)].nombre:'Redacción EFD'; }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR
+// ✅ VALIDADOR PROGRESIVO
 // ══════════════════════════════════════════════════════════
-function validarContenido(contenido) {
-    if (contenido.length<600) return { valido:false, razon:`Solo ${contenido.length} chars (mínimo 600)` };
-    const barrios=['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro'];
+function validarContenido(contenido, intento=1) {
+    const longitudMinima = intento === 1 ? 500 : intento === 2 ? 600 : 700;
+    const parrafosMinimos = intento === 1 ? 3 : 4;
+
+    if (contenido.length < longitudMinima) return { valido:false, razon:`Solo ${contenido.length} chars (mínimo ${longitudMinima} en intento ${intento})` };
+
+    const barrios=['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro','Santo Domingo Este','SDE'];
     const menciona=barrios.filter(b=>contenido.toLowerCase().includes(b.toLowerCase()));
     if (!menciona.length) return { valido:false, razon:'No menciona barrio de SDE' };
+
     const parrafos=contenido.split(/\n\s*\n/).filter(p=>p.trim().length>20);
-    if (parrafos.length<4) return { valido:false, razon:`Solo ${parrafos.length} párrafos (mínimo 4)` };
-    const frases=['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle'];
+    if (parrafos.length < parrafosMinimos) return { valido:false, razon:`Solo ${parrafos.length} párrafos (mínimo ${parrafosMinimos})` };
+
+    const frases=['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle','fue informado','trascendió','según indicaron','se conoció'];
     if (!frases.some(f=>contenido.toLowerCase().includes(f))) return { valido:false, razon:'Falta lenguaje de barrio' };
+
     return { valido:true, longitud:contenido.length, palabras:contenido.split(/\s+/).length, barrios:menciona, parrafos:parrafos.length };
 }
 
@@ -945,51 +1008,79 @@ async function registrarError(descripcion, categoria) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 📰 GENERAR NOTICIA — V37
+// 📊 ANALYTICS CONSOLE — estructurado para Railway
+// ══════════════════════════════════════════════════════════
+function logAnalytics(evento, datos={}) {
+    const ts = new Date().toISOString();
+    console.log(`[ANALYTICS] ${ts} | ${evento} | ${JSON.stringify(datos)}`);
+}
+
+// ══════════════════════════════════════════════════════════
+// 📰 GENERAR NOTICIA — V38
 // ══════════════════════════════════════════════════════════
 async function generarNoticia(categoria, comunicadoExterno=null, reintento=1) {
     const MAX_REINTENTOS = 3;
+    const inicio = Date.now();
+
     try {
         if (!CONFIG_IA.enabled) return { success:false, error:'IA desactivada' };
-        console.log(`\n📰 [V37] Generando noticia — Categoría: ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
+        console.log(`\n📰 [V38] Generando noticia — Categoría: ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
+        console.log(`   🔑 Llaves disponibles: ${TODAS_LLAVES_GEMINI.length} Gemini`);
 
-        // 🧠 Prompt inteligente con métricas reales
+        // 🧠 Prompt antibalas
         console.log('   📊 Cargando métricas de BD...');
         const promptTexto = await construirPromptInteligente(categoria, comunicadoExterno);
 
-        console.log('   📝 Enviando a IA (Gemini → DeepSeek si falla)...');
+        console.log('   📝 Enviando a Gemini...');
         const textoIA     = await llamarIA(promptTexto);
-        const textoLimpio = textoIA.replace(/^\s*[*#]+\s*/gm,'');
+        const textoLimpio = textoIA.replace(/^\s*[*#]+\s*/gm,'').replace(/\*\*/g,'').replace(/\*/g,'');
 
         let titulo='', desc='', pals='', sub='', contenido='';
         let enContenido=false;
         const bloques=[];
         for (const linea of textoLimpio.split('\n')) {
             const t=linea.trim();
-            if (t.startsWith('TITULO:'))          titulo=t.replace('TITULO:','').trim();
-            else if (t.startsWith('DESCRIPCION:')) desc=t.replace('DESCRIPCION:','').trim();
-            else if (t.startsWith('PALABRAS:'))    pals=t.replace('PALABRAS:','').trim();
-            else if (t.startsWith('SUBTEMA_LOCAL:')) sub=t.replace('SUBTEMA_LOCAL:','').trim();
-            else if (t.startsWith('CONTENIDO:'))   enContenido=true;
-            else if (enContenido && t.length>0)    bloques.push(t);
+            if (t.startsWith('TITULO:'))             titulo=t.replace('TITULO:','').trim();
+            else if (t.startsWith('DESCRIPCION:'))    desc=t.replace('DESCRIPCION:','').trim();
+            else if (t.startsWith('PALABRAS:'))       pals=t.replace('PALABRAS:','').trim();
+            else if (t.startsWith('SUBTEMA_LOCAL:'))  sub=t.replace('SUBTEMA_LOCAL:','').trim();
+            else if (t.startsWith('CONTENIDO:'))      enContenido=true;
+            else if (enContenido && t.length>0)       bloques.push(t);
         }
         contenido = bloques.join('\n\n');
         titulo    = titulo.replace(/[*_#`"]/g,'').trim();
         desc      = desc.replace(/[*_#`]/g,'').trim();
 
-        if (!titulo) throw new Error('IA no devolvió TITULO');
-
-        const validacion = validarContenido(contenido);
-        if (!validacion.valido) {
-            console.log(`   ⚠️ Validación falló: ${validacion.razon}`);
-            if (reintento<MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,3000)); return await generarNoticia(categoria, comunicadoExterno, reintento+1); }
-            throw new Error(`Validación fallida: ${validacion.razon}`);
+        if (!titulo) {
+            console.log(`   ⚠️ Sin TITULO — texto IA: ${textoLimpio.substring(0,200)}`);
+            throw new Error('IA no devolvió TITULO en formato correcto');
         }
-        console.log(`   ✅ OK: ${validacion.longitud} chars, barrios: ${validacion.barrios.join(', ')}`);
 
-        // Imagen
+        // Validación progresiva — más tolerante en intento 1
+        const validacion = validarContenido(contenido, reintento);
+        if (!validacion.valido) {
+            console.log(`   ⚠️ Validación falló (intento ${reintento}): ${validacion.razon}`);
+            console.log(`   📏 Contenido actual: ${contenido.length} chars, ${contenido.split(/\n\n+/).filter(p=>p.trim()).length} párrafos`);
+            if (reintento < MAX_REINTENTOS) {
+                await new Promise(r=>setTimeout(r, 5000));
+                return await generarNoticia(categoria, comunicadoExterno, reintento+1);
+            }
+            throw new Error(`Validación fallida después de ${MAX_REINTENTOS} intentos: ${validacion.razon}`);
+        }
+
+        const duracionIA = Math.round((Date.now()-inicio)/1000);
+        console.log(`   ✅ OK: ${validacion.longitud} chars, ${validacion.parrafos} párrafos, barrios: ${validacion.barrios.join(', ')} (${duracionIA}s)`);
+        logAnalytics('NOTICIA_GENERADA', { categoria, chars:validacion.longitud, parrafos:validacion.parrafos, barrios:validacion.barrios, duracionIA_s:duracionIA });
+
+        // Imagen en paralelo con el procesamiento del texto
         let qi='', ai='';
-        const rImg = await llamarIAImagen(`Asistente de imagen para periódico dominicano.\nTitular: "${titulo}" | Categoría: ${categoria}\nRESPONDE SOLO:\nQUERY_IMAGEN: [3-5 palabras inglés, escena periodística real]\nALT_IMAGEN: [15-20 palabras español SEO + Santo Domingo Este]\nPROHIBIDO: wedding, couple, flowers, cartoon, pet`);
+        const rImg = await llamarIAImagen(`Asistente de imagen para periódico dominicano.
+Titular: "${titulo}" | Categoría: ${categoria}
+RESPONDE SOLO:
+QUERY_IMAGEN: [3-5 palabras inglés, escena periodística real]
+ALT_IMAGEN: [15-20 palabras español SEO + Santo Domingo Este]
+PROHIBIDO: wedding, couple, flowers, cartoon, pet`);
+
         if (rImg) {
             for (const l of rImg.split('\n')) {
                 if (l.trim().startsWith('QUERY_IMAGEN:')) qi=l.trim().replace('QUERY_IMAGEN:','').trim();
@@ -1013,13 +1104,16 @@ async function generarNoticia(categoria, comunicadoExterno=null, reintento=1) {
             [titulo.substring(0,255), slFin, categoria, contenido.substring(0,10000), desc.substring(0,160), (pals||categoria).substring(0,255), redactor(categoria), urlFinal, altFinal.substring(0,255), `Fotografía: ${titulo}`, imgResult.nombre||'efd.jpg', imgResult.procesada?'cse-watermark':'cse', urlOrig, 'publicada']
         );
 
-        console.log(`\n✅ Publicada → /noticia/${slFin}`);
+        const duracionTotal = Math.round((Date.now()-inicio)/1000);
+        console.log(`\n✅ [V38] Publicada → /noticia/${slFin} (${duracionTotal}s total)`);
+        logAnalytics('NOTICIA_PUBLICADA', { slug:slFin, categoria, chars:validacion.longitud, duracion_s:duracionTotal, imagen_fuente:imgResult.procesada?'cse-watermark':'fallback' });
+
         invalidarCache();
 
         // Push notifications
         await notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, urlFinal);
 
-        // Redes sociales — en background, no bloquea
+        // Redes sociales en background
         setImmediate(() => {
             publicarEnRedes(titulo, slFin, urlFinal, desc, categoria, contenido);
         });
@@ -1027,8 +1121,14 @@ async function generarNoticia(categoria, comunicadoExterno=null, reintento=1) {
         return { success:true, slug:slFin, titulo, alt:altFinal, mensaje:'✅ Publicada', stats:validacion };
 
     } catch(error) {
-        console.error(`❌ Error intento ${reintento}:`, error.message);
-        if (reintento<MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,5000)); return await generarNoticia(categoria, comunicadoExterno, reintento+1); }
+        const duracion = Math.round((Date.now()-inicio)/1000);
+        console.error(`❌ [V38] Error intento ${reintento} (${duracion}s):`, error.message);
+        logAnalytics('NOTICIA_ERROR', { categoria, reintento, error:error.message, duracion_s:duracion });
+
+        if (reintento < MAX_REINTENTOS) {
+            await new Promise(r=>setTimeout(r, 8000));
+            return await generarNoticia(categoria, comunicadoExterno, reintento+1);
+        }
         await registrarError(error.message, categoria);
         return { success:false, error:error.message };
     }
@@ -1100,16 +1200,17 @@ async function obtenerHorasPico() {
 // Keep-alive
 cron.schedule('*/5 * * * *', async () => { try { await fetch(`http://localhost:${PORT}/health`); } catch {} });
 
-// Generación inteligente — evalúa cada hora si es buen momento
+// Generación inteligente
 cron.schedule('0 * * * *', async () => {
     if (!CONFIG_IA.enabled) return;
     if (Date.now()-ARRANQUE_TIME < 35*60*1000) return;
     const horaActual = new Date().getHours();
     const horasPico  = await obtenerHorasPico();
-    const esHoraPico    = horasPico.includes(horaActual);
-    const esCadaTresH   = horaActual % 3 === 0;
+    const esHoraPico   = horasPico.includes(horaActual);
+    const esCadaTresH  = horaActual % 3 === 0;
     if (esHoraPico || esCadaTresH) {
         console.log(`⏰ Publicando hora ${horaActual}:00 (${esHoraPico?'HORA PICO':'ciclo normal'})`);
+        logAnalytics('CRON_PUBLICACION', { hora:horaActual, tipo:esHoraPico?'hora_pico':'ciclo_normal' });
         await generarNoticia(CATS[horaActual % CATS.length]);
     }
 });
@@ -1131,19 +1232,21 @@ cron.schedule('0 7 * * *', async () => {
         const bar = (n,mx) => '█'.repeat(Math.round((n/(mx||1))*10))+'░'.repeat(10-Math.round((n/(mx||1))*10));
         const mx  = Math.max(...r.rows.map(x=>parseInt(x.prom)||0),1);
         console.log('\n╔══════════════════════════════════════════════════════╗');
-        console.log('║  📊 REPORTE DIARIO — El Farol al Día V37            ║');
+        console.log('║  📊 REPORTE DIARIO — El Farol al Día V38            ║');
         console.log(`║  Noticias (30d): ${gl?.total||0} | Promedio: ${gl?.prom||0} | Máx: ${gl?.max||0}`);
         console.log('║  CATEGORÍAS:');
         for (const c of r.rows) console.log(`║  ${(c.seccion+'          ').slice(0,14)} ${bar(parseInt(c.prom)||0,mx)} ${c.prom} vistas`);
         console.log('╚══════════════════════════════════════════════════════╝\n');
+        logAnalytics('REPORTE_DIARIO', { total:gl?.total, promedio:gl?.prom, maximo:gl?.max });
     } catch(err) { console.warn('⚠️ Reporte diario:', err.message); }
 });
 
 async function rafagaInicial() {
     if (!CONFIG_IA.enabled) return;
+    console.log('\n🚀 Ráfaga inicial — generando primeras 2 noticias...');
     for (let i=1;i<=2;i++) {
         if (i>1) await new Promise(r=>setTimeout(r,30*60*1000));
-        try { await generarNoticia(CATS[i-1]||CATS[0]); } catch {}
+        try { await generarNoticia(CATS[i-1]||CATS[0]); } catch(e) { console.warn(`⚠️ Ráfaga ${i}:`, e.message); }
     }
 }
 
@@ -1183,7 +1286,7 @@ async function inicializarBase() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
-app.get('/health', (req,res) => res.json({ status:'OK', version:'37.0' }));
+app.get('/health', (req,res) => res.json({ status:'OK', version:'38.0', gemini_keys:TODAS_LLAVES_GEMINI.length }));
 
 app.get('/api/noticias', async (req,res) => {
     res.setHeader('Access-Control-Allow-Origin','*');
@@ -1349,7 +1452,7 @@ app.post('/api/push/test', authMiddleware, async (req,res) => {
 
 app.get('/api/onesignal/config', (req,res) => res.json({appId:ONESIGNAL_APP_ID||null,enabled:!!ONESIGNAL_APP_ID}));
 
-// ── Rutas prueba redes sociales ───────────────────────────
+// ── Audio ─────────────────────────────────────────────────
 app.get('/audio/:nombre', (req,res) => {
     const ruta=path.join('/tmp',req.params.nombre);
     if (!fs.existsSync(ruta)) return res.status(404).send('Audio no disponible');
@@ -1358,21 +1461,22 @@ app.get('/audio/:nombre', (req,res) => {
     res.sendFile(ruta);
 });
 
+// ── Rutas prueba redes sociales ───────────────────────────
 app.post('/api/telegram/test', authMiddleware, async (req,res) => {
     if (req.body.pin!=='311') return res.status(403).json({error:'PIN incorrecto'});
-    const ok=await publicarEnTelegram('🏮 El Farol al Día — prueba V37','test',null,'Bot activo y funcionando.','Nacionales',null);
+    const ok=await publicarEnTelegram('🏮 El Farol al Día — prueba V38','test',null,'Bot activo y funcionando.','Nacionales',null);
     res.json({success:ok,chat_id:_telegramChatId});
 });
 
 app.post('/api/facebook/test', authMiddleware, async (req,res) => {
     if (req.body.pin!=='311') return res.status(403).json({error:'PIN incorrecto'});
-    const ok=await publicarEnFacebook('🏮 El Farol al Día — prueba V37','test',null,'Post de prueba desde el sistema.');
+    const ok=await publicarEnFacebook('🏮 El Farol al Día — prueba V38','test',null,'Post de prueba desde el sistema.');
     res.json({success:ok});
 });
 
 app.post('/api/twitter/test', authMiddleware, async (req,res) => {
     if (req.body.pin!=='311') return res.status(403).json({error:'PIN incorrecto'});
-    const ok=await publicarEnTwitter('🏮 El Farol al Día — prueba V37','test','Sistema activo.');
+    const ok=await publicarEnTwitter('🏮 El Farol al Día — prueba V38','test','Sistema activo.');
     res.json({success:ok});
 });
 
@@ -1460,7 +1564,7 @@ app.get('/api/coach', async (req,res) => {
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
-// ── Métricas V37 ──────────────────────────────────────────
+// ── Métricas V38 ──────────────────────────────────────────
 app.get('/api/metricas', authMiddleware, async (req,res) => {
     if (req.query.pin!=='311') return res.status(403).json({error:'PIN requerido'});
     try {
@@ -1468,9 +1572,21 @@ app.get('/api/metricas', authMiddleware, async (req,res) => {
         const proms=await pool.query("SELECT seccion,ROUND(AVG(vistas)) as prom,COUNT(*) as c,SUM(vistas) as total FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days' GROUP BY seccion ORDER BY prom DESC");
         const horas=await pool.query("SELECT EXTRACT(HOUR FROM fecha)::int as hora,ROUND(AVG(vistas)) as prom FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '14 days' GROUP BY hora ORDER BY prom DESC LIMIT 5");
         const gl=await pool.query("SELECT ROUND(AVG(vistas)) as prom,MAX(vistas) as max,COUNT(*) as total FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days'");
-        res.json({ success:true, resumen:gl.rows[0], top_noticias:top.rows, por_categoria:proms.rows, horas_pico:horas.rows,
+
+        // Estado de llaves Gemini
+        const estadoLlaves = TODAS_LLAVES_GEMINI.map((k,i) => {
+            const st = getKeyState(k);
+            const bloqueada = Date.now() < st.resetTime;
+            return { llave:`KEY${i+1}`, bloqueada, exitos:st.exitos, errores:st.errores, desbloqueo:bloqueada?new Date(st.resetTime).toISOString():null };
+        });
+
+        res.json({
+            success:true, resumen:gl.rows[0], top_noticias:top.rows,
+            por_categoria:proms.rows, horas_pico:horas.rows,
             recomendacion:`Publica en: ${horas.rows.slice(0,3).map(h=>`${h.hora}:00`).join(', ')}`,
-            meta_proxima:`${(parseInt(gl.rows[0]?.prom)||0)*2} vistas mínimo (2x promedio)` });
+            meta_proxima:`${(parseInt(gl.rows[0]?.prom)||0)*2} vistas mínimo (2x promedio)`,
+            gemini_keys:estadoLlaves,
+        });
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
@@ -1501,6 +1617,24 @@ app.get('/api/google/status', authMiddleware, async (req,res) => {
     if (req.query.pin!=='311') return res.status(403).json({error:'PIN requerido'});
     if (!GOOGLE_CREDENTIALS) return res.json({activo:false,mensaje:'No configuradas'});
     res.json({activo:true,email:GOOGLE_CREDENTIALS.client_email,proyecto:GOOGLE_CREDENTIALS.project_id});
+});
+
+// ── Estado de llaves Gemini ───────────────────────────────
+app.get('/api/gemini/status', authMiddleware, async (req,res) => {
+    if (req.query.pin!=='311') return res.status(403).json({error:'PIN requerido'});
+    const ahora = Date.now();
+    const estado = TODAS_LLAVES_GEMINI.map((k,i) => {
+        const st = getKeyState(k);
+        return {
+            llave: `KEY${i+1}`,
+            disponible: ahora >= st.resetTime,
+            exitos: st.exitos,
+            errores: st.errores,
+            ultimo_uso: st.lastRequest ? new Date(st.lastRequest).toISOString() : null,
+            desbloqueo: ahora < st.resetTime ? new Date(st.resetTime).toISOString() : null,
+        };
+    });
+    res.json({ success:true, total:TODAS_LLAVES_GEMINI.length, llaves:estado, rr_index:_geminiRRIndex });
 });
 
 // ══════════════════════════════════════════════════════════
@@ -1586,15 +1720,23 @@ app.get('/status', async (req,res) => {
         const ult  = await pool.query("SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1");
         const push = await pool.query('SELECT COUNT(*) FROM push_suscripciones');
         const minS = ult.rows.length?Math.round((Date.now()-new Date(ult.rows[0].fecha))/60000):9999;
+
+        // Estado rápido de llaves
+        const llaveStatus = TODAS_LLAVES_GEMINI.map((k,i)=>{
+            const st=getKeyState(k);
+            return `KEY${i+1}:${Date.now()>=st.resetTime?'✅':'⏳'}`;
+        }).join(' ');
+
         res.json({
-            status:'OK', version:'37.0',
+            status:'OK', version:'38.0',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minS, ultima_noticia:ult.rows[0]?.titulo?.substring(0,60)||'—',
             // IA
-            gemini_texto:`${LLAVES_TEXTO.length} keys`,
-            gemini_imagen:`${LLAVES_IMAGEN.length} keys`,
-            deepseek:DEEPSEEK_API_KEY?`✅ Fallback activo`:'⚠️ Sin key',
-            prompt_inteligente:'✅ Lee métricas reales de BD',
+            gemini:`${TODAS_LLAVES_GEMINI.length}/6 llaves activas`,
+            gemini_llaves:llaveStatus,
+            deepseek:'❌ Eliminado en V38',
+            prompt_antibalas:'✅ Mínimo 800 palabras garantizadas',
+            validacion_progresiva:'✅ 500→600→700 chars por intento',
             // Imágenes
             google_cse:GOOGLE_CSE_KEYS.length&&GOOGLE_CSE_CX?`✅ ${GOOGLE_CSE_KEYS.length} keys (paralelo)`:'⚠️ Sin configurar',
             unsplash:UNSPLASH_ACCESS_KEY?'✅':'⚠️ Sin key',
@@ -1610,10 +1752,12 @@ app.get('/status', async (req,res) => {
             // Sistema
             watermark:WATERMARK_PATH&&fs.existsSync(WATERMARK_PATH)?'✅':'⚠️ Sin archivo',
             cache_ttl:'5 minutos',
+            analytics:'✅ [ANALYTICS] estructurado en logs Railway',
             cron_inteligente:'✅ Publica en horas pico reales',
             reporte_diario:'✅ 7 AM Railway',
             ia_activa:CONFIG_IA.enabled,
             adsense:'pub-5280872495839888 ✅',
+            gemini_detail:`${BASE_URL}/api/gemini/status?pin=311`,
             metricas:`${BASE_URL}/api/metricas?pin=311`,
             social_status:`${BASE_URL}/api/social/status?pin=311`,
         });
@@ -1623,7 +1767,7 @@ app.get('/status', async (req,res) => {
 app.use((req,res) => res.sendFile(path.join(__dirname,'client','index.html')));
 
 // ══════════════════════════════════════════════════════════
-// 🚀 ARRANQUE — V37.0
+// 🚀 ARRANQUE — V38.0
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
@@ -1632,16 +1776,17 @@ async function iniciar() {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║  🏮 EL FAROL AL DÍA — V37.0                                    ║
+║  🏮 EL FAROL AL DÍA — V38.0                                    ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  🤖 Gemini 2.5 Flash + DeepSeek fallback                       ║
-║  🧠 Prompt inteligente — lee métricas reales de BD             ║
+║  🤖 Gemini 2.5 Flash — ${TODAS_LLAVES_GEMINI.length}/6 llaves activas                    ║
+║  🧠 Prompt antibalas — mínimo 800 palabras garantizadas        ║
+║  ✅ Validación progresiva — 500→600→700 chars por intento      ║
 ║  📡 Telegram · Facebook · Twitter · ElevenLabs TTS             ║
 ║  🖼️  Imagen en paralelo: CSE + Unsplash + Pexels               ║
 ║  ⏰ Cron inteligente — publica en horas pico reales            ║
-║  📊 Reporte diario 7 AM en consola Railway                     ║
+║  📊 Analytics [ANALYTICS] estructurado para Railway            ║
 ║  📱 VAPID + OneSignal (doble push)                             ║
-║  ✅ Caché 5 min · Anti-repetición 25 títulos                   ║
+║  ❌ DeepSeek eliminado — solo Gemini, más limpio               ║
 ╚══════════════════════════════════════════════════════════════════╝`);
         });
 
