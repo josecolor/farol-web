@@ -20,85 +20,487 @@
     <link rel="icon" type="image/png" href="/static/favicon.png">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
     <style>
-        :root{--naranja:#FF5500;--naranja-dark:#CC4400;--fondo:#070707;--tarjeta:#141418;--tarjeta-hover:#1a1a20;--texto:#EDE8DF;--texto-sec:#A89F94;--borde:#222228}
-        *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--fondo);color:var(--texto);font-family:Arial,sans-serif;min-height:100vh}
-        header{background:#000;border-bottom:3px solid var(--naranja);position:sticky;top:0;z-index:100}
-        .header-top{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;max-width:1200px;margin:0 auto}
-        .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--naranja);font-size:20px;font-weight:900;letter-spacing:2px}
-        .logo-sub{font-size:10px;color:#666;font-weight:400;letter-spacing:1px;display:block}
-        .header-actions{display:flex;align-items:center;gap:10px}
-        .btn-push{background:var(--naranja);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;transition:background .2s}
-        .btn-push:hover{background:var(--naranja-dark)}.btn-push.activo{background:#2e7d32}
-        .hora-rd{font-size:11px;color:#555;font-family:monospace}
-        .ticker-wrap{background:var(--naranja);overflow:hidden;padding:5px 0;position:relative}
-        .ticker-label{position:absolute;left:0;top:0;bottom:0;background:#000;color:var(--naranja);font-weight:900;font-size:11px;padding:0 12px;display:flex;align-items:center;z-index:1;letter-spacing:1px}
-        .ticker-content{display:flex;animation:ticker 35s linear infinite;white-space:nowrap;padding-left:120px}
-        .ticker-item{font-size:12px;font-weight:bold;color:#fff;padding:0 30px;cursor:pointer}
-        .ticker-item:hover{text-decoration:underline}
-        @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-        nav.filtros{background:#0a0a0a;border-bottom:1px solid var(--borde);overflow-x:auto;scrollbar-width:none}
-        nav.filtros::-webkit-scrollbar{display:none}
-        .filtros-inner{display:flex;gap:4px;padding:8px 16px;max-width:1200px;margin:0 auto;min-width:max-content}
-        .filtro-btn{background:transparent;color:#666;border:1px solid transparent;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold;cursor:pointer;transition:all .2s;white-space:nowrap}
-        .filtro-btn:hover{color:var(--naranja);border-color:var(--naranja)}.filtro-btn.activo{background:var(--naranja);color:#fff;border-color:var(--naranja)}
-        .container{max-width:1200px;margin:0 auto;padding:16px}
-        .ad-banner{background:#0d0d0d;border:1px solid var(--borde);border-radius:8px;padding:8px;text-align:center;margin:12px 0;min-height:60px}
-        .ad-label{font-size:9px;color:#333;letter-spacing:1px;margin-bottom:4px}
-        .hero-card{position:relative;border-radius:12px;overflow:hidden;margin-bottom:20px;cursor:pointer;background:var(--tarjeta);border:1px solid var(--borde);min-height:380px;display:flex;flex-direction:column;justify-content:flex-end}
-        .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .4s}
-        .hero-card:hover .hero-img{transform:scale(1.02)}
-        .hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.95) 0%,rgba(0,0,0,.6) 50%,transparent 100%)}
-        .hero-content{position:relative;z-index:1;padding:20px}
-        .hero-badge{display:inline-block;background:var(--naranja);color:#fff;font-size:10px;font-weight:bold;padding:3px 10px;border-radius:4px;margin-bottom:10px;letter-spacing:1px}
-        .hero-titulo{font-size:clamp(18px,3.5vw,28px);font-weight:900;color:#fff;line-height:1.25;margin-bottom:10px;font-family:Georgia,serif}
-        .hero-desc{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:12px;line-height:1.5}
-        .hero-meta{display:flex;align-items:center;gap:12px;font-size:11px;color:rgba(255,255,255,.5)}
-        .seccion-titulo{font-size:12px;font-weight:bold;color:#555;letter-spacing:2px;text-transform:uppercase;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--borde);display:flex;align-items:center;gap:8px}
-        .seccion-titulo::before{content:'';display:block;width:3px;height:14px;background:var(--naranja);border-radius:2px}
-        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-        .tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,background .2s;display:flex;flex-direction:column}
-        .tarjeta:hover{transform:translateY(-2px);border-color:#333;background:var(--tarjeta-hover)}
-        .tarjeta-img-wrap{position:relative;aspect-ratio:16/9;overflow:hidden;background:#0d0d0d}
-        .tarjeta-img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
-        .tarjeta:hover .tarjeta-img{transform:scale(1.04)}
-        .tarjeta-seccion-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.8);color:var(--naranja);font-size:9px;font-weight:bold;padding:3px 8px;border-radius:4px;letter-spacing:1px;border:1px solid rgba(255,85,0,.3)}
-        .tarjeta-body{padding:12px;flex:1;display:flex;flex-direction:column;gap:8px}
-        .tarjeta-titulo{font-size:14px;font-weight:bold;color:var(--texto);line-height:1.4;font-family:Georgia,serif;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-        .tarjeta-desc{font-size:12px;color:var(--texto-sec);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
-        .tarjeta-footer{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#555;padding-top:8px;border-top:1px solid var(--borde)}
-        .estado-msg{text-align:center;padding:60px 20px;color:#555;font-size:14px}
-        .estado-msg .icono{font-size:40px;margin-bottom:12px}
-        .spinner{width:36px;height:36px;border:3px solid #222;border-top-color:var(--naranja);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        footer{background:#000;border-top:2px solid var(--naranja);padding:28px 20px;text-align:center;margin-top:60px}
-        .footer-logo{color:var(--naranja);font-size:18px;font-weight:900;margin-bottom:8px}
-        .footer-links{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:12px 0}
-        .footer-links a{color:#444;font-size:12px;text-decoration:none;padding:4px 10px}
-        .footer-links a:hover{color:var(--naranja)}
-        .footer-copy{font-size:11px;color:#333}
-        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;border:1px solid var(--naranja);color:var(--texto);padding:12px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:340px}
-        .toast.visible{opacity:1}
-        @media(max-width:640px){.hero-card{min-height:280px}.grid{grid-template-columns:1fr}.header-top{padding:8px 12px}.logo{font-size:16px}}
+        :root {
+            --naranja: #FF5500;
+            --naranja-dark: #CC4400;
+            --fondo: #070707;
+            --tarjeta: #111115;
+            --tarjeta-hover: #18181e;
+            --texto: #EDE8DF;
+            --texto-sec: #8A8580;
+            --borde: #1e1e24;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--fondo);
+            color: var(--texto);
+            font-family: Arial, Helvetica, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: #000;
+            border-bottom: 3px solid var(--naranja);
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--naranja);
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        .logo-sub {
+            font-size: 9px;
+            color: #555;
+            font-weight: 400;
+            letter-spacing: 2px;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hora-rd {
+            font-size: 11px;
+            color: #555;
+            font-family: monospace;
+        }
+
+        .btn-push {
+            background: var(--naranja);
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background .2s;
+            white-space: nowrap;
+        }
+        .btn-push:hover   { background: var(--naranja-dark); }
+        .btn-push.activo  { background: #1b6b1b; }
+
+        /* ── TICKER ── */
+        .ticker-wrap {
+            background: var(--naranja);
+            overflow: hidden;
+            position: relative;
+            height: 28px;
+        }
+
+        .ticker-label {
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            background: #000;
+            color: var(--naranja);
+            font-weight: 900;
+            font-size: 10px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            z-index: 2;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .ticker-track {
+            display: flex;
+            animation: ticker 40s linear infinite;
+            white-space: nowrap;
+            padding-left: 130px;
+            height: 28px;
+            align-items: center;
+        }
+
+        .ticker-item {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            padding: 0 32px;
+            cursor: pointer;
+        }
+        .ticker-item:hover { text-decoration: underline; }
+
+        @keyframes ticker {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+
+        /* ── FILTROS ── */
+        nav.filtros {
+            background: #0a0a0c;
+            border-bottom: 1px solid var(--borde);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        nav.filtros::-webkit-scrollbar { display: none; }
+
+        .filtros-inner {
+            display: flex;
+            gap: 4px;
+            padding: 7px 16px;
+            max-width: 1280px;
+            margin: 0 auto;
+            min-width: max-content;
+        }
+
+        .filtro-btn {
+            background: transparent;
+            color: #555;
+            border: 1px solid transparent;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+        .filtro-btn:hover  { color: var(--naranja); border-color: var(--naranja); }
+        .filtro-btn.activo { background: var(--naranja); color: #fff; border-color: var(--naranja); }
+
+        /* ── CONTENEDOR ── */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 12px 40px;
+        }
+
+        /* ── HERO (2 columnas) ── */
+        .hero-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 12px 0 10px;
+        }
+
+        .hero-card {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #111;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            border: 1px solid var(--borde);
+        }
+
+        .hero-card.grande { min-height: 360px; }
+
+        .hero-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .4s;
+        }
+        .hero-card:hover .hero-img { transform: scale(1.03); }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,.95) 0%, rgba(0,0,0,.55) 55%, transparent 100%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            padding: 16px;
+        }
+
+        .badge-cat {
+            display: inline-block;
+            background: var(--naranja);
+            color: #fff;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 9px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .hero-titulo {
+            font-size: clamp(15px, 2.4vw, 22px);
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.25;
+            margin-bottom: 7px;
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        .hero-desc {
+            font-size: 12px;
+            color: rgba(255,255,255,.7);
+            line-height: 1.5;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .hero-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 10px;
+            color: rgba(255,255,255,.45);
+        }
+
+        /* ── AD STRIP ── */
+        .ad-strip {
+            background: #0a0a0c;
+            border: 1px solid var(--borde);
+            border-radius: 6px;
+            padding: 6px 10px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .ad-label {
+            font-size: 8px;
+            color: #2a2a2a;
+            letter-spacing: 2px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ── SECCIÓN TÍTULO ── */
+        .sec-titulo {
+            font-size: 11px;
+            font-weight: bold;
+            color: #444;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 16px 0 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--borde);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sec-titulo::before {
+            content: '';
+            display: block;
+            width: 3px;
+            height: 14px;
+            background: var(--naranja);
+            border-radius: 2px;
+        }
+
+        /* ── GRID NOTICIAS ── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .tarjeta {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .2s, border-color .2s, background .2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .tarjeta:hover {
+            transform: translateY(-2px);
+            border-color: #2a2a32;
+            background: var(--tarjeta-hover);
+        }
+
+        .tarjeta-img-wrap {
+            position: relative;
+            aspect-ratio: 16/9;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        .tarjeta-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .3s;
+        }
+        .tarjeta:hover .tarjeta-img { transform: scale(1.05); }
+
+        .tarjeta-badge {
+            position: absolute;
+            top: 7px; left: 7px;
+            background: rgba(0,0,0,.85);
+            color: var(--naranja);
+            font-size: 8px;
+            font-weight: bold;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,85,0,.25);
+        }
+
+        .tarjeta-body {
+            padding: 10px 11px 11px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .tarjeta-titulo {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--texto);
+            line-height: 1.35;
+            font-family: Georgia, serif;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tarjeta-desc {
+            font-size: 11px;
+            color: var(--texto-sec);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .tarjeta-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #444;
+            padding-top: 7px;
+            border-top: 1px solid var(--borde);
+        }
+
+        /* ── ESTADOS ── */
+        .estado-msg {
+            text-align: center;
+            padding: 60px 20px;
+            color: #444;
+            font-size: 14px;
+            grid-column: 1 / -1;
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid #1a1a1a;
+            border-top-color: var(--naranja);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── FOOTER ── */
+        footer {
+            background: #000;
+            border-top: 2px solid var(--naranja);
+            padding: 28px 20px;
+            text-align: center;
+        }
+        .footer-logo { color: var(--naranja); font-size: 16px; font-weight: 900; margin-bottom: 8px; }
+        .footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; margin: 10px 0; }
+        .footer-links a { color: #383838; font-size: 12px; text-decoration: none; padding: 3px 10px; }
+        .footer-links a:hover { color: var(--naranja); }
+        .footer-copy { font-size: 11px; color: #2a2a2a; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            background: #111;
+            border: 1px solid var(--naranja);
+            color: var(--texto);
+            padding: 11px 20px;
+            border-radius: 7px;
+            font-size: 13px;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity .3s;
+            pointer-events: none;
+            text-align: center;
+            max-width: 320px;
+        }
+        .toast.visible { opacity: 1; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1100px) {
+            .grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .hero-section { grid-template-columns: 1fr; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .hero-card { min-height: 240px; }
+            .hero-card.grande { min-height: 260px; }
+        }
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; }
+            .logo { font-size: 15px; }
+        }
     </style>
 </head>
 <body>
+
+<!-- ══ HEADER ══════════════════════════════════════════ -->
 <header>
     <div class="header-top">
-        <a href="/" class="logo">🏮 EL FAROL AL DÍA<span class="logo-sub">ÚLTIMO MINUTO · SDE</span></a>
-        <div class="header-actions">
+        <a href="/" class="logo">
+            🏮 EL FAROL AL DÍA
+            <span class="logo-sub">ÚLTIMO MINUTO · SDE</span>
+        </a>
+        <div class="header-right">
             <span class="hora-rd" id="horaRD"></span>
             <button class="btn-push" id="btnPush" onclick="window.togglePush()">🔔 Alertas</button>
         </div>
     </div>
     <div class="ticker-wrap">
         <div class="ticker-label">🔴 ÚLTIMO MINUTO</div>
-        <div class="ticker-content" id="ticker">
+        <div class="ticker-track" id="ticker">
             <span class="ticker-item">Cargando últimas noticias de Santo Domingo Este...</span>
-            <span class="ticker-item">El Farol al Día · Noticias en tiempo real · Los Mina · Invivienda · Ensanche Ozama</span>
+            <span class="ticker-item">El Farol al Día · Los Mina · Invivienda · Ensanche Ozama</span>
         </div>
     </div>
 </header>
 
+<!-- ══ FILTROS ══════════════════════════════════════════ -->
 <nav class="filtros">
     <div class="filtros-inner">
         <button class="filtro-btn activo" onclick="window.filtrar('todas',this)">🏠 Todas</button>
@@ -111,33 +513,55 @@
     </div>
 </nav>
 
+<!-- ══ MAIN ══════════════════════════════════════════════ -->
 <div class="container">
-    <div class="ad-banner">
-        <div class="ad-label">PUBLICIDAD</div>
-        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
-        <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
-    </div>
 
-    <div id="heroWrap"></div>
-    <div class="seccion-titulo" id="seccionTitulo">📰 Últimas noticias</div>
-
-    <div class="grid" id="gridNoticias">
-        <div class="estado-msg" style="grid-column:1/-1">
+    <!-- HERO: 2 columnas arriba inmediato -->
+    <div class="hero-section" id="heroSection">
+        <div class="estado-msg" style="grid-column:1/-1; padding:40px 0">
             <div class="spinner"></div>
-            <p>Cargando noticias de Santo Domingo Este...</p>
         </div>
     </div>
 
-    <div class="ad-banner" style="margin-top:24px">
-        <div class="ad-label">PUBLICIDAD</div>
-        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <!-- AD -->
+    <div class="ad-strip">
+        <div class="ad-label">Publicidad</div>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-5280872495839888"
+             data-ad-slot="auto"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
         <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
     </div>
+
+    <!-- GRID NOTICIAS -->
+    <div class="sec-titulo" id="secTitulo">📰 Últimas noticias</div>
+    <div class="grid" id="gridNoticias">
+        <div class="estado-msg">
+            <div class="spinner"></div>
+            <p>Cargando noticias...</p>
+        </div>
+    </div>
+
+    <!-- AD 2 -->
+    <div class="ad-strip" style="margin-top:16px">
+        <div class="ad-label">Publicidad</div>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-5280872495839888"
+             data-ad-slot="auto"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+    </div>
+
 </div>
 
+<!-- ══ FOOTER ══════════════════════════════════════════ -->
 <footer>
     <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
-    <p style="font-size:12px;color:#555;margin-bottom:12px;">El periódico digital de Santo Domingo Este · República Dominicana</p>
+    <p style="font-size:12px;color:#333;margin-bottom:10px">El periódico digital de Santo Domingo Este · República Dominicana</p>
     <div class="footer-links">
         <a href="/">Inicio</a>
         <a href="/nosotros">Nosotros</a>
@@ -152,101 +576,121 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// VARIABLES GLOBALES
-// ============================================================
+// ── GLOBALES ──────────────────────────────────────────
 let todasLasNoticias = [];
-let filtroActivo = 'todas';
 
-// ============================================================
-// AUXILIARES
-// ============================================================
+// ── HORA ──────────────────────────────────────────────
 function actualizarHora() {
     const el = document.getElementById('horaRD');
     if (!el) return;
-    const hora = new Date().toLocaleTimeString('es-DO', {
+    el.textContent = new Date().toLocaleTimeString('es-DO', {
         timeZone: 'America/Santo_Domingo',
         hour: '2-digit', minute: '2-digit', hour12: true
-    });
-    el.textContent = hora + ' RD';
+    }) + ' RD';
 }
+actualizarHora();
+setInterval(actualizarHora, 30000);
 
+// ── TIEMPO RELATIVO ───────────────────────────────────
 function timeAgo(fecha) {
     const diff = (Date.now() - new Date(fecha)) / 1000;
     if (diff < 60)    return 'Ahora mismo';
-    if (diff < 3600)  return `Hace ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
-    return `Hace ${Math.floor(diff / 86400)} días`;
+    if (diff < 3600)  return `Hace ${Math.floor(diff/60)} min`;
+    if (diff < 86400) return `Hace ${Math.floor(diff/3600)}h`;
+    return `Hace ${Math.floor(diff/86400)} días`;
 }
 
-function toast(msg, duracion = 3000) {
+// ── TOAST ─────────────────────────────────────────────
+function toast(msg, dur = 3200) {
     const el = document.getElementById('toast');
     el.textContent = msg;
     el.classList.add('visible');
-    setTimeout(() => el.classList.remove('visible'), duracion);
+    setTimeout(() => el.classList.remove('visible'), dur);
 }
 
+// ── NAVEGACIÓN ────────────────────────────────────────
 function irANoticia(slug) {
     window.location.href = '/noticia/' + slug;
 }
 
-// ============================================================
-// RENDERIZADO
-// ============================================================
-function renderHero(n) {
-    const wrap = document.getElementById('heroWrap');
-    if (!n || !wrap) return;
-    wrap.innerHTML = `
-        <div class="hero-card" onclick="irANoticia('${n.slug}')">
+// ── FALLBACK IMG ──────────────────────────────────────
+const FALLBACK = 'https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&cs=tinysrgb&w=800';
+
+// ── RENDER HERO ───────────────────────────────────────
+function renderHero(noticias) {
+    const sec = document.getElementById('heroSection');
+    if (!sec || !noticias.length) return;
+
+    const top2 = noticias.slice(0, 2);
+    sec.innerHTML = top2.map((n, i) => `
+        <div class="hero-card ${i === 0 ? 'grande' : ''}" onclick="irANoticia('${n.slug}')">
             <img class="hero-img"
-                 src="${n.imagen}"
+                 src="${n.imagen || FALLBACK}"
                  alt="${n.imagen_alt || n.titulo}"
-                 loading="eager"
-                 onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
+                 loading="${i === 0 ? 'eager' : 'lazy'}"
+                 onerror="this.src='${FALLBACK}'">
             <div class="hero-overlay"></div>
             <div class="hero-content">
-                <div class="hero-badge">🏮 ${(n.seccion || 'ÚLTIMO MINUTO').toUpperCase()}</div>
-                <h1 class="hero-titulo">${n.titulo}</h1>
-                <p class="hero-desc">${n.seo_description || ''}</p>
+                <div class="badge-cat">🏮 ${(n.seccion || 'NOTICIAS').toUpperCase()}</div>
+                <div class="hero-titulo">${n.titulo}</div>
+                <div class="hero-desc">${n.seo_description || ''}</div>
                 <div class="hero-meta">
                     <span>⏱️ ${timeAgo(n.fecha)}</span>
                     <span>👁️ ${(n.vistas || 0).toLocaleString()} vistas</span>
                     <span>✍️ ${n.redactor || 'Redacción EFD'}</span>
                 </div>
             </div>
-        </div>`;
+        </div>
+    `).join('');
 }
 
-function actualizarTicker(noticias) {
+// ── RENDER TICKER ─────────────────────────────────────
+function renderTicker(noticias) {
     const t = document.getElementById('ticker');
     if (!t || !noticias.length) return;
-    const items = noticias.slice(0, 8).map(n =>
+    const items = noticias.slice(0, 10).map(n =>
         `<span class="ticker-item" onclick="irANoticia('${n.slug}')">🔴 ${n.titulo}</span>`
     ).join('');
     t.innerHTML = items + items;
 }
 
+// ── RENDER GRID ───────────────────────────────────────
 function renderGrid(noticias) {
     const grid = document.getElementById('gridNoticias');
     if (!grid) return;
+
     if (!noticias.length) {
-        grid.innerHTML = `<div class="estado-msg" style="grid-column:1/-1"><div class="icono">📭</div><p>No hay noticias en esta categoría todavía.</p></div>`;
+        grid.innerHTML = `<div class="estado-msg">
+            <div style="font-size:36px;margin-bottom:12px">📭</div>
+            <p>No hay noticias en esta categoría todavía.</p>
+        </div>`;
         return;
     }
+
     let html = '';
     noticias.forEach((n, i) => {
-        if (i > 0 && i % 6 === 0) {
-            html += `<div class="ad-banner" style="grid-column:1/-1"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>`;
+        // Ad cada 8 tarjetas
+        if (i > 0 && i % 8 === 0) {
+            html += `<div style="grid-column:1/-1">
+                <div class="ad-strip">
+                    <div class="ad-label">Publicidad</div>
+                    <ins class="adsbygoogle" style="display:block"
+                         data-ad-client="ca-pub-5280872495839888"
+                         data-ad-slot="auto" data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script>
+                </div>
+            </div>`;
         }
         html += `
             <div class="tarjeta" onclick="irANoticia('${n.slug}')">
                 <div class="tarjeta-img-wrap">
                     <img class="tarjeta-img"
-                         src="${n.imagen}"
+                         src="${n.imagen || FALLBACK}"
                          alt="${n.imagen_alt || n.titulo}"
                          loading="lazy"
-                         onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
-                    <div class="tarjeta-seccion-badge">${n.seccion || 'SDE'}</div>
+                         onerror="this.src='${FALLBACK}'">
+                    <div class="tarjeta-badge">${n.seccion || 'SDE'}</div>
                 </div>
                 <div class="tarjeta-body">
                     <div class="tarjeta-titulo">${n.titulo}</div>
@@ -261,73 +705,65 @@ function renderGrid(noticias) {
     grid.innerHTML = html;
 }
 
-// ============================================================
-// FILTRADO
-// ============================================================
-function filtrar(categoria, btn) {
-    filtroActivo = categoria;
+// ── FILTRADO ──────────────────────────────────────────
+function filtrar(cat, btn) {
     document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
     if (btn) btn.classList.add('activo');
 
-    const emojis  = { 'todas':'📰','Nacionales':'🏛️','Deportes':'⚽','Internacionales':'🌍','Economía':'💰','Tecnología':'💻','Espectáculos':'🎬' };
-    const nombres = { 'todas':'Últimas noticias','Nacionales':'Nacionales','Deportes':'Deportes','Internacionales':'Internacionales','Economía':'Economía','Tecnología':'Tecnología','Espectáculos':'Espectáculos' };
-    const titulo = document.getElementById('seccionTitulo');
-    if (titulo) titulo.textContent = `${emojis[categoria] || '📰'} ${nombres[categoria] || categoria}`;
+    const labels = {
+        todas:'Últimas noticias', Nacionales:'Nacionales',
+        Deportes:'Deportes', Internacionales:'Internacionales',
+        Economía:'Economía', Tecnología:'Tecnología', Espectáculos:'Espectáculos'
+    };
+    const iconos = {
+        todas:'📰', Nacionales:'🏛️', Deportes:'⚽',
+        Internacionales:'🌍', Economía:'💰', Tecnología:'💻', Espectáculos:'🎬'
+    };
+    const titulo = document.getElementById('secTitulo');
+    if (titulo) titulo.textContent = `${iconos[cat]||'📰'} ${labels[cat]||cat}`;
 
-    const filtradas = categoria === 'todas'
-        ? todasLasNoticias.slice(1)
-        : todasLasNoticias.filter(n => n.seccion === categoria);
-    renderGrid(filtradas);
-
-    const hero = categoria === 'todas'
-        ? todasLasNoticias[0]
-        : todasLasNoticias.find(n => n.seccion === categoria);
-    if (hero) renderHero(hero);
+    if (cat === 'todas') {
+        renderHero(todasLasNoticias.slice(0, 2));
+        renderGrid(todasLasNoticias.slice(2));
+    } else {
+        const filtradas = todasLasNoticias.filter(n => n.seccion === cat);
+        renderHero(filtradas.slice(0, 2));
+        renderGrid(filtradas.slice(2));
+    }
 }
 
-// ============================================================
-// CARGA DE NOTICIAS
-// ============================================================
+// ── CARGA NOTICIAS ────────────────────────────────────
 async function cargarNoticias() {
     try {
         const res  = await fetch('/api/noticias');
         const data = await res.json();
-
-        let arr = [];
-        if (data.success && Array.isArray(data.noticias)) {
-            arr = data.noticias;
-        } else if (Array.isArray(data)) {
-            arr = data;
-        }
+        const arr  = data.success ? data.noticias : (Array.isArray(data) ? data : []);
 
         if (!arr.length) {
-            document.getElementById('gridNoticias').innerHTML = `
-                <div class="estado-msg" style="grid-column:1/-1">
-                    <div class="icono">📡</div>
-                    <p>Cargando las primeras noticias...<br><small style="color:#444">Vuelve en unos minutos.</small></p>
-                </div>`;
+            document.getElementById('heroSection').innerHTML = '';
+            document.getElementById('gridNoticias').innerHTML = `<div class="estado-msg">
+                <div style="font-size:36px;margin-bottom:12px">📡</div>
+                <p>Cargando las primeras noticias...<br><small style="color:#333">Vuelve en unos minutos.</small></p>
+            </div>`;
             return;
         }
 
         todasLasNoticias = arr;
-        renderHero(todasLasNoticias[0]);
-        actualizarTicker(todasLasNoticias);
-        renderGrid(todasLasNoticias.slice(1));
+        renderHero(arr.slice(0, 2));
+        renderTicker(arr);
+        renderGrid(arr.slice(2));
 
-    } catch (err) {
-        console.error('Error cargando noticias:', err);
-        document.getElementById('gridNoticias').innerHTML = `
-            <div class="estado-msg" style="grid-column:1/-1">
-                <div class="icono">⚠️</div>
-                <p>Error al cargar noticias. Recarga la página.<br><small>${err.message}</small></p>
-            </div>`;
+    } catch(err) {
+        console.error(err);
+        document.getElementById('gridNoticias').innerHTML = `<div class="estado-msg">
+            <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+            <p>Error al cargar. Recarga la página.</p>
+        </div>`;
     }
 }
 
-// ============================================================
-// PUSH NOTIFICATIONS
-// ============================================================
-const PUSH_KEY = 'push_suscrito_efd';
+// ── PUSH ──────────────────────────────────────────────
+const PUSH_KEY = 'push_efd_v2';
 
 async function togglePush() {
     localStorage.getItem(PUSH_KEY) ? await desuscribirse() : await suscribirse();
@@ -340,32 +776,31 @@ async function suscribirse() {
     }
     try {
         const permiso = await Notification.requestPermission();
-        if (permiso !== 'granted') { toast('❌ Permiso de notificaciones denegado'); return; }
+        if (permiso !== 'granted') { toast('❌ Permiso denegado'); return; }
 
-        const rk   = await fetch('/api/push/vapid-key');
-        const dk   = await rk.json();
-        if (!dk.publicKey) { toast('⚠️ Push no configurado en el servidor'); return; }
+        const rk = await fetch('/api/push/vapid-key');
+        const dk = await rk.json();
+        if (!dk.publicKey) { toast('⚠️ Push no configurado'); return; }
 
         let sw;
         try { sw = await navigator.serviceWorker.register('/sw.js'); }
-        catch (e) { sw = await navigator.serviceWorker.ready; }
+        catch(e) { sw = await navigator.serviceWorker.ready; }
 
         const sub = await sw.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(dk.publicKey)
         });
         await fetch('/api/push/suscribir', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
             body: JSON.stringify({ subscription: sub, userAgent: navigator.userAgent })
         });
-
         localStorage.setItem(PUSH_KEY, '1');
         btn.textContent = '🔔 Activado';
         btn.classList.add('activo');
         toast('✅ ¡Alertas activadas! Recibirás las noticias al instante.', 4000);
-    } catch (err) {
-        toast('❌ Error al activar alertas: ' + err.message);
+    } catch(err) {
+        toast('❌ Error: ' + err.message);
     }
 }
 
@@ -377,8 +812,8 @@ async function desuscribirse() {
             const sub = await sw.pushManager.getSubscription();
             if (sub) {
                 await fetch('/api/push/desuscribir', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method:'POST',
+                    headers:{ 'Content-Type':'application/json' },
                     body: JSON.stringify({ endpoint: sub.endpoint })
                 });
                 await sub.unsubscribe();
@@ -388,19 +823,19 @@ async function desuscribirse() {
         btn.textContent = '🔔 Alertas';
         btn.classList.remove('activo');
         toast('🔕 Alertas desactivadas');
-    } catch (err) { console.error(err); }
+    } catch(err) { console.error(err); }
 }
 
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const output  = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) output[i] = rawData.charCodeAt(i);
-    return output;
+function urlBase64ToUint8Array(b64) {
+    const padding = '='.repeat((4 - b64.length % 4) % 4);
+    const base64  = (b64 + padding).replace(/-/g,'+').replace(/_/g,'/');
+    const raw     = window.atob(base64);
+    const out     = new Uint8Array(raw.length);
+    for (let i=0; i<raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
 }
 
-function initPushButton() {
+function initPush() {
     const btn = document.getElementById('btnPush');
     if (!btn) return;
     if (localStorage.getItem(PUSH_KEY)) {
@@ -409,21 +844,16 @@ function initPushButton() {
     }
 }
 
-// ============================================================
-// INIT
-// ============================================================
-actualizarHora();
-setInterval(actualizarHora, 30000);
-
+// ── INIT ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     cargarNoticias();
-    initPushButton();
+    initPush();
     setInterval(cargarNoticias, 5 * 60 * 1000);
 });
 
-window.irANoticia  = irANoticia;
-window.filtrar     = filtrar;
-window.togglePush  = togglePush;
+window.filtrar    = filtrar;
+window.togglePush = togglePush;
+window.irANoticia = irANoticia;
 </script>
 </body>
 </html>
