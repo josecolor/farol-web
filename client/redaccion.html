@@ -3,62 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redacción V37 🏮 El Farol al Día</title>
+    <title>MXL GOLD V37 🏮 El Farol al Día</title>
     <style>
-        :root { --fuego: #FF5500; --negro: #070707; --tarjeta: #111; --crema: #EDE8DF; }
-        body { background: var(--negro); color: var(--crema); font-family: sans-serif; padding: 20px; }
-        .card { background: var(--tarjeta); border: 1px solid #222; border-radius: 12px; padding: 20px; max-width: 500px; margin: 0 auto; }
-        h2 { color: var(--fuego); text-transform: uppercase; font-size: 14px; letter-spacing: 2px; }
-        select, input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #000; color: #fff; }
-        button { background: var(--fuego); border: none; font-weight: bold; cursor: pointer; }
-        #log { background: #000; padding: 10px; font-family: monospace; font-size: 11px; color: #888; border-left: 3px solid var(--fuego); height: 100px; overflow-y: auto; }
+        :root { --fuego: #FF5500; --fuego2: #FF7A00; --negro: #070707; --tarjeta: #111; --borde: #222; --crema: #EDE8DF; --muted: #555; --verde: #22C55E; }
+        body { background: var(--negro); color: var(--crema); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+        .card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: var(--fuego); font-size: 14px; margin-top: 0; border-bottom: 1px solid var(--borde); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; display: flex; align-items: center; gap: 8px; }
+        
+        .grupo { margin-bottom: 15px; }
+        label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 1px; }
+        select, input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--borde); color: #fff; border-radius: 8px; font-size: 14px; outline: none; }
+        select:focus, input:focus { border-color: var(--fuego); }
+        
+        .btn { background: linear-gradient(135deg, var(--fuego), var(--fuego2)); color: #fff; border: none; padding: 18px; width: 100%; border-radius: 8px; font-weight: 900; cursor: pointer; font-size: 15px; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255,85,0,0.4); }
+        .btn:disabled { background: #333; cursor: not-allowed; transform: none; }
+
+        /* STATS BOX */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .stat-item { background: #000; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--borde); transition: 0.3s; }
+        .stat-item:hover { border-color: var(--fuego); }
+        .stat-val { display: block; font-size: 24px; font-weight: 900; color: var(--fuego); font-family: 'JetBrains Mono', monospace; }
+        .stat-lab { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
+
+        /* LOG Y CONSOLA */
+        #log { background: #000; padding: 18px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; height: 280px; overflow-y: auto; border-left: 5px solid var(--fuego); color: #888; line-height: 1.6; }
+        .sys-info { font-size: 11px; margin-top: 15px; display: grid; gap: 8px; }
+        .sys-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a1a; }
+        .sys-val { color: var(--fuego); font-weight: bold; }
+        .sys-val.ok { color: var(--verde); }
+        
+        .error { color: #ff4444; font-weight: bold; } 
+        .exito { color: var(--verde); font-weight: bold; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>🏮 REDACCIÓN V37.0</h2>
-    <label>Categoría:</label>
-    <select id="categoria">
-        <option value="Nacionales">🏛️ Nacionales</option>
-        <option value="Deportes">⚽ Deportes</option>
-        <option value="Economía">💰 Economía</option>
-    </select>
-    
-    <button id="btn" onclick="generar()">⚡ PUBLICAR AHORA</button>
-    
-    <div id="log">Listo para el reporte diario...</div>
+<div class="container">
+    <div class="main-panel">
+        <div class="card">
+            <h2>⚡ MANDO DE PODER V37 — MXL GOLD</h2>
+            <div class="grupo">
+                <label>OBJETIVO DE PUBLICACIÓN</label>
+                <select id="categoria">
+                    <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
+                    <option value="Deportes">⚽ Deportes</option>
+                    <option value="Internacionales">🌍 Internacionales</option>
+                    <option value="Economía">💰 Economía</option>
+                    <option value="Tecnología">💻 Tecnología</option>
+                    <option value="Espectáculos">🎬 Espectáculos</option>
+                </select>
+            </div>
+            <button class="btn" id="btnGen" onclick="lanzarGenerador()">⚡ PUBLICAR NOTICIA IMPACTO</button>
+            <div id="statusTxt" style="margin-top:15px; font-size:12px; text-align:center; color: var(--muted)">Panel listo para el reporte de las 7:00 AM</div>
+        </div>
+
+        <div class="card">
+            <h2>📡 CONSOLA DE SISTEMA PLATINUM</h2>
+            <div id="log">🏮 Esperando órdenes del director mxl...</div>
+            
+            <div class="sys-info">
+                <div class="sys-row"><span>🤖 Cerebro IA:</span> <span class="sys-val">Gemini 2.5 Flash + DeepSeek</span></div>
+                <div class="sys-row"><span>🖼️ Búsqueda Imagen:</span> <span class="sys-val">CSE + Unsplash + Pexels (Paralelo)</span></div>
+                <div class="sys-row"><span>📢 Social Publisher:</span> <span class="sys-val">Telegram, FB, Twitter (Activo)</span></div>
+                <div class="sys-row"><span>🎙️ Audio TTS:</span> <span class="sys-val" id="sysAudio">ElevenLabs Ready</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-panel">
+        <div class="card">
+            <h2>📊 MÉTRICAS DE IMPACTO</h2>
+            <div class="stats-grid">
+                <div class="stat-item"><span class="stat-val" id="statTotal">0</span><span class="stat-lab">Noticias</span></div>
+                <div class="stat-item"><span class="stat-val" id="statVistas">0</span><span class="stat-lab">Vistas</span></div>
+            </div>
+            <div style="margin-top:20px; font-size:11px; text-align:center;">
+                <label>ESTADO DEL SERVIDOR V37</label>
+                <div style="color:var(--verde); font-weight:bold; letter-spacing:1px" id="srvStatus">🟢 ONLINE - MOTOR LISTO</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🛡️ MXL SECURITY</h2>
+            <p style="font-size:11px; color:var(--muted); margin-bottom:10px">Autenticación por puerto 8080 activa.</p>
+            <div style="color:var(--fuego); font-family: 'JetBrains Mono'; font-size:12px">USUARIO: director</div>
+            <div style="color:var(--fuego); font-family: 'JetBrains Mono'; font-size:12px">PIN: 311</div>
+        </div>
+    </div>
 </div>
 
 <script>
-    async function generar() {
+    async function lanzarGenerador() {
         const log = document.getElementById('log');
+        const btn = document.getElementById('btnGen');
         const cat = document.getElementById('categoria').value;
-        log.innerHTML = "📡 Conectando como 'director'...";
-        
+        const status = document.getElementById('statusTxt');
+
+        btn.disabled = true;
+        btn.innerHTML = "⏳ GENERANDO IMPACTO...";
+        log.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🏮 Iniciando motor V37 para: ${cat}...`;
+
         try {
-            // BASIC AUTH PARA V37 (director:311)
+            // Seguridad director:311 (V37 Compatible)
             const auth = btoa("director:311");
             
-            const r = await fetch('/api/generar-noticia', {
+            const response = await fetch('/api/generar-noticia', {
                 method: 'POST',
                 headers: { 
-                    'Authorization': `Basic ${auth}`,
+                    'Authorization': `Basic ${auth}`, 
                     'Content-Type': 'application/json' 
                 },
                 body: JSON.stringify({ categoria: cat })
             });
 
-            const data = await r.json();
+            const data = await response.json();
+
             if (data.success) {
-                log.innerHTML = `✅ ¡PUBLICADA!\nSlug: ${data.slug}\nBarrios: ${data.stats.barrios.join(', ')}`;
+                log.innerHTML += `\n<span class="exito">✅ ÉXITO: Publicada Noticia /noticia/${data.slug}</span>`;
+                log.innerHTML += `\n📝 Barrios detectados: ${data.stats.barrios.join(', ')}`;
+                status.innerHTML = `<span class="exito">¡Noticia publicada y compartida en redes!</span>`;
+                document.getElementById('sysAudio').innerHTML = "OK ✅";
+                actualizarMetricas();
             } else {
-                log.innerHTML = `❌ ERROR: ${data.error}`;
+                log.innerHTML += `\n<span class="error">❌ ERROR: ${data.error}</span>`;
+                status.innerHTML = `<span class="error">Fallo en el motor. Revisa Railway.</span>`;
             }
         } catch (e) {
-            log.innerHTML = "❌ Error de Red: El servidor no respondió.";
+            log.innerHTML += `\n<span class="error">❌ ERROR DE RED: El servidor modular no responde.</span>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "⚡ PUBLICAR NOTICIA IMPACTO";
+            log.scrollTop = log.scrollHeight;
         }
     }
+
+    async function actualizarMetricas() {
+        try {
+            const r = await fetch('/api/noticias');
+            const data = await r.json();
+            const noticias = data.noticias || data;
+            
+            const total = noticias.length;
+            const vistas = noticias.reduce((acc, n) => acc + (n.vistas || 0), 0);
+            
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statVistas').innerText = vistas.toLocaleString();
+        } catch(e) {
+            document.getElementById('srvStatus').innerHTML = "🔴 SERVIDOR DESCONECTADO";
+        }
+    }
+
+    actualizarMetricas();
+    setInterval(actualizarMetricas, 20000); // Auto-refresh cada 20 segundos
 </script>
+
 </body>
 </html>
