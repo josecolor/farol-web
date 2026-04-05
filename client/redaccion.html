@@ -3,447 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Farol al Día · Último Minuto Santo Domingo Este</title>
-    <meta name="description" content="Noticias de último minuto de Santo Domingo Este y República Dominicana. Los Mina, Invivienda, Ensanche Ozama y toda el Área Metropolitana.">
-    <meta name="keywords" content="noticias santo domingo este, último minuto RD, los mina noticias, invivienda noticias, el farol al día">
-    <meta name="robots" content="index,follow">
-    <meta name="geo.region" content="DO-01">
-    <meta name="geo.placename" content="Santo Domingo Este, República Dominicana">
-    <link rel="canonical" href="https://elfarolaldia.com/">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="El Farol al Día · Último Minuto SDE">
-    <meta property="og:description" content="Noticias de Santo Domingo Este y República Dominicana en tiempo real.">
-    <meta property="og:site_name" content="El Farol al Día">
-    <meta property="og:url" content="https://elfarolaldia.com/">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@elfarolaldia">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
+    <title>Panel de Redacción · El Farol al Día</title>
     <style>
-        :root { --naranja:#FF5500; --naranja-dark:#CC4400; --fondo:#070707; --tarjeta:#141418; --tarjeta-hover:#1a1a20; --texto:#EDE8DF; --texto-sec:#A89F94; --borde:#222228; }
-        *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--fondo);color:var(--texto);font-family:Arial,sans-serif;min-height:100vh}
-        header{background:#000;border-bottom:3px solid var(--naranja);position:sticky;top:0;z-index:100}
-        .header-top{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;max-width:1200px;margin:0 auto}
-        .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--naranja);font-size:20px;font-weight:900;letter-spacing:2px}
-        .logo-sub{font-size:10px;color:#666;font-weight:400;letter-spacing:1px;display:block}
-        .header-actions{display:flex;align-items:center;gap:10px}
-        .btn-push{background:var(--naranja);color:#fff;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;transition:background 0.2s}
-        .btn-push:hover{background:var(--naranja-dark)}.btn-push.activo{background:#2e7d32}
-        .hora-rd{font-size:11px;color:#555;font-family:monospace}
-        .ticker-wrap{background:var(--naranja);overflow:hidden;padding:5px 0;position:relative}
-        .ticker-label{position:absolute;left:0;top:0;bottom:0;background:#000;color:var(--naranja);font-weight:900;font-size:11px;padding:0 12px;display:flex;align-items:center;z-index:1;letter-spacing:1px}
-        .ticker-content{display:flex;animation:ticker 35s linear infinite;white-space:nowrap;padding-left:120px}
-        .ticker-item{font-size:12px;font-weight:bold;color:#fff;padding:0 30px;cursor:pointer}
-        .ticker-item:hover{text-decoration:underline}
-        @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-        nav.filtros{background:#0a0a0a;border-bottom:1px solid var(--borde);overflow-x:auto;scrollbar-width:none}
-        nav.filtros::-webkit-scrollbar{display:none}
-        .filtros-inner{display:flex;gap:4px;padding:8px 16px;max-width:1200px;margin:0 auto;min-width:max-content}
-        .filtro-btn{background:transparent;color:#666;border:1px solid transparent;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:bold;cursor:pointer;transition:all 0.2s;white-space:nowrap}
-        .filtro-btn:hover{color:var(--naranja);border-color:var(--naranja)}.filtro-btn.activo{background:var(--naranja);color:#fff;border-color:var(--naranja)}
-        .container{max-width:1200px;margin:0 auto;padding:16px}
-        .ad-banner{background:#0d0d0d;border:1px solid var(--borde);border-radius:8px;padding:8px;text-align:center;margin:12px 0;min-height:60px}
-        .ad-label{font-size:9px;color:#333;letter-spacing:1px;margin-bottom:4px}
-        .hero-card{position:relative;border-radius:12px;overflow:hidden;margin-bottom:20px;cursor:pointer;background:var(--tarjeta);border:1px solid var(--borde);min-height:380px;display:flex;flex-direction:column;justify-content:flex-end}
-        .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.4s}
-        .hero-card:hover .hero-img{transform:scale(1.02)}
-        .hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.95) 0%,rgba(0,0,0,0.6) 50%,transparent 100%)}
-        .hero-content{position:relative;z-index:1;padding:20px}
-        .hero-badge{display:inline-block;background:var(--naranja);color:#fff;font-size:10px;font-weight:bold;padding:3px 10px;border-radius:4px;margin-bottom:10px;letter-spacing:1px}
-        .hero-titulo{font-size:clamp(18px,3.5vw,28px);font-weight:900;color:#fff;line-height:1.25;margin-bottom:10px;font-family:Georgia,serif}
-        .hero-desc{font-size:13px;color:rgba(255,255,255,0.75);margin-bottom:12px;line-height:1.5}
-        .hero-meta{display:flex;align-items:center;gap:12px;font-size:11px;color:rgba(255,255,255,0.5)}
-        .seccion-titulo{font-size:12px;font-weight:bold;color:#555;letter-spacing:2px;text-transform:uppercase;margin:20px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--borde);display:flex;align-items:center;gap:8px}
-        .seccion-titulo::before{content:'';display:block;width:3px;height:14px;background:var(--naranja);border-radius:2px}
-        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-        .tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform 0.2s,border-color 0.2s,background 0.2s;display:flex;flex-direction:column}
-        .tarjeta:hover{transform:translateY(-2px);border-color:#333;background:var(--tarjeta-hover)}
-        .tarjeta-img-wrap{position:relative;aspect-ratio:16/9;overflow:hidden;background:#0d0d0d}
-        .tarjeta-img{width:100%;height:100%;object-fit:cover;transition:transform 0.3s}
-        .tarjeta:hover .tarjeta-img{transform:scale(1.04)}
-        .tarjeta-seccion-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.8);color:var(--naranja);font-size:9px;font-weight:bold;padding:3px 8px;border-radius:4px;letter-spacing:1px;border:1px solid rgba(255,85,0,0.3)}
-        .tarjeta-body{padding:12px;flex:1;display:flex;flex-direction:column;gap:8px}
-        .tarjeta-titulo{font-size:14px;font-weight:bold;color:var(--texto);line-height:1.4;font-family:Georgia,serif;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-        .tarjeta-desc{font-size:12px;color:var(--texto-sec);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
-        .tarjeta-footer{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#555;padding-top:8px;border-top:1px solid var(--borde)}
-        .estado-msg{text-align:center;padding:60px 20px;color:#555;font-size:14px}
-        .estado-msg .icono{font-size:40px;margin-bottom:12px}
-        .spinner{width:36px;height:36px;border:3px solid #222;border-top-color:var(--naranja);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        footer{background:#000;border-top:2px solid var(--naranja);padding:28px 20px;text-align:center;margin-top:60px}
-        .footer-logo{color:var(--naranja);font-size:18px;font-weight:900;margin-bottom:8px}
-        .footer-links{display:flex;justify-content:center;flex-wrap:wrap;gap:4px;margin:12px 0}
-        .footer-links a{color:#444;font-size:12px;text-decoration:none;padding:4px 10px}
-        .footer-links a:hover{color:var(--naranja)}
-        .footer-copy{font-size:11px;color:#333}
-        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;border:1px solid var(--naranja);color:var(--texto);padding:12px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;text-align:center;max-width:340px}
-        .toast.visible{opacity:1}
-        @media(max-width:640px){.hero-card{min-height:280px}.grid{grid-template-columns:1fr}.header-top{padding:8px 12px}.logo{font-size:16px}}
+        :root { --naranja: #FF5500; --fondo: #0a0a0a; --tarjeta: #1a1a1a; --texto: #eee; --borde: #333; }
+        body { background: var(--fondo); color: var(--texto); font-family: sans-serif; margin: 0; padding: 20px; }
+        .panel { max-width: 800px; margin: 0 auto; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 25px; }
+        h1 { color: var(--naranja); font-size: 20px; border-bottom: 1px solid var(--borde); padding-bottom: 10px; margin-top: 0; }
+        .grupo { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #aaa; }
+        select, input, textarea { width: 100%; padding: 12px; background: #000; border: 1px solid var(--borde); color: #fff; border-radius: 6px; }
+        .btn { background: var(--naranja); color: #fff; border: none; padding: 15px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        .btn:hover { background: #ff7733; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+        #log { margin-top: 20px; padding: 15px; background: #000; border-radius: 6px; font-family: monospace; font-size: 12px; min-height: 50px; border-left: 4px solid var(--naranja); white-space: pre-wrap; }
+        .error { color: #ff4444; }
+        .exito { color: #44ff44; }
+        .loading { display: inline-block; animation: spin 1s linear infinite; margin-right: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-<header>
-    <div class="header-top">
-        <a href="/" class="logo">🏮 EL FAROL AL DÍA<span class="logo-sub">ÚLTIMO MINUTO · SDE</span></a>
-        <div class="header-actions">
-            <span class="hora-rd" id="horaRD"></span>
-            <button class="btn-push" id="btnPush" onclick="window.togglePush()">🔔 Alertas</button>
-        </div>
+
+<div class="panel">
+    <h1>🏮 PANEL DE REDACCIÓN MXL</h1>
+    
+    <div class="grupo">
+        <label>Usuario Administrador:</label>
+        <input type="text" id="user" value="mxl">
     </div>
-    <div class="ticker-wrap">
-        <div class="ticker-label">🔴 ÚLTIMO MINUTO</div>
-        <div class="ticker-content" id="ticker">
-            <span class="ticker-item">Cargando últimas noticias de Santo Domingo Este...</span>
-        </div>
+
+    <div class="grupo">
+        <label>PIN de Seguridad:</label>
+        <input type="password" id="pin" placeholder="****">
     </div>
-</header>
-<nav class="filtros">
-    <div class="filtros-inner">
-        <button class="filtro-btn activo" onclick="window.filtrar('todas',this)">🏠 Todas</button>
-        <button class="filtro-btn" onclick="window.filtrar('Nacionales',this)">🏛️ Nacionales</button>
-        <button class="filtro-btn" onclick="window.filtrar('Deportes',this)">⚽ Deportes</button>
-        <button class="filtro-btn" onclick="window.filtrar('Internacionales',this)">🌍 Internacionales</button>
-        <button class="filtro-btn" onclick="window.filtrar('Economía',this)">💰 Economía</button>
-        <button class="filtro-btn" onclick="window.filtrar('Tecnología',this)">💻 Tecnología</button>
-        <button class="filtro-btn" onclick="window.filtrar('Espectáculos',this)">🎬 Espectáculos</button>
+
+    <div class="grupo">
+        <label>Categoría para generar:</label>
+        <select id="categoria">
+            <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
+            <option value="Deportes">⚽ Deportes</option>
+            <option value="Internacionales">🌍 Internacionales</option>
+            <option value="Economía">💰 Economía</option>
+            <option value="Tecnología">💻 Tecnología</option>
+            <option value="Espectáculos">🎬 Espectáculos</option>
+        </select>
     </div>
-</nav>
-<div class="container">
-    <div class="ad-banner"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>
-    <div id="heroWrap"></div>
-    <div class="seccion-titulo" id="seccionTitulo">📰 Últimas noticias</div>
-    <div class="grid" id="gridNoticias">
-        <div class="estado-msg" style="grid-column:1/-1"><div class="spinner"></div><p>Cargando noticias de Santo Domingo Este...</p></div>
-    </div>
-    <div class="ad-banner" style="margin-top:24px"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>
+
+    <button class="btn" id="btnGenerar" onclick="mandarGenerar()">⚡ GENERAR NOTICIA CON IA</button>
+
+    <div id="log">Esperando orden...</div>
 </div>
-<footer>
-    <div class="footer-logo">🏮 EL FAROL AL DÍA</div>
-    <p style="font-size:12px;color:#555;margin-bottom:12px;">El periódico digital de Santo Domingo Este · República Dominicana</p>
-    <div class="footer-links">
-        <a href="/">Inicio</a><a href="/nosotros">Nosotros</a><a href="/contacto">Contacto</a>
-        <a href="/privacidad">Privacidad</a><a href="/terminos">Términos</a><a href="/cookies">Cookies</a>
-    </div>
-    <p class="footer-copy">© 2026 El Farol al Día · José Gregorio Mañan Santana · Santo Domingo Este, RD</p>
-</footer>
-<div class="toast" id="toast"></div>
 
 <script>
-// VARIABLES GLOBALES
-let todasLasNoticias = [];
-let filtroActivo = 'todas';
+    async function mandarGenerar() {
+        const btn = document.getElementById('btnGenerar');
+        const log = document.getElementById('log');
+        const user = document.getElementById('user').value;
+        const pin = document.getElementById('pin').value;
+        const cat = document.getElementById('categoria').value;
 
-// ============================================================
-// FUNCIONES AUXILIARES
-// ============================================================
-function actualizarHora() {
-    const el = document.getElementById('horaRD');
-    if (!el) return;
-    const hora = new Date().toLocaleTimeString('es-DO', {
-        timeZone: 'America/Santo_Domingo',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
-    el.textContent = hora + ' RD';
-}
-
-function timeAgo(fecha) {
-    const diff = (Date.now() - new Date(fecha)) / 1000;
-    if (diff < 60) return 'Ahora mismo';
-    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`;
-    return `Hace ${Math.floor(diff / 86400)} días`;
-}
-
-function toast(msg, duracion = 3000) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('visible');
-    setTimeout(() => el.classList.remove('visible'), duracion);
-}
-
-function irANoticia(slug) {
-    window.location.href = `/noticia/${slug}`;
-}
-
-// ============================================================
-// RENDERIZADO
-// ============================================================
-function renderHero(noticia) {
-    const wrap = document.getElementById('heroWrap');
-    if (!noticia || !wrap) return;
-    
-    wrap.innerHTML = `
-        <div class="hero-card" onclick="irANoticia('${noticia.slug}')">
-            <img class="hero-img" src="${noticia.imagen}" alt="${noticia.imagen_alt || noticia.titulo}" loading="eager" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
-            <div class="hero-overlay"></div>
-            <div class="hero-content">
-                <div class="hero-badge">🏮 ${(noticia.seccion || 'ÚLTIMO MINUTO').toUpperCase()}</div>
-                <h1 class="hero-titulo">${noticia.titulo}</h1>
-                <p class="hero-desc">${noticia.seo_description || ''}</p>
-                <div class="hero-meta">
-                    <span>⏱️ ${timeAgo(noticia.fecha)}</span>
-                    <span>👁️ ${(noticia.vistas || 0).toLocaleString()} vistas</span>
-                    <span>✍️ ${noticia.redactor || 'Redacción EFD'}</span>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function actualizarTicker(noticias) {
-    const t = document.getElementById('ticker');
-    if (!t || !noticias.length) return;
-    
-    const items = noticias.slice(0, 8).map(n => 
-        `<span class="ticker-item" onclick="irANoticia('${n.slug}')">🔴 ${n.titulo}</span>`
-    ).join('');
-    t.innerHTML = items + items;
-}
-
-function renderGrid(noticias) {
-    const grid = document.getElementById('gridNoticias');
-    if (!grid) return;
-    
-    if (!noticias.length) {
-        grid.innerHTML = `<div class="estado-msg" style="grid-column:1/-1"><div class="icono">📭</div><p>No hay noticias en esta categoría todavía.</p></div>`;
-        return;
-    }
-    
-    let html = '';
-    noticias.forEach((n, i) => {
-        if (i > 0 && i % 6 === 0) {
-            html += `<div class="ad-banner" style="grid-column:1/-1"><div class="ad-label">PUBLICIDAD</div><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins><script>(adsbygoogle=window.adsbygoogle||[]).push({});<\/script></div>`;
-        }
-        html += `
-            <div class="tarjeta" onclick="irANoticia('${n.slug}')">
-                <div class="tarjeta-img-wrap">
-                    <img class="tarjeta-img" src="${n.imagen}" alt="${n.imagen_alt || n.titulo}" loading="lazy" onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
-                    <div class="tarjeta-seccion-badge">${n.seccion || 'SDE'}</div>
-                </div>
-                <div class="tarjeta-body">
-                    <div class="tarjeta-titulo">${n.titulo}</div>
-                    <div class="tarjeta-desc">${n.seo_description || ''}</div>
-                    <div class="tarjeta-footer">
-                        <span>⏱️ ${timeAgo(n.fecha)}</span>
-                        <span>👁️ ${(n.vistas || 0).toLocaleString()}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    grid.innerHTML = html;
-}
-
-// ============================================================
-// FILTRADO
-// ============================================================
-function filtrar(categoria, btn) {
-    filtroActivo = categoria;
-    
-    // Actualizar botones
-    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
-    if (btn) btn.classList.add('activo');
-    
-    // Actualizar título
-    const titulo = document.getElementById('seccionTitulo');
-    const emojis = {
-        'todas': '📰', 'Nacionales': '🏛️', 'Deportes': '⚽',
-        'Internacionales': '🌍', 'Economía': '💰', 'Tecnología': '💻', 'Espectáculos': '🎬'
-    };
-    const nombres = {
-        'todas': 'Últimas noticias', 'Nacionales': 'Nacionales', 'Deportes': 'Deportes',
-        'Internacionales': 'Internacionales', 'Economía': 'Economía',
-        'Tecnología': 'Tecnología', 'Espectáculos': 'Espectáculos'
-    };
-    if (titulo) titulo.textContent = `${emojis[categoria] || '📰'} ${nombres[categoria] || categoria}`;
-    
-    // Filtrar noticias
-    const filtradas = categoria === 'todas' 
-        ? todasLasNoticias.slice(1) 
-        : todasLasNoticias.filter(n => n.seccion === categoria);
-    
-    renderGrid(filtradas);
-    
-    // Hero para la categoría
-    const heroNoticia = categoria === 'todas' 
-        ? todasLasNoticias[0] 
-        : todasLasNoticias.find(n => n.seccion === categoria);
-    if (heroNoticia) renderHero(heroNoticia);
-}
-
-// ============================================================
-// CARGA DE NOTICIAS DESDE API
-// ============================================================
-async function cargarNoticias() {
-    try {
-        const response = await fetch('/api/noticias');
-        const data = await response.json();
-        
-        // Soporta ambos formatos de API
-        let noticiasArray = [];
-        if (data.success && Array.isArray(data.noticias)) {
-            noticiasArray = data.noticias;
-        } else if (Array.isArray(data)) {
-            noticiasArray = data;
-        } else {
-            noticiasArray = [];
-        }
-        
-        if (!noticiasArray.length) {
-            document.getElementById('gridNoticias').innerHTML = `
-                <div class="estado-msg" style="grid-column:1/-1">
-                    <div class="icono">📡</div>
-                    <p>Cargando las primeras noticias...<br><small style="color:#444">Vuelve en unos minutos.</small></p>
-                </div>
-            `;
+        if (!pin) {
+            log.innerHTML = '<span class="error">❌ Debes poner el PIN de seguridad.</span>';
             return;
         }
-        
-        todasLasNoticias = noticiasArray;
-        renderHero(todasLasNoticias[0]);
-        actualizarTicker(todasLasNoticias);
-        renderGrid(todasLasNoticias.slice(1));
-        
-    } catch (error) {
-        console.error('Error cargando noticias:', error);
-        document.getElementById('gridNoticias').innerHTML = `
-            <div class="estado-msg" style="grid-column:1/-1">
-                <div class="icono">⚠️</div>
-                <p>Error al cargar noticias. Recarga la página.</p>
-            </div>
-        `;
-    }
-}
 
-// ============================================================
-// PUSH NOTIFICATIONS
-// ============================================================
-const PUSH_KEY = 'push_suscrito_efd';
+        // Bloquear botón
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading">⏳</span> PROCESANDO CON GEMINI...';
+        log.innerHTML = `📡 Conectando con el motor modular...\nCategoría: ${cat}\nPor favor, espera (esto toma 30-60 segundos)...`;
 
-async function togglePush() {
-    if (localStorage.getItem(PUSH_KEY)) {
-        await desuscribirse();
-    } else {
-        await suscribirse();
-    }
-}
-
-async function suscribirse() {
-    const btn = document.getElementById('btnPush');
-    
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        toast('⚠️ Tu navegador no soporta notificaciones push');
-        return;
-    }
-    
-    try {
-        const permiso = await Notification.requestPermission();
-        if (permiso !== 'granted') {
-            toast('❌ Permiso de notificaciones denegado');
-            return;
-        }
-        
-        const respuesta = await fetch('/api/push/vapid-key');
-        const datos = await respuesta.json();
-        
-        if (!datos.publicKey) {
-            toast('⚠️ Push no configurado en el servidor');
-            return;
-        }
-        
-        let sw;
         try {
-            sw = await navigator.serviceWorker.register('/sw.js');
-        } catch (e) {
-            sw = await navigator.serviceWorker.ready;
-        }
-        
-        const suscripcion = await sw.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(datos.publicKey)
-        });
-        
-        await fetch('/api/push/suscribir', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: suscripcion, userAgent: navigator.userAgent })
-        });
-        
-        localStorage.setItem(PUSH_KEY, '1');
-        btn.textContent = '🔔 Activado';
-        btn.classList.add('activo');
-        toast('✅ ¡Alertas activadas! Recibirás las noticias al instante.', 4000);
-        
-    } catch (error) {
-        toast('❌ Error al activar alertas: ' + error.message);
-    }
-}
+            // Creamos la credencial de acceso (Basic Auth)
+            const auth = btoa(`${user}:${pin}`);
 
-async function desuscribirse() {
-    const btn = document.getElementById('btnPush');
-    
-    try {
-        if ('serviceWorker' in navigator) {
-            const sw = await navigator.serviceWorker.ready;
-            const sub = await sw.pushManager.getSubscription();
-            if (sub) {
-                await fetch('/api/push/desuscribir', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ endpoint: sub.endpoint })
-                });
-                await sub.unsubscribe();
+            // IMPORTANTE: La ruta ahora es /api/generar
+            const response = await fetch('/api/generar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${auth}`
+                },
+                body: JSON.stringify({ categoria: cat })
+            });
+
+            // Si el servidor devuelve HTML en vez de JSON, aquí se captura
+            const textoRaw = await response.text();
+            let data;
+            
+            try {
+                data = JSON.parse(textoRaw);
+            } catch (e) {
+                console.error("Respuesta no es JSON:", textoRaw);
+                throw new Error("El servidor respondió con un error de página. Revisa los logs de Railway.");
             }
+
+            if (data.success) {
+                log.innerHTML = `<span class="exito">✅ ¡NOTICIA PUBLICADA CON ÉXITO!</span>\nSlug: ${data.slug}\n\nYa puedes verla en la página principal.`;
+                toast("¡Publicado!");
+            } else {
+                log.innerHTML = `<span class="error">❌ ERROR: ${data.error || 'No se pudo generar'}</span>`;
+            }
+
+        } catch (error) {
+            log.innerHTML = `<span class="error">❌ FALLO DE CONEXIÓN:</span>\n${error.message}`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '⚡ GENERAR NOTICIA CON IA';
         }
-        
-        localStorage.removeItem(PUSH_KEY);
-        btn.textContent = '🔔 Alertas';
-        btn.classList.remove('activo');
-        toast('🔕 Alertas desactivadas');
-        
-    } catch (error) {
-        console.error('Error al desuscribir:', error);
     }
-}
 
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
+    function toast(msg) {
+        console.log("Notificación:", msg);
     }
-    return outputArray;
-}
-
-function initPushButton() {
-    const btn = document.getElementById('btnPush');
-    if (!btn) return;
-    if (localStorage.getItem(PUSH_KEY)) {
-        btn.textContent = '🔔 Activado';
-        btn.classList.add('activo');
-    }
-}
-
-// ============================================================
-// INICIALIZACIÓN
-// ============================================================
-actualizarHora();
-setInterval(actualizarHora, 30000);
-
-document.addEventListener('DOMContentLoaded', () => {
-    cargarNoticias();
-    initPushButton();
-    setInterval(cargarNoticias, 5 * 60 * 1000);
-});
-
-// Exponer funciones globalmente para los onclick
-window.irANoticia = irANoticia;
-window.filtrar = filtrar;
-window.togglePush = togglePush;
 </script>
+
 </body>
 </html>
