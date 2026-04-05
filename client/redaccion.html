@@ -3,83 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MXL DATA GOLD V37 🏮 El Farol</title>
+    <title>MXL GOLD V37 🏮 Redacción Final</title>
     <style>
-        :root { --fuego: #FF5500; --fuego2: #FF7A00; --negro: #070707; --tarjeta: #111; --borde: #222; --crema: #EDE8DF; --muted: #555; --verde: #22C55E; }
+        :root { --fuego: #FF5500; --negro: #070707; --tarjeta: #111; --borde: #222; --crema: #EDE8DF; --muted: #555; --verde: #22C55E; }
         body { background: var(--negro); color: var(--crema); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; font-size: 14px; }
         .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
         .card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h2 { color: var(--fuego); font-size: 13px; margin-top: 0; border-bottom: 1px solid var(--borde); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
         
-        /* ANALITICA GRID */
+        /* ANALITICA */
         .stats-main { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
         .stat-box { background: #000; padding: 15px; border-radius: 10px; border: 1px solid var(--borde); text-align: center; }
-        .stat-val { display: block; font-size: 26px; font-weight: 900; color: var(--fuego); font-family: 'JetBrains Mono', monospace; }
-        .stat-lab { font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
+        .stat-val { display: block; font-size: 26px; font-weight: 900; color: var(--fuego); font-family: monospace; }
+        .stat-lab { font-size: 9px; color: var(--muted); text-transform: uppercase; }
 
-        /* LISTAS DE DATOS */
         .data-list { font-size: 11px; margin-top: 10px; }
         .data-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a1a1a; align-items: center; }
-        .data-tit { color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-        .data-pts { color: var(--fuego); font-weight: bold; font-family: monospace; }
+        .data-pts { color: var(--fuego); font-weight: bold; }
         
-        /* BARRA DE RENDIMIENTO */
         .bar-wrap { width: 100%; background: #222; height: 6px; border-radius: 3px; margin-top: 4px; overflow: hidden; }
         .bar-fill { height: 100%; background: var(--fuego); transition: width 0.5s; }
 
-        .btn { background: linear-gradient(135deg, var(--fuego), var(--fuego2)); color: #fff; border: none; padding: 16px; width: 100%; border-radius: 8px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
-        #log { background: #000; padding: 15px; border-radius: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; height: 180px; overflow-y: auto; border-left: 4px solid var(--fuego); color: #888; }
-        
-        @media (max-width: 1000px) { .container { grid-template-columns: 1fr; } }
+        /* INPUTS */
+        select, input { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; margin-bottom: 10px; outline: none; }
+        select:focus { border-color: var(--fuego); }
+        .btn { background: linear-gradient(135deg, var(--fuego), #FF7A00); color: #fff; border: none; padding: 18px; width: 100%; border-radius: 8px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        #log { background: #000; padding: 15px; border-radius: 10px; font-family: monospace; font-size: 11px; height: 150px; overflow-y: auto; border-left: 4px solid var(--fuego); color: #888; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="main-panel">
-        <!-- ANALITICA DE IMPACTO -->
+        <!-- ANALITICA -->
         <div class="card">
-            <h2>📊 ANALÍTICA DE IMPACTO (30 DÍAS)</h2>
+            <h2>📊 IMPACTO REAL (30 DÍAS)</h2>
             <div class="stats-main">
-                <div class="stat-box"><span class="stat-val" id="metProm">0</span><span class="stat-lab">Promedio Vistas</span></div>
-                <div class="stat-box"><span class="stat-val" id="metMax">0</span><span class="stat-lab">Récord Vistas</span></div>
-                <div class="stat-box"><span class="stat-val" id="metTotal">0</span><span class="stat-lab">Total Noticias</span></div>
+                <div class="stat-box"><span class="stat-val" id="metProm">0</span><span class="stat-lab">Vistas Prom.</span></div>
+                <div class="stat-box"><span class="stat-val" id="metMax">0</span><span class="stat-lab">Récord</span></div>
+                <div class="stat-box"><span class="stat-val" id="metTotal">0</span><span class="stat-lab">Noticias</span></div>
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
-                    <h2 style="color: #666; font-size: 10px;">🏆 TOP CATEGORÍAS</h2>
-                    <div id="listaCats" class="data-list">Cargando métricas...</div>
+                    <h2>🏆 RENDIMIENTO CATEGORÍAS</h2>
+                    <div id="listaCats" class="data-list">Cargando...</div>
                 </div>
                 <div>
-                    <h2 style="color: #666; font-size: 10px;">⏰ HORAS PICO (RD)</h2>
-                    <div id="listaHoras" class="data-list">Calculando...</div>
+                    <h2>⏰ HORAS PICO RD</h2>
+                    <div id="listaHoras" class="data-list">Cargando...</div>
                 </div>
             </div>
         </div>
 
+        <!-- MANDO -->
         <div class="card">
-            <h2>⚡ MANDO DE ACCIÓN</h2>
-            <select id="categoria" style="width: 100%; padding: 12px; background: #000; color: #fff; border: 1px solid #333; border-radius: 8px; margin-bottom: 10px;">
-                <option value="Nacionales">🏛️ Nacionales</option>
+            <h2>⚡ MANDO DE ACCIÓN MXL</h2>
+            <label>SELECCIONA CATEGORÍA:</label>
+            <select id="categoria">
+                <option value="Nacionales">🏛️ Nacionales (SDE / RD)</option>
                 <option value="Deportes">⚽ Deportes</option>
                 <option value="Economía">💰 Economía</option>
+                <option value="Internacionales">🌍 Internacionales</option>
+                <option value="Tecnología">💻 Tecnología</option>
+                <option value="Espectáculos">🎬 Espectáculos</option>
             </select>
-            <button class="btn" onclick="lanzar()">⚡ PUBLICAR IMPACTO YA</button>
-            <div id="log" style="margin-top: 15px;">🏮 Esperando...</div>
+            <button class="btn" id="btnGen" onclick="lanzar()">⚡ PUBLICAR IMPACTO YA</button>
+            <div id="log" style="margin-top: 15px;">🏮 Panel V37 listo para el Director mxl...</div>
         </div>
     </div>
 
     <div class="side-panel">
         <div class="card">
-            <h2>🔥 NOTICIAS MÁS VISTAS</h2>
-            <div id="topNoticias" class="data-list">Buscando tendencias...</div>
+            <h2>🔥 TENDENCIAS (MÁS VISTAS)</h2>
+            <div id="topNoticias" class="data-list">Cargando tendencias...</div>
         </div>
 
         <div class="card" style="text-align: center;">
-            <h2>🛡️ MXL SECURITY</h2>
-            <div style="font-size: 18px; color: var(--fuego); font-weight: 900; margin: 10px 0;">311 - DIRECTOR</div>
-            <p style="font-size: 10px; color: var(--muted);">PUERTO 8080 ACTIVO</p>
+            <h2>🛡️ SEGURIDAD ACTIVA</h2>
+            <div style="font-size: 20px; color: var(--fuego); font-weight: 900; margin: 10px 0;">DIRECTOR: 311</div>
+            <p style="font-size: 10px; color: var(--muted);">CONECTADO A PUERTO 8080</p>
         </div>
     </div>
 </div>
@@ -87,7 +90,6 @@
 <script>
     async function cargarMetricas() {
         try {
-            // Usamos tu PIN 311 para entrar a la métrica real del servidor V37
             const r = await fetch('/api/metricas?pin=311');
             const data = await r.json();
             if (!data.success) return;
@@ -96,7 +98,6 @@
             document.getElementById('metMax').innerText = data.resumen.max;
             document.getElementById('metTotal').innerText = data.resumen.total;
 
-            // Render Categorías
             const maxProm = Math.max(...data.por_categoria.map(c => parseInt(c.prom)));
             document.getElementById('listaCats').innerHTML = data.por_categoria.map(c => `
                 <div class="data-item">
@@ -110,29 +111,25 @@
                 </div>
             `).join('');
 
-            // Render Horas Pico
             document.getElementById('listaHoras').innerHTML = data.horas_pico.map(h => `
-                <div class="data-item">
-                    <span>${h.hora}:00</span>
-                    <span class="data-pts">${h.prom} vistas</span>
-                </div>
+                <div class="data-item"><span>${h.hora}:00</span><span class="data-pts">${h.prom}v</span></div>
             `).join('');
 
-            // Render Top Noticias
             document.getElementById('topNoticias').innerHTML = data.top_noticias.map(n => `
                 <div class="data-item">
-                    <span class="data-tit">${n.titulo}</span>
+                    <span style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${n.titulo}</span>
                     <span class="data-pts">${n.vistas}</span>
                 </div>
             `).join('');
-
-        } catch(e) { console.error("Error analitica:", e); }
+        } catch(e) {}
     }
 
     async function lanzar() {
         const log = document.getElementById('log');
+        const btn = document.getElementById('btnGen');
         const cat = document.getElementById('categoria').value;
-        log.innerHTML += `\n> Iniciando motor modular V37...`;
+        btn.disabled = true;
+        log.innerHTML += `\n> Solicitando noticia de ${cat}...`;
         
         try {
             const auth = btoa("director:311");
@@ -143,16 +140,17 @@
             });
             const d = await r.json();
             if (d.success) {
-                log.innerHTML += `\n✅ PUBLICADA: ${d.slug}`;
+                log.innerHTML += `\n✅ PUBLICADA: /noticia/${d.slug}`;
                 cargarMetricas();
             } else {
                 log.innerHTML += `\n❌ ERROR: ${d.error}`;
             }
-        } catch (e) { log.innerHTML += `\n❌ SERVIDOR NO RESPONDE`; }
+        } catch (e) { log.innerHTML += `\n❌ ERROR DE CONEXIÓN`; }
+        finally { btn.disabled = false; log.scrollTop = log.scrollHeight; }
     }
 
     cargarMetricas();
-    setInterval(cargarMetricas, 30000);
+    setInterval(cargarMetricas, 40000);
 </script>
 
 </body>
