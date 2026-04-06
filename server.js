@@ -201,7 +201,7 @@ async function sincronizarGSC() {
 
     const data = await consultarGSC({
         startDate: fmt(inicio), endDate: fmt(fin),
-        dimensions: ['query'], rowLimit: 50,
+        dimensions: ['query'], rowLimit: 100,  // ✅ FIX: 50 → 100 para capturar todas las consultas
         orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
     });
 
@@ -218,9 +218,9 @@ async function sincronizarGSC() {
         posicion:    parseFloat((r.position || 0).toFixed(1)),
     }));
 
-    // Oportunidades: muchas impresiones, CTR bajo = título no convence
+    // ✅ FIX: umbral >= 1 (antes >= 3) para capturar sitios con poco tráfico aún
     const oportunidades = consultas
-        .filter(c => c.impresiones >= 3 && c.ctr < 5)
+        .filter(c => c.impresiones >= 1 && c.ctr < 5)
         .slice(0, 12);
 
     // Ganadoras: CTR alto = fórmula que funciona
