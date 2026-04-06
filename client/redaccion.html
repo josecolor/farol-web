@@ -29,8 +29,6 @@
             font-size: 13px;
             min-height: 100vh;
         }
-
-        /* ── TABS ── */
         .tabs-bar {
             display: flex;
             background: var(--negro2);
@@ -40,7 +38,7 @@
             z-index: 50;
         }
         .tab-btn {
-            padding: 14px 24px;
+            padding: 14px 22px;
             font-family: 'IBM Plex Mono', monospace;
             font-size: 10px;
             letter-spacing: 3px;
@@ -52,16 +50,10 @@
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
         }
-        .tab-btn.active {
-            color: var(--fuego);
-            border-bottom-color: var(--fuego);
-        }
+        .tab-btn.active { color: var(--fuego); border-bottom-color: var(--fuego); }
         .tab-btn:hover { color: var(--crema); }
-
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-
-        /* ── HEADER ── */
         .masthead {
             border-bottom: 1px solid var(--borde2);
             padding: 14px 32px;
@@ -79,8 +71,6 @@
         }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
         .clock { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; }
-
-        /* ── LAYOUT 2 COLS ── */
         .workspace {
             display: grid;
             grid-template-columns: 1fr 360px;
@@ -90,29 +80,26 @@
         }
         .panel-left  { background:var(--negro); padding:28px 32px; }
         .panel-right { background:var(--negro2); padding:24px; border-left:1px solid var(--borde); overflow-y:auto; }
-
-        /* ── SECTION LABEL ── */
         .slabel {
             font-size:9px; letter-spacing:4px; color:var(--muted);
             text-transform:uppercase; margin-bottom:16px;
             display:flex; align-items:center; gap:10px;
         }
         .slabel::after { content:''; flex:1; height:1px; background:var(--borde2); }
-
-        /* ── GSC CARD ── */
         .gsc-card {
             background: var(--panel);
             border: 1px solid var(--borde2);
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 13px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: border-color .2s;
         }
+        .gsc-card:hover { border-color: var(--fuego); }
         .gsc-query { font-size: 11px; color: var(--crema); margin-bottom: 5px; }
         .gsc-stats { font-size: 10px; color: var(--muted); }
         .gsc-tag { font-size: 9px; padding: 2px 6px; border-radius: 3px; margin-left: 5px; }
-        .tag-win { background: rgba(0, 229, 122, 0.1); color: var(--verde); }
-        .tag-opp { background: rgba(255, 214, 0, 0.1); color: var(--amarillo); }
-
-        /* ── FORM FIELDS ── */
+        .tag-win { background: rgba(0,229,122,0.1); color: var(--verde); }
+        .tag-opp { background: rgba(255,214,0,0.1); color: var(--amarillo); }
         .field-label {
             display:block; font-size:9px; letter-spacing:3px;
             color:var(--muted); text-transform:uppercase;
@@ -126,49 +113,55 @@
             resize:none;
         }
         input[type="text"]:focus, textarea:focus, select:focus { border-color:var(--fuego); }
-        textarea { min-height:280px; line-height:1.7; }
-
-        /* ── BOTONES ── */
+        textarea { min-height:240px; line-height:1.7; }
         .btn-fire {
             width:100%; padding:16px; background:var(--fuego); color:#fff; border:none;
             font-family:'Bebas Neue',sans-serif; font-size:18px;
-            letter-spacing:4px; cursor:pointer; transition:background .2s, transform .1s;
-            margin-top:16px; position:relative; overflow:hidden;
+            letter-spacing:4px; cursor:pointer; transition:background .2s;
+            margin-top:16px;
         }
         .btn-fire:hover { background:#FF3300; }
         .btn-fire:disabled { background:#333; color:var(--muted); cursor:not-allowed; }
-
         .btn-sec {
             width:100%; padding:11px; background:transparent; color:var(--crema);
             border:1px solid var(--borde2); font-family:'IBM Plex Mono',monospace; font-size:11px;
             letter-spacing:2px; cursor:pointer; margin-top:8px; text-transform:uppercase;
         }
         .btn-sec:hover { border-color:var(--fuego); color:var(--fuego); }
-
-        /* ── TERMINAL ── */
         .terminal {
             background:#000; border:1px solid var(--borde2); border-top:3px solid var(--fuego);
-            padding:14px; height:160px; overflow-y:auto; font-size:11px; color:#555;
-            white-space:pre-wrap; line-height:1.8;
+            padding:14px; height:170px; overflow-y:auto; font-size:11px; color:#555;
+            white-space:pre-wrap; line-height:1.8; margin-top:14px;
         }
-        .terminal .ok { color:var(--verde); }
-        .terminal .err { color:#FF4444; }
-        .terminal .info { color:var(--azul); }
-
-        /* ── KPIs ── */
-        .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; margin-bottom:24px; }
+        .t-ok  { color:var(--verde); }
+        .t-err { color:#FF4444; }
+        .t-info{ color:var(--azul); }
+        .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; margin-bottom:20px; }
         .kpi { background:var(--panel); border:1px solid var(--borde); padding:18px 14px; }
         .kpi-val { font-family:'Bebas Neue',sans-serif; font-size:42px; color:var(--fuego); line-height:1; }
-        .kpi-label { font-size:9px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; }
-
-        /* ── IMAGEN PREVIEW ── */
-        .img-preview { width:100%; height:160px; object-fit:cover; border:1px solid var(--borde2); margin-top:8px; display:none; }
+        .kpi-label { font-size:9px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+        .img-preview { width:100%; height:150px; object-fit:cover; border:1px solid var(--borde2); margin-top:8px; display:none; }
         .img-preview.visible { display:block; }
-
-        /* ── BARRIOS TAGS ── */
         .barrios-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
         .barrio-tag { padding:4px 10px; font-size:10px; letter-spacing:1px; background:var(--panel); border:1px solid var(--borde2); cursor:pointer; }
         .barrio-tag.sel { background:var(--fuego); border-color:var(--fuego); color:#fff; }
+        .divider { height:1px; background:var(--borde2); margin:16px 0; }
+        .badge-ok  { display:inline-block; padding:3px 8px; font-size:9px; background:rgba(0,229,122,.1); color:var(--verde); border:1px solid rgba(0,229,122,.3); }
+        .badge-err { display:inline-block; padding:3px 8px; font-size:9px; background:rgba(255,68,68,.1); color:#FF4444; border:1px solid rgba(255,68,68,.3); }
+        .top-list { list-style:none; padding:0; }
+        .top-list li { padding:8px 10px; border-bottom:1px solid var(--borde); font-size:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .top-list li:hover { background:var(--panel); }
+        .bar-wrap { display:flex; align-items:center; gap:8px; margin:6px 0; }
+        .bar-label { font-size:10px; width:110px; color:var(--muted); }
+        .bar-track { flex:1; height:6px; background:var(--borde2); }
+        .bar-fill  { height:100%; background:var(--fuego); }
+        .bar-val   { font-size:10px; color:var(--crema); min-width:30px; text-align:right; }
+        .hint-box {
+            font-size:10px; color:var(--muted); line-height:1.8;
+            padding:12px; border:1px solid var(--borde2);
+            background:rgba(255,69,0,.04); margin-top:14px;
+        }
+        .hint-box strong { color:var(--amarillo); }
     </style>
 </head>
 <body>
@@ -191,61 +184,70 @@
     <button class="tab-btn" onclick="setTab('analytics',this)">📊 ANALYTICS</button>
 </div>
 
-<!-- ═══════════════════════════════════════════════════ -->
-<!-- TAB 1: GOOGLE SEARCH CONSOLE (NUEVO V41) -->
-<!-- ═══════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB 1: GOOGLE SEARCH CONSOLE             -->
+<!-- ══════════════════════════════════════════ -->
 <div class="tab-panel active" id="tab-gsc">
     <div class="workspace">
         <div class="panel-left">
-            <div class="slabel">Inteligencia Real de Google Search Console</div>
-            
-            <div id="gsc-resumen" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div class="slabel">Inteligencia Real — Google Search Console (28 días)</div>
+            <div class="kpi-grid">
                 <div class="kpi">
-                    <div class="kpi-val" id="gsc-clics">0</div>
-                    <div class="kpi-label">Clics (28d)</div>
+                    <div class="kpi-val" id="gsc-clics">—</div>
+                    <div class="kpi-label">Clics</div>
                 </div>
                 <div class="kpi">
-                    <div class="kpi-val" id="gsc-imp">0</div>
+                    <div class="kpi-val" id="gsc-imp">—</div>
                     <div class="kpi-label">Impresiones</div>
                 </div>
                 <div class="kpi">
-                    <div class="kpi-val" id="gsc-ctr">0%</div>
-                    <div class="kpi-label">CTR Promedio</div>
+                    <div class="kpi-val" id="gsc-ctr">—</div>
+                    <div class="kpi-label">CTR Prom.</div>
                 </div>
             </div>
 
-            <div class="slabel">🚀 OPORTUNIDADES DE ORO (CTR bajo → Escribe sobre esto)</div>
+            <div class="slabel">🚀 OPORTUNIDADES DE ORO — escribe sobre esto ahora</div>
             <div id="gsc-oportunidades">
-                <div style="color:var(--muted)">Cargando oportunidades...</div>
+                <div style="color:var(--muted);font-size:11px;">Cargando oportunidades...</div>
             </div>
 
-            <div class="slabel" style="margin-top:20px">🏆 FÓRMULAS GANADORAS (CTR Alto)</div>
+            <div class="slabel" style="margin-top:20px;">🏆 FÓRMULAS GANADORAS — CTR alto</div>
             <div id="gsc-ganadoras">
-                <div style="color:var(--muted)">Cargando ganadoras...</div>
+                <div style="color:var(--muted);font-size:11px;">Cargando ganadoras...</div>
+            </div>
+
+            <div class="slabel" style="margin-top:20px;">📈 TOP CONSULTAS</div>
+            <div id="gsc-top">
+                <div style="color:var(--muted);font-size:11px;">Cargando consultas...</div>
             </div>
         </div>
 
         <div class="panel-right">
-            <button class="btn-fire" onclick="syncGSC()">
-                <span class="btn-label">📊 SINCRONIZAR GSC AHORA</span>
-            </button>
-            <div style="margin-top:15px; font-size:10px; color:var(--muted); line-height:1.6">
-                💡 <strong>Estrategia V41:</strong><br>
-                Mira las palabras exactas en "Oportunidades". Si las usas en tu próximo título, Google te subirá de posición automáticamente.
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Estado</div>
+            <div id="gsc-estado" style="font-size:11px;color:var(--muted);margin-bottom:12px;">Sin datos aún</div>
+
+            <button class="btn-fire" onclick="syncGSC()">📊 SINCRONIZAR GSC AHORA</button>
+
+            <div class="hint-box">
+                <strong>💡 ESTRATEGIA V41</strong><br><br>
+                Mira las palabras exactas en "Oportunidades". Si las usas en el próximo título, Google sube tu posición automáticamente.<br><br>
+                CTR 0% → nuevo título con keyword exacta → CTR 10%+
             </div>
+
             <div class="divider"></div>
             <div class="terminal" id="terminal-gsc"></div>
         </div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════ -->
-<!-- TAB 2: IA AUTO -->
-<!-- ═══════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB 2: IA AUTO                           -->
+<!-- ══════════════════════════════════════════ -->
 <div class="tab-panel" id="tab-ia">
     <div class="workspace">
         <div class="panel-left">
-            <div class="slabel">Generación con Contexto GSC + Gemini</div>
+            <div class="slabel">Generación IA con contexto GSC + Gemini</div>
+
             <label class="field-label">Categoría</label>
             <select id="cat-ia">
                 <option value="Nacionales">🏛️ Nacionales — SDE / RD</option>
@@ -255,42 +257,127 @@
                 <option value="Tecnología">💻 Tecnología</option>
                 <option value="Espectáculos">🎬 Espectáculos</option>
             </select>
-            <label class="field-label">Referencia / Comunicado</label>
-            <textarea id="comunicado" placeholder="Pega aquí tu fuente..."></textarea>
+
+            <label class="field-label">Referencia / Comunicado (opcional)</label>
+            <textarea id="comunicado" placeholder="Pega aquí tu fuente, comunicado oficial, o deja vacío para generación libre con keywords GSC..."></textarea>
         </div>
+
         <div class="panel-right">
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Control IA</div>
             <button class="btn-fire" id="btn-ia" onclick="lanzarIA()">⚡ GENERAR CON IA</button>
             <button class="btn-sec" onclick="procesarRSS()">📡 PROCESAR RSS</button>
+
+            <div class="hint-box" style="margin-top:14px;">
+                Gemini recibe las keywords reales de GSC y escribe con ellas en el título. Cada noticia lleva watermark garantizado y se publica en Telegram + Facebook + Twitter.
+            </div>
+
+            <div class="divider"></div>
             <div class="terminal" id="terminal-ia"></div>
         </div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════ -->
-<!-- TAB 3: MANUAL -->
-<!-- ═══════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB 3: MANUAL                            -->
+<!-- ══════════════════════════════════════════ -->
 <div class="tab-panel" id="tab-manual">
     <div class="workspace">
         <div class="panel-left">
+            <div class="slabel">Publicación Manual</div>
+
+            <label class="field-label">Sección</label>
+            <select id="m-seccion">
+                <option value="Nacionales">🏛️ Nacionales</option>
+                <option value="Deportes">⚽ Deportes</option>
+                <option value="Economía">💰 Economía</option>
+                <option value="Internacionales">🌍 Internacionales</option>
+                <option value="Tecnología">💻 Tecnología</option>
+                <option value="Espectáculos">🎬 Espectáculos</option>
+            </select>
+
             <label class="field-label">Titular</label>
-            <input type="text" id="m-titulo" placeholder="Título impactante...">
-            <label class="field-label">Barrios SDE</label>
+            <input type="text" id="m-titulo" placeholder="Título impactante de la noticia...">
+
+            <label class="field-label">Barrios SDE mencionados</label>
             <div class="barrios-tags" id="barrios-tags">
                 <span class="barrio-tag" onclick="toggleBarrio(this)">Los Mina</span>
                 <span class="barrio-tag" onclick="toggleBarrio(this)">Invivienda</span>
                 <span class="barrio-tag" onclick="toggleBarrio(this)">Charles de Gaulle</span>
                 <span class="barrio-tag" onclick="toggleBarrio(this)">Ensanche Ozama</span>
                 <span class="barrio-tag" onclick="toggleBarrio(this)">Sabana Perdida</span>
+                <span class="barrio-tag" onclick="toggleBarrio(this)">Villa Mella</span>
+                <span class="barrio-tag" onclick="toggleBarrio(this)">Carretera Mella</span>
+                <span class="barrio-tag" onclick="toggleBarrio(this)">Los Trinitarios</span>
             </div>
+
+            <label class="field-label">Descripción SEO (160 chars)</label>
+            <input type="text" id="m-desc" maxlength="160" placeholder="Resumen para Google...">
+
+            <label class="field-label">Palabras clave SEO</label>
+            <input type="text" id="m-keywords" placeholder="keyword1, keyword2, keyword3...">
+
             <label class="field-label">Contenido</label>
-            <textarea id="m-contenido" placeholder="Mínimo 400 caracteres..."></textarea>
+            <textarea id="m-contenido" placeholder="Mínimo 400 caracteres. Párrafos cortos. Lenguaje de barrio dominicano..." style="min-height:280px;"></textarea>
         </div>
+
         <div class="panel-right">
-            <label class="field-label">URL Imagen</label>
-            <input type="text" id="m-imagen" oninput="previewImg(this.value)">
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Imagen</div>
+
+            <label class="field-label">URL de imagen</label>
+            <input type="text" id="m-imagen" oninput="previewImg(this.value)" placeholder="https://...jpg o pega base64">
             <img id="img-preview" class="img-preview">
+
+            <label class="field-label">Alt de imagen (SEO)</label>
+            <input type="text" id="m-alt" placeholder="Descripción de la imagen para Google...">
+
+            <label class="field-label">Redactor</label>
+            <input type="text" id="m-redactor" placeholder="Nombre del redactor...">
+
+            <div class="divider"></div>
             <button class="btn-fire" onclick="publicarManual()">📤 PUBLICAR AHORA</button>
+
+            <div class="divider"></div>
             <div class="terminal" id="terminal-manual"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB 4: ANALYTICS                         -->
+<!-- ══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-analytics">
+    <div class="workspace">
+        <div class="panel-left">
+            <div class="slabel">Métricas del sistema</div>
+            <div class="kpi-grid">
+                <div class="kpi"><div class="kpi-val" id="an-total">—</div><div class="kpi-label">Noticias</div></div>
+                <div class="kpi"><div class="kpi-val" id="an-max">—</div><div class="kpi-label">Máx. Vistas</div></div>
+                <div class="kpi"><div class="kpi-val" id="an-prom">—</div><div class="kpi-label">Prom. Vista</div></div>
+            </div>
+
+            <div class="slabel">Rendimiento por categoría</div>
+            <div id="an-categorias"></div>
+
+            <div class="slabel" style="margin-top:20px;">🏆 Top 10 noticias</div>
+            <ul class="top-list" id="an-top"></ul>
+        </div>
+
+        <div class="panel-right">
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Llaves Gemini</div>
+            <div id="an-llaves"></div>
+
+            <div class="divider"></div>
+
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Estado redes sociales</div>
+            <div id="an-social"></div>
+
+            <div class="divider"></div>
+
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Horas pico</div>
+            <div id="an-horas"></div>
+
+            <div class="divider"></div>
+            <button class="btn-sec" onclick="cargarAnalytics()">🔄 ACTUALIZAR MÉTRICAS</button>
         </div>
     </div>
 </div>
@@ -298,102 +385,290 @@
 <script>
     const AUTH = btoa('director:311');
 
+    // Reloj
+    setInterval(() => {
+        document.getElementById('reloj').textContent =
+            new Date().toLocaleTimeString('es-DO', { hour12: false });
+    }, 1000);
+
+    // Tabs
     function setTab(id, btn) {
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('tab-'+id).classList.add('active');
+        document.getElementById('tab-' + id).classList.add('active');
         btn.classList.add('active');
-        if(id === 'gsc') cargarGSC();
+        if (id === 'gsc') cargarGSC();
+        if (id === 'analytics') cargarAnalytics();
     }
 
-    setInterval(() => {
-        document.getElementById('reloj').textContent = new Date().toLocaleTimeString('es-DO',{hour12:false});
-    }, 1000);
-
-    function log(termId, msg, tipo='') {
+    // Terminal logger
+    function log(termId, msg, tipo) {
         const term = document.getElementById(termId);
+        if (!term) return;
         const div = document.createElement('div');
-        div.innerHTML = `<span class="${tipo}">${msg}</span>`;
+        div.innerHTML = '<span class="t-' + (tipo || 'def') + '">' + msg + '</span>';
         term.appendChild(div);
         term.scrollTop = term.scrollHeight;
     }
 
-    // 📊 LÓGICA GSC (V41)
+    // ── GSC ──────────────────────────────────────
     async function cargarGSC() {
+        log('terminal-gsc', '⟳ Consultando Google Search Console...', 'info');
         try {
-            const r = await fetch('/api/gsc/status?pin=311', { headers: { 'Authorization': `Basic ${AUTH}` } });
+            const r = await fetch('/api/gsc/status?pin=311', {
+                headers: { 'Authorization': 'Basic ' + AUTH }
+            });
             const d = await r.json();
-            if(!d.conectado) return log('terminal-gsc', '⚠️ GSC no conectado o sin datos.', 'err');
 
-            document.getElementById('gsc-clics').textContent = d.total_clics;
-            document.getElementById('gsc-imp').textContent = (d.total_impresiones / 1000).toFixed(1) + 'k';
-            document.getElementById('gsc-ctr').textContent = d.ctr_promedio + '%';
+            if (!d.conectado) {
+                document.getElementById('gsc-estado').innerHTML =
+                    '<span class="badge-err">SIN DATOS</span>';
+                log('terminal-gsc', '⚠ GSC sin datos — presiona SINCRONIZAR GSC AHORA', 'err');
+                document.getElementById('gsc-oportunidades').innerHTML =
+                    '<div style="color:var(--muted);font-size:11px;">Sincroniza primero para ver oportunidades</div>';
+                document.getElementById('gsc-ganadoras').innerHTML =
+                    '<div style="color:var(--muted);font-size:11px;">Sin datos</div>';
+                document.getElementById('gsc-top').innerHTML =
+                    '<div style="color:var(--muted);font-size:11px;">Sin datos</div>';
+                return;
+            }
+
+            // KPIs
+            document.getElementById('gsc-clics').textContent = d.total_clics || 0;
+            const imp = d.total_impresiones || 0;
+            document.getElementById('gsc-imp').textContent =
+                imp >= 1000 ? (imp / 1000).toFixed(1) + 'k' : imp;
+            document.getElementById('gsc-ctr').textContent = (d.ctr_promedio || 0) + '%';
+
+            const sync = d.ultima_sync
+                ? new Date(d.ultima_sync).toLocaleTimeString('es-DO', { hour12: false })
+                : '—';
+            document.getElementById('gsc-estado').innerHTML =
+                '<span class="badge-ok">CONECTADO</span> ' +
+                '<span style="color:var(--muted);font-size:10px;">Sync: ' + sync + '</span>';
 
             // Oportunidades
             const oppDiv = document.getElementById('gsc-oportunidades');
-            oppDiv.innerHTML = d.top_oportunidades.map(o => `
-                <div class="gsc-card">
-                    <div class="gsc-query">"${o.query}" <span class="gsc-tag tag-opp">BAJO CTR</span></div>
-                    <div class="gsc-stats">${o.impresiones} búsquedas | pos ${o.posicion} | ${o.ctr}% clics</div>
-                </div>
-            `).join('');
+            if (d.top_oportunidades && d.top_oportunidades.length) {
+                oppDiv.innerHTML = d.top_oportunidades.map(o =>
+                    '<div class="gsc-card" title="Usa esta keyword en tu próximo título">' +
+                    '<div class="gsc-query">"' + o.query + '" <span class="gsc-tag tag-opp">OPORTUNIDAD</span></div>' +
+                    '<div class="gsc-stats">' + o.impresiones + ' búsquedas · pos ' + o.posicion + ' · ' + o.ctr + '% CTR</div>' +
+                    '</div>'
+                ).join('');
+            } else {
+                oppDiv.innerHTML = '<div style="color:var(--muted);font-size:11px;">Sin oportunidades detectadas — buen CTR general</div>';
+            }
 
             // Ganadoras
             const winDiv = document.getElementById('gsc-ganadoras');
-            winDiv.innerHTML = d.top_ganadoras.map(g => `
-                <div class="gsc-card">
-                    <div class="gsc-query">"${g.query}" <span class="gsc-tag tag-win">EXITOSA</span></div>
-                    <div class="gsc-stats">${g.clics} clics | ${g.ctr}% CTR</div>
-                </div>
-            `).join('');
+            if (d.top_ganadoras && d.top_ganadoras.length) {
+                winDiv.innerHTML = d.top_ganadoras.map(g =>
+                    '<div class="gsc-card">' +
+                    '<div class="gsc-query">"' + g.query + '" <span class="gsc-tag tag-win">GANADORA</span></div>' +
+                    '<div class="gsc-stats">' + g.clics + ' clics · ' + g.ctr + '% CTR</div>' +
+                    '</div>'
+                ).join('');
+            } else {
+                winDiv.innerHTML = '<div style="color:var(--muted);font-size:11px;">Aún sin ganadoras (CTR >5%)</div>';
+            }
 
-            log('terminal-gsc', `✅ Datos de Google actualizados (${new Date(d.ultima_sync).toLocaleTimeString()})`, 'ok');
-        } catch(e) { log('terminal-gsc', 'Error GSC: ' + e.message, 'err'); }
+            // Top consultas
+            const topDiv = document.getElementById('gsc-top');
+            if (d.top_consultas && d.top_consultas.length) {
+                topDiv.innerHTML = d.top_consultas.map((c, i) =>
+                    '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--borde);font-size:10px;">' +
+                    '<span style="color:var(--muted);margin-right:8px;">' + (i + 1) + '.</span>' +
+                    '<span style="flex:1;color:var(--crema);">"' + c.query + '"</span>' +
+                    '<span style="color:var(--muted);white-space:nowrap;">' + c.impresiones + ' imp · pos ' + c.posicion + '</span>' +
+                    '</div>'
+                ).join('');
+            } else {
+                topDiv.innerHTML = '<div style="color:var(--muted);font-size:11px;">Sin consultas aún</div>';
+            }
+
+            log('terminal-gsc', '✅ GSC cargado: ' + d.total_clics + ' clics · ' + d.oportunidades_count + ' oportunidades', 'ok');
+
+        } catch (e) {
+            log('terminal-gsc', 'Error: ' + e.message, 'err');
+        }
     }
 
     async function syncGSC() {
         log('terminal-gsc', '🔄 Sincronizando con Google Search Console...', 'info');
         try {
-            const r = await fetch('/api/gsc/sync', { 
-                method: 'POST', 
-                headers: { 'Authorization': `Basic ${AUTH}`, 'Content-Type': 'application/json' },
+            const r = await fetch('/api/gsc/sync', {
+                method: 'POST',
+                headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pin: '311' })
             });
             const d = await r.json();
-            if(d.success) {
-                log('terminal-gsc', '✅ Sincronización exitosa.', 'ok');
-                cargarGSC();
+            if (d.success) {
+                log('terminal-gsc', '✅ Sincronización exitosa', 'ok');
+                setTimeout(cargarGSC, 1000);
             } else {
-                log('terminal-gsc', '❌ Error: ' + d.mensaje, 'err');
+                log('terminal-gsc', '❌ ' + d.mensaje, 'err');
             }
-        } catch(e) { log('terminal-gsc', 'Error: ' + e.message, 'err'); }
+        } catch (e) {
+            log('terminal-gsc', 'Error: ' + e.message, 'err');
+        }
     }
 
+    // ── MANUAL ───────────────────────────────────
     function toggleBarrio(el) { el.classList.toggle('sel'); }
-    function previewImg(url) { 
+
+    function previewImg(url) {
         const img = document.getElementById('img-preview');
-        if(url.startsWith('http')) { img.src = url; img.style.display = 'block'; }
+        if (url.startsWith('http') || url.startsWith('data:')) {
+            img.src = url;
+            img.classList.add('visible');
+        } else {
+            img.classList.remove('visible');
+        }
     }
 
+    async function publicarManual() {
+        const titulo   = document.getElementById('m-titulo').value.trim();
+        const contenido= document.getElementById('m-contenido').value.trim();
+        const seccion  = document.getElementById('m-seccion').value;
+        if (!titulo)           { log('terminal-manual', '❌ Falta el título', 'err'); return; }
+        if (contenido.length < 100) { log('terminal-manual', '❌ Contenido muy corto (mín 100 chars)', 'err'); return; }
+
+        log('terminal-manual', '📤 Publicando noticia manual...', 'info');
+        try {
+            const r = await fetch('/api/publicar', {
+                method: 'POST',
+                headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pin: '311', titulo, seccion, contenido,
+                    imagen:          document.getElementById('m-imagen').value,
+                    imagen_alt:      document.getElementById('m-alt').value,
+                    seo_description: document.getElementById('m-desc').value,
+                    seo_keywords:    document.getElementById('m-keywords').value,
+                    redactor:        document.getElementById('m-redactor').value,
+                })
+            });
+            const d = await r.json();
+            if (d.success) {
+                log('terminal-manual', '✅ Publicada → /noticia/' + d.slug, 'ok');
+                document.getElementById('m-titulo').value = '';
+                document.getElementById('m-contenido').value = '';
+                document.getElementById('m-desc').value = '';
+            } else {
+                log('terminal-manual', '❌ ' + d.error, 'err');
+            }
+        } catch (e) {
+            log('terminal-manual', 'Error: ' + e.message, 'err');
+        }
+    }
+
+    // ── IA AUTO ──────────────────────────────────
     async function lanzarIA() {
         const btn = document.getElementById('btn-ia');
         btn.disabled = true;
-        log('terminal-ia', '🚀 Generando noticia con contexto GSC...', 'info');
+        btn.textContent = '⏳ GENERANDO...';
+        log('terminal-ia', '🚀 Enviando a Gemini con contexto GSC...', 'info');
         try {
             const r = await fetch('/api/generar-noticia', {
                 method: 'POST',
-                headers: { 'Authorization': `Basic ${AUTH}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ categoria: document.getElementById('cat-ia').value, comunicado: document.getElementById('comunicado').value })
+                headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    categoria:  document.getElementById('cat-ia').value,
+                    comunicado: document.getElementById('comunicado').value
+                })
             });
             const d = await r.json();
-            if(d.success) log('terminal-ia', `✅ Publicada: ${d.titulo}`, 'ok');
-            else log('terminal-ia', `❌ Error: ${d.error}`, 'err');
-        } catch(e) { log('terminal-ia', 'Error conexión', 'err'); }
+            if (d.success) {
+                log('terminal-ia', '✅ Publicada: ' + d.titulo, 'ok');
+                log('terminal-ia', '→ /noticia/' + d.slug, 'ok');
+                if (d.ab) log('terminal-ia', '🎰 A/B: elegido "' + d.ab.elegido + '"', 'info');
+            } else {
+                log('terminal-ia', '❌ Error: ' + d.error, 'err');
+            }
+        } catch (e) {
+            log('terminal-ia', 'Error conexión: ' + e.message, 'err');
+        }
         btn.disabled = false;
+        btn.textContent = '⚡ GENERAR CON IA';
     }
 
-    // Carga inicial
-    setTimeout(cargarGSC, 1000);
+    async function procesarRSS() {
+        log('terminal-ia', '📡 Procesando fuentes RSS...', 'info');
+        try {
+            const r = await fetch('/api/procesar-rss', {
+                method: 'POST',
+                headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: '311' })
+            });
+            const d = await r.json();
+            log('terminal-ia', d.success ? '✅ RSS iniciado en background' : '❌ Error RSS', d.success ? 'ok' : 'err');
+        } catch (e) {
+            log('terminal-ia', 'Error: ' + e.message, 'err');
+        }
+    }
+
+    // ── ANALYTICS ────────────────────────────────
+    async function cargarAnalytics() {
+        try {
+            const r = await fetch('/api/metricas?pin=311', {
+                headers: { 'Authorization': 'Basic ' + AUTH }
+            });
+            const d = await r.json();
+            if (!d.success) return;
+
+            const res = d.resumen || {};
+            document.getElementById('an-total').textContent = res.t || 0;
+            document.getElementById('an-max').textContent   = res.mx || 0;
+            document.getElementById('an-prom').textContent  = res.p || 0;
+
+            // Barras por categoría
+            const maxP = Math.max(...(d.por_categoria || []).map(c => parseInt(c.p) || 0), 1);
+            document.getElementById('an-categorias').innerHTML =
+                (d.por_categoria || []).map(c =>
+                    '<div class="bar-wrap">' +
+                    '<span class="bar-label">' + c.seccion + '</span>' +
+                    '<div class="bar-track"><div class="bar-fill" style="width:' +
+                    Math.round((parseInt(c.p) || 0) / maxP * 100) + '%"></div></div>' +
+                    '<span class="bar-val">' + c.p + '</span>' +
+                    '</div>'
+                ).join('');
+
+            // Top noticias
+            document.getElementById('an-top').innerHTML =
+                (d.top_noticias || []).map((n, i) =>
+                    '<li>' +
+                    '<span style="color:var(--fuego);min-width:18px;">' + (i + 1) + '</span>' +
+                    '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + n.titulo + '</span>' +
+                    '<span class="badge-ok" style="white-space:nowrap;">' + n.vistas + ' vistas</span>' +
+                    '</li>'
+                ).join('');
+
+            // Llaves Gemini
+            document.getElementById('an-llaves').innerHTML =
+                (d.gemini_keys || []).map(k =>
+                    '<div style="display:flex;justify-content:space-between;font-size:10px;padding:5px 0;border-bottom:1px solid var(--borde);">' +
+                    '<span>' + k.llave + '</span>' +
+                    '<span class="' + (k.disponible ? 'badge-ok' : 'badge-err') + '">' +
+                    (k.disponible ? 'OK' : 'RATE LIMIT') + '</span>' +
+                    '<span style="color:var(--muted);">' + k.exitos + '✓ ' + k.errores + '✗</span>' +
+                    '</div>'
+                ).join('');
+
+            // Horas pico
+            document.getElementById('an-horas').innerHTML =
+                (d.horas_pico || []).map((h, i) =>
+                    '<div style="font-size:10px;padding:4px 0;color:' + (i === 0 ? 'var(--verde)' : 'var(--muted)') + ';">' +
+                    (i === 0 ? '⭐ ' : '') + h.h + ':00 — ' + h.p + ' vistas prom.' +
+                    '</div>'
+                ).join('');
+
+        } catch (e) {
+            console.error('Analytics error:', e);
+        }
+    }
+
+    // Carga inicial GSC
+    setTimeout(cargarGSC, 800);
 </script>
 </body>
 </html>
