@@ -178,7 +178,7 @@ async function consultarGSC(body) {
     const token = await getGSCToken();
     if (!token) return null;
     try {
-        const site = encodeURIComponent('sc-domain:elfarolaldia.com');
+        const site = encodeURIComponent('https://elfarolaldia.com/');
         const res  = await fetch(
             `https://searchconsole.googleapis.com/webmasters/v3/sites/${site}/searchAnalytics/query`,
             {
