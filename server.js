@@ -1005,7 +1005,7 @@ async function detectarPersona(titulo, contenido) {
     return null;
 }
 
-function extraerQueriesCoherentes(titulo, contenido, categoria) {
+async function extraerQueriesCoherentes(titulo, contenido, categoria) {
     const texto  = `${titulo} ${(contenido||'').substring(0,600)}`.toLowerCase();
     const queries = [];
 
