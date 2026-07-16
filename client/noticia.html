@@ -54,6 +54,21 @@ h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,50px);letter-spa
 .contenido p:first-child{font-size:18px;color:var(--crema);font-weight:600;line-height:1.65}
 .contenido a{color:var(--fuego);text-decoration:underline}
 
+/* TTS PLAYER */
+.tts-player{margin:0 0 24px;display:flex;align-items:center;gap:10px}
+.tts-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(255,85,0,.1);border:1px solid rgba(255,85,0,.35);color:var(--fuego);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;padding:10px 18px;border-radius:6px;cursor:pointer;transition:all .2s}
+.tts-btn:hover{background:rgba(255,85,0,.2);border-color:var(--fuego)}
+.tts-btn.playing{background:rgba(255,85,0,.25);border-color:var(--fuego)}
+.tts-icon{font-size:16px}
+.tts-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+
+/* LEDGER BADGE */
+.ledger-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:8px 14px;margin:20px 0 0;cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(34,197,94,.8)}
+.ledger-badge:hover{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4)}
+.ledger-icon{font-size:14px}
+.ledger-text code{font-family:'JetBrains Mono',monospace;opacity:.8}
+.ledger-fecha{margin-left:6px;opacity:.6}
+
 /* ADSENSE EN ARTÍCULO */
 .ad-articulo{margin:28px 0;text-align:center}
 .ad-label-small{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
@@ -210,7 +225,9 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
         <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
       </div>
 
+      {{TTS_PLAYER}}
       <div class="contenido">{{CONTENIDO}}</div>
+      {{LEDGER_BADGE}}
 
       <div class="compartir">
         <h3>📢 COMPARTIR ESTA NOTICIA</h3>
@@ -364,6 +381,50 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 const SLUG = window.location.pathname.split('/noticia/')[1] || '';
 let NOTICIA_ID   = null;
 let todasNoticias = [];
+
+// ============================================================
+// TTS PLAYER
+// ============================================================
+function toggleAudio() {
+    const audio = document.getElementById('ttsAudio');
+    const btn   = document.getElementById('ttsBtn');
+    const icon  = btn.querySelector('.tts-icon');
+    const label = btn.querySelector('.tts-label');
+    const load  = btn.querySelector('.tts-loading');
+    if (!audio) return;
+    if (audio.paused) {
+        if (!audio.src || audio.readyState === 0) {
+            icon.style.display = 'none';
+            label.style.display = 'none';
+            load.style.display = 'inline';
+            audio.load();
+        }
+        audio.play().then(() => {
+            icon.style.display = '';
+            label.style.display = '';
+            load.style.display = 'none';
+            icon.textContent = '⏸️';
+            label.textContent = 'Pausar';
+            btn.classList.add('playing');
+        }).catch(() => {
+            icon.style.display = '';
+            label.style.display = '';
+            load.style.display = 'none';
+            icon.textContent = '🎙️';
+            label.textContent = 'Audio no disponible';
+        });
+    } else {
+        audio.pause();
+        icon.textContent = '🎙️';
+        label.textContent = 'Escuchar noticia';
+        btn.classList.remove('playing');
+    }
+    audio.onended = () => {
+        icon.textContent = '🔁';
+        label.textContent = 'Reproducir de nuevo';
+        btn.classList.remove('playing');
+    };
+}
 
 // ============================================================
 // SIDEBAR MOBILE

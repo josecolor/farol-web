@@ -22,6 +22,7 @@ const { Pool }  = require('pg');
 const sharp     = require('sharp');
 const RSSParser = require('rss-parser');
 const crypto    = require('crypto');
+const ledger    = require('./ledger');
 const webPush   = require('web-push');
 
 const { leerEstrategia }   = require('./estrategia-loader');
@@ -556,10 +557,22 @@ async function bienvenidaTelegram() {
 // ══════════════════════════════════════════════════════════
 const CONFIG_IA_DEFAULT = {
     enabled: true,
-    instruccion_principal: 'Eres un periodista dominicano del barrio, directo y sin rodeos. Escribes para el lector de Los Mina, Invivienda, Charles de Gaulle y todo Santo Domingo Este. Párrafos cortos. Lenguaje real de la calle. Cero relleno.',
-    tono: 'directo-barrio', extension: 'extensa',
-    enfasis: 'Prioriza Santo Domingo Este: Los Mina, Invivienda, Ensanche Ozama, Sabana Perdida, Villa Mella, Charles de Gaulle. Conecta todo con el lector de SDE.',
-    evitar: 'Párrafos largos. Lenguaje técnico. Especulación. Repetir noticias publicadas. Copiar Wikipedia. Empezar con "En el día de hoy".',
+    instruccion_principal: `Eres el cronista de la calle de Santo Domingo Este. Escribes para la gente real: el que vende en el colmado de Los Mina, la señora que espera el carro público en Charles de Gaulle, el joven de Invivienda que se entera de todo por el celular.
+
+Tu voz es directa, caliente, con sabor dominicano auténtico — sin ser vulgar y sin perder credibilidad. Cada noticia debe sentirse como si te la estuviera contando un vecino del barrio que sabe lo que pasó.
+
+REGLAS DE VOZ:
+- Párrafos de 2-3 líneas máximo. El lector está en el teléfono parado en una esquina.
+- Primera línea: gancho que deja la boca abierta. Sin rodeos. Entra al hecho de una.
+- Usa expresiones reales del SDE: "se armó el show", "la gente no lo creía", "aquello se puso color de hormiga", "salió corriendo como bala", "todo el barrio hablaba de eso", "fue un vacilón total", "la movida no era pa' menos", "se formó el rollo", "que si se armó el tato".
+- Los títulos deben enganchar como los mejores titulares urbanos: directos, con garra, con un dato que no puedes ignorar. Usa números reales, nombres, lugares específicos.
+- Cita fuentes del barrio: "Un vecino del sector que prefirió no dar su nombre", "fuentes cercanas a la situación", "según se supo de buena tinta", "así lo confirmaron en el sector".
+- Nada de párrafos académicos. Nada de "en este contexto". Nada de "cabe destacar que". Nada de "es importante mencionar".
+- Conecta cada noticia con cómo le afecta al lector de SDE. Hazlo personal. Hazlo real.
+- Cuando hay drama, cuéntalo. Cuando hay logro, celébr alo. Cuando hay injusticia, nómbrala.`,
+    tono: 'calle-sde-dominicano', extension: 'extensa',
+    enfasis: 'Prioriza Santo Domingo Este: Los Mina, Invivienda, Ensanche Ozama, Sabana Perdida, Villa Mella, Charles de Gaulle, Los Trinitarios, Carretera Mella. Conecta todo con la vida real del lector de SDE. Que la gente sienta que alguien del barrio se los está contando.',
+    evitar: 'Párrafos largos. Lenguaje corporativo o técnico. Especulación sin fuente. Repetir noticias ya publicadas. Copiar Wikipedia textual. Empezar con "En el día de hoy" o "Cabe mencionar" o "Es importante". Sonar como nota de prensa oficial. Usar palabras como "paradigma", "sinergia", "robusto", "en aras de".',
 };
 let CONFIG_IA = { ...CONFIG_IA_DEFAULT };
 
@@ -967,16 +980,28 @@ const PERSONAS_RD = {
 
 // Detecta si el título/contenido menciona una persona conocida
 // y devuelve el query específico de Wikipedia/foto pública
-function detectarPersona(titulo, contenido) {
+async function detectarPersona(titulo, contenido) {
     const texto = `${titulo} ${(contenido||'').substring(0,300)}`.toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // 1. Buscar primero en hardcoded PERSONAS_RD
     for (const [nombre, query] of Object.entries(PERSONAS_RD)) {
         const nombreNorm = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         if (texto.includes(nombreNorm)) {
-            console.log(`   🧑 Persona detectada: "${nombre}" → "${query}"`);
+            console.log(`   🧑 Persona detectada (hardcode): "${nombre}" → "${query}"`);
             return query;
         }
     }
+    // 2. Buscar en BD personas_publicas (las agregadas desde /redaccion)
+    try {
+        const r = await pool.query('SELECT nombre_lower,query_foto FROM personas_publicas WHERE activo=true');
+        for (const row of r.rows) {
+            const nombreNorm = row.nombre_lower.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (texto.includes(nombreNorm)) {
+                console.log(`   🧑 Persona detectada (BD): "${row.nombre_lower}" → "${row.query_foto}"`);
+                return row.query_foto;
+            }
+        }
+    } catch {}
     return null;
 }
 
@@ -985,7 +1010,7 @@ function extraerQueriesCoherentes(titulo, contenido, categoria) {
     const queries = [];
 
     // ── PRIORIDAD 1: Persona conocida (David Ortiz, Abinader, Trump…) ──
-    const queryPersona = detectarPersona(titulo, contenido);
+    const queryPersona = await detectarPersona(titulo, contenido);
     if (queryPersona) queries.unshift(queryPersona);
 
     // ── PRIORIDAD 2: Barrio SDE ────────────────────────────────────────
@@ -1190,7 +1215,7 @@ async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) 
     // ── PRIORIDAD 0: Wikipedia para personas conocidas ──────────────
     // Si el título menciona a David Ortiz, Abinader, Trump, etc.
     // buscamos directamente su foto en Wikipedia (libre, precisa, sin stock)
-    const queryPersona = detectarPersona(titulo, contenido);
+    const queryPersona = await detectarPersona(titulo, contenido);
     if (queryPersona) {
         // Extraer el nombre de la persona del query (primeras 2-3 palabras)
         const nombreWiki = queryPersona.split(' ').slice(0,3).join(' ');
@@ -1324,10 +1349,13 @@ SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
    Sabana Perdida, Villa Mella, El Almirante, Carretera Mella,
    Sabana Larga, Av. Venezuela, Entrada de las Palmas, Los Trinitarios
 
-4️⃣  LENGUAJE DOMINICANO:
+4️⃣  LENGUAJE DOMINICANO (mezcla estas naturalmente, no todas juntas):
    "se armó el avispero", "la gente está en grito", "se supo de buena fuente",
    "según los vecinos del sector", "fue confirmado", "los residentes dicen",
-   "en el barrio se habla", "trascendió que", "se conoció que"
+   "en el barrio se habla", "trascendió que", "se conoció que",
+   "se formó el rollo", "aquello se puso color de hormiga", "todo el mundo habla de eso",
+   "nadie lo podía creer", "se armó el show", "la movida no era pa' menos",
+   "se supo de buena tinta", "así lo confirmaron en el sector", "que si se armó el tato"
 
 5️⃣  PÁRRAFOS CORTOS: Máximo 3 líneas. El lector usa celular.
 
@@ -1480,10 +1508,12 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         const existe = await pool.query('SELECT id FROM noticias WHERE slug=$1',[slugBase]);
         const slFin  = existe.rows.length?`${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}`:slugBase;
 
+        const cert = ledger.certificar({titulo, contenido, seccion: categoria, fecha: new Date()});
         await pool.query(
-            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
-            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada']
+            'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado,ledger_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)',
+            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada',cert.hash]
         );
+        console.log(`   🔐 Ledger: ${ledger.hashCorto(cert.hash)}`);
 
         const durTotal = Math.round((Date.now()-inicio)/1000);
         console.log(`\n✅ [V41] Publicada → /noticia/${slFin} (${durTotal}s) | GSC:✅ | WM:${imgResult.procesada?'✅':'⚠️'}`);
@@ -1650,6 +1680,9 @@ async function inicializarBase() {
         const cp = await client.query('SELECT COUNT(*) FROM publicidad');
         if (parseInt(cp.rows[0].count)===0) await client.query(`INSERT INTO publicidad(nombre_espacio,ubicacion,activo) VALUES('Banner Top','top',false),('Banner Sidebar','sidebar',false),('Banner Medio','medio',false),('Banner Footer','footer',false)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_fts ON noticias USING gin(to_tsvector('spanish',COALESCE(contenido,'')))`).catch(()=>{});
+        await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='ledger_hash') THEN ALTER TABLE noticias ADD COLUMN ledger_hash VARCHAR(64); END IF; END$$;`).catch(()=>{});
+        await client.query(`CREATE TABLE IF NOT EXISTS personas_publicas(id SERIAL PRIMARY KEY,nombre VARCHAR(200) NOT NULL,nombre_lower VARCHAR(200) NOT NULL UNIQUE,query_foto TEXT NOT NULL,categoria VARCHAR(100) DEFAULT 'general',activo BOOLEAN DEFAULT true,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_personas_nombre ON personas_publicas(nombre_lower)`).catch(()=>{});
         console.log('✅ BD lista V41');
     } catch(e) { console.error('❌ BD:', e.message); }
     finally { client.release(); }
@@ -1659,6 +1692,51 @@ async function inicializarBase() {
 // ══════════════════════════════════════════════════════════
 // RUTAS API
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// 🧑 API PERSONAS PÚBLICAS — CRUD sin tocar código
+// ══════════════════════════════════════════════════════════
+app.get('/api/personas', authMiddleware, async (req,res) => {
+    try {
+        const r = await pool.query('SELECT id,nombre,query_foto,categoria,activo,fecha FROM personas_publicas ORDER BY nombre ASC');
+        res.json({success:true, personas: r.rows});
+    } catch(e) { res.status(500).json({success:false, error:e.message}); }
+});
+
+app.post('/api/personas', authMiddleware, async (req,res) => {
+    const {nombre, query_foto, categoria='general'} = req.body;
+    if (!nombre || !query_foto) return res.status(400).json({success:false, error:'Nombre y query_foto son obligatorios'});
+    const nombre_lower = nombre.toLowerCase().trim();
+    try {
+        const r = await pool.query(
+            'INSERT INTO personas_publicas(nombre,nombre_lower,query_foto,categoria) VALUES($1,$2,$3,$4) ON CONFLICT(nombre_lower) DO UPDATE SET query_foto=$3,categoria=$4,activo=true RETURNING *',
+            [nombre.trim(), nombre_lower, query_foto.trim(), categoria]
+        );
+        res.json({success:true, persona: r.rows[0]});
+    } catch(e) { res.status(500).json({success:false, error:e.message}); }
+});
+
+app.delete('/api/personas/:id', authMiddleware, async (req,res) => {
+    try {
+        await pool.query('DELETE FROM personas_publicas WHERE id=$1', [req.params.id]);
+        res.json({success:true});
+    } catch(e) { res.status(500).json({success:false, error:e.message}); }
+});
+
+app.patch('/api/personas/:id', authMiddleware, async (req,res) => {
+    const {nombre, query_foto, categoria, activo} = req.body;
+    try {
+        const sets = []; const vals = []; let i = 1;
+        if (nombre !== undefined) { sets.push(`nombre=$${i++}`, `nombre_lower=$${i++}`); vals.push(nombre.trim(), nombre.toLowerCase().trim()); }
+        if (query_foto !== undefined) { sets.push(`query_foto=$${i++}`); vals.push(query_foto.trim()); }
+        if (categoria !== undefined) { sets.push(`categoria=$${i++}`); vals.push(categoria); }
+        if (activo !== undefined) { sets.push(`activo=$${i++}`); vals.push(activo); }
+        if (!sets.length) return res.status(400).json({success:false, error:'Nada que actualizar'});
+        vals.push(req.params.id);
+        await pool.query(`UPDATE personas_publicas SET ${sets.join(',')} WHERE id=$${i}`, vals);
+        res.json({success:true});
+    } catch(e) { res.status(500).json({success:false, error:e.message}); }
+});
+
 app.get('/health', (req,res) => res.json({status:'OK',version:'41.0',gemini_keys:TODAS_LLAVES_GEMINI.length,gsc:'integrado',watermark:'garantizado'}));
 
 app.get('/api/noticias', async (req,res) => {
@@ -1974,17 +2052,58 @@ app.get('/noticia/:slug', async (req,res) => {
             let html=fs.readFileSync(path.join(__dirname,'client','noticia.html'),'utf8');
             const urlN=`${BASE_URL}/noticia/${n.slug}`;
             const cHTML=n.contenido.split('\n').filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join('');
+            // TTS player block (si hay audio o se puede generar bajo demanda)
+            const audioSrc = n.audio_url || `${BASE_URL}/api/tts/${n.slug}`;
+            const ttsPlayer = `<div class="tts-player" id="ttsPlayer">
+  <button class="tts-btn" onclick="toggleAudio()" id="ttsBtn" aria-label="Escuchar noticia">
+    <span class="tts-icon">🎙️</span>
+    <span class="tts-label">Escuchar noticia</span>
+    <span class="tts-loading" style="display:none">⏳ Cargando…</span>
+  </button>
+  <audio id="ttsAudio" preload="none" style="display:none">
+    <source src="${audioSrc}" type="audio/mpeg">
+  </audio>
+</div>`;
+            // Ledger badge (si tiene hash)
+            const ledgerBadge = n.ledger_hash
+                ? ledger.badgeCertificacion(n.ledger_hash, n.fecha)
+                : '';
             html=html.replace('<!-- META_TAGS -->',metaTagsCompletos(n,urlN))
                 .replace(/{{TITULO}}/g,esc(n.titulo)).replace(/{{CONTENIDO}}/g,cHTML)
                 .replace(/{{FECHA}}/g,new Date(n.fecha).toLocaleDateString('es-DO',{year:'numeric',month:'long',day:'numeric'}))
                 .replace(/{{IMAGEN}}/g,n.imagen).replace(/{{ALT}}/g,esc(n.imagen_alt||n.titulo))
                 .replace(/{{VISTAS}}/g,n.vistas).replace(/{{REDACTOR}}/g,esc(n.redactor))
-                .replace(/{{SECCION}}/g,esc(n.seccion)).replace(/{{URL}}/g,encodeURIComponent(urlN));
+                .replace(/{{SECCION}}/g,esc(n.seccion)).replace(/{{URL}}/g,encodeURIComponent(urlN))
+                .replace('{{TTS_PLAYER}}', ttsPlayer)
+                .replace('{{LEDGER_BADGE}}', ledgerBadge);
             res.setHeader('Content-Type','text/html;charset=utf-8');
             res.setHeader('Cache-Control','public,max-age=300');
             res.send(html);
         } catch { res.json({success:true,noticia:n}); }
     } catch { res.status(500).send('Error interno'); }
+});
+
+// ══════════════════════════════════════════════════════════
+// 🎙️ TTS ON-DEMAND — Audio de noticia via Gemini TTS o ElevenLabs
+// ══════════════════════════════════════════════════════════
+app.get('/api/tts/:slug', async (req,res) => {
+    try {
+        const r = await pool.query("SELECT titulo,contenido,audio_url FROM noticias WHERE slug=$1 AND estado='publicada'",[req.params.slug]);
+        if (!r.rows.length) return res.status(404).json({error:'Noticia no encontrada'});
+        const n = r.rows[0];
+        // Si ya tiene audio en BD, redirigir
+        if (n.audio_url) return res.redirect(n.audio_url);
+        // Generar audio usando ElevenLabs (si está configurado)
+        const primerParr = (n.contenido||'').split('\n').find(p=>p.trim().length>50)||'';
+        const audioNombre = await generarAudioNoticia(n.titulo, primerParr).catch(()=>null);
+        if (!audioNombre) return res.status(503).json({error:'TTS no disponible en este momento'});
+        const ruta = path.join('/tmp', audioNombre);
+        if (!fs.existsSync(ruta)) return res.status(404).json({error:'Audio no encontrado'});
+        res.setHeader('Content-Type','audio/mpeg');
+        res.setHeader('Cache-Control','public,max-age=86400');
+        res.setHeader('Content-Disposition',`inline; filename="${audioNombre}"`);
+        fs.createReadStream(ruta).pipe(res);
+    } catch(e) { res.status(500).json({error:e.message}); }
 });
 
 app.get('/sitemap.xml', async (req,res) => {

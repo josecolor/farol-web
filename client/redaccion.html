@@ -105,14 +105,14 @@
             color:var(--muted); text-transform:uppercase;
             margin-bottom:8px; margin-top:16px;
         }
-        input[type="text"], textarea, select {
+        input[type="text"], textarea, select, .input-field {
             width:100%; padding:12px 14px; background:var(--panel);
             border:1px solid var(--borde2); color:var(--crema);
             outline:none; font-family:'IBM Plex Mono',monospace;
             font-size:12px; appearance:none; transition:border-color .2s;
             resize:none;
         }
-        input[type="text"]:focus, textarea:focus, select:focus { border-color:var(--fuego); }
+        input[type="text"]:focus, textarea:focus, select:focus, .input-field:focus { border-color:var(--fuego); }
         textarea { min-height:240px; line-height:1.7; }
         .btn-fire {
             width:100%; padding:16px; background:var(--fuego); color:#fff; border:none;
@@ -182,6 +182,7 @@
     <button class="tab-btn" onclick="setTab('ia',this)">⚡ IA AUTO</button>
     <button class="tab-btn" onclick="setTab('manual',this)">✏️ MANUAL</button>
     <button class="tab-btn" onclick="setTab('analytics',this)">📊 ANALYTICS</button>
+    <button class="tab-btn" onclick="setTab('personas',this)">🧑 PERSONAS</button>
 </div>
 
 <!-- ══════════════════════════════════════════ -->
@@ -382,7 +383,44 @@
     </div>
 </div>
 
-<script>
+<!-- ══════════════════════════════════════════ -->
+<!-- TAB 5: PERSONAS PÚBLICAS                  -->
+<!-- ══════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-personas">
+    <div class="workspace">
+        <div class="panel-left">
+            <div class="slabel">Agregar figura pública nueva</div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+                <input id="per-nombre" class="input-field" type="text" placeholder="Nombre completo (ej: Pedro García)" autocomplete="off">
+                <input id="per-query" class="input-field" type="text" placeholder="Query de foto Wikipedia (ej: Pedro Garcia Dominican Republic politician)" autocomplete="off">
+                <select id="per-cat" class="input-field" style="background:var(--papel);color:var(--crema);">
+                    <option value="politica">Política</option>
+                    <option value="deporte">Deporte</option>
+                    <option value="musica">Música / Espectáculos</option>
+                    <option value="negocios">Negocios</option>
+                    <option value="internacional">Internacional</option>
+                    <option value="general" selected>General</option>
+                </select>
+                <button class="btn-prim" onclick="agregarPersona()">➕ AGREGAR PERSONA</button>
+            </div>
+            <div id="per-msg" style="font-family:monospace;font-size:12px;margin-bottom:14px;"></div>
+
+            <div class="slabel">Figuras registradas (<span id="per-count">0</span>)</div>
+            <div id="per-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div class="panel-right">
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;">¿Cómo funciona?</div>
+            <p style="font-size:12px;color:var(--crema2);line-height:1.7;margin-bottom:14px;">
+                Cada vez que Gemini genera una noticia que mencione el nombre de esta persona, el sistema busca automáticamente su foto en Wikipedia para ilustrar la noticia.<br><br>
+                <strong style="color:var(--fuego)">Nombre:</strong> Escribe el nombre como aparecería en el texto de la noticia.<br><br>
+                <strong style="color:var(--fuego)">Query de foto:</strong> Palabras en inglés para buscar la foto correcta. Ej: <code style="font-size:10px;opacity:.8">Luis Abinader Dominican Republic president podium</code>
+            </p>
+            <div class="divider"></div>
+            <button class="btn-sec" onclick="cargarPersonas()">🔄 REFRESCAR LISTA</button>
+        </div>
+    </div>
+</div>
     const AUTH = btoa('director:311');
 
     // Reloj
@@ -399,6 +437,7 @@
         btn.classList.add('active');
         if (id === 'gsc') cargarGSC();
         if (id === 'analytics') cargarAnalytics();
+        if (id === 'personas') cargarPersonas();
     }
 
     // Terminal logger
@@ -665,6 +704,80 @@
         } catch (e) {
             console.error('Analytics error:', e);
         }
+    }
+
+    // ══════════════════════════════════════════
+    // PERSONAS PÚBLICAS
+    // ══════════════════════════════════════════
+    const CAT_LABELS = {politica:'Política',deporte:'Deporte',musica:'Música',negocios:'Negocios',internacional:'Internacional',general:'General'};
+
+    async function cargarPersonas() {
+        const lista = document.getElementById('per-lista');
+        const count = document.getElementById('per-count');
+        lista.innerHTML = '<div style="color:var(--muted);font-size:12px;">Cargando…</div>';
+        try {
+            const r = await fetch('/api/personas', { headers: { Authorization: 'Basic ' + AUTH } });
+            const d = await r.json();
+            count.textContent = d.personas.length;
+            if (!d.personas.length) {
+                lista.innerHTML = '<div style="color:var(--muted);font-size:12px;">No hay personas registradas aún.</div>';
+                return;
+            }
+            lista.innerHTML = d.personas.map(p => `
+<div style="background:var(--papel);border:1px solid var(--borde);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--crema);letter-spacing:1px;">${p.nombre}</span>
+    <span style="font-family:monospace;font-size:10px;background:rgba(255,85,0,.12);color:var(--fuego);padding:2px 8px;border-radius:3px;">${CAT_LABELS[p.categoria]||p.categoria}</span>
+  </div>
+  <div style="font-family:monospace;font-size:11px;color:var(--muted);word-break:break-all;">${p.query_foto}</div>
+  <div style="display:flex;gap:8px;margin-top:4px;">
+    <button onclick="togglePersona(${p.id},${!p.activo})" style="font-family:monospace;font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid var(--borde);background:transparent;color:${p.activo?'var(--verde)':'var(--muted)'};cursor:pointer;">${p.activo?'✅ Activa':'⏸ Inactiva'}</button>
+    <button onclick="eliminarPersona(${p.id},'${p.nombre.replace(/'/g,"\\'")}')" style="font-family:monospace;font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid rgba(255,50,50,.3);background:transparent;color:rgba(255,80,80,.8);cursor:pointer;">🗑 Eliminar</button>
+  </div>
+</div>`).join('');
+        } catch(e) {
+            lista.innerHTML = `<div style="color:red;font-size:12px;">Error: ${e.message}</div>`;
+        }
+    }
+
+    async function agregarPersona() {
+        const nombre    = document.getElementById('per-nombre').value.trim();
+        const query_foto= document.getElementById('per-query').value.trim();
+        const categoria = document.getElementById('per-cat').value;
+        const msg       = document.getElementById('per-msg');
+        if (!nombre || !query_foto) { msg.style.color='var(--fuego)'; msg.textContent='⚠ Completa nombre y query de foto.'; return; }
+        msg.style.color='var(--crema2)'; msg.textContent='Guardando…';
+        try {
+            const r = await fetch('/api/personas', {
+                method:'POST', headers:{'Content-Type':'application/json','Authorization':'Basic '+AUTH},
+                body: JSON.stringify({nombre, query_foto, categoria})
+            });
+            const d = await r.json();
+            if (d.success) {
+                msg.style.color='var(--verde)'; msg.textContent=`✅ "${nombre}" guardada correctamente.`;
+                document.getElementById('per-nombre').value='';
+                document.getElementById('per-query').value='';
+                cargarPersonas();
+            } else { msg.style.color='var(--fuego)'; msg.textContent='❌ '+d.error; }
+        } catch(e) { msg.style.color='var(--fuego)'; msg.textContent='❌ '+e.message; }
+    }
+
+    async function eliminarPersona(id, nombre) {
+        if (!confirm(`¿Eliminar a "${nombre}"? Esta acción no se puede deshacer.`)) return;
+        try {
+            await fetch(`/api/personas/${id}`, { method:'DELETE', headers:{Authorization:'Basic '+AUTH} });
+            cargarPersonas();
+        } catch(e) { alert('Error: '+e.message); }
+    }
+
+    async function togglePersona(id, nuevoActivo) {
+        try {
+            await fetch(`/api/personas/${id}`, {
+                method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Basic '+AUTH},
+                body: JSON.stringify({activo: nuevoActivo})
+            });
+            cargarPersonas();
+        } catch(e) { alert('Error: '+e.message); }
     }
 
     // Carga inicial GSC
