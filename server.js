@@ -739,6 +739,63 @@ async function buscarContextoWikipedia(categoria) {
     } catch { return ''; }
 }
 
+
+// ══════════════════════════════════════════════════════════
+// 📸 IMAGEN DESDE WIKIPEDIA — fotos libres de figuras públicas
+//    Busca la foto del artículo de Wikipedia de la persona
+//    Funciona para: David Ortiz, Abinader, Alfredo Pacheco,
+//    Kamala Harris, Trump, Romeo Santos, etc.
+// ══════════════════════════════════════════════════════════
+async function buscarImagenWikipedia(nombrePersona) {
+    try {
+        // Paso 1: buscar el artículo en Wikipedia (español primero, inglés si falla)
+        const idiomas = ['es', 'en'];
+        let pageTitle = null, lang = 'es';
+
+        for (const idioma of idiomas) {
+            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(), 6000);
+            const res = await fetch(
+                `https://${idioma}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(nombrePersona)}&format=json&srlimit=1&origin=*`,
+                { signal: ctrl.signal }
+            ).finally(()=>clearTimeout(tm));
+            if (!res.ok) continue;
+            const data = await res.json();
+            const titulo = data?.query?.search?.[0]?.title;
+            if (titulo) { pageTitle = titulo; lang = idioma; break; }
+        }
+
+        if (!pageTitle) return null;
+
+        // Paso 2: obtener imagen principal del artículo (pageimages)
+        const ctrl2 = new AbortController(); const tm2 = setTimeout(()=>ctrl2.abort(), 6000);
+        const resImg = await fetch(
+            `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(pageTitle)}&prop=pageimages&format=json&pithumbsize=1200&origin=*`,
+            { signal: ctrl2.signal }
+        ).finally(()=>clearTimeout(tm2));
+
+        if (!resImg.ok) return null;
+        const dataImg = await resImg.json();
+        const pages = dataImg?.query?.pages;
+        const pid = Object.keys(pages||{})[0];
+        const thumb = pages?.[pid]?.thumbnail?.source;
+
+        if (!thumb) return null;
+
+        // Filtrar iconos, logos, banderas — queremos fotos reales
+        const url = thumb.toLowerCase();
+        const basura = ['flag','logo','coat','seal','emblem','icon','badge','svg','map','blank','silhouette','placeholder'];
+        if (basura.some(b => url.includes(b))) return null;
+        if ((pages?.[pid]?.thumbnail?.width || 0) < 200) return null;
+
+        console.log(`   📸 Wikipedia imagen: ${thumb.substring(0,80)}`);
+        return thumb;
+
+    } catch(err) {
+        console.warn(`   ⚠️ Wikipedia imagen falló: ${err.message}`);
+        return null;
+    }
+}
+
 // ══════════════════════════════════════════════════════════
 // 🖼️ SISTEMA DE IMAGEN V40 (sin cambios)
 // ══════════════════════════════════════════════════════════
@@ -835,11 +892,107 @@ async function verificarResolucionV40(url, minWidth = 800) {
     } catch { return false; }
 }
 
+
+// ══════════════════════════════════════════════════════════
+// 🧑 PERSONAS_RD — Figuras públicas con query específico
+//    Wikipedia es la fuente primaria para estas personas
+//    (fotos de dominio público / licencia libre)
+// ══════════════════════════════════════════════════════════
+const PERSONAS_RD = {
+    // ── BÉISBOL ──────────────────────────────────────────
+    'david ortiz':        'David Ortiz baseball player Dominican Republic Red Sox',
+    'papi ortiz':         'David Ortiz baseball player Dominican Republic Red Sox',
+    'pedro martinez':     'Pedro Martinez baseball pitcher Dominican Republic',
+    'robinson cano':      'Robinson Cano baseball player Dominican Republic',
+    'juan soto':          'Juan Soto baseball player Dominican Republic',
+    'vladimir guerrero':  'Vladimir Guerrero baseball Dominican Republic Hall Fame',
+    'fernando tatis':     'Fernando Tatis Jr baseball player Dominican Republic',
+    'manny ramirez':      'Manny Ramirez baseball player Dominican Republic',
+    'albert pujols':      'Albert Pujols baseball Dominican Republic Cardinals',
+    'jose reyes':         'Jose Reyes baseball player Dominican Republic shortstop',
+    // ── BOXEO RD ─────────────────────────────────────────
+    'el rayo mateo':      'Dominican Republic boxer boxing athlete ring',
+    'rayo mateo':         'Dominican Republic boxer boxing ring athlete champion',
+    'felix diaz':         'Felix Diaz Dominican Republic boxer Olympic gold',
+    'joan guzman':        'Joan Guzman Dominican Republic boxer champion',
+    // ── POLÍTICA RD ──────────────────────────────────────
+    'alfredo pacheco':    'Alfredo Pacheco Cámara Diputados República Dominicana gobierno',
+    'luis abinader':      'Luis Abinader presidente República Dominicana gobierno',
+    'abinader':           'Luis Abinader presidente República Dominicana podio discurso',
+    'danilo medina':      'Danilo Medina expresidente República Dominicana',
+    'leonel fernandez':   'Leonel Fernández expresidente República Dominicana',
+    'leonel fernández':   'Leonel Fernández expresidente República Dominicana',
+    'orlando jorge mera': 'Orlando Jorge Mera ministro República Dominicana',
+    'josé ignacio paliza':'José Ignacio Paliza PRM gobierno República Dominicana',
+    'paliza':             'José Ignacio Paliza PRM gobierno República Dominicana',
+    'miriam german':      'Miriam Germán procuradora República Dominicana justicia',
+    'lisandro macarrulla': 'Lisandro Macarrulla vicepresidente República Dominicana',
+    // ── INTERNACIONALES ──────────────────────────────────
+    'kamala harris':      'Kamala Harris United States Vice President politician',
+    'kamala':             'Kamala Harris United States Vice President politician',
+    'donald trump':       'Donald Trump president United States White House podium',
+    'trump':              'Donald Trump president United States rally speech',
+    'joe biden':          'Joe Biden president United States White House',
+    'biden':              'Joe Biden president United States government',
+    'elon musk':          'Elon Musk Tesla SpaceX technology CEO businessman',
+    'musk':               'Elon Musk Tesla SpaceX businessman technology',
+    'pope francis':       'Pope Francis Vatican Catholic Church Rome',
+    'papa francisco':     'Papa Francisco Vaticano Roma Iglesia Católica',
+    'nicolas maduro':     'Nicolas Maduro Venezuela presidente gobierno Caracas',
+    'maduro':             'Nicolas Maduro Venezuela presidente gobierno',
+    'emmanuel macron':    'Emmanuel Macron France president government Paris',
+    'xi jinping':         'Xi Jinping China president Beijing government',
+    'vladimir putin':     'Vladimir Putin Russia president Kremlin Moscow',
+    'volodimir zelenski': 'Volodymyr Zelensky Ukraine president government',
+    'zelenski':           'Volodymyr Zelensky Ukraine president government',
+    // ── MÚSICA / ESPECTÁCULOS RD ─────────────────────────
+    'romeo santos':       'Romeo Santos bachata singer Dominican Republic concert',
+    'prince royce':       'Prince Royce bachata singer Dominican Republic concert',
+    'juan luis guerra':   'Juan Luis Guerra Dominican Republic music merengue concert',
+    'aventura':           'Aventura bachata group Dominican Republic concert stage',
+    'leslie grace':       'Leslie Grace Dominican Republic singer actress',
+    'natti natasha':      'Natti Natasha Dominican Republic reggaeton singer',
+    'tokischa':           'Tokischa Dominican Republic singer artist',
+    // ── DEPORTES OTROS ───────────────────────────────────
+    'messi':              'Lionel Messi Argentina football soccer player',
+    'cristiano ronaldo':  'Cristiano Ronaldo Portugal football soccer player',
+    'ronaldo':            'Cristiano Ronaldo Portugal football soccer stadium',
+    'neymar':             'Neymar Brazil football soccer player',
+    'lebron james':       'LeBron James NBA basketball player Lakers',
+    // ── MUNDIAL 2026 ─────────────────────────────────────
+    'mundial 2026':       'FIFA World Cup 2026 football soccer stadium fans',
+    'copa del mundo':     'FIFA World Cup football soccer stadium tournament',
+    'fifas':              'FIFA football soccer World Cup tournament stadium',
+};
+
+// Detecta si el título/contenido menciona una persona conocida
+// y devuelve el query específico de Wikipedia/foto pública
+function detectarPersona(titulo, contenido) {
+    const texto = `${titulo} ${(contenido||'').substring(0,300)}`.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    for (const [nombre, query] of Object.entries(PERSONAS_RD)) {
+        const nombreNorm = nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (texto.includes(nombreNorm)) {
+            console.log(`   🧑 Persona detectada: "${nombre}" → "${query}"`);
+            return query;
+        }
+    }
+    return null;
+}
+
 function extraerQueriesCoherentes(titulo, contenido, categoria) {
     const texto  = `${titulo} ${(contenido||'').substring(0,600)}`.toLowerCase();
     const queries = [];
+
+    // ── PRIORIDAD 1: Persona conocida (David Ortiz, Abinader, Trump…) ──
+    const queryPersona = detectarPersona(titulo, contenido);
+    if (queryPersona) queries.unshift(queryPersona);
+
+    // ── PRIORIDAD 2: Barrio SDE ────────────────────────────────────────
     for (const [barrio, query] of Object.entries(BARRIOS_QUERIES))
         if (texto.includes(barrio)) { queries.push(query); break; }
+
+    // ── PRIORIDAD 3: Tema general ──────────────────────────────────────
     const temasEncontrados = [];
     for (const [keyword, queryArr] of Object.entries(TEMA_QUERIES)) {
         if (texto.includes(keyword)) { temasEncontrados.push(...queryArr); if (temasEncontrados.length >= 2) break; }
@@ -1033,6 +1186,23 @@ async function aplicarWatermarkBuffer(bufOrig) {
 
 async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) {
     console.log(`\n   🖼️ [V41] Imagen → "${titulo.substring(0,55)}"`);
+
+    // ── PRIORIDAD 0: Wikipedia para personas conocidas ──────────────
+    // Si el título menciona a David Ortiz, Abinader, Trump, etc.
+    // buscamos directamente su foto en Wikipedia (libre, precisa, sin stock)
+    const queryPersona = detectarPersona(titulo, contenido);
+    if (queryPersona) {
+        // Extraer el nombre de la persona del query (primeras 2-3 palabras)
+        const nombreWiki = queryPersona.split(' ').slice(0,3).join(' ');
+        const urlWiki = await buscarImagenWikipedia(nombreWiki);
+        if (urlWiki) {
+            console.log(`   ✅ Wikipedia persona: OK`);
+            const wmResult = await aplicarWatermarkV40(urlWiki);
+            return { urlFinal:wmResult.url, urlOriginal:urlWiki, nombre:wmResult.nombre||'efd-wiki.jpg', fuente:'wikipedia-wm', procesada:wmResult.procesada };
+        }
+    }
+
+    // ── PRIORIDAD 1-4: Flujo normal ─────────────────────────────────
     let queries;
     if (categoria === 'Internacionales') {
         const qIntl = buildQueryInternacional(titulo,contenido);
@@ -1297,14 +1467,10 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         const similares = await detectarPlagio(contenido);
         if (similares.length) console.warn(`   🕵️ Similitud con: ${similares.join(', ')}`);
 
-        const barriosMencionados = (contenido.match(/Los Mina|Invivienda|Charles de Gaulle|Ensanche Ozama|Sabana Perdida|Villa Mella|Carretera Mella|Los Trinitarios/g)||[]).join(', ')||'Santo Domingo Este';
-        let queryIA = '';
-        const rImg = await llamarGeminiImagen(
-            `Titular: "${titulo}"\nCategoría: ${categoria}\nBarrios: ${barriosMencionados}\nPrimeras líneas: "${contenido.substring(0,200)}"\n\nRESPONDE SOLO:\nQUERY_IMAGEN: [6-8 palabras inglés, escena fotográfica real. PROHIBIDO: wedding, couple, flowers, cartoon, pet, flag, logo]`
-        ).catch(()=>null);
-        if (rImg) for (const l of (rImg||'').split('\n')) if (l.trim().startsWith('QUERY_IMAGEN:')) queryIA=l.trim().replace('QUERY_IMAGEN:','').trim();
-
-        const imgResult = await obtenerImagenV40(titulo, contenido, categoria, sub, queryIA);
+        // ── SIN llamada extra a Gemini para imagen ──────────────────
+        // El sistema detecta personas y temas automáticamente
+        // Ahorra tokens y es más preciso que el query genérico de Gemini
+        const imgResult = await obtenerImagenV40(titulo, contenido, categoria, sub, null);
 
         const altBase = {'Nacionales':`Noticias ${titulo.substring(0,40)} Santo Domingo Este`,'Deportes':`Deportes dominicanos ${titulo.substring(0,35)}`,'Internacionales':`Internacional ${titulo.substring(0,35)} Caribe`,'Economía':`Economía dominicana ${titulo.substring(0,35)}`,'Tecnología':`Tecnología ${titulo.substring(0,40)}`,'Espectáculos':`Espectáculos ${titulo.substring(0,35)} RD`};
         const altFinal = `${altBase[categoria]||titulo.substring(0,50)} - El Farol al Día`;
