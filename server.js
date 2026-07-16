@@ -142,7 +142,7 @@ function logAnalytics(evento, datos = {}) {
 async function getGSCToken() {
     try {
         const raw = process.env.GOOGLE_CREDENTIALS_JSON;
-        if (!raw) return null;
+        if (!raw) { console.warn('⚠️ GSC token: falta GOOGLE_CREDENTIALS_JSON en variables de entorno'); return null; }
         const creds = JSON.parse(raw);
 
         // JWT manual sin google-auth-library para evitar dependencia
@@ -168,9 +168,13 @@ async function getGSCToken() {
             signal: AbortSignal.timeout(10000),
         });
         const data = await res.json();
-        return data.access_token || null;
+        if (!data.access_token) {
+            console.warn(`⚠️ GSC token: Google respondió ${res.status} — ${data.error || ''} ${data.error_description || JSON.stringify(data)}`);
+            return null;
+        }
+        return data.access_token;
     } catch(e) {
-        console.warn('⚠️ GSC token:', e.message);
+        console.warn('⚠️ GSC token: excepción —', e.message);
         return null;
     }
 }
@@ -189,9 +193,15 @@ async function consultarGSC(body) {
                 signal: AbortSignal.timeout(15000),
             }
         );
-        if (!res.ok) { console.warn(`⚠️ GSC ${res.status}`); return null; }
-        return await res.json();
-    } catch(e) { console.warn('⚠️ GSC fetch:', e.message); return null; }
+        if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            console.warn(`⚠️ GSC ${res.status} en searchAnalytics/query — ${errBody.slice(0, 300)}`);
+            return null;
+        }
+        const json = await res.json();
+        console.log(`ℹ️ GSC respuesta OK — filas recibidas: ${json?.rows?.length ?? 0}`);
+        return json;
+    } catch(e) { console.warn('⚠️ GSC fetch: excepción —', e.message); return null; }
 }
 
 async function sincronizarGSC() {
@@ -206,8 +216,12 @@ async function sincronizarGSC() {
         orderBy: [{ fieldName: 'impressions', sortOrder: 'DESCENDING' }],
     });
 
-    if (!data?.rows?.length) {
-        console.warn('⚠️ GSC: Sin datos — verifica permisos en Search Console');
+    if (!data) {
+        console.warn('⚠️ GSC: no se pudo consultar la API — revisa las líneas "GSC token" o "GSC 4xx/5xx" arriba');
+        return false;
+    }
+    if (!data.rows?.length) {
+        console.warn('⚠️ GSC: la API respondió OK pero sin filas — no hay impresiones/clics en los últimos 28 días para esta propiedad');
         return false;
     }
 
