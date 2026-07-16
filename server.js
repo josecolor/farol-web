@@ -675,12 +675,12 @@ async function llamarGemini(prompt, reintentos = 3, maxTokens = 8000) {
                 ultimoError = err;
                 console.warn(`   ⚠️ KEY${keyNum}: ${err.message}`);
                 if (err.message.startsWith('GEMINI_BLOCKED')) continue;
-                await new Promise(r => setTimeout(r, 2000));
+                if (err.message.includes("429")) await new Promise(r => setTimeout(r, 60000)); else await new Promise(r => setTimeout(r, 2000));
             }
         }
         if (intento < reintentos - 1) {
-            console.warn(`   ⏳ Todas las llaves fallaron — esperando 25s...`);
-            await new Promise(r => setTimeout(r, 25000));
+            console.warn(`   ⏳ Todas las llaves fallaron — esperando 90s...`);
+            await new Promise(r => setTimeout(r, 90000));
         }
     }
     throw new Error(`Gemini falló: ${ultimoError?.message}`);
