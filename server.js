@@ -317,7 +317,7 @@ async function obtenerContextoGSC(categoria) {
         // Mapeo categoría → palabras clave dominicanas
         const catKw = {
             'Nacionales':      ['república dominicana','santo domingo','rd','dominicana','gobierno','presidente','policía','policia'],
-            'Deportes':        ['béisbol','baseball','dominicano','deportes','tigres','leones','lidom','baloncesto','fútbol'],
+            'Deportes':        ['béisbol','baseball','dominicano','deportes','tigres','leones','lidom','baloncesto','fútbol','boxeo','boxeador','campeón','campeones mundiales','pabellón de la fama','ufc','pelea','ring','vóleibol','voleibol'],
             'Internacionales': ['caribe','latinoamérica','mundo','internacional','eeuu','haití','haiti','trump'],
             'Economía':        ['dólar','banco','economía','peso','precio','tasa','reservas','inflación','combustible'],
             'Tecnología':      ['tecnología','digital','internet','ia','inteligencia artificial','app','celular'],
@@ -1319,6 +1319,14 @@ async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) 
 // 🧠 PROMPT V41 — CON GSC INTEGRADO
 // ══════════════════════════════════════════════════════════
 async function construirPrompt(categoria, comunicadoExterno) {
+    // 🗓️ Fecha SIEMPRE actual — se calcula sola cada vez que se genera una noticia,
+    // nunca hay que volver a tocarla a mano ni acordarse de actualizarla.
+    const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const ahoraRD  = new Date(); // Railway corre en UTC; para RD (UTC-4) restamos 4h si hace falta precisión de día
+    const mesActual  = MESES_ES[ahoraRD.getUTCMonth()];
+    const anioActual = ahoraRD.getUTCFullYear();
+    const FECHA_ACTUAL = `${mesActual.toUpperCase()} ${anioActual}`;
+
     const ALTO_CPM  = ['Economía','Tecnología','Internacionales'];
     const esCatAlta = ALTO_CPM.includes(categoria);
     let topNoticias='',malNoticias='',metaStr='',memoriaAnti='';
@@ -1360,12 +1368,12 @@ async function construirPrompt(categoria, comunicadoExterno) {
 
     const fuenteContenido = comunicadoExterno
         ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ABRIL 2026.`;
+        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ${FECHA_ACTUAL}.`;
 
     return `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor Jefe de El Farol al Día. Voz del barrio de SDE. Conoces tus métricas y escribes para dominar Google.
-FECHA: ABRIL 2026. Nada de noticias del pasado.
+FECHA: ${FECHA_ACTUAL}. Nada de noticias del pasado.
 
 ${topNoticias}
 ${malNoticias}
@@ -1401,7 +1409,7 @@ SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
    P1-GANCHO: Hecho impactante. Menciona el barrio. Usa palabras clave GSC.
    P2-CONTEXTO: Antecedentes. ¿Qué venía pasando?
    P3-DETALLES: Nombres, cifras, calles específicas de SDE.
-   P4-AMBIENTE: El calor de abril, ruido de motores, parada del carro público, el colmado.
+   P4-AMBIENTE: El calor de ${mesActual}, ruido de motores, parada del carro público, el colmado.
    P5-IMPACTO LOCAL: ¿Cómo afecta a la gente de ${categoria==='Deportes'?'Los Mina':'Invivienda'}?
    P6-REACCIÓN: Testimonios del barrio en comillas.
    P7-ANÁLISIS: Contexto más amplio para RD.
@@ -1693,7 +1701,21 @@ cron.schedule('0 */3 * * *', async () => {
     const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
     if (!hayLibre) { console.warn('⏳ Cron: todas las llaves bloqueadas — saltando'); return; }
     console.log(`⏰ Cron hora ${hora}:00`);
-    await generarNoticia(CATS[hora%CATS.length]);
+    // 🔁 Si la categoría que tocaba falla, prueba con las demás antes de rendirse
+    // — no perder el ciclo completo por un solo tema que no funcionó.
+    const orden = [...CATS.slice(hora%CATS.length), ...CATS.slice(0,hora%CATS.length)];
+    for (const cat of orden) {
+        const quedaLlave = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
+        if (!quedaLlave) { console.warn('⏳ Cron: llaves agotadas a mitad del ciclo — cortando aquí'); break; }
+        try {
+            const r = await generarNoticia(cat);
+            if (r?.success !== false) { console.log(`✅ Cron: publicada en "${cat}"`); return; }
+            console.warn(`⚠️ Cron: "${cat}" no funcionó, probando siguiente categoría...`);
+        } catch(e) {
+            console.warn(`⚠️ Cron: "${cat}" falló (${e.message}), probando siguiente categoría...`);
+        }
+    }
+    console.error('❌ Cron: ninguna categoría funcionó en este ciclo');
 });
 
 // ── GSC Sync automático ───────────────────────────────────
