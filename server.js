@@ -1654,8 +1654,12 @@ async function procesarRSS() {
 // ══════════════════════════════════════════════════════════
 async function autoLimpieza() {
     try {
-        const r = await pool.query(`DELETE FROM noticias WHERE fecha<NOW()-INTERVAL '90 days' AND vistas<5 AND estado='publicada' RETURNING id`);
-        if (r.rowCount>0) { console.log(`🗑️ Auto-limpieza: ${r.rowCount} eliminadas`); invalidarCache(); }
+        // 🔒 SEO FIX: ya NO se borran noticias. Google indexa estas URLs y borrarlas
+        // genera 404s reales (soft-404 / crawl trust perdido). En vez de DELETE,
+        // se archivan: salen del sitemap y dejan de competir por crawl budget,
+        // pero la página sigue viva (200) para no tirar autoridad ya ganada.
+        const r = await pool.query(`UPDATE noticias SET estado='archivada' WHERE fecha<NOW()-INTERVAL '90 days' AND vistas<5 AND estado='publicada' RETURNING id`);
+        if (r.rowCount>0) { console.log(`🗄️ Auto-limpieza: ${r.rowCount} archivadas (ya no se eliminan)`); invalidarCache(); }
     } catch(e) { console.warn('⚠️ Auto-limpieza:', e.message); }
 }
 
@@ -2109,8 +2113,14 @@ app.get('/cookies',   (req,res)=>res.sendFile(path.join(__dirname,'client','cook
 
 app.get('/noticia/:slug', async (req,res) => {
     try {
-        const r=await pool.query("SELECT * FROM noticias WHERE slug=$1 AND estado='publicada'",[req.params.slug]);
-        if (!r.rows.length) return res.status(404).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>404</title></head><body style="background:#070707;color:#EDE8DF;text-align:center;padding:60px;font-family:sans-serif"><h1 style="color:#FF5500">404</h1><p>Noticia no encontrada</p><a href="/" style="color:#FF5500">← Volver</a></body></html>');
+        // Sirve publicadas Y archivadas — el archivo sigue vivo, solo salió del sitemap activo.
+        const r=await pool.query("SELECT * FROM noticias WHERE slug=$1 AND estado IN ('publicada','archivada')",[req.params.slug]);
+        if (!r.rows.length) {
+            // 410 Gone en vez de 404: le dice a Google "esto se fue para siempre,
+            // deja de reintentar e índexarlo" — a diferencia de 404, que Google
+            // sigue re-chequeando por semanas antes de dar por perdida la URL.
+            return res.status(410).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>410 - Contenido retirado</title><meta name="robots" content="noindex"></head><body style="background:#070707;color:#EDE8DF;text-align:center;padding:60px;font-family:sans-serif"><h1 style="color:#FF5500">410</h1><p>Esta noticia ya no está disponible</p><a href="/" style="color:#FF5500">← Volver al inicio</a></body></html>');
+        }
         const n=r.rows[0];
         await pool.query('UPDATE noticias SET vistas=vistas+1 WHERE id=$1',[n.id]);
         try {
