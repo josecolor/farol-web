@@ -115,6 +115,37 @@ const rssParser = new RSSParser({ timeout: 10000 });
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 const app  = express();
 
+// ── SEGURIDAD: Cabeceras HTTP profesionales ───────────────
+// Elimina X-Powered-By (no revelar que usamos Express)
+app.disable('x-powered-by');
+
+// Cabeceras de seguridad manuales (sin depender de helmet)
+app.use((req, res, next) => {
+    // HSTS — fuerza HTTPS por 1 año
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    // Evita clickjacking
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    // Evita MIME sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Controla referrer
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    // Permissions Policy — deshabilita funciones peligrosas
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    // CSP básico — permite recursos propios + CDNs necesarios
+    res.setHeader('Content-Security-Policy', [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+        "img-src 'self' data: blob: https: http:",
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+        "connect-src 'self' https://www.google-analytics.com https://pagead2.googlesyndication.com",
+        "frame-src 'self' https://www.youtube.com https://googleads.g.doubleclick.net",
+        "object-src 'none'",
+        "base-uri 'self'"
+    ].join('; '));
+    next();
+});
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/static', express.static(path.join(__dirname,'static'), {
@@ -673,13 +704,26 @@ async function _callGemini(apiKey, prompt, intento, maxTokens = 8000) {
     return texto;
 }
 
-async function llamarGemini(prompt, reintentos = 3, maxTokens = 8000) {
+async function llamarGemini(prompt, reintentos = 2, maxTokens = 8000) {
     if (!LLAVES_TEXTO.length) throw new Error('Sin llaves Gemini');
+
+    // ── Verificar si HAY alguna llave disponible antes de intentar ──
+    const llavesLibres = LLAVES_TEXTO.filter(k => Date.now() >= getKeyState(k).resetTime);
+    if (!llavesLibres.length) {
+        const menorEspera = Math.min(...LLAVES_TEXTO.map(k => getKeyState(k).resetTime)) - Date.now();
+        throw new Error(`TODAS_LLAVES_BLOQUEADAS — próxima disponible en ${Math.ceil(menorEspera/60000)} min`);
+    }
+
     let ultimoError = null;
     for (let intento = 0; intento < reintentos; intento++) {
         for (let i = 0; i < LLAVES_TEXTO.length; i++) {
             const llave  = nextKey(LLAVES_TEXTO);
             const keyNum = TODAS_LLAVES_GEMINI.indexOf(llave) + 1;
+            // Saltar llaves bloqueadas sin esperar
+            if (Date.now() < getKeyState(llave).resetTime) {
+                console.log(`   ⏭️ KEY${keyNum} bloqueada — saltando`);
+                continue;
+            }
             try {
                 console.log(`   → Gemini KEY${keyNum} intento ${intento+1}/${reintentos}`);
                 const r = await _callGemini(llave, prompt, intento, maxTokens);
@@ -689,13 +733,18 @@ async function llamarGemini(prompt, reintentos = 3, maxTokens = 8000) {
                 ultimoError = err;
                 console.warn(`   ⚠️ KEY${keyNum}: ${err.message}`);
                 if (err.message.startsWith('GEMINI_BLOCKED')) continue;
-                if (err.message.includes("429")) await new Promise(r => setTimeout(r, 60000)); else await new Promise(r => setTimeout(r, 2000));
+                // En 429 NO esperar — simplemente pasar a la siguiente llave
+                if (err.message.includes('429')) continue;
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
-        if (intento < reintentos - 1) {
-            console.warn(`   ⏳ Todas las llaves fallaron — esperando 90s...`);
-            await new Promise(r => setTimeout(r, 90000));
+        // Solo esperar entre reintentos si quedan llaves libres
+        const libresAhora = LLAVES_TEXTO.filter(k => Date.now() >= getKeyState(k).resetTime);
+        if (!libresAhora.length) {
+            console.warn('⛔ Todas las llaves bloqueadas — abortando sin bucle infinito');
+            break;
         }
+        if (intento < reintentos - 1) await new Promise(r => setTimeout(r, 5000));
     }
     throw new Error(`Gemini falló: ${ultimoError?.message}`);
 }
@@ -1625,15 +1674,17 @@ async function getHorasPico() {
 
 cron.schedule('*/5 * * * *', async () => { try { await fetch(`http://localhost:${PORT}/health`); } catch {} });
 
-cron.schedule('0 * * * *', async () => {
+cron.schedule('0 */3 * * *', async () => {
+    // Cada 3 horas — ahorra 66% de llamadas vs cada hora
     if (!CONFIG_IA.enabled) return;
     if (Date.now()-ARRANQUE_TIME < 35*60*1000) return;
     const hora = new Date().getHours();
-    const pico = await getHorasPico();
-    if (pico.includes(hora)||hora%3===0) {
-        console.log(`⏰ Cron hora ${hora}:00`);
-        await generarNoticia(CATS[hora%CATS.length]);
-    }
+    if ([0,1,2,3,4,5].includes(hora)) return; // Sin generar de madrugada
+    // Verificar llave disponible ANTES de intentar
+    const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
+    if (!hayLibre) { console.warn('⏳ Cron: todas las llaves bloqueadas — saltando'); return; }
+    console.log(`⏰ Cron hora ${hora}:00`);
+    await generarNoticia(CATS[hora%CATS.length]);
 });
 
 // ── GSC Sync automático ───────────────────────────────────
@@ -1661,12 +1712,12 @@ cron.schedule('0 7 * * *', async () => {
 cron.schedule('0 3 * * 0', autoLimpieza);
 
 async function rafagaInicial() {
+    // Solo 1 noticia al arrancar — antes eran 3 (quemaba llaves de golpe)
     if (!CONFIG_IA.enabled) return;
-    console.log('🚀 Ráfaga inicial — 3 noticias en 90 min...');
-    for (let i=0;i<3;i++) {
-        if (i>0) await new Promise(r=>setTimeout(r,30*60*1000));
-        try { await generarNoticia(CATS[i]); } catch(e) { console.warn(`⚠️ Ráfaga ${i+1}:`,e.message); }
-    }
+    const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
+    if (!hayLibre) { console.warn('⏳ Ráfaga: sin llaves disponibles'); return; }
+    console.log('🚀 Ráfaga inicial — 1 noticia');
+    try { await generarNoticia(CATS[0]); } catch(e) { console.warn('⚠️ Ráfaga inicial:', e.message); }
 }
 
 // ══════════════════════════════════════════════════════════
