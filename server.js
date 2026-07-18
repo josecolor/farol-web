@@ -38,14 +38,15 @@ if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido'); 
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
 const TODAS_LLAVES_GEMINI = [
-    process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2,
-    process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4,
-    process.env.GEMINI_API_KEY5, process.env.GEMINI_API_KEY6,
-    process.env.GEMINI_API_KEY7, process.env.GEMINI_API_KEY8,
+    process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY1,
+    process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
+    process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
+    process.env.GEMINI_API_KEY6, process.env.GEMINI_API_KEY7,
+    process.env.GEMINI_API_KEY8,
 ].filter(Boolean);
 
-const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 5);
-const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(3);
+const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 6);   // 🔑 antes 5 — ahora KEY1 también trabaja como colchón de texto
+const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(-3);      // últimas 3 del pool, se ajusta solo si se agregan más llaves
 console.log(`🔑 Gemini: ${TODAS_LLAVES_GEMINI.length} llaves | Texto: ${LLAVES_TEXTO.length} | Imagen: ${LLAVES_IMAGEN.length}`);
 
 const GOOGLE_CSE_KEYS     = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
