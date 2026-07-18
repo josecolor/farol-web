@@ -214,7 +214,7 @@ async function consultarGSC(body) {
     const token = await getGSCToken();
     if (!token) return null;
     try {
-        const site = encodeURIComponent('https://elfarolaldia.com/');
+        const site = encodeURIComponent('sc-domain:elfarolaldia.com');
         const res  = await fetch(
             `https://searchconsole.googleapis.com/webmasters/v3/sites/${site}/searchAnalytics/query`,
             {
@@ -1629,7 +1629,12 @@ async function procesarRSS() {
     if (!CONFIG_IA.enabled) return;
     console.log('\n📡 Procesando RSS...');
     let ok = 0;
+    const MAX_POR_CORRIDA = 6; // 🔑 antes intentaba las 17 fuentes de una vez y quemaba las llaves
     for (const fuente of FUENTES_RSS) {
+        if (ok >= MAX_POR_CORRIDA) { console.log(`📡 RSS: límite de ${MAX_POR_CORRIDA} por corrida alcanzado — el resto se procesa en la próxima`); break; }
+        // 🔑 Si ya no queda ninguna llave libre, no tiene sentido seguir intentando
+        const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
+        if (!hayLibre) { console.warn('⏳ RSS: todas las llaves bloqueadas — cortando corrida aquí'); break; }
         try {
             const feed = await rssParser.parseURL(fuente.url).catch(()=>null);
             if (!feed?.items?.length) continue;
@@ -1640,7 +1645,7 @@ async function procesarRSS() {
                 if (existe.rows.length) continue;
                 const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`].filter(Boolean).join('\n');
                 const r = await generarNoticia(fuente.categoria, comunicado);
-                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,8000)); }
+                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,28000)); }
                 break;
             }
         } catch(err) { console.warn(`⚠️ ${fuente.nombre}: ${err.message}`); }
