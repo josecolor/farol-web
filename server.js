@@ -1702,11 +1702,15 @@ cron.schedule('0 */3 * * *', async () => {
     if (!hayLibre) { console.warn('⏳ Cron: todas las llaves bloqueadas — saltando'); return; }
     console.log(`⏰ Cron hora ${hora}:00`);
     // 🔁 Si la categoría que tocaba falla, prueba con las demás antes de rendirse
-    // — no perder el ciclo completo por un solo tema que no funcionó.
-    const orden = [...CATS.slice(hora%CATS.length), ...CATS.slice(0,hora%CATS.length)];
-    for (const cat of orden) {
+    // — pero con freno: máximo 3 intentos por corrida y pausa entre cada uno,
+    // para que un mal ciclo no dispare 6 llamadas seguidas y queme las llaves.
+    const MAX_INTENTOS_CRON = 3;
+    const orden = [...CATS.slice(hora%CATS.length), ...CATS.slice(0,hora%CATS.length)].slice(0, MAX_INTENTOS_CRON);
+    for (let i = 0; i < orden.length; i++) {
+        const cat = orden[i];
         const quedaLlave = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
         if (!quedaLlave) { console.warn('⏳ Cron: llaves agotadas a mitad del ciclo — cortando aquí'); break; }
+        if (i > 0) await new Promise(r=>setTimeout(r,25000)); // pausa entre intentos, no dispares seguido
         try {
             const r = await generarNoticia(cat);
             if (r?.success !== false) { console.log(`✅ Cron: publicada en "${cat}"`); return; }
