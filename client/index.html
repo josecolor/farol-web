@@ -18,6 +18,13 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@elfarolaldia">
     <link rel="icon" type="image/png" href="/static/favicon.png">
+    <!-- Preconnect para acelerar imágenes — mejora LCP -->
+    <link rel="preconnect" href="https://images.pexels.com">
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="preconnect" href="https://upload.wikimedia.org">
+    <link rel="dns-prefetch" href="https://images.pexels.com">
+    <!-- AdSense -->
+    <meta name="google-adsense-account" content="ca-pub-5280872495839888">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
     <style>
         :root {
@@ -627,7 +634,10 @@ function renderHero(noticias) {
             <img class="hero-img"
                  src="${n.imagen || FALLBACK}"
                  alt="${n.imagen_alt || n.titulo}"
+                 width="800" height="450"
                  loading="${i === 0 ? 'eager' : 'lazy'}"
+                 decoding="${i === 0 ? 'sync' : 'async'}"
+                 fetchpriority="${i === 0 ? 'high' : 'auto'}"
                  onerror="this.src='${FALLBACK}'">
             <div class="hero-overlay"></div>
             <div class="hero-content">
@@ -688,7 +698,9 @@ function renderGrid(noticias) {
                     <img class="tarjeta-img"
                          src="${n.imagen || FALLBACK}"
                          alt="${n.imagen_alt || n.titulo}"
+                         width="400" height="225"
                          loading="lazy"
+                         decoding="async"
                          onerror="this.src='${FALLBACK}'">
                     <div class="tarjeta-badge">${n.seccion || 'SDE'}</div>
                 </div>

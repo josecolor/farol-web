@@ -1169,7 +1169,7 @@ async function buscarImagenPexelsV40(queries, apiKey) {
             const fotos = (data.photos||[]).filter(f=>(f.width||0)>=1000);
             if (!fotos.length) continue;
             const foto = fotos[Math.floor(Math.random()*Math.min(3,fotos.length))];
-            return foto.src.large2x||foto.src.large;
+            const urlP = foto.src.large||foto.src.large2x||''; return urlP.includes('?') ? urlP+'&w=800&q=80' : urlP+'?auto=compress&cs=tinysrgb&w=800&q=80';
         } catch { continue; }
     }
     return null;
@@ -1183,7 +1183,7 @@ async function buscarImagenUnsplashV40(query, apiKey) {
         if (!res.ok) return null;
         const data  = await res.json();
         const fotos = (data.results||[]).filter(f=>(f.width||0)>=1000);
-        return fotos[0]?.urls?.full||fotos[0]?.urls?.regular||null;
+        const urlU = fotos[0]?.urls?.regular||fotos[0]?.urls?.full||null; return urlU ? urlU.split('?')[0]+'?w=800&q=80&auto=format&fit=crop' : null;
     } catch { return null; }
 }
 
