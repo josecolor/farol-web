@@ -38,15 +38,14 @@ if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido'); 
 if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
 
 const TODAS_LLAVES_GEMINI = [
-    process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY1,
-    process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
-    process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
-    process.env.GEMINI_API_KEY6, process.env.GEMINI_API_KEY7,
-    process.env.GEMINI_API_KEY8,
+    process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2,
+    process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4,
+    process.env.GEMINI_API_KEY5, process.env.GEMINI_API_KEY6,
+    process.env.GEMINI_API_KEY7, process.env.GEMINI_API_KEY8,
 ].filter(Boolean);
 
-const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 6);   // 🔑 antes 5 — ahora KEY1 también trabaja como colchón de texto
-const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(-3);      // últimas 3 del pool, se ajusta solo si se agregan más llaves
+const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 5);
+const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(3);
 console.log(`🔑 Gemini: ${TODAS_LLAVES_GEMINI.length} llaves | Texto: ${LLAVES_TEXTO.length} | Imagen: ${LLAVES_IMAGEN.length}`);
 
 const GOOGLE_CSE_KEYS     = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
@@ -215,7 +214,7 @@ async function consultarGSC(body) {
     const token = await getGSCToken();
     if (!token) return null;
     try {
-        const site = encodeURIComponent('sc-domain:elfarolaldia.com');
+        const site = encodeURIComponent('https://elfarolaldia.com/');
         const res  = await fetch(
             `https://searchconsole.googleapis.com/webmasters/v3/sites/${site}/searchAnalytics/query`,
             {
@@ -318,7 +317,7 @@ async function obtenerContextoGSC(categoria) {
         // Mapeo categoría → palabras clave dominicanas
         const catKw = {
             'Nacionales':      ['república dominicana','santo domingo','rd','dominicana','gobierno','presidente','policía','policia'],
-            'Deportes':        ['béisbol','baseball','dominicano','deportes','tigres','leones','lidom','baloncesto','fútbol','boxeo','boxeador','campeón','campeones mundiales','pabellón de la fama','ufc','pelea','ring','vóleibol','voleibol'],
+            'Deportes':        ['béisbol','baseball','dominicano','deportes','tigres','leones','lidom','baloncesto','fútbol'],
             'Internacionales': ['caribe','latinoamérica','mundo','internacional','eeuu','haití','haiti','trump'],
             'Economía':        ['dólar','banco','economía','peso','precio','tasa','reservas','inflación','combustible'],
             'Tecnología':      ['tecnología','digital','internet','ia','inteligencia artificial','app','celular'],
@@ -1320,14 +1319,6 @@ async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) 
 // 🧠 PROMPT V41 — CON GSC INTEGRADO
 // ══════════════════════════════════════════════════════════
 async function construirPrompt(categoria, comunicadoExterno) {
-    // 🗓️ Fecha SIEMPRE actual — se calcula sola cada vez que se genera una noticia,
-    // nunca hay que volver a tocarla a mano ni acordarse de actualizarla.
-    const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const ahoraRD  = new Date(); // Railway corre en UTC; para RD (UTC-4) restamos 4h si hace falta precisión de día
-    const mesActual  = MESES_ES[ahoraRD.getUTCMonth()];
-    const anioActual = ahoraRD.getUTCFullYear();
-    const FECHA_ACTUAL = `${mesActual.toUpperCase()} ${anioActual}`;
-
     const ALTO_CPM  = ['Economía','Tecnología','Internacionales'];
     const esCatAlta = ALTO_CPM.includes(categoria);
     let topNoticias='',malNoticias='',metaStr='',memoriaAnti='';
@@ -1369,12 +1360,12 @@ async function construirPrompt(categoria, comunicadoExterno) {
 
     const fuenteContenido = comunicadoExterno
         ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ${FECHA_ACTUAL}.`;
+        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ABRIL 2026.`;
 
     return `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor Jefe de El Farol al Día. Voz del barrio de SDE. Conoces tus métricas y escribes para dominar Google.
-FECHA: ${FECHA_ACTUAL}. Nada de noticias del pasado.
+FECHA: ABRIL 2026. Nada de noticias del pasado.
 
 ${topNoticias}
 ${malNoticias}
@@ -1410,7 +1401,7 @@ SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
    P1-GANCHO: Hecho impactante. Menciona el barrio. Usa palabras clave GSC.
    P2-CONTEXTO: Antecedentes. ¿Qué venía pasando?
    P3-DETALLES: Nombres, cifras, calles específicas de SDE.
-   P4-AMBIENTE: El calor de ${mesActual}, ruido de motores, parada del carro público, el colmado.
+   P4-AMBIENTE: El calor de abril, ruido de motores, parada del carro público, el colmado.
    P5-IMPACTO LOCAL: ¿Cómo afecta a la gente de ${categoria==='Deportes'?'Los Mina':'Invivienda'}?
    P6-REACCIÓN: Testimonios del barrio en comillas.
    P7-ANÁLISIS: Contexto más amplio para RD.
@@ -1638,12 +1629,7 @@ async function procesarRSS() {
     if (!CONFIG_IA.enabled) return;
     console.log('\n📡 Procesando RSS...');
     let ok = 0;
-    const MAX_POR_CORRIDA = 6; // 🔑 antes intentaba las 17 fuentes de una vez y quemaba las llaves
     for (const fuente of FUENTES_RSS) {
-        if (ok >= MAX_POR_CORRIDA) { console.log(`📡 RSS: límite de ${MAX_POR_CORRIDA} por corrida alcanzado — el resto se procesa en la próxima`); break; }
-        // 🔑 Si ya no queda ninguna llave libre, no tiene sentido seguir intentando
-        const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
-        if (!hayLibre) { console.warn('⏳ RSS: todas las llaves bloqueadas — cortando corrida aquí'); break; }
         try {
             const feed = await rssParser.parseURL(fuente.url).catch(()=>null);
             if (!feed?.items?.length) continue;
@@ -1654,7 +1640,7 @@ async function procesarRSS() {
                 if (existe.rows.length) continue;
                 const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`].filter(Boolean).join('\n');
                 const r = await generarNoticia(fuente.categoria, comunicado);
-                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,28000)); }
+                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,8000)); }
                 break;
             }
         } catch(err) { console.warn(`⚠️ ${fuente.nombre}: ${err.message}`); }
@@ -1702,25 +1688,7 @@ cron.schedule('0 */3 * * *', async () => {
     const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
     if (!hayLibre) { console.warn('⏳ Cron: todas las llaves bloqueadas — saltando'); return; }
     console.log(`⏰ Cron hora ${hora}:00`);
-    // 🔁 Si la categoría que tocaba falla, prueba con las demás antes de rendirse
-    // — pero con freno: máximo 3 intentos por corrida y pausa entre cada uno,
-    // para que un mal ciclo no dispare 6 llamadas seguidas y queme las llaves.
-    const MAX_INTENTOS_CRON = 3;
-    const orden = [...CATS.slice(hora%CATS.length), ...CATS.slice(0,hora%CATS.length)].slice(0, MAX_INTENTOS_CRON);
-    for (let i = 0; i < orden.length; i++) {
-        const cat = orden[i];
-        const quedaLlave = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
-        if (!quedaLlave) { console.warn('⏳ Cron: llaves agotadas a mitad del ciclo — cortando aquí'); break; }
-        if (i > 0) await new Promise(r=>setTimeout(r,25000)); // pausa entre intentos, no dispares seguido
-        try {
-            const r = await generarNoticia(cat);
-            if (r?.success !== false) { console.log(`✅ Cron: publicada en "${cat}"`); return; }
-            console.warn(`⚠️ Cron: "${cat}" no funcionó, probando siguiente categoría...`);
-        } catch(e) {
-            console.warn(`⚠️ Cron: "${cat}" falló (${e.message}), probando siguiente categoría...`);
-        }
-    }
-    console.error('❌ Cron: ninguna categoría funcionó en este ciclo');
+    await generarNoticia(CATS[hora%CATS.length]);
 });
 
 // ── GSC Sync automático ───────────────────────────────────
