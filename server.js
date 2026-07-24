@@ -35,18 +35,202 @@ const PORT     = process.env.PORT     || 8080;
 const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\/$/, '');
 
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
-if (!process.env.GEMINI_API_KEY) { console.error('❌ GEMINI_API_KEY requerido'); process.exit(1); }
+// ══════════════════════════════════════════════════════════
+// ✅ VALIDACIÓN — Solo DATABASE_URL es obligatorio
+// ══════════════════════════════════════════════════════════
+if (!process.env.DATABASE_URL) { console.error('❌ DATABASE_URL requerido'); process.exit(1); }
 
+// ══════════════════════════════════════════════════════════
+// 🔑 GEMINI — Respaldo final (opcional)
+// ══════════════════════════════════════════════════════════
 const TODAS_LLAVES_GEMINI = [
-    process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY2,
-    process.env.GEMINI_API_KEY3, process.env.GEMINI_API_KEY4,
-    process.env.GEMINI_API_KEY5, process.env.GEMINI_API_KEY6,
-    process.env.GEMINI_API_KEY7, process.env.GEMINI_API_KEY8,
+    process.env.GEMINI_API_KEY,  process.env.GEMINI_API_KEY1,
+    process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
+    process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
+    process.env.GEMINI_API_KEY6, process.env.GEMINI_API_KEY7,
+    process.env.GEMINI_API_KEY8,
 ].filter(Boolean);
+const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 6);
+const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(-3);
+console.log(`🔑 Gemini: ${TODAS_LLAVES_GEMINI.length} llaves (respaldo)`);
 
-const LLAVES_TEXTO  = TODAS_LLAVES_GEMINI.slice(0, 5);
-const LLAVES_IMAGEN = TODAS_LLAVES_GEMINI.slice(3);
-console.log(`🔑 Gemini: ${TODAS_LLAVES_GEMINI.length} llaves | Texto: ${LLAVES_TEXTO.length} | Imagen: ${LLAVES_IMAGEN.length}`);
+// ══════════════════════════════════════════════════════════
+// 🆓 MINI-ROUTER IA GRATUITA
+// Agrega en Railway las variables que tengas — el resto se salta
+// Orden: Cerebras → Groq → Together → OpenRouter →
+//        Hugging Face → Cloudflare → GitHub Models → Gemini
+// ══════════════════════════════════════════════════════════
+const SYSTEM_PERIODISTA = 'Eres un periodista profesional dominicano. Escribes noticias claras, directas y bien redactadas sobre Santo Domingo Este y República Dominicana.';
+
+async function _postJSON(url, headers, body, timeout = 60000) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeout),
+    });
+    return res;
+}
+
+// ── 1. CEREBRAS (sin límite anunciado) ──────────────────
+const CEREBRAS_KEY = process.env.CEREBRAS_API_KEY || null;
+async function llamarCerebras(prompt, maxTokens = 8000) {
+    if (!CEREBRAS_KEY) throw new Error('sin key');
+    const res = await _postJSON('https://api.cerebras.ai/v1/chat/completions',
+        { 'Authorization': `Bearer ${CEREBRAS_KEY}` },
+        { model: 'llama-3.3-70b', max_tokens: maxTokens, temperature: 0.85,
+          messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] });
+    if (res.status === 429) throw new Error('RATE_LIMIT');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    const t = d.choices?.[0]?.message?.content;
+    if (!t) throw new Error('vacío');
+    return t;
+}
+
+// ── 2. GROQ (14,400 req/día gratis) ─────────────────────
+const GROQ_KEY = process.env.GROQ_API_KEY || null;
+const GROQ_MODELOS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+let _groqIdx = 0;
+async function llamarGroq(prompt, maxTokens = 8000) {
+    if (!GROQ_KEY) throw new Error('sin key');
+    for (let i = 0; i < GROQ_MODELOS.length; i++) {
+        const modelo = GROQ_MODELOS[(_groqIdx + i) % GROQ_MODELOS.length];
+        try {
+            const res = await _postJSON('https://api.groq.com/openai/v1/chat/completions',
+                { 'Authorization': `Bearer ${GROQ_KEY}` },
+                { model: modelo, max_tokens: Math.min(maxTokens, 8000), temperature: 0.85,
+                  messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] });
+            if (res.status === 429) { _groqIdx = (_groqIdx + 1) % GROQ_MODELOS.length; continue; }
+            if (!res.ok) continue;
+            const d = await res.json();
+            const t = d.choices?.[0]?.message?.content;
+            if (!t) continue;
+            _groqIdx = (_groqIdx + 1) % GROQ_MODELOS.length;
+            return t;
+        } catch { continue; }
+    }
+    throw new Error('Groq: todos fallaron');
+}
+
+// ── 3. TOGETHER AI ($1 crédito inicial gratis) ──────────
+const TOGETHER_KEY = process.env.TOGETHER_API_KEY || null;
+async function llamarTogether(prompt, maxTokens = 8000) {
+    if (!TOGETHER_KEY) throw new Error('sin key');
+    const res = await _postJSON('https://api.together.xyz/v1/chat/completions',
+        { 'Authorization': `Bearer ${TOGETHER_KEY}` },
+        { model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', max_tokens: maxTokens, temperature: 0.85,
+          messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] });
+    if (res.status === 429) throw new Error('RATE_LIMIT');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    const t = d.choices?.[0]?.message?.content;
+    if (!t) throw new Error('vacío');
+    return t;
+}
+
+// ── 4. OPENROUTER (50+ modelos gratis) ──────────────────
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || null;
+const OPENROUTER_MODELOS = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'mistralai/mistral-7b-instruct:free',
+    'qwen/qwen-2.5-72b-instruct:free',
+    'google/gemma-3-27b-it:free',
+];
+let _orIdx = 0;
+async function llamarOpenRouter(prompt, maxTokens = 8000) {
+    if (!OPENROUTER_KEY) throw new Error('sin key');
+    for (let i = 0; i < OPENROUTER_MODELOS.length; i++) {
+        const modelo = OPENROUTER_MODELOS[(_orIdx + i) % OPENROUTER_MODELOS.length];
+        try {
+            const res = await _postJSON('https://openrouter.ai/api/v1/chat/completions',
+                { 'Authorization': `Bearer ${OPENROUTER_KEY}`, 'HTTP-Referer': 'https://elfarolaldia.com' },
+                { model: modelo, max_tokens: maxTokens, temperature: 0.85,
+                  messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] });
+            if (res.status === 429) { _orIdx = (_orIdx + 1) % OPENROUTER_MODELOS.length; continue; }
+            if (!res.ok) continue;
+            const d = await res.json();
+            const t = d.choices?.[0]?.message?.content;
+            if (!t) continue;
+            _orIdx = (_orIdx + 1) % OPENROUTER_MODELOS.length;
+            return t;
+        } catch { continue; }
+    }
+    throw new Error('OpenRouter: todos fallaron');
+}
+
+// ── 5. HUGGING FACE (sin límite, más lento) ─────────────
+const HF_TOKEN = process.env.HUGGINGFACE_TOKEN || null;
+async function llamarHuggingFace(prompt, maxTokens = 4000) {
+    if (!HF_TOKEN) throw new Error('sin key');
+    const res = await _postJSON('https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-70B-Instruct/v1/chat/completions',
+        { 'Authorization': `Bearer ${HF_TOKEN}` },
+        { model: 'meta-llama/Llama-3.1-70B-Instruct', max_tokens: maxTokens, temperature: 0.85,
+          messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] },
+        90000);
+    if (res.status === 429) throw new Error('RATE_LIMIT');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    const t = d.choices?.[0]?.message?.content;
+    if (!t) throw new Error('vacío');
+    return t;
+}
+
+// ── 6. CLOUDFLARE AI (10,000 req/día gratis) ────────────
+const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID || null;
+const CF_TOKEN   = process.env.CLOUDFLARE_API_TOKEN  || null;
+async function llamarCloudflare(prompt, maxTokens = 4000) {
+    if (!CF_ACCOUNT || !CF_TOKEN) throw new Error('sin key');
+    const res = await _postJSON(
+        `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast`,
+        { 'Authorization': `Bearer ${CF_TOKEN}` },
+        { max_tokens: maxTokens, temperature: 0.85,
+          messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] });
+    if (res.status === 429) throw new Error('RATE_LIMIT');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    const t = d.result?.response;
+    if (!t) throw new Error('vacío');
+    return t;
+}
+
+// ── 7. GITHUB MODELS (150 req/día gratis) ───────────────
+const GITHUB_TOKEN   = process.env.GITHUB_TOKEN || null;
+const GITHUB_MODELOS = ['meta/Llama-3.3-70B-Instruct', 'openai/gpt-4o-mini', 'mistral-ai/Mistral-Large-2411', 'microsoft/Phi-4'];
+let _ghIdx = 0;
+async function llamarGitHubModels(prompt, maxTokens = 8000) {
+    if (!GITHUB_TOKEN) throw new Error('sin key');
+    for (let i = 0; i < GITHUB_MODELOS.length; i++) {
+        const modelo = GITHUB_MODELOS[(_ghIdx + i) % GITHUB_MODELOS.length];
+        try {
+            const res = await _postJSON('https://models.inference.ai.azure.com/chat/completions',
+                { 'Authorization': `Bearer ${GITHUB_TOKEN}` },
+                { model: modelo, max_tokens: maxTokens, temperature: 0.85,
+                  messages: [{ role: 'system', content: SYSTEM_PERIODISTA }, { role: 'user', content: prompt }] });
+            if (res.status === 429) { _ghIdx = (_ghIdx + 1) % GITHUB_MODELOS.length; continue; }
+            if (!res.ok) continue;
+            const d = await res.json();
+            const t = d.choices?.[0]?.message?.content;
+            if (!t) continue;
+            _ghIdx = (_ghIdx + 1) % GITHUB_MODELOS.length;
+            return t;
+        } catch { continue; }
+    }
+    throw new Error('GitHub Models: todos fallaron');
+}
+
+// ── ROUTER PRINCIPAL ─────────────────────────────────────
+const PROVEEDORES_LIBRES = [
+    { nombre: 'Cerebras',      fn: llamarCerebras,    activo: !!process.env.CEREBRAS_API_KEY },
+    { nombre: 'Groq',          fn: llamarGroq,        activo: !!process.env.GROQ_API_KEY },
+    { nombre: 'Together',      fn: llamarTogether,    activo: !!process.env.TOGETHER_API_KEY },
+    { nombre: 'OpenRouter',    fn: llamarOpenRouter,  activo: !!process.env.OPENROUTER_API_KEY },
+    { nombre: 'HuggingFace',   fn: llamarHuggingFace, activo: !!process.env.HUGGINGFACE_TOKEN },
+    { nombre: 'Cloudflare',    fn: llamarCloudflare,  activo: !!(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN) },
+    { nombre: 'GitHub Models', fn: llamarGitHubModels,activo: !!process.env.GITHUB_TOKEN },
+];
+const activosLibres = PROVEEDORES_LIBRES.filter(p => p.activo).map(p => p.nombre);
+console.log(`🆓 IA Gratuita: [${activosLibres.join(', ')}] | Gemini: ${TODAS_LLAVES_GEMINI.length} llaves (respaldo)`);
 
 const GOOGLE_CSE_KEYS     = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
 const GOOGLE_CSE_CX       = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
@@ -214,7 +398,7 @@ async function consultarGSC(body) {
     const token = await getGSCToken();
     if (!token) return null;
     try {
-        const site = encodeURIComponent('https://elfarolaldia.com/');
+        const site = encodeURIComponent('sc-domain:elfarolaldia.com');
         const res  = await fetch(
             `https://searchconsole.googleapis.com/webmasters/v3/sites/${site}/searchAnalytics/query`,
             {
@@ -317,7 +501,7 @@ async function obtenerContextoGSC(categoria) {
         // Mapeo categoría → palabras clave dominicanas
         const catKw = {
             'Nacionales':      ['república dominicana','santo domingo','rd','dominicana','gobierno','presidente','policía','policia'],
-            'Deportes':        ['béisbol','baseball','dominicano','deportes','tigres','leones','lidom','baloncesto','fútbol'],
+            'Deportes':        ['béisbol','baseball','dominicano','deportes','tigres','leones','lidom','baloncesto','fútbol','boxeo','boxeador','campeón','campeones mundiales','pabellón de la fama','ufc','pelea','ring','vóleibol','voleibol'],
             'Internacionales': ['caribe','latinoamérica','mundo','internacional','eeuu','haití','haiti','trump'],
             'Economía':        ['dólar','banco','economía','peso','precio','tasa','reservas','inflación','combustible'],
             'Tecnología':      ['tecnología','digital','internet','ia','inteligencia artificial','app','celular'],
@@ -705,7 +889,22 @@ async function _callGemini(apiKey, prompt, intento, maxTokens = 8000) {
 }
 
 async function llamarGemini(prompt, reintentos = 2, maxTokens = 8000) {
-    if (!LLAVES_TEXTO.length) throw new Error('Sin llaves Gemini');
+    // ── Intentar todos los proveedores gratuitos primero ──
+    for (const proveedor of PROVEEDORES_LIBRES) {
+        if (!proveedor.activo) continue;
+        try {
+            console.log(`   → ${proveedor.nombre}...`);
+            const texto = await proveedor.fn(prompt, maxTokens);
+            console.log(`   ✅ ${proveedor.nombre} OK (${texto.length} chars)`);
+            return texto;
+        } catch (err) {
+            console.warn(`   ⚠️ ${proveedor.nombre}: ${err.message}`);
+        }
+    }
+    console.warn('   ⚠️ Todos los gratuitos fallaron — usando Gemini');
+
+    // ── Fallback final: Gemini ──
+    if (!LLAVES_TEXTO.length) throw new Error('Sin proveedores disponibles');
 
     // ── Verificar si HAY alguna llave disponible antes de intentar ──
     const llavesLibres = LLAVES_TEXTO.filter(k => Date.now() >= getKeyState(k).resetTime);
@@ -1319,6 +1518,14 @@ async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) 
 // 🧠 PROMPT V41 — CON GSC INTEGRADO
 // ══════════════════════════════════════════════════════════
 async function construirPrompt(categoria, comunicadoExterno) {
+    // 🗓️ Fecha SIEMPRE actual — se calcula sola cada vez que se genera una noticia,
+    // nunca hay que volver a tocarla a mano ni acordarse de actualizarla.
+    const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const ahoraRD  = new Date(); // Railway corre en UTC; para RD (UTC-4) restamos 4h si hace falta precisión de día
+    const mesActual  = MESES_ES[ahoraRD.getUTCMonth()];
+    const anioActual = ahoraRD.getUTCFullYear();
+    const FECHA_ACTUAL = `${mesActual.toUpperCase()} ${anioActual}`;
+
     const ALTO_CPM  = ['Economía','Tecnología','Internacionales'];
     const esCatAlta = ALTO_CPM.includes(categoria);
     let topNoticias='',malNoticias='',metaStr='',memoriaAnti='';
@@ -1360,12 +1567,12 @@ async function construirPrompt(categoria, comunicadoExterno) {
 
     const fuenteContenido = comunicadoExterno
         ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ABRIL 2026.`;
+        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ${FECHA_ACTUAL}.`;
 
     return `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor Jefe de El Farol al Día. Voz del barrio de SDE. Conoces tus métricas y escribes para dominar Google.
-FECHA: ABRIL 2026. Nada de noticias del pasado.
+FECHA: ${FECHA_ACTUAL}. Nada de noticias del pasado.
 
 ${topNoticias}
 ${malNoticias}
@@ -1401,7 +1608,7 @@ SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
    P1-GANCHO: Hecho impactante. Menciona el barrio. Usa palabras clave GSC.
    P2-CONTEXTO: Antecedentes. ¿Qué venía pasando?
    P3-DETALLES: Nombres, cifras, calles específicas de SDE.
-   P4-AMBIENTE: El calor de abril, ruido de motores, parada del carro público, el colmado.
+   P4-AMBIENTE: El calor de ${mesActual}, ruido de motores, parada del carro público, el colmado.
    P5-IMPACTO LOCAL: ¿Cómo afecta a la gente de ${categoria==='Deportes'?'Los Mina':'Invivienda'}?
    P6-REACCIÓN: Testimonios del barrio en comillas.
    P7-ANÁLISIS: Contexto más amplio para RD.
@@ -1629,7 +1836,12 @@ async function procesarRSS() {
     if (!CONFIG_IA.enabled) return;
     console.log('\n📡 Procesando RSS...');
     let ok = 0;
+    const MAX_POR_CORRIDA = 6; // 🔑 antes intentaba las 17 fuentes de una vez y quemaba las llaves
     for (const fuente of FUENTES_RSS) {
+        if (ok >= MAX_POR_CORRIDA) { console.log(`📡 RSS: límite de ${MAX_POR_CORRIDA} por corrida alcanzado — el resto se procesa en la próxima`); break; }
+        // 🔑 Si ya no queda ninguna llave libre, no tiene sentido seguir intentando
+        const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
+        if (!hayLibre) { console.warn('⏳ RSS: todas las llaves bloqueadas — cortando corrida aquí'); break; }
         try {
             const feed = await rssParser.parseURL(fuente.url).catch(()=>null);
             if (!feed?.items?.length) continue;
@@ -1640,7 +1852,7 @@ async function procesarRSS() {
                 if (existe.rows.length) continue;
                 const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`].filter(Boolean).join('\n');
                 const r = await generarNoticia(fuente.categoria, comunicado);
-                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,8000)); }
+                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,28000)); }
                 break;
             }
         } catch(err) { console.warn(`⚠️ ${fuente.nombre}: ${err.message}`); }
@@ -1688,7 +1900,25 @@ cron.schedule('0 */3 * * *', async () => {
     const hayLibre = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
     if (!hayLibre) { console.warn('⏳ Cron: todas las llaves bloqueadas — saltando'); return; }
     console.log(`⏰ Cron hora ${hora}:00`);
-    await generarNoticia(CATS[hora%CATS.length]);
+    // 🔁 Si la categoría que tocaba falla, prueba con las demás antes de rendirse
+    // — pero con freno: máximo 3 intentos por corrida y pausa entre cada uno,
+    // para que un mal ciclo no dispare 6 llamadas seguidas y queme las llaves.
+    const MAX_INTENTOS_CRON = 3;
+    const orden = [...CATS.slice(hora%CATS.length), ...CATS.slice(0,hora%CATS.length)].slice(0, MAX_INTENTOS_CRON);
+    for (let i = 0; i < orden.length; i++) {
+        const cat = orden[i];
+        const quedaLlave = LLAVES_TEXTO.some(k => Date.now() >= getKeyState(k).resetTime);
+        if (!quedaLlave) { console.warn('⏳ Cron: llaves agotadas a mitad del ciclo — cortando aquí'); break; }
+        if (i > 0) await new Promise(r=>setTimeout(r,25000)); // pausa entre intentos, no dispares seguido
+        try {
+            const r = await generarNoticia(cat);
+            if (r?.success !== false) { console.log(`✅ Cron: publicada en "${cat}"`); return; }
+            console.warn(`⚠️ Cron: "${cat}" no funcionó, probando siguiente categoría...`);
+        } catch(e) {
+            console.warn(`⚠️ Cron: "${cat}" falló (${e.message}), probando siguiente categoría...`);
+        }
+    }
+    console.error('❌ Cron: ninguna categoría funcionó en este ciclo');
 });
 
 // ── GSC Sync automático ───────────────────────────────────
