@@ -1678,7 +1678,7 @@ async function getHorasPico() {
 
 cron.schedule('*/5 * * * *', async () => { try { await fetch(`http://localhost:${PORT}/health`); } catch {} });
 
-cron.schedule('0 */3 * * *', async () => {
+cron.schedule('0 8-18 * * *', async () => {
     // Cada 3 horas — ahorra 66% de llamadas vs cada hora
     if (!CONFIG_IA.enabled) return;
     if (Date.now()-ARRANQUE_TIME < 35*60*1000) return;
