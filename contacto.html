@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto | El Farol al Día — Periódico Digital RD</title>
+    <meta name="description" content="Contáctanos en El Farol al Día. Envía noticias, denuncias ciudadanas o publicidad. Santo Domingo Este, República Dominicana.">
+    <meta name="robots" content="index,follow">
+    <link rel="canonical" href="https://elfarolaldia.com/contacto">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
+    <style>
+        :root { --naranja:#FF5500; --fondo:#070707; --tarjeta:#141418; --texto:#EDE8DF; --texto-sec:#A89F94; --borde:#222228; --verde:#22c55e; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--fondo); color:var(--texto); font-family:Arial,sans-serif; min-height:100vh; }
+        header { background:#000; border-bottom:3px solid var(--naranja); padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+        .logo { font-size:22px; color:var(--naranja); font-weight:900; text-transform:uppercase; letter-spacing:3px; text-decoration:none; }
+        header a.back { color:#666; font-size:12px; text-decoration:none; }
+        header a.back:hover { color:var(--naranja); }
+        .container { max-width:900px; margin:0 auto; padding:48px 20px; }
+        .page-title { font-size:30px; color:var(--naranja); font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; }
+        .page-sub { font-size:13px; color:#666; margin-bottom:36px; padding-bottom:20px; border-bottom:2px solid var(--borde); }
+        .two-col { display:grid; grid-template-columns:1fr 380px; gap:28px; }
+        .card { background:var(--tarjeta); border:1px solid var(--borde); border-radius:10px; padding:28px; }
+        .card h2 { font-size:16px; color:var(--naranja); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid var(--borde); }
+        .field { margin-bottom:16px; }
+        .field label { display:block; font-size:11px; color:#666; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; font-weight:700; }
+        .field input, .field select, .field textarea {
+            width:100%; background:#0a0a0a; border:1px solid var(--borde); border-radius:6px;
+            color:var(--texto); padding:10px 12px; font-size:14px; font-family:Arial,sans-serif; transition:border-color .2s;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus { outline:none; border-color:var(--naranja); }
+        .field textarea { resize:vertical; min-height:120px; line-height:1.5; }
+        .btn-enviar {
+            width:100%; padding:13px; background:var(--naranja); color:#fff; border:none; border-radius:7px;
+            font-family:Arial,sans-serif; font-size:15px; font-weight:700; cursor:pointer; text-transform:uppercase;
+            letter-spacing:1px; transition:background .2s;
+        }
+        .btn-enviar:hover { background:#cc4400; }
+        .btn-enviar:disabled { background:#333; color:#666; cursor:not-allowed; }
+        .status-msg { margin-top:12px; padding:12px; border-radius:6px; font-size:13px; text-align:center; display:none; }
+        .status-ok { background:#0d2010; border:1px solid #1e4020; color:#4ade80; display:block; }
+        .status-err { background:#2a0d0d; border:1px solid #5f1e1e; color:#f87171; display:block; }
+        .info-item { display:flex; gap:14px; align-items:flex-start; padding:14px 0; border-bottom:1px solid var(--borde); }
+        .info-item:last-child { border-bottom:none; }
+        .info-icon { font-size:22px; flex-shrink:0; margin-top:2px; }
+        .info-label { font-size:11px; color:#555; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:3px; font-weight:700; }
+        .info-val { font-size:14px; color:var(--texto-sec); line-height:1.5; }
+        .info-val a { color:var(--naranja); text-decoration:none; }
+        .info-val a:hover { text-decoration:underline; }
+        .redes { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+        .red-btn { padding:8px 16px; border-radius:6px; font-size:12px; font-weight:700; text-decoration:none; text-transform:uppercase; letter-spacing:0.5px; }
+        .red-fb { background:#1877f2; color:#fff; }
+        .red-tw { background:#1da1f2; color:#fff; }
+        footer { background:#000; border-top:2px solid var(--naranja); padding:30px 20px; text-align:center; margin-top:60px; }
+        footer .logo-footer { font-size:18px; color:var(--naranja); font-weight:900; letter-spacing:2px; margin-bottom:8px; }
+        footer p { font-size:12px; color:#555; margin-bottom:10px; }
+        footer .footer-links { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; }
+        footer .footer-links a { font-size:11px; color:#555; text-decoration:none; }
+        footer .footer-links a:hover { color:var(--naranja); }
+        @media(max-width:700px) { .two-col{grid-template-columns:1fr;} }
+    </style>
+</head>
+<body>
+<header>
+    <a href="/" class="logo">🏮 El Farol al Día</a>
+    <a href="/" class="back">← Volver al periódico</a>
+</header>
+
+<div class="container">
+    <div class="page-title">Contacto</div>
+    <div class="page-sub">¿Tienes una noticia, denuncia ciudadana o consulta? Escríbenos.</div>
+
+    <div class="two-col">
+        <!-- Formulario -->
+        <div class="card">
+            <h2>✉️ Envíanos un Mensaje</h2>
+            <div class="field">
+                <label>Tu Nombre *</label>
+                <input type="text" id="c-nombre" placeholder="Nombre completo">
+            </div>
+            <div class="field">
+                <label>Correo Electrónico *</label>
+                <input type="email" id="c-email" placeholder="tu@email.com">
+            </div>
+            <div class="field">
+                <label>Asunto</label>
+                <select id="c-asunto">
+                    <option value="noticia">Enviar una noticia o denuncia</option>
+                    <option value="correccion">Corrección de información</option>
+                    <option value="publicidad">Publicidad y patrocinios</option>
+                    <option value="colaboracion">Colaborar como periodista</option>
+                    <option value="privacidad">Solicitud de privacidad / datos</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Mensaje *</label>
+                <textarea id="c-mensaje" placeholder="Describe tu mensaje con el mayor detalle posible. Si envías una noticia o denuncia, incluye: qué ocurrió, dónde, cuándo y datos de contacto de testigos si los hay."></textarea>
+            </div>
+            <button class="btn-enviar" id="btn-enviar" onclick="enviarFormulario()">📨 ENVIAR MENSAJE</button>
+            <div class="status-msg" id="status-msg"></div>
+        </div>
+
+        <!-- Información de contacto -->
+        <div>
+            <div class="card" style="margin-bottom:20px;">
+                <h2>📍 Información de Contacto</h2>
+                <div class="info-item">
+                    <div class="info-icon">📧</div>
+                    <div>
+                        <div class="info-label">Correo Principal</div>
+                        <div class="info-val"><a href="mailto:jose.colorvision@gmail.com">jose.colorvision@gmail.com</a></div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">👤</div>
+                    <div>
+                        <div class="info-label">Director General</div>
+                        <div class="info-val">José Gregorio Mañan Santana</div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">📍</div>
+                    <div>
+                        <div class="info-label">Ubicación</div>
+                        <div class="info-val">Santo Domingo Este<br>República Dominicana</div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">🕐</div>
+                    <div>
+                        <div class="info-label">Horario de Respuesta</div>
+                        <div class="info-val">Lunes a viernes: 8:00 AM – 6:00 PM<br>Sábados: 9:00 AM – 1:00 PM</div>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">⚡</div>
+                    <div>
+                        <div class="info-label">Noticias Urgentes</div>
+                        <div class="info-val">Para noticias de último minuto, envía un correo con el asunto "URGENTE" y te respondemos en menos de 2 horas.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📱 Síguenos en Redes</h2>
+                <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.6;">Mantente al día con las últimas noticias de República Dominicana siguiéndonos en nuestras redes sociales.</p>
+                <div class="redes">
+                    <a href="#" class="red-btn red-fb">📘 Facebook</a>
+                    <a href="#" class="red-btn red-tw">🐦 Twitter/X</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="logo-footer">🏮 EL FAROL AL DÍA</div>
+    <p>Tu periódico digital de Santo Domingo Este y toda la República Dominicana</p>
+    <div class="footer-links">
+        <a href="/">Inicio</a>
+        <a href="/nosotros">Nosotros</a>
+        <a href="/contacto">Contacto</a>
+        <a href="/privacidad">Privacidad</a>
+        <a href="/terminos">Términos</a>
+        <a href="/cookies">Cookies</a>
+    </div>
+    <p style="margin-top:12px;">© 2026 El Farol al Día · José Gregorio Mañan Santana · Santo Domingo Este, RD</p>
+</footer>
+
+<script>
+function enviarFormulario() {
+    const nombre  = document.getElementById('c-nombre').value.trim();
+    const email   = document.getElementById('c-email').value.trim();
+    const asunto  = document.getElementById('c-asunto').value;
+    const mensaje = document.getElementById('c-mensaje').value.trim();
+    const status  = document.getElementById('status-msg');
+    const btn     = document.getElementById('btn-enviar');
+
+    status.className = 'status-msg';
+    status.style.display = 'none';
+
+    if (!nombre) { mostrarError('Por favor escribe tu nombre.'); return; }
+    if (!email || !email.includes('@')) { mostrarError('Por favor escribe un correo electrónico válido.'); return; }
+    if (!mensaje || mensaje.length < 20) { mostrarError('El mensaje debe tener al menos 20 caracteres.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Enviando...';
+
+    // Construir mailto como fallback funcional
+    const asuntoTexto = {
+        'noticia':'Noticia/Denuncia','correccion':'Corrección','publicidad':'Publicidad',
+        'colaboracion':'Colaboración','privacidad':'Privacidad/Datos','otro':'Consulta'
+    }[asunto] || 'Contacto';
+
+    const cuerpo = `Nombre: ${nombre}\nCorreo: ${email}\nAsunto: ${asuntoTexto}\n\nMensaje:\n${mensaje}`;
+    const mailtoLink = `mailto:jose.colorvision@gmail.com?subject=${encodeURIComponent('[El Farol al Día] ' + asuntoTexto + ' - ' + nombre)}&body=${encodeURIComponent(cuerpo)}`;
+
+    window.location.href = mailtoLink;
+
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = '📨 ENVIAR MENSAJE';
+        status.className = 'status-msg status-ok';
+        status.textContent = '✅ Se abrió tu cliente de correo. Si no se abrió automáticamente, envía tu mensaje a jose.colorvision@gmail.com';
+        status.style.display = 'block';
+    }, 1200);
+}
+
+function mostrarError(msg) {
+    const status = document.getElementById('status-msg');
+    status.className = 'status-msg status-err';
+    status.textContent = '❌ ' + msg;
+    status.style.display = 'block';
+}
+</script>
+</body>
+</html>
