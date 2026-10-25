@@ -31,6 +31,7 @@ const { analizarYGenerar } = require('./estrategia-analyzer');
 // ── FASE 2: caché Redis, Llama autohospedado, imágenes con licencia verificada ──
 const cache   = require('./lib/cache');
 const llm     = require('./lib/llm');
+const roles   = require('./lib/roles');
 const { obtenerImagenLimpia } = require('./lib/imagenes');
 const { aplicarMarca }        = require('./lib/imagenes/marca');
 const imgDep  = require('./lib/imagenes/depurador');
@@ -1366,13 +1367,14 @@ async function registrarError(desc, cat) {
 async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
     const MAX_REINTENTOS = 3;
     const inicio = Date.now();
+    const rol = roles.rolPara(categoria);
     try {
         if (!CONFIG_IA.enabled) return {success:false,error:'IA desactivada'};
         console.log(`\n📰 [V41] Generando — ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
 
-        const prompt  = await construirPrompt(categoria, comunicadoExterno);
-        console.log('   📝 Enviando a Gemini con contexto GSC...');
-        const textoIA = await llamarGemini(prompt, 3, 8000);
+        const prompt  = roles.encabezado(rol) + await construirPrompt(categoria, comunicadoExterno);
+        console.log(`   📝 ${rol.nombre} (${rol.cargo}) redacta con contexto GSC...`);
+        const textoIA = await llamarGemini(prompt, 3, 8000, { system: roles.systemDe(rol), temperature: rol.temperature });
         const limpio  = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
 
         let tituloA='',tituloB='',desc='',pals='',sub='';
@@ -1424,7 +1426,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         const cert = ledger.certificar({titulo, contenido, seccion: categoria, fecha: new Date()});
         await pool.query(
             'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado,ledger_hash,imagen_credito,imagen_licencia,imagen_licencia_url) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)',
-            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),redactor(categoria),imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada',cert.hash,imgResult.credito||null,imgResult.licencia||null,imgResult.licenciaUrl||null]
+            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),rol.heredado?redactor(categoria):rol.nombre,imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada',cert.hash,imgResult.credito||null,imgResult.licencia||null,imgResult.licenciaUrl||null]
         );
         console.log(`   🔐 Ledger: ${ledger.hashCorto(cert.hash)}`);
 
@@ -1440,7 +1442,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         await notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, imgResult.urlFinal);
         setImmediate(()=>publicarEnRedes(titulo,slFin,imgResult.urlFinal,desc,categoria,contenido));
 
-        return {success:true,slug:slFin,titulo,alt:altFinal,mensaje:'✅ Publicada V41 con GSC',stats:val,imagen:imgResult,ab:{a:tituloA,b:tituloB,elegido:titulo}};
+        return {success:true,slug:slFin,titulo,redactor:rol.heredado?redactor(categoria):rol.nombre,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con GSC',stats:val,imagen:imgResult,ab:{a:tituloA,b:tituloB,elegido:titulo}};
 
     } catch(error) {
         const dur = Math.round((Date.now()-inicio)/1000);
@@ -1659,6 +1661,7 @@ app.patch('/api/personas/:id', authMiddleware, async (req,res) => {
 
 app.get('/health', (req,res) => res.json({status:'OK',version:'42.0-F2',llm:llm.disponible()?'ok':'circuito-abierto',cache:cache.estado().redis,gsc:'integrado'}));
 app.get('/api/llm/status',   authMiddleware, async (req,res) => res.json({success:true,...await llm.estado()}));
+app.get('/api/roles', authMiddleware, (req,res) => res.json({success:true,motor:process.env.LLM_MODEL||'qwen2.5:1.5b',roles:roles.publico()}));
 app.get('/api/cache/status', authMiddleware, (req,res) => res.json({success:true,...cache.estado()}));
 app.post('/api/cache/purgar', authMiddleware, async (req,res) => { await cache.invalidar('noticias','paginas'); res.json({success:true}); });
 

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Redacción · El Farol al Día</title>
+<link rel="icon" href="/static/favicon.png">
+<style>
+:root{--bg:#0b0b0e;--card:#15151a;--line:#26262e;--txt:#ece7de;--mut:#9a9389;--fuego:#ff5500;--ok:#2ecc71;--warn:#f5b50a;--bad:#ef4444;--off:#6b6b75;--r:12px}
+@media(prefers-color-scheme:light){:root{--bg:#f4f2ee;--card:#fff;--line:#ddd8cf;--txt:#1b1a18;--mut:#6b655c}}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;max-width:1200px;margin:auto}
+.brand{font-weight:800;letter-spacing:.3px}.brand b{color:var(--fuego)}
+.health{display:flex;gap:8px;overflow-x:auto;padding:0 16px 10px;max-width:1200px;margin:auto;scrollbar-width:none}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--off)}
+.chip[data-s=ok] .dot{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.chip[data-s=warn] .dot{background:var(--warn);animation:p 1.2s infinite}
+.chip[data-s=bad] .dot{background:var(--bad)}
+.chip small{color:var(--mut)}
+@keyframes p{50%{opacity:.3}}
+nav{display:flex;gap:4px;padding:0 16px;max-width:1200px;margin:auto}
+nav button{flex:1;background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);padding:10px 4px;font:inherit;font-weight:600;cursor:pointer}
+nav button.on{color:var(--fuego);border-color:var(--fuego)}
+main{max-width:1200px;margin:auto;padding:16px}
+section{display:none}section.on{display:block}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:900px){.grid.two{grid-template-columns:340px 1fr}.grid.cols3{grid-template-columns:repeat(3,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+h2{font-size:16px;margin-bottom:12px}h3{font-size:13px;color:var(--mut);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.6px}
+label{display:block;font-size:12.5px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}
+textarea{min-height:300px;resize:vertical;line-height:1.6}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--fuego);outline-offset:-1px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--fuego);color:#fff;border:0;border-radius:10px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer;min-height:44px}
+.btn.ghost{background:none;color:var(--txt);border:1px solid var(--line)}
+.btn.big{width:100%;font-size:16px;padding:14px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.banner{display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:14px;border:1px solid}
+.banner.show{display:block}
+.banner.info{border-color:var(--warn);background:rgba(245,181,10,.1)}
+.banner.good{border-color:var(--ok);background:rgba(46,204,113,.1)}
+.banner.err{border-color:var(--bad);background:rgba(239,68,68,.1)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:r .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes r{to{transform:rotate(360deg)}}
+.kpi{text-align:center}.kpi b{display:block;font-size:26px;color:var(--fuego)}.kpi span{font-size:12px;color:var(--mut)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px}
+.item .q{font-weight:600;word-break:break-word}.item .m{font-size:12px;color:var(--mut)}
+.tag{font-size:11px;background:rgba(255,85,0,.14);color:var(--fuego);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.prev{border:1px solid var(--line);border-radius:8px;padding:12px;min-height:300px;max-height:420px;overflow:auto;background:var(--bg)}
+.prev p{margin-bottom:10px}
+.cnt{font-size:12px;color:var(--mut);text-align:right;margin-top:4px}
+.empty{color:var(--mut);font-size:14px;padding:8px 0}
+.rol{display:flex;gap:12px;align-items:center;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.rol .ic{font-size:28px}.rol b{display:block}.rol small{color:var(--mut)}.rol .tag{margin-top:4px;display:inline-block;white-space:normal}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="brand">🏮 EL FAROL <b>REDACCIÓN</b></div>
+    <button class="btn ghost" id="btnRefrescar" type="button">↻ Actualizar estado</button>
+  </div>
+  <div class="health" id="health">
+    <div class="chip" id="h-llm" data-s="off"><i class="dot"></i><span>IA local</span><small>…</small></div>
+    <div class="chip" id="h-gsc" data-s="off"><i class="dot"></i><span>Search Console</span><small>…</small></div>
+    <div class="chip" id="h-pg" data-s="off"><i class="dot"></i><span>Postgres</span><small>…</small></div>
+    <div class="chip" id="h-mongo" data-s="off"><i class="dot"></i><span>MongoDB</span><small>…</small></div>
+    <div class="chip" id="h-redis" data-s="off"><i class="dot"></i><span>Redis</span><small>…</small></div>
+  </div>
+  <nav id="tabs">
+    <button class="on" data-t="redactar" type="button">✍️ Redactar</button>
+    <button data-t="audiencia" type="button">📊 Audiencia</button>
+    <button data-t="publicadas" type="button">📰 Publicadas</button>
+  </nav>
+</header>
+
+<main>
+<!-- ═════ REDACTAR ═════ -->
+<section id="redactar" class="on">
+  <div class="grid two">
+    <div class="card">
+      <h2>⚡ Generar con IA local <span class="tag">qwen2.5:1.5b</span></h2>
+      <label for="g-cat">Sección</label>
+      <select id="g-cat"></select>
+      <div class="rol" id="g-rol" aria-live="polite"></div>
+      <button class="btn big" id="btnGenerar" type="button" style="margin-top:14px">Generar y publicar noticia</button>
+      <div class="banner" id="g-banner" role="status" aria-live="polite"></div>
+      <p class="empty" style="margin-top:12px">Cada sección tiene un redactor con su propio estilo. El pipeline usa las tendencias de Search Console y publica en Postgres al terminar.</p>
+    </div>
+
+    <div class="card">
+      <h2>📝 Editor de artículo</h2>
+      <label for="e-titulo">Título</label>
+      <input id="e-titulo" maxlength="160" placeholder="Titular de la noticia">
+      <div class="row" style="margin-top:2px">
+        <div style="flex:1;min-width:160px"><label for="e-seccion">Sección</label><select id="e-seccion"></select><small id="e-rolhint" style="color:var(--mut)"></small></div>
+        <div style="flex:1;min-width:160px"><label for="e-redactor">Redactor</label><input id="e-redactor" value="Redacción"></div>
+      </div>
+      <label for="e-contenido">Contenido (un párrafo por línea)</label>
+      <textarea id="e-contenido" placeholder="Escribe o pega el artículo…"></textarea>
+      <div class="cnt" id="e-cnt">0 palabras</div>
+      <label for="e-desc">Descripción SEO (máx. 155)</label>
+      <input id="e-desc" maxlength="155">
+      <div class="row">
+        <div style="flex:2;min-width:200px"><label for="e-img">URL de imagen</label><input id="e-img" type="url" placeholder="https://…"></div>
+        <div style="flex:1;min-width:160px"><label for="e-alt">Texto alternativo</label><input id="e-alt"></div>
+      </div>
+      <label for="e-kw">Palabras clave</label>
+      <input id="e-kw" placeholder="separadas por coma">
+      <h3>Vista previa</h3>
+      <div class="prev" id="e-prev"><span class="empty">La vista previa aparece aquí.</span></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="btnPublicar" type="button">Publicar</button>
+        <button class="btn ghost" id="btnLimpiar" type="button">Limpiar</button>
+      </div>
+      <div class="banner" id="e-banner" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════ AUDIENCIA ═════ -->
+<section id="audiencia">
+  <div class="card" style="margin-bottom:16px">
+    <div class="row" style="justify-content:space-between">
+      <div><h2 style="margin:0">Google Search Console</h2><div class="m empty" id="a-sync">Sin datos</div></div>
+      <button class="btn" id="btnSync" type="button">🔄 Sincronizar GSC ahora</button>
+    </div>
+    <div class="banner" id="a-banner" role="status" aria-live="polite"></div>
+  </div>
+  <div class="grid cols3" style="margin-bottom:16px">
+    <div class="card kpi"><b id="k-clics">–</b><span>Clics</span></div>
+    <div class="card kpi"><b id="k-imp">–</b><span>Impresiones</span></div>
+    <div class="card kpi"><b id="k-ctr">–</b><span>CTR promedio</span></div>
+  </div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+    <div class="card"><h2>🏆 Oportunidades de Oro</h2><p class="empty">Consultas con impresiones y CTR bajo: escribe sobre ellas.</p><div class="list" id="l-op"></div></div>
+    <div class="card"><h2>✅ Consultas ganadoras</h2><div class="list" id="l-gan"></div></div>
+    <div class="card"><h2>🔎 Top consultas</h2><div class="list" id="l-top"></div></div>
+  </div>
+</section>
+
+<!-- ═════ PUBLICADAS ═════ -->
+<section id="publicadas">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Últimas noticias publicadas</h2>
+    <span class="tag" id="p-total"></span></div>
+    <div class="list" id="l-pub" style="margin-top:12px"></div>
+  </div>
+</section>
+</main>
+
+<script>
+(() => {
+'use strict';
+const PIN = '311';
+const SECCIONES = ['Nacionales','Deportes','Economía','Internacionales','Tecnología','Espectáculos'];
+let MOTOR = 'qwen2.5:1.5b';
+// Respaldo si /api/roles aún no está desplegado; el backend es la fuente de verdad.
+let ROLES = {
+  'Nacionales':{icono:'🏛️',nombre:'Carlos Méndez',cargo:'Redactor periodístico de investigación',tono:'Serio, directo e imparcial'},
+  'Deportes':{icono:'⚽',nombre:'Laura Santana',cargo:'Cronista deportivo',tono:'Pasional, dinámico y basado en datos'},
+  'Economía':{icono:'💰',nombre:'Ana María Castillo',cargo:'Analista financiero',tono:'Claro, práctico y enfocado en el bolsillo'},
+  'Internacionales':{icono:'🏛️',nombre:'Roberto Peña',cargo:'Redactor periodístico de investigación',tono:'Serio, directo e imparcial',heredado:true},
+  'Tecnología':{icono:'💻',nombre:'José Miguel Fernández',cargo:'Editor de innovación',tono:'Moderno, explicativo y enfocado en la utilidad'},
+  'Espectáculos':{icono:'🎬',nombre:'Patricia Jiménez',cargo:'Redactora de cultura y entretenimiento',tono:'Fresco, ameno y amigable'}};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('es-DO');
+
+async function api(url, opts = {}, ms = 20000) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { credentials: 'same-origin', ...opts, signal: ctl.signal,
+      headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+    let j = {}; try { j = await r.json(); } catch {}
+    if (!r.ok && !j.error) j.error = 'HTTP ' + r.status;
+    j._http = r.status; return j;
+  } finally { clearTimeout(t); }
+}
+const post = (u, b, ms) => api(u, { method: 'POST', body: JSON.stringify({ pin: PIN, ...b }) }, ms);
+
+function banner(id, kind, html) { const b = $(id); b.className = 'banner show ' + kind; b.innerHTML = html; }
+function hide(id) { $(id).className = 'banner'; }
+function chip(id, s, text) { const c = $(id); c.dataset.s = s; c.querySelector('small').textContent = text; }
+
+/* ── Roles ── */
+const rolDe = c => ROLES[c] || ROLES['Nacionales'];
+function pintarRol() {
+  const r = rolDe($('g-cat').value);
+  $('g-rol').innerHTML = `<span class="ic">${esc(r.icono)}</span><div><b>${esc(r.nombre)}</b><small>${esc(r.cargo)}</small><br><span class="tag">${esc(r.tono)}</span>${r.heredado ? '<br><small>Sin rol propio: hereda el estilo de Nacionales.</small>' : ''}</div>`;
+}
+function rolEditor() {
+  const r = rolDe($('e-seccion').value);
+  $('e-redactor').value = r.nombre; $('e-rolhint').textContent = r.cargo;
+}
+async function cargarRoles() {
+  try {
+    const j = await api('/api/roles', {}, 8000);
+    if (j.success && Array.isArray(j.roles)) { j.roles.forEach(r => { ROLES[r.seccion] = r; }); if (j.motor) MOTOR = j.motor; }
+  } catch {}
+  pintarRol(); rolEditor();
+}
+/* ── Selects ── */
+for (const id of ['g-cat', 'e-seccion']) $(id).innerHTML = SECCIONES.map(s => `<option>${s}</option>`).join('');
+
+$('g-cat').addEventListener('change', pintarRol);
+$('e-seccion').addEventListener('change', rolEditor);
+pintarRol(); rolEditor();
+
+/* ── Tabs ── */
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('on', s.id === b.dataset.t));
+  if (b.dataset.t === 'audiencia') cargarGSC();
+  if (b.dataset.t === 'publicadas') cargarPublicadas();
+});
+
+/* ── Monitor de infraestructura ── */
+let ultimoLlm = null;
+function evaluarLlm(j) {
+  if (!j || j.error && j.servicio_vivo === undefined) return { s: 'bad', t: 'Sin respuesta', msg: 'No se pudo consultar /api/llm/status.' };
+  if (j.circuito === 'ABIERTO' || j.servicio_vivo === false)
+    return { s: 'bad', t: 'Circuito abierto / reintentando', msg: j.diagnostico || 'El servicio de IA local no responde; el sistema reintenta.' };
+  const inst = j.instalados || [];
+  if (inst.length && !inst.some(m => m === MOTOR || m === MOTOR + ':latest'))
+    return { s: 'warn', t: `Falta ${MOTOR}`, msg: `El modelo ${MOTOR} aún no está instalado en Ollama (instalados: ${inst.join(', ') || 'ninguno'}).` };
+  if (!j.precalentado) return { s: 'warn', t: `Calentando ${MOTOR}`, msg: 'El modelo se está cargando en memoria.' };
+  if (j.ocupado || j.cola > 0) return { s: 'ok', t: `${MOTOR} · ${j.cola || 0} en cola`, msg: '' };
+  return { s: 'ok', t: `${MOTOR} · saludable`, msg: '' };
+}
+async function estadoLlm() {
+  try { ultimoLlm = await api('/api/llm/status', {}, 8000); } catch { ultimoLlm = null; }
+  const v = evaluarLlm(ultimoLlm); chip('h-llm', v.s, v.t);
+  $('h-llm').title = ultimoLlm?.modelo_activo ? 'Modelo: ' + ultimoLlm.modelo_activo : '';
+  return v;
+}
+async function estadoGsc() {
+  try {
+    const j = await api(`/api/gsc/status?pin=${PIN}`, {}, 8000);
+    if (j.conectado) chip('h-gsc', 'ok', 'Sincronizado · ' + new Date(j.ultima_sync).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' }));
+    else if (j.error) chip('h-gsc', 'bad', 'Error');
+    else chip('h-gsc', 'warn', 'Sin datos aún');
+  } catch { chip('h-gsc', 'bad', 'Sin respuesta'); }
+}
+async function estadoBD() {
+  try { const j = await api('/api/estadisticas', {}, 8000); chip('h-pg', j.success ? 'ok' : 'bad', j.success ? 'Conectado' : 'Error'); }
+  catch { chip('h-pg', 'bad', 'Sin respuesta'); }
+  // El backend actual no expone estado de MongoDB: se muestra honestamente.
+  chip('h-mongo', 'off', 'Sin endpoint');
+  try {
+    const j = await api('/api/cache/status', {}, 8000), r = String(j.redis || '');
+    chip('h-redis', r === 'conectado' ? 'ok' : r.startsWith('caido') ? 'bad' : 'warn', r === 'conectado' ? 'Conectado' : r.startsWith('caido') ? 'Caído (memoria)' : 'Memoria local');
+  } catch { chip('h-redis', 'bad', 'Sin respuesta'); }
+}
+function refrescarTodo() { estadoLlm(); estadoGsc(); estadoBD(); }
+$('btnRefrescar').onclick = refrescarTodo;
+cargarRoles(); refrescarTodo(); setInterval(refrescarTodo, 30000);
+
+/* ── Generador ── */
+let tick = null;
+$('btnGenerar').onclick = async () => {
+  const btn = $('btnGenerar'), cat = $('g-cat').value, t0 = Date.now();
+  btn.disabled = true;
+  const pintar = async () => {
+    const v = await estadoLlm(), s = Math.round((Date.now() - t0) / 1000);
+    const rl = rolDe(cat);
+    const txt = v.s === 'bad' ? 'La IA local está reintentando…' : v.s === 'warn' ? 'Calentando el modelo, un momento…' : `${esc(rl.nombre)} (${esc(rl.cargo)}) está redactando con ${esc(MOTOR)}…`;
+    banner('g-banner', 'info', `<span class="spin"></span>${txt} <small>(${s}s · ${esc(cat)})</small>${v.msg ? '<br><small>' + esc(v.msg) + '</small>' : ''}`);
+  };
+  banner('g-banner', 'info', `<span class="spin"></span>${esc(rolDe(cat).nombre)} está redactando con ${esc(MOTOR)}…`);
+  tick = setInterval(pintar, 5000);
+  try {
+    const j = await post('/api/generar-noticia', { categoria: cat }, 15 * 60 * 1000);
+    if (j.success) {
+      banner('g-banner', 'good', `✅ Publicada: <b>${esc(j.titulo || '')}</b><br><small>Redactó ${esc(j.redactor || rolDe(cat).nombre)}${j.rol ? ' · ' + esc(j.rol) : ''}</small><br><a href="/noticia/${encodeURIComponent(j.slug)}" target="_blank" rel="noopener" style="color:inherit">Ver noticia →</a>`);
+      cargarPublicadas();
+    } else {
+      const llm = await estadoLlm();
+      const causa = llm.s !== 'ok' ? 'La IA local no está disponible todavía. ' + llm.t + '.' : (j.error || 'La generación no se completó.');
+      banner('g-banner', 'err', '⚠️ ' + esc(causa) + ' Puedes reintentar en un momento.');
+    }
+  } catch (e) {
+    banner('g-banner', 'err', e.name === 'AbortError' ? '⏱️ La generación excedió el tiempo de espera. Revisa el estado de la IA local.' : '⚠️ Error de red: ' + esc(e.message));
+  } finally { clearInterval(tick); btn.disabled = false; estadoLlm(); }
+};
+
+/* ── Editor ── */
+function actualizarEditor() {
+  const t = $('e-contenido').value.trim();
+  $('e-cnt').textContent = (t ? t.split(/\s+/).length : 0) + ' palabras';
+  const ps = t.split('\n').map(p => p.trim()).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('');
+  const h = $('e-titulo').value.trim();
+  $('e-prev').innerHTML = (h || ps) ? (h ? `<h2>${esc(h)}</h2>` : '') + ps : '<span class="empty">La vista previa aparece aquí.</span>';
+}
+['e-contenido', 'e-titulo'].forEach(i => $(i).addEventListener('input', actualizarEditor));
+$('btnLimpiar').onclick = () => { document.querySelectorAll('#redactar .card:last-child input:not(#e-redactor), #e-contenido').forEach(i => i.value = ''); actualizarEditor(); hide('e-banner'); };
+$('btnPublicar').onclick = async () => {
+  const titulo = $('e-titulo').value.trim(), contenido = $('e-contenido').value.trim();
+  if (!titulo) return banner('e-banner', 'err', 'Falta el título.');
+  if (contenido.length < 100) return banner('e-banner', 'err', 'El contenido es muy corto (mínimo 100 caracteres).');
+  const btn = $('btnPublicar'); btn.disabled = true; banner('e-banner', 'info', '<span class="spin"></span>Publicando…');
+  try {
+    const j = await post('/api/publicar', {
+      titulo, contenido, seccion: $('e-seccion').value, redactor: $('e-redactor').value.trim() || 'Redacción',
+      seo_description: $('e-desc').value.trim(), seo_keywords: $('e-kw').value.trim(),
+      imagen: $('e-img').value.trim(), imagen_alt: $('e-alt').value.trim() }, 60000);
+    if (j.success) { banner('e-banner', 'good', `✅ Publicada. <a href="/noticia/${encodeURIComponent(j.slug)}" target="_blank" rel="noopener" style="color:inherit">Ver noticia →</a>`); cargarPublicadas(); }
+    else banner('e-banner', 'err', '⚠️ ' + esc(j.error || 'No se pudo publicar.'));
+  } catch (e) { banner('e-banner', 'err', '⚠️ ' + esc(e.message)); }
+  finally { btn.disabled = false; }
+};
+
+/* ── Audiencia / GSC ── */
+const filaQ = (c, extra) => `<div class="item"><div><div class="q">${esc(c.query || c.consulta || '—')}</div>
+  <div class="m">${fmt(c.impresiones)} imp · ${fmt(c.clics)} clics · CTR ${Number(c.ctr || 0).toFixed(1)}%${c.posicion ? ' · pos ' + Number(c.posicion).toFixed(1) : ''}</div></div>${extra || ''}</div>`;
+const llenar = (id, arr, extra) => $(id).innerHTML = (arr && arr.length) ? arr.map(c => filaQ(c, extra)).join('') : '<div class="empty">Sin datos.</div>';
+async function cargarGSC() {
+  try {
+    const j = await api(`/api/gsc/status?pin=${PIN}`);
+    if (!j.conectado) { $('a-sync').textContent = j.mensaje || j.error || 'Sin datos de Search Console.'; return; }
+    $('a-sync').textContent = 'Última sincronización: ' + new Date(j.ultima_sync).toLocaleString('es-DO');
+    $('k-clics').textContent = fmt(j.total_clics); $('k-imp').textContent = fmt(j.total_impresiones);
+    $('k-ctr').textContent = Number(j.ctr_promedio || 0).toFixed(2) + '%';
+    llenar('l-op', j.top_oportunidades, '<span class="tag">Oro</span>');
+    llenar('l-gan', j.top_ganadoras); llenar('l-top', j.top_consultas);
+  } catch (e) { $('a-sync').textContent = 'Error: ' + e.message; }
+}
+$('btnSync').onclick = async () => {
+  const b = $('btnSync'); b.disabled = true; banner('a-banner', 'info', '<span class="spin"></span>Sincronizando con Search Console…');
+  try {
+    const j = await post('/api/gsc/sync', {}, 120000);
+    banner('a-banner', j.success ? 'good' : 'err', esc(j.mensaje || (j.success ? 'Sincronizado' : j.error || 'Error al sincronizar')));
+    await cargarGSC(); estadoGsc();
+  } catch (e) { banner('a-banner', 'err', '⚠️ ' + esc(e.message)); }
+  finally { b.disabled = false; }
+};
+
+/* ── Publicadas ── */
+async function cargarPublicadas() {
+  try {
+    const j = await api('/api/noticias');
+    const n = j.noticias || []; $('p-total').textContent = n.length + ' recientes';
+    $('l-pub').innerHTML = n.length ? n.map(x => `<div class="item"><div><div class="q">${esc(x.titulo)}</div>
+      <div class="m">${esc(x.seccion)}${x.redactor ? ' · ' + esc(x.redactor) : ''} · ${fmt(x.vistas)} vistas · ${new Date(x.fecha).toLocaleDateString('es-DO')}</div></div>
+      <div class="row"><a class="btn ghost" href="/noticia/${encodeURIComponent(x.slug)}" target="_blank" rel="noopener">Ver</a>
+      <button class="btn ghost" data-del="${x.id}" type="button">🗑</button></div></div>`).join('') : '<div class="empty">No hay noticias.</div>';
+  } catch (e) { $('l-pub').innerHTML = '<div class="empty">Error: ' + esc(e.message) + '</div>'; }
+}
+$('l-pub').addEventListener('click', async e => {
+  const b = e.target.closest('[data-del]'); if (!b || !confirm('¿Eliminar esta noticia de forma permanente?')) return;
+  b.disabled = true; const j = await post('/api/eliminar/' + b.dataset.del, {});
+  if (j.success) cargarPublicadas(); else { alert(j.error || 'No se pudo eliminar'); b.disabled = false; }
+});
+})();
+</script>
+</body>
+</html>
