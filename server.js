@@ -1773,7 +1773,7 @@ app.patch('/api/personas/:id', authMiddleware, async (req,res) => {
 
 app.get('/health', (req,res) => res.json({status:'OK',version:'42.0-F2',llm:llm.disponible()?'ok':'circuito-abierto',cache:cache.estado().redis,gsc:'integrado'}));
 app.get('/api/llm/status',   authMiddleware, async (req,res) => res.json({success:true,...await llm.estado()}));
-app.get('/api/roles', authMiddleware, (req,res) => res.json({success:true,motor:process.env.LLM_MODEL||'qwen2.5:1.5b',roles:roles.publico()}));
+app.get('/api/roles', authMiddleware, (req,res) => res.json({success:true,motor:process.env.LLM_MODEL||'qwen2.5:0.5b',roles:roles.publico()}));
 app.get('/api/cache/status', authMiddleware, (req,res) => res.json({success:true,...cache.estado()}));
 app.post('/api/cache/purgar', authMiddleware, async (req,res) => { await cache.invalidar('noticias','paginas'); res.json({success:true}); });
 
