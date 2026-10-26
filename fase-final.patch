@@ -1,0 +1,1389 @@
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/.env.example /home/claude/farol/farol-web-main/farol-web-main/.env.example
+--- a/.env.example	2026-10-25 23:06:24.000000000 -0400
++++ b/.env.example	2026-10-26 05:52:08.183107410 -0400
+@@ -6,3 +6,12 @@
+ MONGO_URL=
+ # MONGO_DB=elfarol
+ # IMG_SOLO_LICENCIADAS=1
++
++# ── Fase final ──
++# Filtro geográfico de imágenes
++# IMG_GEO_ESTRICTO=1            # 0 = no exige evidencia local positiva (las demás reglas siguen)
++# IMG_MAX_ANTIGUEDAD_DIAS=365   # fotos más viejas se descartan
++# Videos cortos (FFmpeg local; en Railway lo instala nixpacks.toml)
++# VIDEO_MIN_SEG=3  VIDEO_MAX_SEG=30  VIDEO_MAX_MB=80  VIDEO_CRF=26
++# VIDEO_DEGRADADO=1             # 0 = solo limpia/empaqueta, sin degradado
++# FFMPEG_PATH=ffmpeg  FFPROBE_PATH=ffprobe
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/LEEME-FASE2.md /home/claude/farol/farol-web-main/farol-web-main/LEEME-FASE2.md
+--- a/LEEME-FASE2.md	2026-10-25 23:06:24.000000000 -0400
++++ b/LEEME-FASE2.md	2026-10-26 05:52:28.257328187 -0400
+@@ -1,4 +1,4 @@
+-# El Farol al Día — Motor V41 (Ollama + Jefe de Redacción)
++# El Farol al Día — Motor V43 (Ollama + Jefe de Redacción + Fase final)
+ 
+ | Archivo | Función |
+ |---|---|
+@@ -8,11 +8,19 @@
+ | `lib/imagenes/web.js` | Extractor web directo: og:image de la fuente original + búsqueda por contexto (Bing News RSS / DuckDuckGo HTML). Sin Pexels, Piped ni catálogos |
+ | `lib/imagenes/` | web (nivel 1) → buscador con licencia Commons/Openverse (nivel 2) → tarjeta de marca (nivel 3); depurador anti-SSRF, dedupe, marca de agua, almacén |
+ | `llama-service/` | Dockerfile + entrypoint del servicio Ollama (descarga solo `qwen2.5:0.5b`) |
+-| `test/fase2.test.js` | 59 comprobaciones (`npm test`) |
++| `lib/imagenes/geo.js` | **Filtro geográfico estricto**: detecta país/lugar de la primicia, ancla TODA consulta web con ese contexto y valida cada foto candidata (descarta Asia ajena, fotos de archivo/stock/antiguas, personas y retratos fuera de contexto, y —en modo estricto— fotos sin evidencia local) |
++| `lib/videos/index.js` | **Micro-pipeline de videos cortos** (FFmpeg local): degradado de marca + filete + marca de agua, sin metadatos (título, GPS, dispositivo, fecha, capítulos), H.264/AAC ≤720p con `+faststart`, póster y descriptor |
++| `nixpacks.toml` | Instala FFmpeg en Railway |
++| `test/fase2.test.js` · `test/fase3.test.js` | 59 + 82 comprobaciones (`npm test`) |
+ 
+ ## Variables en Railway
+ - Servicio web: `DATABASE_URL`, `LLM_BASE_URL` (p. ej. `http://llama.railway.internal:11434`), `MONGO_URL` (+ `MONGO_DB`, por defecto `elfarol`), `BASE_URL`.
+-- Opcionales: `LLM_MODEL` (por defecto `qwen2.5:0.5b`), `IMG_SOLO_LICENCIADAS=1` (desactiva el extractor web y usa solo fotos con licencia), `IMG_WEB_MIN_ANCHO`, `IMG_WEB_MIN_RELEVANCIA`.
++- Opcionales: `LLM_MODEL` (por defecto `qwen2.5:0.5b`), `IMG_SOLO_LICENCIADAS=1` (desactiva el extractor web y usa solo fotos con licencia), `IMG_WEB_MIN_ANCHO`, `IMG_WEB_MIN_RELEVANCIA`, `IMG_GEO_ESTRICTO` (1 por defecto), `IMG_MAX_ANTIGUEDAD_DIAS` (365), `VIDEO_MIN_SEG`/`VIDEO_MAX_SEG`/`VIDEO_MAX_MB`/`VIDEO_CRF`, `VIDEO_DEGRADADO` (0 = sin degradado).
+ 
+ ## Endpoints (requieren sesión + `?pin=`)
+ `/api/ia/status` · `/api/jefe-redaccion/estado` · `/api/jefe-redaccion/historial?limite=&tipo=&categoria=` · `POST /api/jefe-redaccion/sincronizar`
++
++## Fase final
++**Imágenes.** `obtenerImagenLimpia()` calcula el contexto geográfico (`geo.detectarContexto`) con titular + comunicado + contenido; Bing News (mercado del país), DuckDuckGo (región del país) y Commons/Openverse reciben la consulta con el país/lugar antepuesto, y cada candidato pasa por `geo.validarCandidato` antes de descargarse. La validación trabaja sobre metadatos (título, leyenda, URL, fecha, dominio): no hay reconocimiento facial.
++
++**Videos.** Entradas: (1) el redactor sube el clip en `/redaccion` (campo "Clip de video") → `POST /api/video/subir` (cuerpo binario `video/*`, `?fuente=&titulo=`); (2) `POST /api/video/desde-url` `{url, fuente, noticia_id?}`; (3) automático: si un ítem RSS trae `enclosure`/`media:content` de video, `procesarRSS` lo procesa y lo publica con la noticia. Luego `POST /api/video/adjuntar/:id` `{nombre}` o `video_nombre` en `/api/generar-noticia` y `/api/publicar`. La noticia muestra `<video>` con póster y crédito, `og:video` y JSON-LD `VideoObject`. `GET /video/:nombre` sirve con Range (iOS/Safari). `GET /api/video/status` (sesión) indica si hay FFmpeg.
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/client/noticia.html /home/claude/farol/farol-web-main/farol-web-main/client/noticia.html
+--- a/client/noticia.html	2026-10-25 23:06:24.000000000 -0400
++++ b/client/noticia.html	2026-10-26 05:50:07.807404690 -0400
+@@ -219,6 +219,8 @@
+         <div class="imagen-caption">{{ALT}} — El Farol al Día<span class="imagen-credito">{{CREDITO}}</span></div>
+       </div>
+ 
++      {{VIDEO}}
++
+       <!-- AdSense dentro del artículo -->
+       <div class="ad-articulo">
+         <div class="ad-label-small">PUBLICIDAD</div>
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/client/redaccion.html /home/claude/farol/farol-web-main/farol-web-main/client/redaccion.html
+--- a/client/redaccion.html	2026-10-25 23:06:24.000000000 -0400
++++ b/client/redaccion.html	2026-10-26 05:52:08.137315150 -0400
+@@ -261,6 +261,11 @@
+ 
+             <label class="field-label">Referencia / Comunicado (opcional)</label>
+             <textarea id="comunicado" placeholder="Pega aquí tu fuente, comunicado oficial, o deja vacío para generación libre con keywords GSC..."></textarea>
++
++            <label class="field-label">Clip de video corto — 15 a 20 s (opcional)</label>
++            <input type="file" id="clip-ia" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onchange="subirClip('ia')">
++            <input type="text" id="clip-ia-fuente" placeholder="Crédito del clip (ej. Policía Nacional)">
++            <div class="hint-box" id="clip-ia-estado" style="margin-top:6px;">Se le aplica degradado de marca y se limpian los metadatos con FFmpeg antes de publicarse.</div>
+         </div>
+ 
+         <div class="panel-right">
+@@ -331,6 +336,12 @@
+             <label class="field-label">Alt de imagen (SEO)</label>
+             <input type="text" id="m-alt" placeholder="Descripción de la imagen para Google...">
+ 
++
++            <label class="field-label">Clip de video corto — 15 a 20 s (opcional)</label>
++            <input type="file" id="clip-manual" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onchange="subirClip('manual')">
++            <input type="text" id="clip-manual-fuente" placeholder="Crédito del clip (ej. Policía Nacional)">
++            <div class="hint-box" id="clip-manual-estado" style="margin-top:6px;">Se le aplica degradado de marca y se limpian los metadatos con FFmpeg antes de publicarse.</div>
++
+             <label class="field-label">Redactor</label>
+             <input type="text" id="m-redactor" placeholder="Nombre del redactor...">
+ 
+@@ -568,6 +579,22 @@
+         }
+     }
+ 
++    // ── CLIPS DE VIDEO CORTOS: sube el original → el servidor lo procesa con FFmpeg → queda el nombre para publicar ──
++    const CLIP = { ia: null, manual: null };
++    async function subirClip(k) {
++        const f = document.getElementById('clip-' + k).files[0], est = document.getElementById('clip-' + k + '-estado');
++        CLIP[k] = null; if (!f) { est.textContent = 'Sin clip.'; return; }
++        est.textContent = '⏳ Procesando "' + f.name + '" (' + (f.size / 1048576).toFixed(1) + ' MB)…';
++        try {
++            const q = new URLSearchParams({ fuente: document.getElementById('clip-' + k + '-fuente').value, titulo: f.name.replace(/\.[^.]+$/, '') });
++            const r = await fetch('/api/video/subir?' + q, { method: 'POST', headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': f.type || 'video/mp4' }, body: f });
++            const d = await r.json();
++            if (!d.success) { est.textContent = '❌ ' + d.error; return; }
++            CLIP[k] = d.video.nombre;
++            est.textContent = '✅ Listo: ' + d.video.duracion + ' s, ' + d.video.ancho + 'x' + d.video.alto + ', ' + (d.video.bytes / 1048576).toFixed(1) + ' MB — se publicará con la noticia.';
++        } catch (e) { est.textContent = '❌ ' + e.message; }
++    }
++
+     async function publicarManual() {
+         const titulo   = document.getElementById('m-titulo').value.trim();
+         const contenido= document.getElementById('m-contenido').value.trim();
+@@ -587,6 +614,7 @@
+                     seo_description: document.getElementById('m-desc').value,
+                     seo_keywords:    document.getElementById('m-keywords').value,
+                     redactor:        document.getElementById('m-redactor').value,
++                    video_nombre:    CLIP.manual, video_fuente: document.getElementById('clip-manual-fuente').value,
+                 })
+             });
+             const d = await r.json();
+@@ -615,7 +643,8 @@
+                 headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                     categoria:  document.getElementById('cat-ia').value,
+-                    comunicado: document.getElementById('comunicado').value
++                    comunicado: document.getElementById('comunicado').value,
++                    video_nombre: CLIP.ia, video_fuente: document.getElementById('clip-ia-fuente').value
+                 })
+             });
+             const d = await r.json();
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/lib/imagenes/almacen.js /home/claude/farol/farol-web-main/farol-web-main/lib/imagenes/almacen.js
+--- a/lib/imagenes/almacen.js	2026-10-25 23:06:24.000000000 -0400
++++ b/lib/imagenes/almacen.js	2026-10-26 05:49:38.390937655 -0400
+@@ -26,10 +26,12 @@
+ const DIR = process.env.IMG_DIR || path.join(os.tmpdir(), 'efd-img');
+ fs.mkdirSync(DIR, { recursive: true });
+ 
+-async function guardar(nombre, buffer, meta = {}) {
++const TIPOS = { '.mp4': 'video/mp4', '.json': 'application/json', '.png': 'image/png' };
++async function guardar(nombre, buffer, meta = {}, contentType) {
++    contentType = contentType || TIPOS[path.extname(nombre).toLowerCase()] || 'image/jpeg';
+     const m = await _mongo();
+     if (m) {
+-        await new Promise((ok, ko) => { const s = m.bucket.openUploadStream(nombre, { contentType: 'image/jpeg' }); s.on('finish', ok).on('error', ko); s.end(buffer); });
++        await new Promise((ok, ko) => { const s = m.bucket.openUploadStream(nombre, { contentType }); s.on('finish', ok).on('error', ko); s.end(buffer); });
+         await m.col.updateOne({ nombre }, { $set: { nombre, ...meta, creada: new Date() } }, { upsert: true }).catch(() => {});
+         return 'mongo';
+     }
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/lib/imagenes/depurador.js /home/claude/farol/farol-web-main/farol-web-main/lib/imagenes/depurador.js
+--- a/lib/imagenes/depurador.js	2026-10-25 23:06:24.000000000 -0400
++++ b/lib/imagenes/depurador.js	2026-10-26 05:49:38.389042649 -0400
+@@ -114,4 +114,4 @@
+     await cache.setAdd('img:usadas', c.id, d); if (huella) await cache.setAdd('img:huellas', huella, d);
+ }
+ 
+-module.exports = { evaluarMetadatos, descargar, descargarPagina, inspeccionar, yaUsada, marcarUsada, DOMINIOS_BLOQUEADOS };
++module.exports = { evaluarMetadatos, descargar, descargarPagina, inspeccionar, yaUsada, marcarUsada, DOMINIOS_BLOQUEADOS, urlSegura: _urlSegura };
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/lib/imagenes/geo.js /home/claude/farol/farol-web-main/farol-web-main/lib/imagenes/geo.js
+--- a/lib/imagenes/geo.js	1969-12-31 19:30:00.000000000 -0430
++++ b/lib/imagenes/geo.js	2026-10-25 23:15:43.242881388 -0400
+@@ -0,0 +1,265 @@
++'use strict';
++/**
++ * FILTRO GEOGRÁFICO ESTRICTO para la búsqueda de imágenes.
++ *
++ *  1) detectarContexto()   → país/lugar de la primicia (República Dominicana, Panamá, Colombia, Santo Domingo, ...)
++ *  2) anclarConsulta()     → TODA consulta web antepone ese contexto geográfico (no hay búsquedas genéricas)
++ *  3) validarCandidato()   → descarta lo que no pertenece a la noticia:
++ *        · contexto geográfico ajeno (otro país/ciudad que la noticia no menciona)
++ *        · paisajes/lugares de Asia (salvo que la noticia sea de Asia)
++ *        · fotos de archivo / stock / genéricas / ilustrativas / antiguas (por fecha, año o leyenda)
++ *        · rostros fuera de contexto: retratos o personas con nombre que NO aparecen en la noticia
++ *        · (modo estricto) fotos sin ninguna evidencia local del país de la noticia
++ *
++ *  ⚠️ Límite honesto: no hay reconocimiento facial ni visión por computador (el LLM local es solo texto).
++ *     La validación trabaja sobre los metadatos que acompañan a la foto: título, descripción, leyenda, URL, fecha, dominio.
++ *
++ *  Variables: IMG_GEO_ESTRICTO (1 por defecto; 0 = no exige evidencia local positiva), IMG_MAX_ANTIGUEDAD_DIAS (365).
++ */
++
++const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
++const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
++const frase = lista => new RegExp(`(?<![a-z0-9])(?:${lista.map(esc).join('|')})(?![a-z0-9])`);
++
++const ESTRICTO = process.env.IMG_GEO_ESTRICTO !== '0';
++const MAX_DIAS = parseInt(process.env.IMG_MAX_ANTIGUEDAD_DIAS || '365', 10);
++
++// ── Tabla de países ─────────────────────────────────────────────────────
++// nombre (consulta en español) · en (consulta en inglés) · tld · mkt (Bing) · kl (DuckDuckGo) · alias · lugares
++const _P = (id, nombre, en, tld, mkt, kl, alias, lugares = '', asia = false) => ({
++    id, nombre, en, tld, mkt, kl, asia, lugaresDisp: lugares ? lugares.split('|') : [],
++    // "china" (naranja en RD), "usa" (verbo) y "uk" se detectan aparte, sensibles a mayúsculas (ver SENSIBLES)
++    alias: [...new Set([nombre, en, ...alias.split('|')].map(norm).filter(a => a && a !== 'china'))],
++    lugares: lugares ? lugares.split('|').map(norm) : [],
++});
++const PAISES = [
++    _P('DO', 'República Dominicana', 'Dominican Republic', 'do', 'es-DO', 'do-es', 'dominicana|dominicano|dominicanos|dominicanas|dominican',
++        'Santo Domingo Este|Santo Domingo|SDE|Los Mina|Invivienda|Sabana Perdida|Villa Mella|Charles de Gaulle|Ensanche Ozama|Los Trinitarios|Boca Chica|San Isidro|Distrito Nacional|Santiago de los Caballeros|La Romana|Punta Cana|Higüey|Puerto Plata|San Pedro de Macorís|San Cristóbal|La Vega|Bonao|Barahona|Samaná|Jarabacoa|Haina|Bávaro|Azua|San Francisco de Macorís|Monte Plata|Palacio Nacional|Malecón|Zona Colonial|Aeropuerto de Las Américas|Autopista Las Américas|Cibao|Gazcue|Naco|Piantini|Bella Vista'),
++    _P('PA', 'Panamá', 'Panama', 'pa', 'es-PA', 'xl-es', 'panameno|panamenos|panamena|panamenas|panamanian', 'Ciudad de Panamá|Canal de Panamá|Tocumen|Chiriquí|Bocas del Toro|Panamá Oeste|Colón Panamá'),
++    _P('CO', 'Colombia', 'Colombia', 'co', 'es-CO', 'co-es', 'colombiano|colombianos|colombiana|colombianas', 'Bogotá|Medellín|Cali|Barranquilla|Cartagena|Bucaramanga|Cúcuta'),
++    _P('VE', 'Venezuela', 'Venezuela', 've', 'es-VE', 've-es', 'venezolano|venezolanos|venezolana|venezolanas', 'Caracas|Maracaibo|Barquisimeto'),
++    _P('MX', 'México', 'Mexico', 'mx', 'es-MX', 'mx-es', 'mexicano|mexicanos|mexicana|mexicanas|cdmx', 'Ciudad de México|Guadalajara|Monterrey|Tijuana|Cancún'),
++    _P('CU', 'Cuba', 'Cuba', 'cu', 'es-US', 'xl-es', 'cubano|cubanos|cubana|cubanas', 'La Habana|Havana|Santiago de Cuba'),
++    _P('PR', 'Puerto Rico', 'Puerto Rico', 'pr', 'es-US', 'xl-es', 'puertorriqueno|puertorriquenos|boricua|boricuas', 'San Juan Puerto Rico|Ponce|Bayamón'),
++    _P('HT', 'Haití', 'Haiti', 'ht', 'es-US', 'xl-es', 'haitiano|haitianos|haitiana|haitianas|haitian', 'Puerto Príncipe|Port-au-Prince|Cabo Haitiano'),
++    _P('US', 'Estados Unidos', 'United States', 'us', 'es-US', 'us-es', 'estadounidense|estadounidenses|norteamericano|norteamericanos', 'Washington|Nueva York|New York|Miami|Florida|Texas|California|Casa Blanca|Boston|Chicago|Los Ángeles|Orlando|Nueva Jersey|Filadelfia|Pensilvania|Capitolio'),
++    _P('ES', 'España', 'Spain', 'es', 'es-ES', 'es-es', 'espana|espanola|espanoles|espanolas', 'Madrid|Barcelona|Sevilla|Valencia España|Bilbao|Real Madrid'),
++    _P('AR', 'Argentina', 'Argentina', 'ar', 'es-AR', 'ar-es', 'argentino|argentinos|argentina|argentinas', 'Buenos Aires|Córdoba Argentina|Rosario'),
++    _P('CL', 'Chile', 'Chile', 'cl', 'es-CL', 'cl-es', 'chileno|chilenos|chilena|chilenas', 'Santiago de Chile|Valparaíso'),
++    _P('PE', 'Perú', 'Peru', 'pe', 'es-PE', 'pe-es', 'peruano|peruanos|peruana|peruanas', 'Lima|Cusco|Machu Picchu'),
++    _P('EC', 'Ecuador', 'Ecuador', 'ec', 'es-EC', 'xl-es', 'ecuatoriano|ecuatorianos|ecuatoriana', 'Quito|Guayaquil'),
++    _P('BR', 'Brasil', 'Brazil', 'br', 'pt-BR', 'br-pt', 'brasileno|brasilenos|brasilena|brazilian', 'Brasilia|São Paulo|Sao Paulo|Río de Janeiro|Rio de Janeiro'),
++    _P('UY', 'Uruguay', 'Uruguay', 'uy', 'es-AR', 'xl-es', 'uruguayo|uruguayos|uruguaya', 'Montevideo'),
++    _P('PY', 'Paraguay', 'Paraguay', 'py', 'es-AR', 'xl-es', 'paraguayo|paraguayos|paraguaya', 'Asunción'),
++    _P('BO', 'Bolivia', 'Bolivia', 'bo', 'es-AR', 'xl-es', 'boliviano|bolivianos|boliviana', 'La Paz Bolivia|Santa Cruz de la Sierra'),
++    _P('CR', 'Costa Rica', 'Costa Rica', 'cr', 'es-MX', 'xl-es', 'costarricense|costarricenses|tico|ticos', 'San José Costa Rica'),
++    _P('GT', 'Guatemala', 'Guatemala', 'gt', 'es-MX', 'xl-es', 'guatemalteco|guatemaltecos|guatemalteca', 'Ciudad de Guatemala'),
++    _P('HN', 'Honduras', 'Honduras', 'hn', 'es-MX', 'xl-es', 'hondureno|hondurenos|hondurena', 'Tegucigalpa|San Pedro Sula'),
++    _P('SV', 'El Salvador', 'El Salvador', 'sv', 'es-MX', 'xl-es', 'salvadoreno|salvadorenos|salvadorena', 'San Salvador'),
++    _P('NI', 'Nicaragua', 'Nicaragua', 'ni', 'es-MX', 'xl-es', 'nicaraguense|nicaraguenses', 'Managua'),
++    _P('CA', 'Canadá', 'Canada', 'ca', 'es-US', 'xl-es', 'canadiense|canadienses', 'Toronto|Ottawa|Montreal|Vancouver'),
++    _P('GB', 'Reino Unido', 'United Kingdom', 'uk', 'es-ES', 'xl-es', 'inglaterra|britanico|britanicos|britanica|england|britain', 'Londres|London|Manchester|Liverpool'),
++    _P('FR', 'Francia', 'France', 'fr', 'es-ES', 'xl-es', 'frances|francesa|franceses|french', 'París|Paris|Marsella|Lyon'),
++    _P('DE', 'Alemania', 'Germany', 'de', 'es-ES', 'xl-es', 'aleman|alemana|alemanes|german', 'Berlín|Berlin|Múnich|Munich|Fráncfort'),
++    _P('IT', 'Italia', 'Italy', 'it', 'es-ES', 'xl-es', 'italiano|italiana|italianos|italian', 'Roma|Milán|Milan|Nápoles|Vaticano'),
++    _P('RU', 'Rusia', 'Russia', 'ru', 'es-ES', 'xl-es', 'ruso|rusa|rusos|russian', 'Moscú|Moscow|Kremlin|San Petersburgo'),
++    _P('UA', 'Ucrania', 'Ukraine', 'ua', 'es-ES', 'xl-es', 'ucraniano|ucraniana|ucranianos|ukrainian', 'Kiev|Kyiv|Járkov|Odesa'),
++    _P('IL', 'Israel', 'Israel', 'il', 'es-ES', 'xl-es', 'israeli|israelies', 'Tel Aviv|Jerusalén|Jerusalem'),
++    _P('PS', 'Palestina', 'Palestine', 'ps', 'es-ES', 'xl-es', 'palestino|palestina|palestinos|gaza|franja de gaza|cisjordania|hamas', 'Ramala'),
++    _P('IR', 'Irán', 'Iran', 'ir', 'es-ES', 'xl-es', 'iraní|irani|iranies', 'Teherán|Tehran'),
++    _P('TR', 'Turquía', 'Turkey', 'tr', 'es-ES', 'xl-es', 'turco|turca|turcos', 'Estambul|Ankara'),
++    _P('SA', 'Arabia Saudita', 'Saudi Arabia', 'sa', 'es-ES', 'xl-es', 'saudi|saudita', 'Riad|Riyadh'),
++    _P('EG', 'Egipto', 'Egypt', 'eg', 'es-ES', 'xl-es', 'egipcio|egipcia|egipcios', 'El Cairo|Cairo'),
++    _P('ZA', 'Sudáfrica', 'South Africa', 'za', 'es-ES', 'xl-es', 'sudafricano|sudafricana', 'Johannesburgo|Ciudad del Cabo'),
++    _P('NG', 'Nigeria', 'Nigeria', 'ng', 'es-ES', 'xl-es', 'nigeriano|nigeriana', 'Lagos|Abuya'),
++    _P('AU', 'Australia', 'Australia', 'au', 'es-ES', 'xl-es', 'australiano|australiana', 'Sídney|Sydney|Melbourne'),
++    // Asia (la noticia SOLO puede usar fotos asiáticas si ella misma es de Asia)
++    _P('CN', 'China', 'China', 'cn', 'es-ES', 'xl-es', 'republica popular china|chino|chinos|china continental|chinese', 'Pekín|Beijing|Shanghái|Shanghai|Hong Kong|Gran Muralla|Shenzhen|Cantón', true),
++    _P('JP', 'Japón', 'Japan', 'jp', 'es-ES', 'xl-es', 'japones|japonesa|japoneses|japanese', 'Tokio|Tokyo|Kioto|Kyoto|Osaka|Monte Fuji|Mount Fuji|Hiroshima', true),
++    _P('KR', 'Corea del Sur', 'South Korea', 'kr', 'es-ES', 'xl-es', 'corea|corea del norte|surcoreano|norcoreano|korea|korean', 'Seúl|Seoul|Busan|Pionyang', true),
++    _P('IN', 'India', 'India', 'in', 'es-ES', 'xl-es', 'indio|hindu|indian', 'Nueva Delhi|New Delhi|Mumbai|Bombay|Taj Mahal|Bangalore', true),
++    _P('TH', 'Tailandia', 'Thailand', 'th', 'es-ES', 'xl-es', 'tailandes|tailandesa|thai', 'Bangkok|Phuket|Chiang Mai', true),
++    _P('VN', 'Vietnam', 'Vietnam', 'vn', 'es-ES', 'xl-es', 'vietnamita|vietnamitas', 'Hanói|Hanoi|Ho Chi Minh', true),
++    _P('ID', 'Indonesia', 'Indonesia', 'id', 'es-ES', 'xl-es', 'indonesio|indonesia|indonesa', 'Yakarta|Jakarta|Bali', true),
++    _P('PH', 'Filipinas', 'Philippines', 'ph', 'es-ES', 'xl-es', 'filipino|filipina|filipinos', 'Manila', true),
++    _P('SG', 'Singapur', 'Singapore', 'sg', 'es-ES', 'xl-es', 'singapurense', '', true),
++    _P('MY', 'Malasia', 'Malaysia', 'my', 'es-ES', 'xl-es', 'malayo|malasio', 'Kuala Lumpur', true),
++    _P('TW', 'Taiwán', 'Taiwan', 'tw', 'es-ES', 'xl-es', 'taiwanes|taiwanesa', 'Taipéi|Taipei', true),
++    _P('PK', 'Pakistán', 'Pakistan', 'pk', 'es-ES', 'xl-es', 'pakistani|paquistani', 'Islamabad|Karachi', true),
++    _P('NP', 'Nepal', 'Nepal', 'np', 'es-ES', 'xl-es', 'nepali|himalaya', 'Katmandú|Kathmandu', true),
++    _P('KH', 'Camboya', 'Cambodia', 'kh', 'es-ES', 'xl-es', 'camboyano|angkor', '', true),
++].map(p => ({ ...p, _alias: frase([...p.alias, ...p.lugares]), _soloAlias: frase(p.alias), _lugares: p.lugares.length ? frase(p.lugares) : null }));
++const POR_ID = Object.fromEntries(PAISES.map(p => [p.id, p]));
++const DO = POR_ID.DO;
++
++// Siglas/nombres ambiguos: solo cuentan con su mayúscula original ("China" ≠ "jugo de china", "USA" ≠ "usa")
++const SENSIBLES = {
++    US: /(?<![\p{L}])(?:USA|U\.S\.A?\.?|EE\.?\s?UU\.?)(?![\p{L}])/gu,
++    GB: /(?<![\p{L}])UK(?![\p{L}])/gu,
++    CN: /(?<![\p{L}])China(?![\p{L}])/gu,
++};
++const _sens = (id, orig) => (String(orig || '').match(SENSIBLES[id]) || []).length;
++
++// Otros términos asiáticos que delatan un paisaje/lugar de Asia (no incluye "china"/"india" sueltos: en RD "china" = naranja)
++const ASIA_RE = frase(['asia', 'asiatico', 'asiatica', 'asian', 'pagoda', 'templo budista', 'buddhist temple', 'cherry blossom', 'sakura', 'cerezos en flor',
++    'torii', 'geisha', 'kimono', 'terrazas de arroz', 'rice terrace', 'rice terraces', 'angkor', 'himalaya', 'monte fuji', 'mount fuji', 'gran muralla',
++    'great wall', 'forbidden city', 'ciudad prohibida', 'bund', 'skyline de shanghai', 'tokyo tower', 'bangkok', 'seoul', 'hanoi']);
++
++// Fotos de archivo / stock / genéricas
++const ARCHIVO_RE = frase(['foto de archivo', 'fotos de archivo', 'foto archivo', 'imagen de archivo', 'imagenes de archivo', 'file photo', 'file image', 'archive photo',
++    'stock photo', 'stock image', 'stock footage', 'foto stock', 'imagen stock', 'imagen referencial', 'foto referencial', 'imagen ilustrativa', 'foto ilustrativa',
++    'imagen de referencia', 'foto de referencia', 'imagen generica', 'foto generica', 'generic image', 'representative image', 'photo illustration', 'ilustracion',
++    'illustration', 'throwback', 'tbt', 'foto antigua', 'imagen antigua', 'old photo', 'vintage', 'archivo historico', 'clipart', 'render 3d']);
++
++// Retratos / primeros planos (rostro sin respaldo en la noticia)
++const RETRATO_RE = frase(['retrato', 'portrait', 'headshot', 'primer plano', 'close-up', 'closeup', 'close up', 'selfie', 'foto de perfil', 'profile picture', 'mugshot', 'rostro', 'official portrait']);
++
++// Palabras que NO son nombres de persona aunque vayan en mayúscula (instituciones, lugares, marcas, genéricos)
++const NO_NOMBRE = new Set(('gobierno ministerio ministro ministra presidente presidenta palacio nacional banco central policia ejercito armada senado camara diputados congreso republica ' +
++    'dominicana dominicano estado estados unidos ciudad plaza parque avenida calle autopista carretera puente aeropuerto puerto hospital universidad colegio escuela liceo ' +
++    'iglesia catedral mercado centro estadio club liga equipo seleccion copa mundial festival concierto noticias noticia diario listin hoy ayer foto fotos imagen imagenes ' +
++    'fotografia video archivo santo santa san domingo este oeste norte sur mina invivienda palacio alcalde alcaldia ayuntamiento director directora doctor doctora ' +
++    'general coronel capitan teniente fiscal procuraduria juez tribunal corte suprema electoral junta comision comite partido movimiento ' +
++    'el la los las del una uno con por para sobre entre desde hasta ante tras segun durante nuevo nueva gran grande ' +
++    'enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre lunes martes miercoles jueves viernes sabado ' +
++    'libre digital semana online news world times post press agency agencia television canal radio telemundo noticiero cnn bbc').split(/\s+/));
++PAISES.forEach(p => [...p.alias, ...p.lugares].forEach(a => a.split(/[^a-z0-9]+/).forEach(t => t && NO_NOMBRE.add(t))));
++
++const NOMBRE_RE = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}'’]{2,}(?:\s+(?:(?:de|del|la|van|von|da|di)\s+)?\p{Lu}[\p{L}'’]{2,}){1,3}/gu;
++const CONECTORES = new Set(['de', 'del', 'la', 'van', 'von', 'da', 'di']);
++
++/** Nombres de persona (2+ palabras en mayúscula que no sean instituciones/lugares/marcas) presentes en un texto. */
++function extraerNombres(texto) {
++    const out = [];
++    for (const m of String(texto || '').matchAll(NOMBRE_RE)) {
++        const toks = m[0].split(/\s+/).filter(t => !CONECTORES.has(t.toLowerCase())).map(norm);
++        const buenos = toks.filter(t => t.length > 2 && !NO_NOMBRE.has(t));
++        if (buenos.length >= 2 && buenos.length === toks.length) out.push(buenos);
++    }
++    return out;
++}
++const tokensDe = s => new Set(norm(s).split(/[^a-z0-9]+/).filter(t => t.length > 3));
++
++function _cuenta(re, texto) { const m = texto.match(new RegExp(re.source, 'g')); return m ? m.length : 0; }
++
++// ── 1) Contexto geográfico de la noticia ────────────────────────────────
++/**
++ * @returns {{pais, id, anchor, anchorEn, lugar, permitidos:Set, asiaPermitida, tokens:Set, personas:string[][], implicito:boolean, años:Set}}
++ *  pais = objeto de la tabla (o null si es una noticia internacional sin país identificable)
++ */
++function detectarContexto({ titulo = '', contenido = '', categoria = '', comunicado = '' } = {}) {
++    const t = norm(titulo), com = norm(comunicado).slice(0, 1200), c = norm(contenido).slice(0, 2500);
++    const todo = `${t} ${com} ${c}`;
++    const puntaje = PAISES.map(p => {
++        const sol = (p._soloAlias.test(t) ? _cuenta(p._soloAlias, t) * 4 : 0) + _cuenta(p._soloAlias, com) * 2 + _cuenta(p._soloAlias, c);
++        const lug = p._lugares ? _cuenta(p._lugares, t) * 4 + _cuenta(p._lugares, com) * 2 + _cuenta(p._lugares, c) : 0;
++        const sen = SENSIBLES[p.id] ? _sens(p.id, titulo) * 4 + _sens(p.id, comunicado.slice(0, 1200)) * 2 + _sens(p.id, contenido.slice(0, 2500)) : 0;
++        const pos = [p._alias.exec(t)?.index, ...(SENSIBLES[p.id] ? [[...String(titulo).matchAll(SENSIBLES[p.id])][0]?.index] : [])].filter(i => i !== undefined);
++        return { p, s: sol + lug + sen, pos: pos.length ? Math.min(...pos) : 1e9 };
++    }).filter(x => x.s > 0).sort((a, b) => b.s - a.s || a.pos - b.pos);                // empate → el que se menciona primero en el titular
++
++    let pais = puntaje[0]?.p || null, implicito = false;
++    if (!pais) { if (categoria === 'Internacionales') pais = null; else { pais = DO; implicito = true; } }
++    // Primicia con "dominicano" + otro país (p. ej. "dominicano gana en Miami"): gana el que más pesa; en empate, RD.
++    if (pais && pais.id !== 'DO') { const d = puntaje.find(x => x.p.id === 'DO'); if (d && d.s >= puntaje[0].s) pais = DO; }
++
++    // Lugar más específico (de la tabla del país) que aparece en la noticia; si no hay, el de la categoría local por defecto
++    let lugar = '';
++    if (pais?._lugares) {
++        const hallados = pais.lugares.filter(l => frase([l]).test(todo)).sort((a, b) => b.length - a.length);
++        const enTitulo = hallados.find(l => frase([l]).test(t));
++        lugar = enTitulo || hallados[0] || '';
++    }
++    if (pais?.id === 'DO' && !lugar) lugar = implicito ? 'santo domingo' : '';
++    const lugarTxt = lugar ? (pais.lugaresDisp.find(d => norm(d) === lugar) || lugar.replace(/(^|\s)\S/g, x => x.toUpperCase())) : '';
++    const yaIncluye = lugarTxt && pais && norm(pais.nombre).includes(norm(lugarTxt));
++    const anchor = pais ? (lugarTxt && !yaIncluye ? `${lugarTxt} ${pais.nombre}` : pais.nombre) : 'noticias internacionales';
++    const anchorEn = pais ? (lugarTxt && !yaIncluye ? `${lugarTxt} ${pais.en}` : pais.en) : 'international news';
++
++    const permitidos = new Set(puntaje.map(x => x.p.id)); if (pais) permitidos.add(pais.id);
++    const asiaPermitida = [...permitidos].some(id => POR_ID[id].asia) || ASIA_RE.test(todo);
++    const personas = extraerNombres(`${titulo} ${comunicado.slice(0, 1200)} ${contenido.slice(0, 2500)}`);
++    const años = new Set((todo.match(/\b(19|20)\d{2}\b/g) || []));
++    return { pais, id: pais?.id || null, anchor, anchorEn, lugar: lugarTxt, permitidos, asiaPermitida,
++        tokens: tokensDe(`${titulo} ${comunicado} ${contenido}`), personas, implicito, años };
++}
++
++// ── 2) Anclaje geográfico obligatorio de toda consulta ──────────────────
++/** Antepone el contexto geográfico a la consulta (salvo que ya lo incluya). idioma: 'es' | 'en'. */
++function anclarConsulta(consulta, ctx, { idioma = 'es' } = {}) {
++    ctx = ctx || detectarContexto({ categoria: 'Nacionales' });
++    const q = String(consulta || '').replace(/\s+/g, ' ').trim();
++    const nq = norm(q);
++    const ya = ctx.pais ? (ctx.pais._alias.test(nq) || (ctx.pais.id === 'DO' && /(^|[^a-z])rd([^a-z]|$)/.test(nq))) : /internacional|international|mundo|world/.test(nq);
++    if (ya) return q.slice(0, 140);
++    return `${idioma === 'en' ? ctx.anchorEn : ctx.anchor} ${q}`.trim().slice(0, 140);
++}
++
++// ── 3) Validación estricta de candidatos ────────────────────────────────
++const host = u => { try { return new URL(u).hostname.replace(/^www\./, '').toLowerCase(); } catch { return ''; } };
++const rutaTxt = u => { try { const x = new URL(u); return decodeURIComponent(x.pathname).replace(/[-_/.]+/g, ' '); } catch { return ''; } };
++const TLD_PAIS = Object.fromEntries(PAISES.filter(p => !['co', 'id', 'in'].includes(p.tld)).map(p => [p.tld, p.id]));   // .co/.id/.in se usan como dominios genéricos
++const tldDe = h => { const partes = h.split('.'); const t = partes[partes.length - 1]; return (t.length === 2 || t === 'uk') ? TLD_PAIS[t] || null : null; };
++// Medios locales de RD con dominio genérico (.com/.net): cuentan como evidencia local
++const MEDIOS_DO = ['listindiario.com', 'diariolibre.com', 'eldinero.com.do', 'elnuevodiario.com.do', 'hoy.com.do', 'elcaribe.com.do', 'noticiassin.com', 'cdn.com.do',
++    'almomento.net', 'elnacional.com.do', 'n.com.do', 'z101digital.com', 'telemicro.com.do', 'color-vision.com', 'rcc.com.do', 'ultimahora.com.do', 'dominicanoshoy.com', 'metro.com.do'];
++
++function _fecha(f) { if (!f) return null; const d = f instanceof Date ? f : new Date(f); return isNaN(d) ? null : d; }
++
++/**
++ * ¿Esta foto pertenece a ESTA noticia? Devuelve { ok, motivo }.
++ * Campos usados del candidato (todos opcionales): titulo, descripcion, categorias[], urlPagina, urlDescarga, fecha, esFuente.
++ * La foto de la fuente original (og:image de la nota RSS) es, por definición, del hecho: solo se le aplica el filtro de archivo.
++ */
++function validarCandidato(c, ctx, { estricto = ESTRICTO, ahora = new Date(), maxDias = MAX_DIAS } = {}) {
++    ctx = ctx || detectarContexto({ categoria: 'Nacionales' });
++    const descr = `${c.titulo || ''} ${c.descripcion || ''}`;
++    const texto = norm(`${descr} ${(c.categorias || []).join(' ')} ${rutaTxt(c.urlPagina)} ${rutaTxt(c.urlDescarga)}`);
++    const hPag = host(c.urlPagina), hImg = host(c.urlDescarga);
++
++    // A. Foto de archivo / stock / genérica / ilustrativa
++    const arch = texto.match(ARCHIVO_RE);
++    if (arch) return { ok: false, motivo: `foto de archivo/genérica ("${arch[0]}")` };
++    if (c.esFuente) return { ok: true };
++
++    // B. Paisajes / lugares de Asia fuera de contexto
++    if (!ctx.asiaPermitida) {
++        const asia = texto.match(ASIA_RE) || PAISES.filter(p => p.asia).map(p => texto.match(p._alias)).find(Boolean) || (_sens('CN', descr) ? ['China'] : null);
++        const tld = [tldDe(hPag), tldDe(hImg)].map(id => id && POR_ID[id]).find(p => p && p.asia);
++        if (asia || tld) return { ok: false, motivo: `paisaje/lugar de Asia fuera de contexto ("${asia ? asia[0] : tld.nombre}")` };
++    }
++
++    // C. Contexto geográfico ajeno
++    const mencionados = PAISES.filter(p => p._alias.test(texto) || (SENSIBLES[p.id] && _sens(p.id, descr))).map(p => p.id);
++    const tlds = [tldDe(hPag), tldDe(hImg)].filter(Boolean);
++    const ajenos = [...new Set([...mencionados, ...tlds])].filter(id => !ctx.permitidos.has(id));
++    const propios = mencionados.filter(id => ctx.permitidos.has(id));
++    if (ajenos.length && !propios.length && !(ctx.id && tlds.includes(ctx.id))) return { ok: false, motivo: `contexto geográfico ajeno (${POR_ID[ajenos[0]].nombre})` };
++
++    // D. Antigüedad: fecha de publicación, año en la leyenda/URL, o fecha claramente vieja
++    const f = _fecha(c.fecha);
++    if (f && (ahora - f) / 864e5 > maxDias) return { ok: false, motivo: `foto antigua (${f.toISOString().slice(0, 10)})` };
++    const corto = norm(`${c.titulo || ''} ${(c.categorias || []).join(' ')} ${rutaTxt(c.urlPagina)} ${rutaTxt(c.urlDescarga)}`);   // sin la descripción larga (menciona años históricos)
++    const años = [...(corto.match(/(?<![0-9])(19[5-9]\d|20[0-3]\d)(?![0-9])/g) || [])].filter(a => !ctx.años.has(a));
++    const viejo = años.find(a => +a < ahora.getFullYear() - 1);
++    if (viejo) return { ok: false, motivo: `foto antigua (año ${viejo} en leyenda/URL)` };
++
++    // E. Rostros fuera de contexto (por leyenda): persona con nombre que la noticia no menciona, o retrato sin respaldo
++    const limpia = descr.split(/\s[|–—-]\s/)[0].slice(0, 220);                 // quita el sufijo "| Nombre del medio"
++    const pal = limpia.split(/\s+/).filter(w => /\p{L}{3,}/u.test(w)), mayus = pal.filter(w => /^\p{Lu}/u.test(w)).length;
++    const titleCase = pal.length >= 5 && mayus / pal.length >= 0.8;               // "Dominican Republic Announces New Tax": no hay forma de distinguir nombres
++    const nombres = titleCase ? [] : extraerNombres(limpia).filter(n => !n.some(t => hPag.includes(t) || hImg.includes(t)));
++    const ajena = nombres.find(n => !n.some(t => ctx.tokens.has(t)));
++    if (ajena) return { ok: false, motivo: `persona fuera de contexto ("${ajena.join(' ')}")` };
++    if (RETRATO_RE.test(texto) && !nombres.some(n => n.some(t => ctx.tokens.has(t))))
++        return { ok: false, motivo: 'retrato/primer plano sin respaldo en la noticia' };
++
++    // F. Modo estricto: debe haber evidencia LOCAL (país/lugar en la leyenda, dominio del país o medio local)
++    if (estricto && ctx.pais) {
++        const local = propios.length || tlds.includes(ctx.id) || (ctx.id === 'DO' && [hPag, hImg].some(h => MEDIOS_DO.some(m => h === m || h.endsWith('.' + m))));
++        if (!local) return { ok: false, motivo: `sin evidencia de ${ctx.pais.nombre} (modo estricto)` };
++    }
++    return { ok: true };
++}
++
++module.exports = { detectarContexto, anclarConsulta, validarCandidato, extraerNombres, PAISES, norm, MAX_DIAS, ESTRICTO };
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/lib/imagenes/index.js /home/claude/farol/farol-web-main/farol-web-main/lib/imagenes/index.js
+--- a/lib/imagenes/index.js	2026-10-25 23:06:24.000000000 -0400
++++ b/lib/imagenes/index.js	2026-10-26 05:49:50.471344489 -0400
+@@ -7,6 +7,7 @@
+ const llm = require('../llm');
+ const { buscar } = require('./buscador');
+ const web = require('./web');
++const geo = require('./geo');
+ const dep = require('./depurador');
+ const { aplicarMarca, tarjetaMarca } = require('./marca');
+ const almacen = require('./almacen');
+@@ -49,8 +50,17 @@
+ 
+ const SOLO_LICENCIADAS = process.env.IMG_SOLO_LICENCIADAS === '1';
+ 
++/** FILTRO GEOGRÁFICO ESTRICTO: deja solo los candidatos que pertenecen a ESTA noticia (país/lugar, sin Asia ajena, sin archivo/antiguas, sin rostros ajenos). */
++function filtrarGeo(cands, ctx) {
++    return cands.filter(c => {
++        const v = geo.validarCandidato(c, ctx);
++        if (!v.ok) console.log(`      ✗ [geo] ${c.id}: ${v.motivo}`);
++        return v.ok;
++    });
++}
++
+ /** Procesa candidatos ya rankeados: descarga segura → inspección → dedupe → marca → almacén. Devuelve el resultado o null. */
+-async function _publicarPrimera(ranking, consulta, umbrales) {
++async function _publicarPrimera(ranking, consulta, umbrales, ctx) {
+     for (const { c, rel } of ranking) {
+         try {
+             const dup = await dep.yaUsada(c, null); if (dup) { console.log(`      ✗ ${c.id}: ${dup}`); continue; }
+@@ -61,13 +71,13 @@
+ 
+             const { buffer, marcada } = await aplicarMarca(buf);
+             const nombre = `efd-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
+-            const donde = await almacen.guardar(nombre, buffer, { fuenteId: c.id, proveedor: c.proveedor, autor: c.autor, licencia: c.licencia.etiqueta, paginaFuente: c.urlPagina, consulta });
++            const donde = await almacen.guardar(nombre, buffer, { fuenteId: c.id, proveedor: c.proveedor, autor: c.autor, licencia: c.licencia.etiqueta, paginaFuente: c.urlPagina, consulta, geo: ctx?.anchor || null });
+             await dep.marcarUsada(c, ins.huella);
+             console.log(`   ✅ ${c.id} (${c.licencia.etiqueta}, rel ${rel.toFixed(2)}) → ${donde}`);
+             return {
+                 urlFinal: `${BASE_URL}/img/${nombre}`, urlOriginal: c.urlPagina, nombre, procesada: marcada,
+                 fuente: `${c.web ? 'web-' : ''}${c.proveedor.toLowerCase().replace(/[^a-z0-9]+/g, '-')}${marcada ? '-wm' : ''}`.slice(0, 50),
+-                licencia: c.licencia.etiqueta, licenciaUrl: c.licencia.url, paginaFuente: c.urlPagina,
++                licencia: c.licencia.etiqueta, licenciaUrl: c.licencia.url, paginaFuente: c.urlPagina, contextoGeo: ctx?.anchor || null,
+                 credito: c.web ? c.proveedor : (c.licencia.requiereCredito ? `${c.autor} / ${c.proveedor}` : `${c.proveedor}${c.autor !== 'Autor desconocido' ? ' — ' + c.autor : ''}`),
+             };
+         } catch (e) { console.log(`      ✗ ${c.id}: ${e.message}`); }
+@@ -75,8 +85,11 @@
+     return null;
+ }
+ 
+-async function obtenerImagenLimpia({ titulo, contenido, categoria, subtema, personaQuery, enlaceFuente }) {
++async function obtenerImagenLimpia({ titulo, contenido, categoria, subtema, personaQuery, enlaceFuente, comunicado }) {
+     console.log(`\n   🖼️ [img] Buscando foto fresca en la web → "${titulo.slice(0, 55)}"`);
++    // Contexto geográfico de la primicia (país/lugar): ancla TODAS las búsquedas y valida cada candidato.
++    const ctx = geo.detectarContexto({ titulo, contenido, categoria, comunicado });
++    console.log(`   🌎 contexto geográfico: ${ctx.anchor}${ctx.implicito ? ' (por defecto)' : ''} | estricto=${geo.ESTRICTO ? 'sí' : 'no'}`);
+     const consultas = await construirConsultas({ titulo, contenido, categoria, personaQuery });
+     console.log(`   🔎 consultas: ${consultas.join(' | ')}`);
+ 
+@@ -88,13 +101,13 @@
+         for (let i = 0; i < consultasWeb.length; i++) {
+             const consulta = consultasWeb[i];
+             let cands = [];
+-            try { cands = await web.candidatos({ consulta, enlaceFuente: i === 0 ? enlaceFuente : null }); }
++            try { cands = await web.candidatos({ consulta, enlaceFuente: i === 0 ? enlaceFuente : null, contexto: ctx }); }
+             catch (e) { console.warn('   ⚠️ [img-web] búsqueda:', e.message); continue; }
+-            const ranking = cands
++            const ranking = filtrarGeo(cands, ctx)
+                 .map(c => ({ c, rel: c.esFuente ? 1 : Math.max(relevancia(c, consulta), relevancia(c, titulo)) }))
+                 .filter(x => x.rel >= MIN_REL_WEB)
+                 .sort((a, b) => (b.c.esFuente ? 1 : 0) - (a.c.esFuente ? 1 : 0) || b.rel - a.rel).slice(0, 6);
+-            const r = await _publicarPrimera(ranking, consulta, umbralesWeb);
++            const r = await _publicarPrimera(ranking, consulta, umbralesWeb, ctx);
+             if (r) return r;
+         }
+     }
+@@ -103,13 +116,13 @@
+     const MIN_REL = parseFloat(process.env.IMG_MIN_RELEVANCIA || '0.5');
+     for (const consulta of consultas) {
+         let cands = [];
+-        try { cands = await buscar(consulta); } catch (e) { console.warn('   ⚠️ [img] búsqueda:', e.message); continue; }
+-        const ranking = cands
++        try { cands = await buscar(geo.anclarConsulta(consulta, ctx)); } catch (e) { console.warn('   ⚠️ [img] búsqueda:', e.message); continue; }
++        const ranking = filtrarGeo(cands, ctx)
+             .map(c => ({ c, meta: dep.evaluarMetadatos(c), rel: relevancia(c, consulta) }))
+             .filter(x => { if (!x.meta.ok) { console.log(`      ✗ ${x.c.id}: ${x.meta.motivo}`); return false; } return x.rel >= MIN_REL; })
+             .map(x => ({ ...x, score: x.rel * 10 + (x.c.licencia.tipo === 'cc0' ? 1 : 0) + ((x.c.proveedor || '').startsWith('Wikimedia') ? 0.5 : 0) + Math.min((x.c.anchoOriginal || 0) / 4000, 1) }))
+             .sort((a, b) => b.score - a.score).slice(0, 6);
+-        const r = await _publicarPrimera(ranking, consulta, {});
++        const r = await _publicarPrimera(ranking, consulta, {}, ctx);
+         if (r) return r;
+     }
+ 
+@@ -119,6 +132,6 @@
+     const nombre = `efd-marca-${Date.now()}-${crypto.randomBytes(3).toString('hex')}.jpg`;
+     await almacen.guardar(nombre, buffer, { fuenteId: 'marca-propia' });
+     return { urlFinal: `${BASE_URL}/img/${nombre}`, urlOriginal: null, nombre, procesada: marcada, fuente: 'marca-farol',
+-        licencia: 'Propia', licenciaUrl: null, paginaFuente: null, credito: null };
++        licencia: 'Propia', licenciaUrl: null, paginaFuente: null, credito: null, contextoGeo: ctx.anchor };
+ }
+ module.exports = { obtenerImagenLimpia, construirConsultas, relevancia };
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/lib/imagenes/web.js /home/claude/farol/farol-web-main/farol-web-main/lib/imagenes/web.js
+--- a/lib/imagenes/web.js	2026-10-25 23:06:24.000000000 -0400
++++ b/lib/imagenes/web.js	2026-10-26 05:49:38.398412812 -0400
+@@ -17,6 +17,7 @@
+ const crypto = require('crypto');
+ const dep = require('./depurador');
+ const cache = require('../cache');
++const geo = require('./geo');
+ 
+ const UA = process.env.IMG_WEB_USER_AGENT || 'Mozilla/5.0 (compatible; ElFarolBot/2.0; +https://elfarolaldia.com)';
+ const MAX_PAGINAS = parseInt(process.env.IMG_WEB_MAX_PAGINAS || '5', 10);
+@@ -30,8 +31,8 @@
+ // ── Búsqueda de páginas ─────────────────────────────────────────────────
+ async function _texto(url, xml = false) { return (await dep.descargarPagina(url, UA, { xml })).html; }
+ 
+-async function _bingNews(q) {
+-    const xml = await _texto(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setmkt=es-DO&count=15`, true);
++async function _bingNews(q, mkt = 'es-DO') {
++    const xml = await _texto(`https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setmkt=${mkt}&count=15`, true);
+     const out = [];
+     for (const m of xml.matchAll(/<item>[\s\S]*?<link>([^<]+)<\/link>/g)) {
+         let u = decodificar(m[1]);
+@@ -40,8 +41,8 @@
+     }
+     return out;
+ }
+-async function _ddg(q) {
+-    const html = await _texto(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}&kl=do-es`);
++async function _ddg(q, kl = 'do-es') {
++    const html = await _texto(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}&kl=${kl}`);
+     const out = [];
+     for (const m of html.matchAll(/class="result__a"[^>]*href="([^"]+)"/g)) {
+         let u = decodificar(m[1]);
+@@ -52,9 +53,16 @@
+     return out;
+ }
+ 
+-async function buscarPaginas(consulta) {
+-    return cache.wrap('webpag', consulta.toLowerCase(), 3600, async () => {
+-        const r = await Promise.allSettled([_bingNews(consulta), _ddg(consulta)]);
++/**
++ * Busca páginas por contexto. FILTRO GEOGRÁFICO: la consulta SIEMPRE lleva antepuesto el país/lugar de la noticia
++ * (geo.anclarConsulta) y el mercado de Bing / región de DuckDuckGo son los del país de la primicia.
++ * Sin `contexto` se usa la línea local (Santo Domingo, República Dominicana): nunca se busca de forma genérica.
++ */
++async function buscarPaginas(consulta, contexto) {
++    const ctx = contexto || geo.detectarContexto({ categoria: 'Nacionales' });
++    const q = geo.anclarConsulta(consulta, ctx), mkt = ctx.pais?.mkt || 'es-US', kl = ctx.pais?.kl || 'xl-es';
++    return cache.wrap('webpag', `${mkt}|${q.toLowerCase()}`, 3600, async () => {
++        const r = await Promise.allSettled([_bingNews(q, mkt), _ddg(q, kl)]);
+         r.forEach((x, i) => x.status === 'rejected' && console.warn(`   ⚠️ [img-web] ${i ? 'DuckDuckGo' : 'Bing News'}: ${x.reason.message}`));
+         const urls = r.flatMap(x => x.status === 'fulfilled' ? x.value : []).filter(paginaValida);
+         // máx. 2 páginas por dominio → variedad de fuentes
+@@ -75,12 +83,14 @@
+     const cab = html.slice(0, 400000);
+     const titulo = _meta(cab, ['og:title', 'twitter:title']) || decodificar((cab.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1]);
+     const descripcion = _meta(cab, ['og:description', 'description', 'twitter:description']);
++    const fecha = _meta(cab, ['article:published_time', 'og:article:published_time', 'datePublished', 'pubdate', 'date', 'og:updated_time', 'article:modified_time'])
++        || ((cab.match(/"datePublished"\s*:\s*"([^"]+)"/) || [])[1] || '');
+     const imgs = [_meta(cab, ['og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src'])];
+     const link = cab.match(/<link[^>]+rel=["']image_src["'][^>]*href=["']([^"']+)["']/i); if (link) imgs.push(decodificar(link[1]));
+     const ld = cab.match(/"image"\s*:\s*(?:\{[^}]*"url"\s*:\s*)?"(https?:[^"]+)"/i) || cab.match(/"image"\s*:\s*\[\s*"(https?:[^"]+)"/i); if (ld) imgs.push(decodificar(ld[1].replace(/\\\//g, '/')));
+     const urls = [...new Set(imgs.filter(Boolean).map(i => { try { return new URL(i, urlPagina).toString(); } catch { return null; } }).filter(Boolean))]
+         .filter(i => /^https:/.test(i) && !IMG_BASURA.test(i.split('?')[0]));
+-    return { titulo, descripcion, imagenes: urls };
++    return { titulo, descripcion, fecha, imagenes: urls };
+ }
+ 
+ async function candidatosDePagina(urlPagina) {
+@@ -91,19 +101,19 @@
+         return info.imagenes.map(u => ({
+             id: `web:${crypto.createHash('md5').update(u).digest('hex').slice(0, 16)}`,
+             proveedor: h, urlDescarga: u, urlPagina: urlFinal,
+-            titulo: info.titulo, descripcion: info.descripcion, autor: h, categorias: [],
++            titulo: info.titulo, descripcion: info.descripcion, fecha: info.fecha || null, autor: h, categorias: [],
+             licencia: { permitida: true, tipo: 'fuente', etiqueta: 'Imagen de la fuente original', url: null, requiereCredito: true },
+             web: true,
+         }));
+     } catch (e) { console.log(`      ✗ [img-web] ${host(urlPagina) || urlPagina}: ${e.message}`); return []; }
+ }
+ 
+-/** Candidatos para una noticia: primero la fuente original (si existe) y luego las páginas halladas por contexto. */
+-async function candidatos({ consulta, enlaceFuente }) {
++/** Candidatos para una noticia: primero la fuente original (si existe) y luego las páginas halladas por contexto (ancladas al país de la noticia). */
++async function candidatos({ consulta, enlaceFuente, contexto }) {
+     const salida = [];
+     if (enlaceFuente && paginaValida(enlaceFuente)) salida.push(...(await candidatosDePagina(enlaceFuente)).map(c => ({ ...c, esFuente: true })));
+     if (consulta) {
+-        const paginas = (await buscarPaginas(consulta).catch(() => [])).filter(u => u !== enlaceFuente).slice(0, MAX_PAGINAS);
++        const paginas = (await buscarPaginas(consulta, contexto).catch(() => [])).filter(u => u !== enlaceFuente).slice(0, MAX_PAGINAS);
+         const lotes = await Promise.all(paginas.map(candidatosDePagina));
+         salida.push(...lotes.flat());
+     }
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/lib/videos/index.js /home/claude/farol/farol-web-main/farol-web-main/lib/videos/index.js
+--- a/lib/videos/index.js	1969-12-31 19:30:00.000000000 -0430
++++ b/lib/videos/index.js	2026-10-25 23:19:55.279099607 -0400
+@@ -0,0 +1,272 @@
++'use strict';
++/**
++ * MICRO-PIPELINE DE VIDEOS CORTOS (clips flash / reels que las fuentes de prensa envían a los redactores).
++ *
++ *   clip original ──► validación (ffprobe) ──► FFmpeg local ──► MP4 listo para la web + póster + descriptor
++ *
++ *  FFmpeg hace, en una sola pasada:
++ *   · DEGRADADO estético: sombra de marca (negro #070707) desde abajo y suave arriba + filete naranja #FF5500 + marca de agua del Farol
++ *   · LIMPIEZA: elimina TODOS los metadatos (título, GPS/ubicación, dispositivo, fecha de creación, comentarios, capítulos, subtítulos,
++ *     pistas de datos) y re-codifica, así no sobreviven marcas ocultas ni etiquetas pesadas del archivo original
++ *   · EMPAQUETADO: H.264 High + AAC, ≤ 720p (vertical 720x1280 / horizontal 1280x720), CRF 26 con tope de bitrate, audio normalizado,
++ *     `+faststart` (reproduce al instante en la noticia, sin esperar la descarga completa)
++ *
++ *  Seguridad: sin shell (spawn con argumentos), `-protocol_whitelist file` (el clip no puede arrastrar URLs/playlists), solo contenedores
++ *  mp4/mov/webm/mkv/avi, límite de tamaño y de duración, descarga por URL con anti-SSRF, una codificación a la vez (cola) y timeout.
++ *
++ *  ⚠️ No se intenta borrar marcas de agua/créditos de terceros incrustados en la imagen: son atribución. El crédito de la fuente
++ *     se guarda aparte y se muestra bajo el video en la noticia.
++ */
++const { spawn } = require('child_process');
++const fs = require('fs');
++const fsp = fs.promises;
++const os = require('os');
++const path = require('path');
++const crypto = require('crypto');
++const { Readable } = require('stream');
++const sharp = require('sharp');
++const almacen = require('../imagenes/almacen');
++const dep = require('../imagenes/depurador');
++const { cargarMarca } = require('../imagenes/marca');
++
++const num = (k, d) => { const v = parseFloat(process.env[k]); return Number.isFinite(v) ? v : d; };
++const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
++const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
++const MIN_SEG = num('VIDEO_MIN_SEG', 3);
++const MAX_SEG = num('VIDEO_MAX_SEG', 30);                  // clips flash: 15-20 s; margen hasta 30
++const MAX_BYTES = num('VIDEO_MAX_MB', 80) * 1024 * 1024;
++const TIMEOUT_MS = num('VIDEO_TIMEOUT_MS', 180000);
++const CRF = num('VIDEO_CRF', 26);
++const DEGRADADO = process.env.VIDEO_DEGRADADO !== '0';
++const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\/$/, '');
++const FORMATOS_OK = ['mov', 'mp4', 'matroska', 'webm', 'avi'];
++const NOMBRE_RE = /^efd-vid-[a-z0-9-]+\.mp4$/;
++const LIMITES = { minSeg: MIN_SEG, maxSeg: MAX_SEG, maxMB: MAX_BYTES / 1048576 };
++
++class VideoError extends Error { constructor(msg, codigo = 'error') { super(msg); this.codigo = codigo; } }
++
++// ── Utilidades ──────────────────────────────────────────────────────────
++function run(cmd, args, { timeoutMs = TIMEOUT_MS, maxOut = 2e6 } = {}) {
++    return new Promise((ok, ko) => {
++        const p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
++        let out = '', err = '', vencido = false;
++        p.stdout.setEncoding('utf8'); p.stderr.setEncoding('utf8');
++        const t = setTimeout(() => { vencido = true; p.kill('SIGKILL'); }, timeoutMs);
++        p.stdout.on('data', d => { if (out.length < maxOut) out += d; });
++        p.stderr.on('data', d => { if (err.length < 16000) err += d; });
++        p.on('error', e => { clearTimeout(t); ko(e.code === 'ENOENT' ? new VideoError('FFmpeg no está instalado en el servidor', 'sin_ffmpeg') : e); });
++        p.on('close', code => { clearTimeout(t); vencido ? ko(new VideoError('FFmpeg excedió el tiempo límite', 'timeout')) : ok({ code, out, err }); });
++    });
++}
++
++let _disp = null;
++/** ¿Hay FFmpeg/FFprobe? (cacheado) */
++function disponible() {
++    if (!_disp) _disp = (async () => {
++        try {
++            const [a, b] = await Promise.all([run(FFMPEG, ['-version'], { timeoutMs: 8000 }), run(FFPROBE, ['-version'], { timeoutMs: 8000 })]);
++            return { ok: a.code === 0 && b.code === 0, version: (a.out.match(/ffmpeg version (\S+)/) || [])[1] || null };
++        } catch (e) { return { ok: false, error: e.message }; }
++    })();
++    return _disp;
++}
++
++// Una codificación a la vez: Railway tiene pocas CPU y el LLM local compite por ellas.
++let _cola = Promise.resolve();
++const enCola = fn => { const p = _cola.then(fn, fn); _cola = p.catch(() => {}); return p; };
++
++/** ffprobe → { duracion, ancho, alto, fps, audio, codec, formato, etiquetas[] } (ancho/alto ya con la rotación aplicada). */
++async function sondear(archivo) {
++    let r;
++    try { r = await run(FFPROBE, ['-v', 'error', '-protocol_whitelist', 'file', '-print_format', 'json', '-show_format', '-show_streams', archivo], { timeoutMs: 20000 }); }
++    catch (e) { if (e instanceof VideoError) throw e; throw new VideoError('No se pudo analizar el archivo', 'invalido'); }
++    let j; try { j = JSON.parse(r.out); } catch { j = null; }
++    if (r.code !== 0 || !j?.format) throw new VideoError('El archivo no es un video válido', 'invalido');
++    const formatos = String(j.format.format_name || '').split(',');
++    if (!formatos.some(f => FORMATOS_OK.includes(f))) throw new VideoError(`Formato de contenedor no admitido (${j.format.format_name}). Envía MP4, MOV, WebM o MKV`, 'formato');
++    const streams = j.streams || [];
++    const v = streams.find(s => s.codec_type === 'video' && !s.disposition?.attached_pic);
++    if (!v) throw new VideoError('El archivo no contiene pista de video', 'invalido');
++    let rot = Number(v.tags?.rotate || 0);
++    for (const sd of v.side_data_list || []) if (sd.rotation !== undefined) rot = Number(sd.rotation);
++    const girado = Math.abs(Math.round(rot)) % 180 === 90;
++    const [fn, fd] = String(v.avg_frame_rate && v.avg_frame_rate !== '0/0' ? v.avg_frame_rate : v.r_frame_rate || '0/1').split('/').map(Number);
++    const etiquetas = new Set(Object.keys(j.format.tags || {}));
++    streams.forEach(s => Object.keys(s.tags || {}).forEach(k => etiquetas.add(k)));
++    return {
++        duracion: parseFloat(j.format.duration || v.duration || 0),
++        ancho: girado ? v.height : v.width, alto: girado ? v.width : v.height,
++        fps: fd ? fn / fd : 0, audio: streams.some(s => s.codec_type === 'audio'),
++        codec: v.codec_name, formato: j.format.format_name, bytes: Number(j.format.size || 0),
++        etiquetas: [...etiquetas], formatoTags: j.format.tags || {}, capitulos: (j.chapters || []).length,
++    };
++}
++
++/** Tamaño de salida: nunca se amplía; horizontal ≤ 1280x720, vertical ≤ 720x1280; lados pares (H.264). */
++function dimsSalida(w, h) {
++    const horizontal = w >= h, maxW = horizontal ? 1280 : 720, maxH = horizontal ? 720 : 1280;
++    const f = Math.min(1, maxW / w, maxH / h), par = n => Math.max(2, Math.floor(n / 2) * 2);
++    return { W: par(w * f), H: par(h * f) };
++}
++
++/** Capa RGBA del tamaño del video: degradado de marca + filete naranja + marca de agua. Una sola imagen → un solo overlay en FFmpeg. */
++async function crearOverlay(W, H) {
++    const fil = Math.max(4, Math.round(H * 0.008));
++    const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><defs>
++      <linearGradient id="b" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#070707" stop-opacity="0.9"/><stop offset="0.22" stop-color="#1a0a00" stop-opacity="0.55"/><stop offset="0.42" stop-color="#070707" stop-opacity="0"/></linearGradient>
++      <linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070707" stop-opacity="0.5"/><stop offset="0.16" stop-color="#070707" stop-opacity="0"/></linearGradient></defs>
++      <rect width="100%" height="100%" fill="url(#b)"/><rect width="100%" height="100%" fill="url(#t)"/>
++      <rect y="${H - fil}" width="100%" height="${fil}" fill="#FF5500"/></svg>`);
++    const capas = [{ input: svg, left: 0, top: 0 }];
++    const wm = await cargarMarca().catch(() => null);
++    if (wm) {
++        const m = await sharp(wm).resize({ width: Math.max(40, Math.round(W * (W >= H ? 0.16 : 0.26))), fit: 'inside' }).png().toBuffer();
++        const mt = await sharp(m).metadata(), mg = Math.round(W * 0.025);
++        capas.push({ input: m, left: Math.max(0, W - mt.width - mg), top: Math.max(0, H - mt.height - mg - fil) });
++    }
++    return sharp({ create: { width: W, height: H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).composite(capas).png().toBuffer();
++}
++
++// ── Pipeline principal ──────────────────────────────────────────────────
++/**
++ * Procesa un clip local. Devuelve el descriptor { nombre, poster, url, urlPoster, duracion, ancho, alto, bytes, fuente, ... }.
++ * @param {string} entrada ruta del clip original (no se modifica ni se borra)
++ * @param {{fuente?:string, titulo?:string}} opts  fuente = crédito que se muestra bajo el video
++ */
++async function procesarArchivo(entrada, { fuente = '', titulo = '' } = {}) {
++    const d = await disponible();
++    if (!d.ok) throw new VideoError('FFmpeg no está disponible en el servidor', 'sin_ffmpeg');
++    const st = await fsp.stat(entrada);
++    if (st.size > MAX_BYTES) throw new VideoError(`El clip pesa más de ${LIMITES.maxMB} MB`, 'grande');
++    const info = await sondear(entrada);
++    if (!(info.duracion >= MIN_SEG)) throw new VideoError(`El clip dura ${info.duracion.toFixed(1)} s; el mínimo es ${MIN_SEG} s`, 'corto');
++    if (info.duracion > MAX_SEG + 0.5) throw new VideoError(`El clip dura ${info.duracion.toFixed(1)} s; el máximo para clips flash es ${MAX_SEG} s`, 'largo');
++    if (info.ancho < 240 || info.alto < 240) throw new VideoError(`Resolución demasiado baja (${info.ancho}x${info.alto})`, 'resolucion');
++
++    return enCola(async () => {
++        const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'efd-vid-'));
++        const t0 = Date.now();
++        try {
++            const { W, H } = dimsSalida(info.ancho, info.alto);
++            const overlayPng = DEGRADADO ? await crearOverlay(W, H) : null;
++            const ovFile = path.join(dir, 'capa.png'), salida = path.join(dir, 'salida.mp4');
++            if (overlayPng) await fsp.writeFile(ovFile, overlayPng);
++
++            const base = `[0:v:0]scale=${W}:${H}:flags=lanczos,setsar=1${info.fps > 30.5 ? ',fps=30' : ''},format=yuv420p`;
++            const filtro = overlayPng ? `${base}[b];[b][1:v]overlay=0:0:shortest=1:format=auto,format=yuv420p[v]` : `${base}[v]`;
++            const args = ['-hide_banner', '-nostdin', '-y', '-loglevel', 'error', '-threads', '2', '-protocol_whitelist', 'file', '-i', entrada];
++            if (overlayPng) args.push('-protocol_whitelist', 'file', '-loop', '1', '-framerate', '30', '-i', ovFile);
++            args.push('-filter_complex', filtro, '-map', '[v]');
++            if (info.audio) args.push('-map', '0:a:0', '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11');
++            args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', String(CRF), '-profile:v', 'high', '-level', '4.0', '-maxrate', '2800k', '-bufsize', '5600k',
++                '-map_metadata', '-1', '-map_chapters', '-1', '-metadata:s:v:0', 'encoder=', '-sn', '-dn',                       // fuera metadatos, capítulos, subtítulos y pistas de datos
++                '-fflags', '+bitexact', '-flags:v', '+bitexact', '-flags:a', '+bitexact',         // sin etiqueta "encoder"/versión de FFmpeg
++                '-movflags', '+faststart', '-t', String(Math.min(info.duracion, MAX_SEG)), salida);
++            const r = await run(FFMPEG, args);
++            if (r.code !== 0) throw new VideoError(`FFmpeg falló: ${r.err.split('\n').filter(Boolean).slice(-2).join(' | ').slice(0, 300)}`, 'ffmpeg');
++
++            const fin = await sondear(salida);
++            if (!(fin.duracion >= 1)) throw new VideoError('El video procesado salió vacío', 'ffmpeg');
++
++            // Póster = fotograma del video ya con degradado y marca
++            const posterPng = path.join(dir, 'poster.png');
++            const rp = await run(FFMPEG, ['-hide_banner', '-nostdin', '-y', '-loglevel', 'error', '-protocol_whitelist', 'file', '-ss', String(Math.min(1, fin.duracion / 2)), '-i', salida, '-frames:v', '1', posterPng], { timeoutMs: 30000 });
++            if (rp.code !== 0) throw new VideoError('No se pudo extraer el póster', 'ffmpeg');
++            const poster = await sharp(posterPng).jpeg({ quality: 82, mozjpeg: true }).toBuffer();   // sharp no copia metadatos
++
++            const id = `efd-vid-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
++            const buf = await fsp.readFile(salida);
++            const desc = {
++                nombre: `${id}.mp4`, posterNombre: `${id}.jpg`, duracion: Math.round(fin.duracion * 10) / 10, ancho: fin.ancho, alto: fin.alto, bytes: buf.length,
++                fuente: String(fuente || '').slice(0, 120) || null, titulo: String(titulo || '').slice(0, 200) || null, creado: new Date().toISOString(),
++                original: { duracion: Math.round(info.duracion * 10) / 10, ancho: info.ancho, alto: info.alto, codec: info.codec, formato: info.formato, bytes: info.bytes || st.size,
++                    metadatosEliminados: info.etiquetas, capitulosEliminados: info.capitulos },
++                proceso: { degradado: !!overlayPng, ms: Date.now() - t0 },
++            };
++            await almacen.guardar(desc.nombre, buf, { tipo: 'video', fuente: desc.fuente }, 'video/mp4');
++            await almacen.guardar(desc.posterNombre, poster, { tipo: 'video-poster', video: desc.nombre });
++            await almacen.guardar(`${id}.json`, Buffer.from(JSON.stringify(desc)), { tipo: 'video-descriptor' }, 'application/json');
++            console.log(`   🎬 [video] ${desc.nombre} ${info.ancho}x${info.alto}→${fin.ancho}x${fin.alto} ${desc.duracion}s ${(info.bytes || st.size) / 1024 | 0}KB→${buf.length / 1024 | 0}KB (${desc.proceso.ms}ms, metadatos quitados: ${info.etiquetas.length})`);
++            return _conUrls(desc);
++        } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
++    });
++}
++
++const _conUrls = d => ({ ...d, url: `${BASE_URL}/video/${d.nombre}`, urlPoster: `${BASE_URL}/img/${d.posterNombre}` });
++
++/** Descriptor guardado de un video ya procesado (null si no existe). El servidor solo confía en esto, nunca en URLs del cliente. */
++async function descriptor(nombre) {
++    if (!NOMBRE_RE.test(String(nombre || ''))) return null;
++    const buf = await almacen.leer(nombre.replace(/\.mp4$/, '.json')).catch(() => null);
++    if (!buf) return null;
++    try { return _conUrls(JSON.parse(buf.toString('utf8'))); } catch { return null; }
++}
++
++// ── Entrada de archivos ─────────────────────────────────────────────────
++/** Vuelca un stream (petición HTTP o descarga) a un archivo temporal con tope de bytes. Devuelve { archivo, limpiar }. */
++async function recibirEnTemporal(stream, { maxBytes = MAX_BYTES } = {}) {
++    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'efd-vid-in-'));
++    const archivo = path.join(dir, 'entrada.bin');
++    const limpiar = () => fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
++    try {
++        await new Promise((ok, ko) => {
++            let total = 0, fallo = false;
++            const out = fs.createWriteStream(archivo);
++            const abortar = e => { if (fallo) return; fallo = true; stream.unpipe(out); out.destroy(); ko(e); };
++            stream.on('data', c => { total += c.length; if (total > maxBytes) abortar(new VideoError(`El clip pesa más de ${maxBytes / 1048576} MB`, 'grande')); });
++            stream.on('error', abortar); out.on('error', abortar);
++            out.on('finish', () => !fallo && ok());
++            stream.pipe(out);
++        });
++        if ((await fsp.stat(archivo)).size === 0) throw new VideoError('El archivo llegó vacío', 'invalido');
++    } catch (e) { await limpiar(); throw e; }
++    return { archivo, limpiar };
++}
++
++/** Descarga un clip desde una URL https pública (anti-SSRF, redirecciones validadas, tope de tamaño). */
++async function descargarVideo(url, { maxBytes = MAX_BYTES, ua = 'ElFarolAlDia/2.0' } = {}) {
++    let actual = url;
++    for (let salto = 0; salto < 4; salto++) {
++        try { await dep.urlSegura(actual); } catch (e) { throw new VideoError(`URL no permitida (${e.message})`, 'url'); }
++        const r = await fetch(actual, { redirect: 'manual', headers: { 'User-Agent': ua, Accept: 'video/*,*/*;q=0.5' }, signal: AbortSignal.timeout(120000) });
++        if ([301, 302, 303, 307, 308].includes(r.status)) { actual = new URL(r.headers.get('location'), actual).toString(); continue; }
++        if (!r.ok) throw new VideoError(`La fuente respondió HTTP ${r.status}`, 'url');
++        const ct = (r.headers.get('content-type') || '').toLowerCase();
++        if (!/^(video\/|application\/octet-stream|binary\/octet-stream)/.test(ct)) throw new VideoError(`La URL no es un video (${ct || 'sin content-type'})`, 'url');
++        if (Number(r.headers.get('content-length') || 0) > maxBytes) throw new VideoError(`El clip pesa más de ${maxBytes / 1048576} MB`, 'grande');
++        return recibirEnTemporal(Readable.fromWeb(r.body), { maxBytes });
++    }
++    throw new VideoError('Demasiadas redirecciones', 'url');
++}
++
++async function procesarDesdeUrl(url, opts = {}) {
++    if (!/^https:\/\//i.test(url || '')) throw new VideoError('Solo se aceptan URLs https', 'url');
++    const { archivo, limpiar } = await descargarVideo(url);
++    try { return await procesarArchivo(archivo, opts); } finally { await limpiar(); }
++}
++
++// ── Servir MP4 con soporte de Range (Safari/iOS lo exigen para reproducir) ──
++async function servir(req, res) {
++    const nombre = req.params.nombre;
++    if (!NOMBRE_RE.test(nombre)) return res.status(404).send('Video no disponible');
++    const buf = await almacen.leer(nombre).catch(() => null);
++    if (!buf) return res.status(404).send('Video no disponible');
++    res.setHeader('Content-Type', 'video/mp4');
++    res.setHeader('Accept-Ranges', 'bytes');
++    res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
++    const rango = req.headers.range;
++    if (!rango) { res.setHeader('Content-Length', buf.length); return res.end(buf); }
++    const m = /^bytes=(\d*)-(\d*)$/.exec(rango);
++    let ini, fin;
++    if (m && (m[1] || m[2])) {
++        if (m[1] === '') { ini = Math.max(0, buf.length - Number(m[2])); fin = buf.length - 1; }
++        else { ini = Number(m[1]); fin = m[2] === '' ? buf.length - 1 : Math.min(Number(m[2]), buf.length - 1); }
++    }
++    if (ini === undefined || ini > fin || ini >= buf.length) { res.setHeader('Content-Range', `bytes */${buf.length}`); return res.status(416).end(); }
++    res.status(206).setHeader('Content-Range', `bytes ${ini}-${fin}/${buf.length}`);
++    res.setHeader('Content-Length', fin - ini + 1);
++    res.end(buf.subarray(ini, fin + 1));
++}
++
++module.exports = { procesarArchivo, procesarDesdeUrl, recibirEnTemporal, descargarVideo, sondear, descriptor, servir, disponible, dimsSalida,
++    VideoError, NOMBRE_RE, LIMITES };
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/nixpacks.toml /home/claude/farol/farol-web-main/farol-web-main/nixpacks.toml
+--- a/nixpacks.toml	1969-12-31 19:30:00.000000000 -0430
++++ b/nixpacks.toml	2026-10-26 05:52:08.183107410 -0400
+@@ -0,0 +1,4 @@
++# Railway (Nixpacks): el micro-pipeline de videos cortos necesita FFmpeg/FFprobe en el servicio web.
++# "..." conserva los paquetes por defecto (Node) y añade ffmpeg.
++[phases.setup]
++nixPkgs = ["...", "ffmpeg"]
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/package.json /home/claude/farol/farol-web-main/farol-web-main/package.json
+--- a/package.json	2026-10-25 23:06:24.000000000 -0400
++++ b/package.json	2026-10-26 05:52:08.174335331 -0400
+@@ -1,11 +1,11 @@
+ {
+   "name": "farol-web",
+-  "version": "2.0.0",
++  "version": "43.0.0",
+   "description": "El Farol al Dia - Periodico Digital Santo Domingo Este",
+   "main": "server.js",
+   "scripts": {
+     "start": "node server.js",
+-    "test": "node test/fase2.test.js"
++    "test": "node test/fase2.test.js && node test/fase3.test.js"
+   },
+   "dependencies": {
+     "cors": "^2.8.5",
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/server.js /home/claude/farol/farol-web-main/farol-web-main/server.js
+--- a/server.js	2026-10-25 23:06:24.000000000 -0400
++++ b/server.js	2026-10-26 05:51:03.964048535 -0400
+@@ -39,6 +39,7 @@
+ const { aplicarMarca }        = require('./lib/imagenes/marca');
+ const imgDep  = require('./lib/imagenes/depurador');
+ const almacen = require('./lib/imagenes/almacen');
++const videos  = require('./lib/videos');
+ cache.iniciar();
+ 
+ // ══════════════════════════════════════════════════════════
+@@ -111,7 +112,7 @@
+     return null;
+ })();
+ 
+-const rssParser = new RSSParser({ timeout: 10000 });
++const rssParser = new RSSParser({ timeout: 10000, customFields: { item: [['media:content', 'mediaContent', { keepArray: true }]] } });
+ const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+ const app  = express();
+ 
+@@ -1107,6 +1108,21 @@
+ }
+ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ 
++// ── Video corto de la noticia (micro-pipeline FFmpeg, lib/videos) ──
++const videoDe = n => (n.video_nombre && videos.NOMBRE_RE.test(n.video_nombre)) ? {
++    nombre: n.video_nombre, src: `/video/${n.video_nombre}`, abs: `${BASE_URL}/video/${n.video_nombre}`,
++    poster: `/img/${n.video_nombre.replace(/\.mp4$/, '.jpg')}`, posterAbs: `${BASE_URL}/img/${n.video_nombre.replace(/\.mp4$/, '.jpg')}`,
++    credito: n.video_credito || '', seg: Math.max(1, Math.round(Number(n.video_duracion) || 0)) } : null;
++function videoHTML(n) {
++    const v = videoDe(n); if (!v) return '';
++    return `<figure class="video-noticia" style="margin:0 0 18px"><video controls playsinline preload="metadata" poster="${esc(v.poster)}" style="width:100%;max-height:78vh;background:#070707;border-radius:8px"><source src="${esc(v.src)}" type="video/mp4"></video>${v.credito ? `<figcaption class="imagen-caption">Video: ${esc(v.credito)}</figcaption>` : ''}</figure>`;
++}
++function videoMeta(n, url) {
++    const v = videoDe(n); if (!v) return '';
++    const ld = { '@context': 'https://schema.org', '@type': 'VideoObject', name: n.titulo, description: n.seo_description || n.titulo, thumbnailUrl: [v.posterAbs], uploadDate: new Date(n.fecha).toISOString(), duration: `PT${v.seg}S`, contentUrl: v.abs, embedUrl: url, ...(v.credito ? { creditText: v.credito } : {}) };
++    return `\n<meta property="og:video" content="${esc(v.abs)}"><meta property="og:video:secure_url" content="${esc(v.abs)}"><meta property="og:video:type" content="video/mp4">\n<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
++}
++
+ function metaTagsCompletos(n, url) {
+     const t=esc(n.titulo),d=esc(n.seo_description||''),img=esc(n.imagen),sec=esc(n.seccion);
+     const fi=new Date(n.fecha).toISOString(),ue=esc(url);
+@@ -1128,7 +1144,7 @@
+ <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${t}">
+ <meta name="twitter:description" content="${d}"><meta name="twitter:image" content="${img}">
+ <script type="application/ld+json">${JSON.stringify(schema)}</script>
+-<script type="application/ld+json">${JSON.stringify(bread)}</script>`;
++<script type="application/ld+json">${JSON.stringify(bread)}</script>${videoMeta(n, url)}`;
+ }
+ 
+ function slugify(t) {
+@@ -1146,9 +1162,40 @@
+ }
+ 
+ // ══════════════════════════════════════════════════════════
++// 🎬 VIDEO CORTO — vínculo con la noticia
++// ══════════════════════════════════════════════════════════
++/** Guarda el descriptor del clip ya procesado en la noticia. donde = {id} | {slug}. Devuelve el slug o null. */
++async function guardarVideoEnNoticia(donde, d, creditoManual) {
++    const cred = String(creditoManual || d.fuente || '').slice(0,120) || null;
++    const col = donde.id !== undefined ? 'id' : 'slug';
++    const r = await pool.query(`UPDATE noticias SET video_nombre=$1,video_url=$2,video_poster=$3,video_credito=$4,video_duracion=$5 WHERE ${col}=$6 RETURNING slug`,
++        [d.nombre, d.url, d.urlPoster, cred, d.duracion, donde.id !== undefined ? donde.id : donde.slug]);
++    if (r.rows.length) invalidarCache();
++    return r.rows[0]?.slug || null;
++}
++/** Clip que acompaña a una primicia: ya procesado (video_nombre, subido por el redactor) o URL de la fuente (video_url / enclosure RSS). Nunca lanza. */
++async function procesarVideoDeNoticia(slug, titulo, opts = {}) {
++    if (!opts.videoNombre && !opts.videoUrl) return null;
++    try {
++        const d = opts.videoNombre ? await videos.descriptor(opts.videoNombre) : await videos.procesarDesdeUrl(opts.videoUrl, { fuente: opts.videoFuente, titulo });
++        if (!d) { console.warn(`   ⚠️ [video] clip ${opts.videoNombre} no existe`); return null; }
++        await guardarVideoEnNoticia({ slug }, d, opts.videoFuente);
++        console.log(`   🎬 [video] adjuntado a /noticia/${slug} (${d.duracion}s, ${(d.bytes/1024)|0} KB)`);
++        return d;
++    } catch (e) { console.warn(`   ⚠️ [video] no se adjuntó (la noticia se publica igual): ${e.message}`); return null; }
++}
++/** URL de clip en un ítem RSS (enclosure o media:content con tipo video). Solo https. */
++function videoDeItemRSS(item) {
++    const c = [item.enclosure, ...(item.mediaContent || []).map(m => m?.$)].filter(Boolean);
++    for (const x of c) { const u = String(x.url || ''), t = String(x.type || x.medium || '').toLowerCase();
++        if (/^https:\/\//i.test(u) && (t.startsWith('video') || /\.(mp4|mov|m4v|webm)(\?|$)/i.test(u))) return u; }
++    return null;
++}
++
++// ══════════════════════════════════════════════════════════
+ // 📰 GENERAR NOTICIA — V41
+ // ══════════════════════════════════════════════════════════
+-async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
++async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1, opts = {}) {
+     const MAX_REINTENTOS = 3;
+     const inicio = Date.now();
+     const rol = roles.rolPara(categoria);
+@@ -1188,7 +1235,7 @@
+         if (similares.length) console.warn(`   🕵️ Similitud con: ${similares.join(', ')}`);
+ 
+         // ── Imagen: extractor web directo (fuente original + búsqueda por contexto); sin APIs de terceros ──
+-        const imgResult = await obtenerImagenLimpia({ titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido), enlaceFuente });
++        const imgResult = await obtenerImagenLimpia({ titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido), enlaceFuente, comunicado: comunicadoExterno || '' });
+ 
+         const altBase = {'Nacionales':`Noticias ${titulo.substring(0,40)} Santo Domingo Este`,'Deportes':`Deportes dominicanos ${titulo.substring(0,35)}`,'Internacionales':`Internacional ${titulo.substring(0,35)} Caribe`,'Economía':`Economía dominicana ${titulo.substring(0,35)}`,'Tecnología':`Tecnología ${titulo.substring(0,40)} RD`,'Espectáculos':`Espectáculos ${titulo.substring(0,35)} República Dominicana`};
+         const altFinal = `${altBase[categoria]||titulo.substring(0,50)} - El Farol al Día`;
+@@ -1206,6 +1253,9 @@
+         );
+         console.log(`   🔐 Ledger: ${ledger.hashCorto(cert.hash)}`);
+ 
++        // ── Video corto (clip flash de la fuente): FFmpeg local → degradado + sin metadatos → se publica junto a la noticia ──
++        const videoRes = await procesarVideoDeNoticia(slFin, titulo, opts);
++
+         const durTotal = Math.round((Date.now()-inicio)/1000);
+         console.log(`\n✅ [V41] Publicada → /noticia/${slFin} (${durTotal}s) | WM:${imgResult.procesada?'✅':'⚠️'}`);
+         logAnalytics('NOTICIA_PUBLICADA',{slug:slFin,categoria,chars:val.longitud,duracion_s:durTotal,imagen:imgResult.fuente,watermark:imgResult.procesada,gsc:true});
+@@ -1226,7 +1276,8 @@
+             ab_test: { a: parsed.tituloA, b: parsed.tituloB, elegido: titulo },
+             seo: { descripcion: desc.substring(0,160), palabras: pals, subtema: sub },
+             parser: parsed.modo, modelo: llm.MODELO, intento: reintento,
+-            imagen: { fuente: imgResult.fuente, licencia: imgResult.licencia||null, credito: imgResult.credito||null, pagina_fuente: imgResult.paginaFuente||null },
++            imagen: { fuente: imgResult.fuente, licencia: imgResult.licencia||null, credito: imgResult.credito||null, pagina_fuente: imgResult.paginaFuente||null, contexto_geo: imgResult.contextoGeo||null },
++            video: videoRes ? { nombre: videoRes.nombre, duracion: videoRes.duracion, fuente: videoRes.fuente, bytes: videoRes.bytes } : null,
+             enlace_fuente: enlaceFuente,
+             calidad: { chars: val.longitud, palabras: val.palabras, parrafos: val.parrafos, avisos: val.avisos },
+             dur_s: durTotal, publicada_at: new Date().toISOString(),
+@@ -1235,14 +1286,14 @@
+         if (!guardada) console.warn('   ⚠️ Evaluación del Jefe de Redacción NO guardada en MongoDB (ver /api/jefe-redaccion/estado)');
+         mongo.registrarIntento({ categoria, reintento, ok: true, slug: slFin, parser: parsed.modo, modelo: llm.MODELO, dur_s: durTotal, tipo_noticia: meta.tipo_noticia, virality_score: meta.virality_score });
+ 
+-        return {success:true,slug:slFin,titulo,redactor:meta.redactor,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con Ollama + Jefe Redacción',stats:val,imagen:imgResult,ab:{a:parsed.tituloA,b:parsed.tituloB,elegido:titulo},virality:meta.virality_score,tipo:meta.tipo_noticia,mongo:guardada};
++        return {success:true,slug:slFin,titulo,redactor:meta.redactor,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con Ollama + Jefe Redacción',stats:val,imagen:imgResult,video:videoRes?{nombre:videoRes.nombre,url:videoRes.url,duracion:videoRes.duracion}:null,ab:{a:parsed.tituloA,b:parsed.tituloB,elegido:titulo},virality:meta.virality_score,tipo:meta.tipo_noticia,mongo:guardada};
+ 
+     } catch(error) {
+         const dur = Math.round((Date.now()-inicio)/1000);
+         console.error(`❌ [V41] Error intento ${reintento} (${dur}s):`, error.message);
+         logAnalytics('NOTICIA_ERROR',{categoria,reintento,error:error.message,dur_s:dur});
+         mongo.registrarIntento({ categoria, reintento, ok: false, error: error.message.slice(0,300), parser: parsed?.modo||null, modelo: llm.MODELO, dur_s: dur });
+-        if (reintento<MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,8000)); return generarNoticia(categoria,comunicadoExterno,reintento+1); }
++        if (reintento<MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,8000)); return generarNoticia(categoria,comunicadoExterno,reintento+1,opts); }
+         await registrarError(error.message, categoria);
+         return {success:false,error:error.message};
+     }
+@@ -1285,7 +1336,7 @@
+                 const existe = await pool.query('SELECT id FROM rss_procesados WHERE item_guid=$1',[guid.substring(0,500)]);
+                 if (existe.rows.length) continue;
+                 const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`,item.link?`ENLACE: ${item.link}`:''].filter(Boolean).join('\n');
+-                const r = await generarNoticia(fuente.categoria, comunicado);
++                const r = await generarNoticia(fuente.categoria, comunicado, 1, { videoUrl: videoDeItemRSS(item), videoFuente: fuente.nombre });
+                 if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,8000)); }
+                 break;
+             }
+@@ -1387,6 +1438,9 @@
+             await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END$$;`).catch(()=>{});
+         for (const col of ['imagen_credito','imagen_licencia','imagen_licencia_url'])
+             await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS ${col} TEXT`).catch(()=>{});
++        for (const col of ['video_nombre','video_url','video_poster','video_credito'])
++            await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS ${col} TEXT`).catch(()=>{});
++        await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS video_duracion DOUBLE PRECISION`).catch(()=>{});
+         await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_estado_fecha ON noticias(estado,fecha DESC)`).catch(()=>{});
+         await client.query(`CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+         await client.query(`CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+@@ -1454,7 +1508,7 @@
+     } catch(e) { res.status(500).json({success:false, error:e.message}); }
+ });
+ 
+-app.get('/health', (req,res) => res.json({status:'OK',version:'42.0-F2',llm:llm.disponible()?'ok':'circuito-abierto',cache:cache.estado().redis,gsc:'integrado'}));
++app.get('/health', (req,res) => res.json({status:'OK',version:'43.0-FINAL',llm:llm.disponible()?'ok':'circuito-abierto',cache:cache.estado().redis,gsc:'integrado'}));
+ app.get('/api/llm/status',   authMiddleware, async (req,res) => res.json({success:true,...await llm.estado()}));
+ app.get('/api/roles', authMiddleware, (req,res) => res.json({success:true,motor:llm.MODELO,roles:roles.publico()}));
+ app.get('/api/cache/status', authMiddleware, (req,res) => res.json({success:true,...cache.estado()}));
+@@ -1477,9 +1531,9 @@
+ });
+ 
+ app.post('/api/generar-noticia', authMiddleware, async (req,res) => {
+-    const { categoria } = req.body;
++    const { categoria, comunicado, video_nombre, video_url, video_fuente } = req.body;
+     if (!categoria) return res.status(400).json({error:'Falta categoría'});
+-    const r = await generarNoticia(categoria);
++    const r = await generarNoticia(categoria, comunicado ? String(comunicado) : null, 1, { videoNombre: video_nombre, videoUrl: video_url, videoFuente: video_fuente });
+     res.status(r.success?200:500).json(r);
+ });
+ 
+@@ -1516,7 +1570,7 @@
+ });
+ 
+ app.post('/api/publicar', express.json(), async (req,res) => {
+-    const {pin,titulo,seccion,contenido,redactor:red,seo_description,seo_keywords,imagen,imagen_alt}=req.body;
++    const {pin,titulo,seccion,contenido,redactor:red,seo_description,seo_keywords,imagen,imagen_alt,video_nombre,video_fuente}=req.body;
+     if (pin!=='311') return res.status(403).json({success:false,error:'PIN'});
+     if (!titulo||!seccion||!contenido) return res.status(400).json({success:false,error:'Faltan campos'});
+     try {
+@@ -1538,10 +1592,11 @@
+         } catch {}
+         await pool.query('INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
+             [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Foto: ${titulo}`,imgNombre,imgFuente,imgOriginal,'publicada']);
++        const vid = video_nombre ? await procesarVideoDeNoticia(slF, titulo, { videoNombre: video_nombre, videoFuente: video_fuente }) : null;
+         invalidarCache();
+         await notificarNuevaNoticia(titulo,(seo_description||titulo).substring(0,160),slF,imgFinal);
+         setImmediate(()=>publicarEnRedes(titulo,slF,imgFinal,seo_description||titulo,seccion,contenido));
+-        res.json({success:true,slug:slF});
++        res.json({success:true,slug:slF,video:vid?vid.nombre:null});
+     } catch(e) { res.status(500).json({success:false,error:e.message}); }
+ });
+ 
+@@ -1763,6 +1818,54 @@
+     catch(e) { res.status(500).json({success:false,error:e.message}); }
+ });
+ 
++// ══════════════════════════════════════════════════════════
++// 🎬 VIDEOS CORTOS (15–20 s) — recepción, procesado FFmpeg y entrega
++// ══════════════════════════════════════════════════════════
++const VIDEO_HTTP = { sin_ffmpeg: 503, grande: 413, url: 400, timeout: 504 };
++function videoFallo(res, e) {
++    if (e instanceof videos.VideoError) return res.status(VIDEO_HTTP[e.codigo] || 422).json({success:false,codigo:e.codigo,error:e.message});
++    console.error('❌ [video]', e.message);
++    return res.status(500).json({success:false,error:'No se pudo procesar el video'});
++}
++const limiteVideo = cache.limitar({nombre:'video',max:10,ventana:60});
++
++app.get('/video/:nombre', (req,res) => videos.servir(req,res).catch(()=>{ if (!res.headersSent) res.status(500).send('Error interno'); }));
++app.get('/api/video/status', authMiddleware, async (req,res) => res.json({success:true,ffmpeg:await videos.disponible(),limites:videos.LIMITES}));
++
++// El redactor envía el clip tal cual lo recibió de la fuente (cuerpo binario, Content-Type: video/*) → MP4 listo para web.
++app.post('/api/video/subir', authMiddleware, limiteVideo, async (req,res) => {
++    if (!/^(video\/|application\/octet-stream)/i.test(req.headers['content-type']||'')) return res.status(415).json({success:false,error:'Envía el clip como cuerpo binario con Content-Type video/mp4 (o mov, webm)'});
++    let ent = null;
++    try {
++        ent = await videos.recibirEnTemporal(req);
++        const video = await videos.procesarArchivo(ent.archivo, {fuente:String(req.query.fuente||''),titulo:String(req.query.titulo||'')});
++        res.json({success:true,video});
++    } catch(e) { if (e.codigo==='grande') res.setHeader('Connection','close'); videoFallo(res,e); }
++    finally { if (ent) await ent.limpiar(); }
++});
++
++// La fuente de prensa manda un enlace al clip: se descarga (anti-SSRF), se procesa y, si se indica noticia_id, se adjunta.
++app.post('/api/video/desde-url', authMiddleware, limiteVideo, async (req,res) => {
++    const {url,fuente,titulo,noticia_id} = req.body||{};
++    try {
++        const video = await videos.procesarDesdeUrl(String(url||''),{fuente,titulo});
++        const slug = noticia_id ? await guardarVideoEnNoticia({id:parseInt(noticia_id)}, video, fuente) : null;
++        res.json({success:true,video,slug});
++    } catch(e) { videoFallo(res,e); }
++});
++
++// Adjunta un clip YA procesado a una noticia. El servidor solo confía en su propio descriptor, nunca en URLs del cliente.
++app.post('/api/video/adjuntar/:id', authMiddleware, async (req,res) => {
++    const id = parseInt(req.params.id); if (!id) return res.status(400).json({success:false,error:'ID inválido'});
++    try {
++        const d = await videos.descriptor(req.body?.nombre);
++        if (!d) return res.status(404).json({success:false,error:'Ese clip no existe o no fue procesado'});
++        const slug = await guardarVideoEnNoticia({id}, d, req.body?.fuente);
++        if (!slug) return res.status(404).json({success:false,error:'Noticia no encontrada'});
++        res.json({success:true,slug,video:d});
++    } catch(e) { res.status(500).json({success:false,error:e.message}); }
++});
++
+ app.get('/img/:nombre', async (req,res) => {
+     const buf = await almacen.leer(req.params.nombre).catch(()=>null);
+     if (buf) { res.setHeader('Content-Type','image/jpeg'); res.setHeader('Cache-Control','public,max-age=31536000,immutable'); return res.send(buf); }
+@@ -1823,6 +1926,7 @@
+                 .replace(/{{IMAGEN}}/g,n.imagen).replace(/{{ALT}}/g,esc(n.imagen_alt||n.titulo)).replace(/{{CREDITO}}/g,creditoHTML(n))
+                 .replace(/{{VISTAS}}/g,n.vistas).replace(/{{REDACTOR}}/g,esc(n.redactor))
+                 .replace(/{{SECCION}}/g,esc(n.seccion)).replace(/{{URL}}/g,encodeURIComponent(urlN))
++                .replace('{{VIDEO}}', () => videoHTML(n))
+                 .replace('{{TTS_PLAYER}}', ttsPlayer)
+                 .replace('{{LEDGER_BADGE}}', ledgerBadge);
+             res.setHeader('Content-Type','text/html;charset=utf-8');
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/test/fase3.test.js /home/claude/farol/farol-web-main/farol-web-main/test/fase3.test.js
+--- a/test/fase3.test.js	1969-12-31 19:30:00.000000000 -0430
++++ b/test/fase3.test.js	2026-10-25 23:25:14.873408806 -0400
+@@ -0,0 +1,182 @@
++'use strict';
++// FASE FINAL — (1) filtro geográfico estricto de imágenes  (2) micro-pipeline de videos cortos con FFmpeg.
++// Sin red externa. Los clips de prueba se generan con FFmpeg (lavfi).
++const os = require('os'), fs = require('fs'), path = require('path'), http = require('http'), { spawn, spawnSync } = require('child_process');
++const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'efd-f3-'));
++process.env.REDIS_URL = ''; process.env.MONGO_URL = ''; process.env.IMG_DIR = path.join(TMP, 'almacen');
++process.env.LLM_BASE_URL = 'http://127.0.0.1:19999'; process.env.BASE_URL = 'https://elfarolaldia.com';
++const assert = require('assert'); const sharp = require('sharp');
++let pass = 0; const ok = (c, m) => { assert(c, m); pass++; console.log('  ✓', m); };
++const sh = (cmd, args) => { const r = spawnSync(cmd, args, { encoding: 'utf8' }); if (r.status !== 0) throw new Error(`${cmd} falló: ${r.stderr}`); return r.stdout; };
++const probe = f => JSON.parse(sh('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', f]));
++
++(async () => {
++    // ═══════════════ 1. FILTRO GEOGRÁFICO ═══════════════
++    const geo = require('../lib/imagenes/geo');
++    console.log('\nContexto geográfico de la primicia');
++    const det = (titulo, categoria = 'Nacionales', contenido = '') => geo.detectarContexto({ titulo, categoria, contenido });
++    let c = det('Abinader inaugura puente en Los Mina');
++    ok(c.id === 'DO' && /Los Mina República Dominicana/.test(c.anchor), `RD + lugar específico → "${c.anchor}"`);
++    ok(det('Alcaldía recoge basura en el sector').anchor === 'Santo Domingo República Dominicana' && det('Alcaldía recoge basura en el sector').implicito, 'sin pistas: línea local por defecto (Santo Domingo, RD)');
++    ok(det('Presidente de Panamá anuncia plan del Canal', 'Internacionales').anchor === 'Panamá', 'Panamá detectado');
++    ok(det('Alcalde de Bogotá anuncia plan de movilidad', 'Internacionales').anchor === 'Bogotá Colombia', 'Colombia + Bogotá (con tilde)');
++    ok(det('Tormenta golpea la región', 'Internacionales').id === null, 'internacional sin país identificable → sin país (no se inventa)');
++    ok(det('El gobierno usa nuevo sistema').id === 'DO', '"usa" (verbo) NO se confunde con Estados Unidos');
++    ok(det('Precio de la china sube en el mercado', 'Economía').asiaPermitida === false, '"china" (naranja en RD) NO activa Asia');
++    ok(det('China anuncia aranceles contra EEUU', 'Internacionales').asiaPermitida === true, '"China" (país) sí permite contexto asiático');
++    ok(det('Dominicano gana título en Miami', 'Deportes').permitidos.has('US') && det('Dominicano gana título en Miami', 'Deportes').id === 'DO', 'dominicano en Miami: RD principal, EE.UU. permitido');
++
++    console.log('\nAnclaje obligatorio de consultas');
++    const cRD = det('Abinader en Palacio Nacional');
++    ok(geo.anclarConsulta('foto del puente', cRD) === `${cRD.anchor} foto del puente` && /República Dominicana/.test(cRD.anchor), `la consulta genérica se antepone con el contexto → "${geo.anclarConsulta('foto del puente', cRD)}"`);
++    ok(geo.anclarConsulta(geo.anclarConsulta('puente', cRD), cRD) === geo.anclarConsulta('puente', cRD), 'idempotente (no duplica el contexto)');
++    ok(geo.anclarConsulta('elecciones', det('Elecciones en Panamá', 'Internacionales'), { idioma: 'en' }) === 'Panama elecciones', 'idioma en → nombre en inglés');
++    ok(geo.anclarConsulta('Santo Domingo puente', cRD) === 'Santo Domingo puente', 'si ya incluye el lugar no se toca');
++    ok(geo.anclarConsulta('x', undefined).includes('República Dominicana'), 'sin contexto: cae a la línea local, nunca búsqueda genérica');
++
++    const cache = require('../lib/cache'); cache.iniciar();
++    const dep = require('../lib/imagenes/depurador'), web = require('../lib/imagenes/web');
++    const urls = []; dep.descargarPagina = async (u) => { urls.push(decodeURIComponent(u)); return { html: '', urlFinal: u }; };
++    await web.buscarPaginas('puente nuevo', det('Obras en Los Mina'));
++    ok(urls.length === 2 && urls.every(u => /q=Los Mina República Dominicana puente nuevo|q=Santo Domingo Este República Dominicana puente nuevo/.test(u)), 'Bing y DuckDuckGo reciben la consulta con el contexto antepuesto');
++    ok(/setmkt=es-DO/.test(urls[0]), 'mercado de Bing = país de la noticia (es-DO)');
++    urls.length = 0; await web.buscarPaginas('plan canal', det('Panamá anuncia plan del Canal', 'Internacionales'));
++    ok(urls.every(u => /q=Panamá plan canal/.test(u)) && /setmkt=es-PA/.test(urls[0]), 'Panamá: consulta anclada y mercado es-PA');
++    urls.length = 0; await web.buscarPaginas('tormenta', det('Tormenta golpea la región', 'Internacionales'));
++    ok(urls.every(u => /q=noticias internacionales tormenta/.test(u)), 'internacional sin país: igualmente anclada (nunca genérica)');
++
++    console.log('\nValidación estricta de candidatos');
++    const ahora = new Date('2026-10-25');
++    const ctx = geo.detectarContexto({ titulo: 'Abinader inaugura puente en Los Mina', categoria: 'Nacionales', contenido: 'El presidente Luis Abinader inauguró un puente en Santo Domingo Este.' });
++    const v = o => geo.validarCandidato({ urlPagina: 'https://upload.wikimedia.org/x', urlDescarga: 'https://upload.wikimedia.org/a.jpg', ...o }, ctx, { ahora });
++    ok(v({ titulo: 'Puente en Los Mina, Santo Domingo Este', fecha: '2026-10-20' }).ok, 'foto local, reciente → pasa');
++    ok(v({ titulo: 'Luis Abinader inaugura puente en Santo Domingo' }).ok, 'persona de la noticia → pasa');
++    for (const [t, motivo, extra] of [
++        ['Monte Fuji en primavera, Japón', /Asia/], ['Templo en Bangkok al amanecer', /Asia/], ['Terrazas de arroz en Bali, Santo Domingo tour', /Asia/],
++        ['Puente de Brooklyn, Nueva York', /ajeno/], ['Obras viales', /Asia|ajeno/, { urlPagina: 'https://example.jp/a' }],
++        ['Puente en Santo Domingo (foto de archivo)', /archivo/], ['Imagen ilustrativa de puente, Santo Domingo', /archivo/], ['Stock photo bridge Santo Domingo', /archivo/],
++        ['Puente en Santo Domingo', /antigua/, { fecha: '2019-03-02' }], ['Puente en Santo Domingo 2018', /antigua/],
++        ['Cristiano Ronaldo celebra gol en Santo Domingo', /persona fuera/], ['Retrato de hombre en Santo Domingo', /retrato/],
++        ['Puente sobre el río', /modo estricto/]]) {
++        const r = v({ titulo: t, ...(extra || {}) }); ok(!r.ok && motivo.test(r.motivo), `descarta "${t}" → ${r.motivo}`);
++    }
++    ok(v({ titulo: 'Puente sobre el río', urlPagina: 'https://diariolibre.com/nota/1' }).ok, 'medio local dominicano cuenta como evidencia local');
++    ok(v({ titulo: 'Puente sobre el río', urlPagina: 'https://presidencia.gob.do/nota/1' }).ok, 'dominio .gob.do cuenta como evidencia local');
++    ok(geo.validarCandidato({ titulo: 'Puente sobre el río', urlPagina: 'https://x.org/a', urlDescarga: 'https://x.org/a.jpg' }, ctx, { ahora, estricto: false }).ok, 'IMG_GEO_ESTRICTO=0: sin evidencia positiva pasa (las demás reglas siguen)');
++    ok(v({ titulo: 'Jugo de china en Santo Domingo' }).ok, '"jugo de china" en RD no se toma por China');
++    ok(v({ titulo: 'Dominican Republic Announces New Bridge Plan' }).ok, 'titular en Title Case no se confunde con nombre de persona');
++    ok(v({ titulo: 'Foto de la fuente', esFuente: true, urlPagina: 'https://listindiario.com/n', fecha: '2019-01-01' }).ok, 'la foto de la fuente original (og:image de la nota) pasa');
++    ok(!v({ titulo: 'Puente (foto de archivo)', esFuente: true }).ok, '...salvo que sea de archivo');
++    const ctxPA = geo.detectarContexto({ titulo: 'Panamá anuncia plan del Canal', categoria: 'Internacionales' });
++    ok(!geo.validarCandidato({ titulo: 'Plaza en Santo Domingo, República Dominicana', urlPagina: 'https://x.org/a' }, ctxPA, { ahora }).ok, 'noticia de Panamá: foto de RD descartada');
++
++    console.log('\nFlujo completo con filtro geográfico');
++    const { clasificar } = require('../lib/imagenes/licencias');
++    const base = { id: 'x:1', proveedor: 'Wikimedia Commons', autor: 'Juan', urlPagina: 'https://commons.wikimedia.org/wiki/File:X.jpg', urlDescarga: 'https://upload.wikimedia.org/a.jpg', titulo: 'Puente Los Mina', descripcion: '', categorias: [], ancho: 1600, alto: 1000, anchoOriginal: 3000, altoOriginal: 2000, licencia: clasificar('CC BY 4.0') };
++    const rb = Buffer.alloc(1600 * 900 * 3); for (let i = 0; i < rb.length; i++) rb[i] = ((i % 1600) * 3 + (i >> 11) * 5 + (i * i >> 7)) & 255;
++    const foto = await sharp(rb, { raw: { width: 1600, height: 900, channels: 3 } }).jpeg().toBuffer();
++    dep.descargar = async () => foto;
++    const webMod = require('../lib/imagenes/web'); let recibido = null;
++    webMod.candidatos = async a => { recibido = a; return [
++        { ...base, id: 'web:tokyo', proveedor: 'example.jp', web: true, titulo: 'Puente Los Mina visto desde Tokio', urlPagina: 'https://example.jp/a', licencia: { permitida: true, tipo: 'fuente', etiqueta: 'f', url: null, requiereCredito: true } },
++        { ...base, id: 'web:archivo', proveedor: 'listindiario.com', web: true, titulo: 'Puente Los Mina (foto de archivo)', urlPagina: 'https://listindiario.com/a', licencia: { permitida: true, tipo: 'fuente', etiqueta: 'f', url: null, requiereCredito: true } },
++        { ...base, id: 'web:ok', proveedor: 'diariolibre.com', web: true, titulo: 'Abinader inaugura puente Los Mina', urlPagina: 'https://diariolibre.com/a', fecha: '2026-10-24', licencia: { permitida: true, tipo: 'fuente', etiqueta: 'Imagen de la fuente original', url: null, requiereCredito: true } }]; };
++    const { obtenerImagenLimpia } = require('../lib/imagenes/index');
++    const r = await obtenerImagenLimpia({ titulo: 'Abinader inaugura puente en Los Mina', contenido: 'x', categoria: 'Nacionales' });
++    ok(recibido?.contexto?.id === 'DO' && /Los Mina/.test(recibido.contexto.anchor), 'el extractor web recibe el contexto geográfico');
++    ok(/diariolibre/.test(r.fuente), `elige la foto local y reciente; descarta Tokio y archivo (${r.fuente})`);
++
++    // ═══════════════ 2. VIDEOS CORTOS ═══════════════
++    console.log('\nVideos cortos (FFmpeg)');
++    const videos = require('../lib/videos');
++    const disp = await videos.disponible(); ok(disp.ok, `FFmpeg disponible (${disp.version})`);
++    const clips = path.join(TMP, 'clips'); fs.mkdirSync(clips);
++    const gen = (nombre, size, seg, extra = [], audio = true) => sh('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `testsrc2=size=${size}:rate=30:duration=${seg}`,
++        ...(audio ? ['-f', 'lavfi', '-i', `sine=frequency=440:duration=${seg}`, '-c:a', 'aac'] : ['-an']), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-shortest', ...extra, path.join(clips, nombre)]);
++    const META = ['-metadata', 'title=Clip de prensa', '-metadata', 'comment=Embargo Presidencia', '-metadata', 'location=+18.4861-069.9312/', '-metadata', 'creation_time=2026-10-20T10:00:00Z', '-metadata', 'artist=Camarógrafo X', '-metadata:s:v:0', 'handler_name=Whatsapp Video'];
++    gen('horizontal.mp4', '1920x1080', 6, META); gen('vertical.mp4', '1080x1920', 5, ['-metadata', 'title=Reel'], false);
++    gen('largo.mp4', '320x240', 45); gen('corto.mp4', '640x360', 1);
++    const origMeta = probe(path.join(clips, 'horizontal.mp4')).format.tags;
++    ok(origMeta.title && origMeta.location && origMeta.comment && origMeta.creation_time, 'el clip original trae metadatos (título, GPS, comentario, fecha)');
++
++    const d = await videos.procesarArchivo(path.join(clips, 'horizontal.mp4'), { fuente: 'Presidencia RD', titulo: 'Prueba' });
++    const salida = path.join(process.env.IMG_DIR, d.nombre), pj = probe(salida);
++    const vs = pj.streams.find(s => s.codec_type === 'video'), as = pj.streams.find(s => s.codec_type === 'audio');
++    ok(vs.codec_name === 'h264' && vs.profile === 'High' && vs.pix_fmt === 'yuv420p' && as?.codec_name === 'aac', 'salida H.264 High yuv420p + AAC (reproduce en todos los navegadores)');
++    ok(vs.width === 1280 && vs.height === 720 && d.ancho === 1280, '1920x1080 → 1280x720');
++    ok(Math.abs(parseFloat(pj.format.duration) - 6) < 0.5, `duración conservada (${pj.format.duration}s)`);
++    const tags = { ...pj.format.tags }, claves = Object.keys(tags).join(',');
++    ok(!/title|comment|location|creation_time|artist|encoder/.test(claves), `metadatos del origen eliminados (quedan: ${claves})`);
++    ok(!pj.streams.some(s => /Whatsapp/i.test(JSON.stringify(s.tags || {}))), 'etiquetas de pista (handler "Whatsapp Video") eliminadas');
++    const bytes = fs.readFileSync(salida); ok(bytes.indexOf('moov') < bytes.indexOf('mdat'), 'faststart: el átomo moov va antes de los datos (reproducción inmediata)');
++    ok(d.bytes < fs.statSync(path.join(clips, 'horizontal.mp4')).size, `empaquetado más liviano (${(fs.statSync(path.join(clips, 'horizontal.mp4')).size / 1024) | 0} KB → ${(d.bytes / 1024) | 0} KB)`);
++    ok(d.original.metadatosEliminados.includes('title') && d.original.metadatosEliminados.includes('location'), 'el descriptor registra qué metadatos se quitaron');
++
++    // degradado: la franja inferior izquierda es mucho más oscura que la del clip original
++    const lumi = async (png) => { const { data, info } = await sharp(png).resize(1280, 720, { fit: 'fill' }).extract({ left: 0, top: 560, width: 640, height: 130 }).greyscale().raw().toBuffer({ resolveWithObject: true }); return data.reduce((a, b) => a + b, 0) / data.length; };
++    sh('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', '1', '-i', path.join(clips, 'horizontal.mp4'), '-frames:v', '1', path.join(clips, 'orig.png')]);
++    sh('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', '1', '-i', salida, '-frames:v', '1', path.join(clips, 'proc.png')]);
++    const [lo, lp] = [await lumi(path.join(clips, 'orig.png')), await lumi(path.join(clips, 'proc.png'))];
++    ok(lp < lo * 0.7, `degradado aplicado: luminosidad inferior ${lo.toFixed(0)} → ${lp.toFixed(0)}`);
++    const pm = await sharp(fs.readFileSync(path.join(process.env.IMG_DIR, d.posterNombre))).metadata();
++    ok(pm.format === 'jpeg' && pm.width === 1280 && !pm.exif, 'póster JPEG 1280x720 sin EXIF, extraído del video ya procesado');
++    const desc = await videos.descriptor(d.nombre); ok(desc?.url === `https://elfarolaldia.com/video/${d.nombre}` && desc.fuente === 'Presidencia RD', 'descriptor persistido y recuperable por nombre');
++    ok((await videos.descriptor('../../etc/passwd')) === null && (await videos.descriptor('efd-vid-x.mp4')) === null, 'descriptor: nombre inválido/inexistente → null');
++
++    const dv = await videos.procesarArchivo(path.join(clips, 'vertical.mp4')); const pv = probe(path.join(process.env.IMG_DIR, dv.nombre));
++    ok(pv.streams.find(s => s.codec_type === 'video').height === 1280 && !pv.streams.some(s => s.codec_type === 'audio'), 'reel vertical 1080x1920 → 720x1280, sin audio sigue funcionando');
++
++    const falla = async (f, cod) => { try { await videos.procesarArchivo(f); return null; } catch (e) { return e.codigo; } };
++    ok(await falla(path.join(clips, 'largo.mp4')) === 'largo', 'rechaza clips de más de 30 s');
++    ok(await falla(path.join(clips, 'corto.mp4')) === 'corto', 'rechaza clips de menos de 3 s');
++    fs.writeFileSync(path.join(clips, 'falso.mp4'), '<html>no soy video</html>'); ok(['invalido', 'formato'].includes(await falla(path.join(clips, 'falso.mp4'))), 'rechaza archivos que no son video');
++    fs.writeFileSync(path.join(clips, 'evil.m3u8'), '#EXTM3U\n#EXTINF:10,\nfile:///etc/passwd\n#EXT-X-ENDLIST\n'); ok(['invalido', 'formato'].includes(await falla(path.join(clips, 'evil.m3u8'))), 'una playlist HLS maliciosa NO se procesa (sin lectura de archivos del servidor)');
++    for (const u of ['http://example.com/a.mp4', 'https://127.0.0.1/a.mp4', 'https://169.254.169.254/latest']) { let e; try { await videos.procesarDesdeUrl(u); } catch (x) { e = x; } ok(e?.codigo === 'url', `descarga por URL bloquea ${u}`); }
++
++    // ═══════════════ 3. SERVIDOR (integración HTTP con pg simulado) ═══════════════
++    console.log('\nServidor: rutas de video');
++    const PORT = 18000 + Math.floor(Math.random() * 1000), vjson = path.join(TMP, 'video-noticia.json');
++    const srv = spawn(process.execPath, ['-r', path.join(__dirname, 'mock-pg-video.js'), path.join(__dirname, '..', 'server.js')], {
++        cwd: path.join(__dirname, '..'), stdio: ['ignore', 'pipe', 'pipe'],
++        env: { ...process.env, PORT: String(PORT), DATABASE_URL: 'postgres://x', BASE_URL: `http://127.0.0.1:${PORT}`, TEST_VIDEO_JSON: vjson } });
++    let log = ''; srv.stdout.on('data', x => log += x); srv.stderr.on('data', x => log += x);
++    const AUTH = 'Basic ' + Buffer.from('director:311').toString('base64');
++    const req = (method, p, { headers = {}, body } = {}) => new Promise((res, rej) => {
++        const r = http.request({ host: '127.0.0.1', port: PORT, path: p, method, headers, agent: false }, resp => { const parts = []; resp.on('data', c => parts.push(c)); resp.on('end', () => res({ status: resp.statusCode, headers: resp.headers, body: Buffer.concat(parts) })); });
++        r.on('error', rej); if (body) r.write(body); r.end();
++    });
++    try {
++        for (let i = 0; i < 80; i++) { try { if ((await req('GET', '/health')).status === 200) break; } catch {} await new Promise(r => setTimeout(r, 250)); if (i === 79) throw new Error('el servidor no arrancó:\n' + log.slice(-1500)); }
++        const clip = fs.readFileSync(path.join(clips, 'horizontal.mp4'));
++        ok((await req('POST', '/api/video/subir', { headers: { 'Content-Type': 'video/mp4' }, body: clip })).status === 401, 'subir clip sin sesión → 401');
++        ok((await req('POST', '/api/video/subir', { headers: { Authorization: AUTH, 'Content-Type': 'application/json' }, body: '{}' })).status === 415, 'Content-Type no-video → 415');
++        ok((await req('POST', '/api/video/subir', { headers: { Authorization: AUTH, 'Content-Type': 'video/mp4' }, body: Buffer.from('basura') })).status === 422, 'cuerpo que no es video → 422 con mensaje');
++        const up = await req('POST', '/api/video/subir?fuente=Polic%C3%ADa%20Nacional&titulo=Operativo', { headers: { Authorization: AUTH, 'Content-Type': 'video/mp4', 'Content-Length': clip.length }, body: clip });
++        const j = JSON.parse(up.body); ok(up.status === 200 && j.success && /^efd-vid-/.test(j.video.nombre) && j.video.fuente === 'Policía Nacional', `POST /api/video/subir → ${j.video?.nombre}`);
++        const full = await req('GET', `/video/${j.video.nombre}`);
++        ok(full.status === 200 && full.headers['content-type'] === 'video/mp4' && full.headers['accept-ranges'] === 'bytes' && full.body.length === j.video.bytes, 'GET /video/:nombre sirve el MP4 completo');
++        const part = await req('GET', `/video/${j.video.nombre}`, { headers: { Range: 'bytes=0-99' } });
++        ok(part.status === 206 && part.body.length === 100 && part.headers['content-range'] === `bytes 0-99/${j.video.bytes}`, 'Range bytes=0-99 → 206 (Safari/iOS)');
++        const cola = await req('GET', `/video/${j.video.nombre}`, { headers: { Range: 'bytes=-50' } }); ok(cola.status === 206 && cola.body.length === 50, 'Range de sufijo (-50) → 206');
++        ok((await req('GET', `/video/${j.video.nombre}`, { headers: { Range: 'bytes=99999999-' } })).status === 416, 'Range fuera de rango → 416');
++        ok((await req('GET', '/video/..%2F..%2Fetc%2Fpasswd')).status === 404 && (await req('GET', '/video/otro.mp4')).status === 404, 'nombre inválido o inexistente → 404');
++        ok((await req('GET', `/img/${j.video.posterNombre}`)).status === 200, 'el póster se sirve por /img/');
++        ok((await req('GET', '/api/video/status', { headers: { Authorization: AUTH } })).status === 200, 'GET /api/video/status');
++        const adj = await req('POST', '/api/video/adjuntar/1', { headers: { Authorization: AUTH, 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: j.video.nombre }) });
++        ok(adj.status === 200 && JSON.parse(adj.body).slug === 'prueba', 'POST /api/video/adjuntar/:id adjunta el clip a la noticia');
++        ok((await req('POST', '/api/video/adjuntar/1', { headers: { Authorization: AUTH, 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: 'efd-vid-nope.mp4' }) })).status === 404, 'adjuntar clip inexistente → 404 (el servidor solo confía en clips procesados)');
++        const du = await req('POST', '/api/video/desde-url', { headers: { Authorization: AUTH, 'Content-Type': 'application/json' }, body: JSON.stringify({ url: 'https://127.0.0.1/a.mp4' }) });
++        ok(du.status === 400, 'desde-url con IP privada → 400 (anti-SSRF)');
++
++        const sin = (await req('GET', '/noticia/prueba')).body.toString();
++        ok(!sin.includes('<video') && !sin.includes('{{VIDEO}}'), 'noticia sin clip: sin <video> y sin marcador sin reemplazar');
++        fs.writeFileSync(vjson, JSON.stringify({ video_nombre: j.video.nombre, video_url: j.video.url, video_poster: j.video.urlPoster, video_credito: 'Policía Nacional', video_duracion: j.video.duracion }));
++        await req('POST', '/api/cache/purgar', { headers: { Authorization: AUTH } });                 // la página se cachea 120 s
++        const pag = (await req('GET', '/noticia/prueba')).body.toString();
++        ok(pag.includes(`<source src="/video/${j.video.nombre}" type="video/mp4">`) && pag.includes('Video: Policía Nacional') && /controls playsinline/.test(pag), 'la noticia muestra el <video> con póster y crédito');
++        ok(/"@type":"VideoObject"/.test(pag) && pag.includes('og:video') && /PT6S/.test(pag), 'SEO: VideoObject (JSON-LD) + og:video');
++    } catch (e) { console.error('--- log del servidor ---\n' + log.slice(-2500)); throw e; } finally { srv.kill('SIGKILL'); }
++
++    fs.rmSync(TMP, { recursive: true, force: true });
++    console.log(`\n✅ ${pass} comprobaciones OK (fase final)\n`); process.exit(0);
++})().catch(e => { console.error('\n❌', e.stack || e.message); process.exit(1); });
+diff -ruN '--exclude=node_modules' '--exclude=estrategia.json' '--exclude=package-lock.json' orig/farol-web-main/farol-web-main/test/mock-pg-video.js /home/claude/farol/farol-web-main/farol-web-main/test/mock-pg-video.js
+--- a/test/mock-pg-video.js	1969-12-31 19:30:00.000000000 -0430
++++ b/test/mock-pg-video.js	2026-10-25 23:22:34.031763055 -0400
+@@ -0,0 +1,16 @@
++// Precarga para la prueba de integración de video: mock-pg + noticia "prueba" con clip (campos leídos de TEST_VIDEO_JSON si existe)
++require('./mock-pg');
++const Module = require('module'); const fs = require('fs'); const base = Module._load;
++Module._load = function (r, ...a) {
++    const m = base.call(this, r, ...a);
++    if (r !== 'pg') return m;
++    return { Pool: class extends m.Pool {
++        async query(sql, p) {
++            if (/UPDATE noticias SET video_nombre/.test(sql)) { global.__videoUpd = p; return { rows: [{ slug: 'prueba' }], rowCount: 1 }; }
++            const res = await super.query(sql, p);
++            if (/FROM noticias WHERE slug/.test(sql) && res.rows.length && process.env.TEST_VIDEO_JSON && fs.existsSync(process.env.TEST_VIDEO_JSON))
++                return { rows: [{ ...res.rows[0], ...JSON.parse(fs.readFileSync(process.env.TEST_VIDEO_JSON, 'utf8')) }] };
++            return res;
++        }
++    } };
++};
