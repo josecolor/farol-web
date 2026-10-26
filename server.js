@@ -1465,7 +1465,14 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         const prompt     = inyectarJefeRedaccion(promptBase, comunicadoExterno || '', categoria);
         console.log(`   📝 ${rol.nombre} (${rol.cargo}) redacta | Jefe Redacción activo...`);
         const textoIA = await llamarGemini(prompt, 3, 8000, { system: roles.systemDe(rol), temperature: rol.temperature });
-        const limpio  = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
+        
+        // 🛡️ LIMPIEZA AUTOMÁTICA: Si la IA incluye un saludo inicial, cortamos hasta donde empieza la estructura
+        let limpio = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
+        const idxInicio = limpio.search(/(TITULO_A:|TITULO:|CONTENIDO:)/i);
+        if (idxInicio > 0) {
+            console.log(`   🧹 [Parser] Saludo inicial detectado, recortando \${idxInicio} caracteres...`);
+            limpio = limpio.substring(idxInicio);
+        }
 
         let tituloA='',tituloB='',desc='',pals='',sub='';
         let enContenido=false, bloques=[];
