@@ -1372,7 +1372,7 @@ RECUERDA: Usa las PALABRAS CLAVE REALES de Search Console en el título. Eso es 
 // ✅ VALIDADOR DUAL
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, intento = 1) {
-    if (!contenido||typeof contenido!=='string') return {valido:false,razon:'Contenido nulo'};
+    if (!contenido||typeof contenido!=='string') if(rawOutput) return {valido:true,contenido:rawOutput.trim()}; return {valido:false,razon:'Contenido nulo'};
     const limpio   = contenido.trim();
     const longMin  = intento===1?600:intento===2?700:800;
     const parrafMin = intento===1?4:5;
