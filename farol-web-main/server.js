@@ -1080,7 +1080,7 @@ RECUERDA: Usa las PALABRAS CLAVE REALES de Search Console en el título. Eso es 
 //    Barrio SDE, lenguaje dominicano y nº de párrafos son AVISOS de calidad: se guardan en Mongo, no queman intentos.
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, intento = 1) {
-    if (!contenido||typeof contenido!=='string') if(rawOutput) return {valido:true,contenido:rawOutput.trim()}; if(rawOutput) return {valido:true,contenido:rawOutput.trim()}; return {valido:false,razon:'Contenido nulo'};
+    if (!contenido||typeof contenido!=='string') if(contenido) return {valido:true,contenido:contenido.trim()}; if(contenido) return {valido:true,contenido:contenido.trim()}; return {valido:false,razon:'Contenido nulo'};
     const limpio   = contenido.trim();
     const longMin  = intento===1?500:intento===2?400:300;       // se relaja con cada intento: mejor publicar algo correcto que perder la noticia
     if (limpio.length<longMin) return {valido:false,razon:`${limpio.length} chars < ${longMin}`};
