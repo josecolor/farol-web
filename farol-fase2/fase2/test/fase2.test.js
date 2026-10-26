@@ -74,16 +74,16 @@ let pass = 0; const ok = (c, m) => { assert(c, m); pass++; console.log('  ✓', 
     let intentos = 0;
     const srv = http.createServer((req, res) => {
         let b = ''; req.on('data', c => b += c); req.on('end', () => {
-            if (req.url === '/api/tags') return res.end(JSON.stringify({ models: [{ name: 'llama3.1:8b' }] }));
+            if (req.url === '/api/tags') return res.end(JSON.stringify({ models: [{ name: 'qwen2.5:1.5b' }] }));
             const body = JSON.parse(b); intentos++;
-            if (body.model === 'llama3.1:8b' && intentos <= 2) { res.statusCode = 500; return res.end('boom'); }   // el principal falla → debe caer al fallback
+            if (body.model === 'qwen2.5:1.5b' && intentos <= 2) { res.statusCode = 500; return res.end('boom'); }   // el principal falla → debe caer al fallback
             res.setHeader('Content-Type', 'application/x-ndjson');
             const salida = body.format === 'json' ? '```json\n{"consultas":["Palacio Nacional", "National Palace Santo Domingo",],}\n```' : 'TITULO_A: Prueba\nCONTENIDO:\nHola.';
             for (const tr of salida.match(/.{1,12}/gs)) res.write(JSON.stringify({ message: { content: tr }, done: false }) + '\n');
             res.end(JSON.stringify({ done: true }) + '\n');
         });
     }).listen(19999);
-    process.env.LLM_MODEL = 'llama3.1:8b'; process.env.LLM_MODEL_FALLBACK = 'llama3.2:3b';
+    process.env.LLM_MODEL = 'qwen2.5:1.5b'; process.env.LLM_MODEL_FALLBACK = 'qwen2.5:1.5b';
     delete require.cache[require.resolve('../lib/llm')]; const llm = require('../lib/llm');
     const txt = await llm.llamarGemini('hola', 1, 8000);
     ok(txt.includes('TITULO_A: Prueba') && intentos >= 2, 'streaming OK + fallback automático 8B → 3B cuando el principal falla');

@@ -11,7 +11,7 @@
 const cache = require('./cache');
 
 const BASE      = (process.env.LLM_BASE_URL || 'http://llama.railway.internal:11434').replace(/\/$/, '');
-const MODELOS   = [process.env.LLM_MODEL || 'llama3.1:8b', process.env.LLM_MODEL_FALLBACK || 'llama3.2:3b']
+const MODELOS   = [process.env.LLM_MODEL || 'qwen2.5:1.5b', process.env.LLM_MODEL_FALLBACK || 'qwen2.5:1.5b']
                     .filter((m, i, a) => m && a.indexOf(m) === i);
 const NUM_CTX   = parseInt(process.env.LLM_NUM_CTX || '8192');
 const STALL_MS  = parseInt(process.env.LLM_STALL_MS || '180000');     // sin tokens en 3 min => abortar
