@@ -642,7 +642,8 @@ async function guardarConfigIA(cfg) {
 // ══════════════════════════════════════════════════════════
 // 🦙 TEXTO — Llama autohospedado (reemplaza a Gemini; mismo contrato)
 // ══════════════════════════════════════════════════════════
-const llamarGemini = llm.llamarGemini;                 // shim: generarNoticia() sigue llamando igual
+// Motor único: Ollama vía llm.js (qwen2.5:0.5b) — sin APIs externas
+const llamarGemini = llm.llamarGemini;  // firma compatible, internamente habla con Ollama
 const getKeyState  = () => ({ lastRequest:0, resetTime:0, exitos:0, errores:0 });   // compat. con paneles antiguos
 let   _rrIdx       = 0;
 
@@ -1042,7 +1043,53 @@ async function buscarImagenCSEV40(query, llaves, cx) {
     return null;
 }
 
+// ════════════════════════════════════════════════════════════════
+// 🖼️ CURADOR DE IMÁGENES WEB — Sin Pexels ni APIs de terceros
+// Busca imágenes reales via DuckDuckGo Images (libre, sin key)
+// Filtra: solo dominios confiables, formatos válidos, sin paywall
+// ════════════════════════════════════════════════════════════════
+const DOMINIOS_BLOQUEADOS = ['shutterstock','getty','alamy','istockphoto','depositphotos','dreamstime','adobe.com/stock'];
+const EXTENSIONES_VALIDAS = /\.(jpg|jpeg|png|webp)(\?|$)/i;
+
+async function buscarImagenWebNativa(queries) {
+    for (const q of queries) {
+        try {
+            const query  = encodeURIComponent(q + ' site:noticiassin.com OR site:listindiario.com OR site:elnacional.com.do OR site:acento.com.do OR site:elcaribe.com.do');
+            const url    = `https://duckduckgo.com/i.js?q=${query}&p=1&s=0&u=bing&f=,,,,,&l=es-419`;
+            const ctrl   = new AbortController();
+            const tm     = setTimeout(() => ctrl.abort(), 8000);
+            const res    = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; ElFarolBot/2.0)',
+                    'Accept': 'application/json',
+                },
+                signal: ctrl.signal,
+            }).finally(() => clearTimeout(tm));
+            if (!res.ok) continue;
+            const data = await res.json().catch(() => null);
+            if (!data?.results?.length) continue;
+            for (const item of data.results) {
+                const img = item.image || item.thumbnail;
+                if (!img) continue;
+                if (DOMINIOS_BLOQUEADOS.some(d => img.includes(d))) continue;
+                if (!EXTENSIONES_VALIDAS.test(img)) continue;
+                console.log(`   🖼️ Imagen web encontrada: ${img.substring(0,80)}...`);
+                return img;
+            }
+        } catch (e) {
+            console.warn(`   ⚠️ Curador web falló para "${q}": ${e.message}`);
+        }
+    }
+    return null;
+}
+
+// Mantener función antigua como alias para compatibilidad
 async function buscarImagenPexelsV40(queries, apiKey) {
+    // Primero intentar curador web nativo
+    const webImg = await buscarImagenWebNativa(queries);
+    if (webImg) return webImg;
+    // Fallback: si tienen key de Pexels aún, usarla
+    if (!apiKey) return null;
     if (!apiKey) return null;
     for (const q of (Array.isArray(queries)?queries:[queries]).slice(0,3)) {
         try {
@@ -1163,6 +1210,48 @@ async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) 
 // ══════════════════════════════════════════════════════════
 // 🧠 PROMPT V41 — CON GSC INTEGRADO
 // ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// 🧠 JEFE DE REDACCIÓN INTELIGENTE — Fase 2 Plan Maestro
+// Evalúa tipo de noticia, calcula Virality Score y optimiza SEO
+// ════════════════════════════════════════════════════════════════
+function clasificarNoticia(contexto) {
+    const texto = (contexto || '').toLowerCase();
+    const duros = ['muerto','herido','accidente','crimen','arrestado','deteni','incendi','tiroteo','terremoto','huracán','emergencia','fiscal','juicio','condena'];
+    const esDura = duros.some(p => texto.includes(p));
+    return esDura ? 'DURA' : 'GENERAL';
+}
+
+function calcularViralityScore(contexto, categoria) {
+    let score = 50;
+    const texto = (contexto || '').toLowerCase();
+    // Factores que suben el score
+    if (/los mina|invivienda|sde|santo domingo este/i.test(texto)) score += 20;
+    if (/presidente|gobierno|policía|militar/i.test(texto)) score += 15;
+    if (/muerto|herido|accidente|crimen/i.test(texto)) score += 20;
+    if (/millones|pesos|dinero|precio/i.test(texto)) score += 10;
+    if (/video|foto|imágen|viral/i.test(texto)) score += 10;
+    // Categorías de alto impacto local
+    if (['Nacionales','Deportes'].includes(categoria)) score += 10;
+    return Math.min(score, 100);
+}
+
+function inyectarJefeRedaccion(promptBase, contexto, categoria) {
+    const tipo = clasificarNoticia(contexto);
+    const virality = calcularViralityScore(contexto, categoria);
+    const instruccion = tipo === 'DURA'
+        ? 'Esta es una NOTICIA DURA. Titula con el hecho central directo. No suavices ni especules.'
+        : 'Esta es una NOTICIA GENERAL. Titula de forma atractiva resaltando el beneficio o impacto local.';
+    return `${promptBase}
+
+--- ANÁLISIS DEL JEFE DE REDACCIÓN ---
+TIPO_NOTICIA: ${tipo}
+VIRALITY_SCORE: ${virality}/100
+INSTRUCCIÓN: ${instruccion}
+SEO: Incluye sector SDE o nombre de persona real si aplica en el título.
+REDES: El título debe funcionar como post de Facebook sin cambios.
+--------------------------------------`;
+}
+
 async function construirPrompt(categoria, comunicadoExterno) {
     const ALTO_CPM  = ['Economía','Tecnología','Internacionales'];
     const esCatAlta = ALTO_CPM.includes(categoria);
@@ -1372,8 +1461,9 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         if (!CONFIG_IA.enabled) return {success:false,error:'IA desactivada'};
         console.log(`\n📰 [V41] Generando — ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
 
-        const prompt  = roles.encabezado(rol) + await construirPrompt(categoria, comunicadoExterno);
-        console.log(`   📝 ${rol.nombre} (${rol.cargo}) redacta con contexto GSC...`);
+        const promptBase = roles.encabezado(rol) + await construirPrompt(categoria, comunicadoExterno);
+        const prompt     = inyectarJefeRedaccion(promptBase, comunicadoExterno || '', categoria);
+        console.log(`   📝 ${rol.nombre} (${rol.cargo}) redacta | Jefe Redacción activo...`);
         const textoIA = await llamarGemini(prompt, 3, 8000, { system: roles.systemDe(rol), temperature: rol.temperature });
         const limpio  = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
 
@@ -1394,7 +1484,16 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         tituloA = tituloA.replace(/[*_#`"]/g,'').trim();
         tituloB = tituloB.replace(/[*_#`"]/g,'').trim();
         desc    = desc.replace(/[*_#`]/g,'').trim();
-        if (!tituloA && !tituloB) throw new Error('Gemini no devolvió TITULO_A ni TITULO_B');
+        // Parser flexible — si no hay etiquetas, extraer primera línea larga como título
+        if (!tituloA && !tituloB) {
+            const lineas = limpio.split('\n').map(l=>l.trim()).filter(l=>l.length>20);
+            tituloA = lineas[0] ? lineas[0].substring(0,100).replace(/[*_#`"]/g,'').trim() : '';
+            if (!tituloA) {
+                console.warn('   ⚠️ Parser flexible no encontró título — usando categoría como título temporal');
+                tituloA = `Noticias de ${categoria} — Santo Domingo Este`;
+            }
+            console.log(`   🔧 Parser flexible activado: "${tituloA}"`);
+        }
 
         const titulo = await elegirMejorTitulo(tituloA, tituloB, categoria);
 
@@ -1442,7 +1541,20 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         await notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, imgResult.urlFinal);
         setImmediate(()=>publicarEnRedes(titulo,slFin,imgResult.urlFinal,desc,categoria,contenido));
 
-        return {success:true,slug:slFin,titulo,redactor:rol.heredado?redactor(categoria):rol.nombre,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con GSC',stats:val,imagen:imgResult,ab:{a:tituloA,b:tituloB,elegido:titulo}};
+        // Persistir metadatos del Jefe de Redacción en MongoDB
+        const meta = {
+            slug: slFin, titulo, categoria,
+            tipo_noticia: clasificarNoticia(comunicadoExterno || ''),
+            virality_score: calcularViralityScore(comunicadoExterno || '', categoria),
+            redactor: rol.heredado ? redactor(categoria) : rol.nombre,
+            ab_test: { a: tituloA, b: tituloB, elegido: titulo },
+            chars: val.longitud, palabras: val.palabras,
+            publicada_at: new Date().toISOString(),
+        };
+        if (llm.guardarMetaMongo) {
+            llm.guardarMetaMongo(meta).catch(e => console.warn('⚠️ MongoDB meta:', e.message));
+        }
+        return {success:true,slug:slFin,titulo,redactor:meta.redactor,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con Ollama + Jefe Redacción',stats:val,imagen:imgResult,ab:{a:tituloA,b:tituloB,elegido:titulo},virality:meta.virality_score,tipo:meta.tipo_noticia};
 
     } catch(error) {
         const dur = Math.round((Date.now()-inicio)/1000);

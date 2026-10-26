@@ -197,4 +197,27 @@ async function calentar({ intentos = parseInt(process.env.LLM_WARM_INTENTOS || '
     } finally { _calentando = false; }
 }
 
-module.exports = { generar, generarJSON, llamarGemini, disponible, estado, calentar };
+// ════════════════════════════════════════════════════════════════
+// 🍃 MongoDB — Persistencia de metadatos del Jefe de Redacción
+// Requiere MONGO_URL en Railway. Si no está, falla silencioso.
+// ════════════════════════════════════════════════════════════════
+let _mongoCol = null;
+(async () => {
+    if (!process.env.MONGO_URL) return;
+    try {
+        const { MongoClient } = require('mongodb');
+        const client = new MongoClient(process.env.MONGO_URL, { serverSelectionTimeoutMS: 5000 });
+        await client.connect();
+        _mongoCol = client.db('farol').collection('noticias_meta');
+        console.log('✅ [llm] MongoDB conectado — colección noticias_meta');
+    } catch (e) {
+        console.warn('⚠️ [llm] MongoDB no disponible:', e.message);
+    }
+})();
+
+async function guardarMetaMongo(meta) {
+    if (!_mongoCol) return;
+    await _mongoCol.insertOne({ ...meta, _ts: new Date() });
+}
+
+module.exports = { generar, generarJSON, llamarGemini, disponible, estado, calentar, guardarMetaMongo };
