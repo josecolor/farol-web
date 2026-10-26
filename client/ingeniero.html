@@ -291,9 +291,9 @@ async function cargarStatus(){
     {dot:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'dv':'dr',l:'Watermark en imagenes',v:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'WATERMARK(1).png activa':'No encontrada',c:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'cok':'cer'},
     {dot:d.pexels_api&&d.pexels_api.includes('✅')?'dv':'da',l:'Pexels API',v:d.pexels_api||'Sin configurar',c:d.pexels_api&&d.pexels_api.includes('✅')?'cok':'cwn'},
     {dot:'dv',l:'PostgreSQL base de datos',v:'Online — noticias intactas',c:'cok'},
-    {dot:d.facebook&&d.facebook.includes('✅')?'dv':'da',l:'Facebook',v:d.facebook||'—',c:d.facebook&&d.facebook.includes('✅')?'cok':'cwn'},
-    {dot:d.twitter&&d.twitter.includes('✅')?'dv':'da',l:'Twitter / X',v:d.twitter||'—',c:d.twitter&&d.twitter.includes('✅')?'cok':'cwn'},
-    {dot:d.telegram&&d.telegram.includes('✅')?'dv':'da',l:'Telegram Bot',v:d.telegram||'—',c:d.telegram&&d.telegram.includes('✅')?'cok':'cwn'},
+    {dot:d.facebook&&d.facebook.includes('✅')?'dv':'da',l:'Ollama Local',v:d.facebook||'—',c:d.facebook&&d.facebook.includes('✅')?'cok':'cwn'},
+    {dot:d.twitter&&d.twitter.includes('✅')?'dv':'da',l:'Motor Autónomo',v:d.twitter||'—',c:d.twitter&&d.twitter.includes('✅')?'cok':'cwn'},
+    {dot:d.telegram&&d.telegram.includes('✅')?'dv':'da',l:'Sistema Interno',v:d.telegram||'—',c:d.telegram&&d.telegram.includes('✅')?'cok':'cwn'},
   ];
   const nA=checks.filter(c=>c.dot!=='dv').length;
   const bp=document.getElementById('bp');
@@ -344,9 +344,9 @@ async function cargarRedes(){
   if(!datosStatus)return;
   const d=datosStatus;
   document.getElementById('redes-st').innerHTML=
-    '<div class="chk"><div class="dot '+(d.facebook&&d.facebook.includes('✅')?'dv':'da')+'"></div><span class="lbl">Facebook</span><span class="cv '+(d.facebook&&d.facebook.includes('✅')?'cok':'cwn')+'">'+( d.facebook||'—')+'</span></div>'
-    +'<div class="chk"><div class="dot '+(d.twitter&&d.twitter.includes('✅')?'dv':'da')+'"></div><span class="lbl">Twitter / X</span><span class="cv '+(d.twitter&&d.twitter.includes('✅')?'cok':'cwn')+'">'+( d.twitter||'—')+'</span></div>'
-    +'<div class="chk"><div class="dot '+(d.telegram&&d.telegram.includes('✅')?'dv':'da')+'"></div><span class="lbl">Telegram Bot</span><span class="cv '+(d.telegram&&d.telegram.includes('✅')?'cok':'cwn')+'">'+( d.telegram||'—')+'</span></div>';
+    '<div class="chk"><div class="dot '+(d.facebook&&d.facebook.includes('✅')?'dv':'da')+'"></div><span class="lbl">Ollama Local</span><span class="cv '+(d.facebook&&d.facebook.includes('✅')?'cok':'cwn')+'">'+( d.facebook||'—')+'</span></div>'
+    +'<div class="chk"><div class="dot '+(d.twitter&&d.twitter.includes('✅')?'dv':'da')+'"></div><span class="lbl">Motor Autónomo</span><span class="cv '+(d.twitter&&d.twitter.includes('✅')?'cok':'cwn')+'">'+( d.twitter||'—')+'</span></div>'
+    +'<div class="chk"><div class="dot '+(d.telegram&&d.telegram.includes('✅')?'dv':'da')+'"></div><span class="lbl">Sistema Interno</span><span class="cv '+(d.telegram&&d.telegram.includes('✅')?'cok':'cwn')+'">'+( d.telegram||'—')+'</span></div>';
 }
 
 async function cargarNoticias(){
