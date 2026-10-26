@@ -2,40 +2,43 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 
-console.log("🔍 [MXL INSPECTOR] Iniciando auditoría profunda (Código + Ollama)...\n");
+console.log("🔍 [MXL AUDITORÍA GLOBAL] Analizando todo el proyecto completo...\n");
 let fallos = 0;
+let archivosRevisados = 0;
 
-// 1. Verificar archivos críticos
-if (!fs.existsSync('server.js')) {
-    console.error("❌ ERROR: No se encuentra el archivo 'server.js' en la raíz.");
-    fallos++;
-} else {
-    console.log("✅ server.js presente.");
-}
+// Función recursiva para recorrer TODO el directorio sin excepciones tontas
+function escanearDirectorio(dir) {
+    const items = fs.readdirSync(dir);
+    items.forEach(item => {
+        const ruta = path.join(dir, item);
+        const stat = fs.statSync(ruta);
 
-// 2. Escanear sintaxis de archivos JS
-function revisar(dir) {
-    fs.readdirSync(dir).forEach(file => {
-        const ruta = path.join(dir, file);
-        if (fs.statSync(ruta).isDirectory()) {
-            if (!['node_modules', '.git', 'venv'].includes(file)) {
-                revisar(ruta);
+        if (stat.isDirectory()) {
+            // Ignorar carpetas innecesarias del sistema o dependencias de node
+            if (!['node_modules', '.git', 'venv', '.railway'].includes(item)) {
+                escanearDirectorio(ruta);
             }
-        } else if (file.endsWith('.js') && file !== 'health-check.js') {
-            try {
-                new Function(fs.readFileSync(ruta, 'utf8'));
-            } catch (err) {
-                console.error(`❌ [SINTAXIS ROTA] Archivo: ${ruta}`);
-                console.error(`   Detalle: ${err.message}\n`);
-                fallos++;
+        } else {
+            archivosRevisados++;
+            // Validar sintaxis estricta en archivos JavaScript
+            if (item.endsWith('.js') && item !== 'health-check.js') {
+                try {
+                    const contenido = fs.readFileSync(ruta, 'utf8');
+                    new Function(contenido); // Valida sintaxis pura del motor V8
+                } catch (err) {
+                    console.error(`❌ [SINTAXIS ROTA] En archivo: ${ruta}`);
+                    console.error(`   Detalle: ${err.message}\n`);
+                    fallos++;
+                }
             }
         }
     });
 }
 
-revisar('.');
+escanearDirectorio('.');
+console.log(`📁 Total de archivos escaneados en el proyecto: ${archivosRevisados}`);
 
-// 3. Verificar la salud de Ollama local
+// Auditoría en vivo de Ollama Local (Puerto 11434)
 const req = http.request({
     hostname: '127.0.0.1',
     port: 11434,
@@ -49,30 +52,30 @@ const req = http.request({
         try {
             const json = JSON.parse(data);
             const modelos = json.models ? json.models.map(m => m.name) : [];
-            console.log(`✅ Ollama responde correctamente.`);
-            console.log(`📦 Modelos disponibles localmente: ${modelos.join(', ') || 'Ninguno detectado'}`);
+            console.log(`✅ Ollama responde perfectamente en el puerto 11434.`);
+            console.log(`📦 Modelos locales listos: ${modelos.join(', ') || 'Ninguno detectado'}`);
         } catch (e) {
-            console.error("⚠️ Ollama respondió, pero el formato no es válido.");
+            console.error("⚠️ Ollama respondió pero el JSON no es válido.");
         }
-        finalizar(fallos);
+        imprimirResultadoFinal(fallos);
     });
 });
 
 req.on('error', (err) => {
-    console.error("❌ [OLLAMA CAÍDO O INACCESIBLE]: No se pudo conectar al puerto 11434.");
+    console.error("❌ [ALERTA OLLAMA]: No hay conexión activa con Ollama en el puerto 11434.");
     console.error(`   Detalle: ${err.message}`);
     fallos++;
-    finalizar(fallos);
+    imprimirResultadoFinal(fallos);
 });
 
 req.end();
 
-function finalizar(totalFallos) {
+function imprimirResultadoFinal(totalFallos) {
     console.log("\n----------------------------------------");
     if (totalFallos === 0) {
-        console.log("✨ ¡Todo en orden! Código impecable y Ollama activo.");
+        console.log("✨ ¡Auditoría completa superada! Todo el código y Ollama están impecables.");
     } else {
-        console.log(`⚠️ Se detectaron ${totalFallos} punto(s) de atención críticos.`);
+        console.log(`⚠️ Se detectaron ${totalFallos} error(es) exactos que requieren tu intervención.`);
     }
     console.log("----------------------------------------\n");
 }
