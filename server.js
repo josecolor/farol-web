@@ -1102,8 +1102,8 @@ function validarContenido(contenido, intento = 1) {
     if (!contenido||typeof contenido!=='string') return {valido:false,razon:'Contenido nulo'};
     const limpio   = contenido.trim();
     const palabras = limpio.split(/\s+/).filter(w=>w.length>1).length;
-    const piso     = parseInt(process.env.PALABRAS_PISO||'350',10);          // por debajo no se publica: se reintenta
-    const meta     = parseInt(process.env.PALABRAS_MIN||'900',10);           // meta editorial (se alcanza con ampliaciones automáticas)
+    const piso     = redaccion.pisoPalabras();          // por debajo no se publica: se reintenta
+    const meta     = redaccion.metaPalabras();           // meta editorial (se alcanza con ampliaciones automáticas)
     if (palabras<piso) return {valido:false,razon:`${palabras} palabras < piso ${piso}`};
     const avisos = [];
     if (palabras<meta) avisos.push(`bajo_meta_${palabras}_de_${meta}`);
@@ -1225,12 +1225,12 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
 
         // ── Jefe de Redacción: pre-evaluación (código) + módulo analítico inyectado en el prompt de SISTEMA ──
         const pre        = jefe.preevaluar(comunicadoExterno || '', categoria);
-        const promptBase = roles.encabezado(rol) + await construirPrompt(categoria, comunicadoExterno);
+        const promptBase = redaccion.modo()==='pasos' ? '' : roles.encabezado(rol) + await construirPrompt(categoria, comunicadoExterno);   // en modo por pasos el prompt gigante no se usa
         const prompt     = `${promptBase}\n\n--- PRE-EVALUACIÓN DEL JEFE DE REDACCIÓN ---\nTIPO_SUGERIDO: ${pre.tipo}\nVIRALITY_BASE: ${pre.virality}/100\nÚsalos internamente en las líneas TIPO_NOTICIA y VIRALITY_SCORE; no los comentes ni hagas preguntas.\n--------------------------------------------`;
         const system     = `${roles.systemDe(rol)}\n\n${jefe.bloqueSistema()}`;
         dbg(`   📝 ${rol.nombre} (${rol.cargo}) redacta | Jefe Redacción activo (${pre.tipo}, base ${pre.virality})...`);
         // FASE 3 — redacción completa (≥900 palabras): si el modelo se queda corto, se amplía solo, sin intervención
-        const red = await redaccion.redactar({ generar:(p,o)=>llm.generarTexto(p,3,3500,o), prompt, system, temperature: rol.temperature, categoria, rol, minPalabras: parseInt(process.env.PALABRAS_MIN||'900',10) });
+        const red = await redaccion.redactarAuto({ generar:(p,o)=>llm.generarTexto(p,3,3500,o), prompt, system, temperature: rol.temperature, categoria, rol, fuenteTexto: comunicadoExterno || '' });
 
         // ── Parser inteligente: acepta etiquetas o texto libre; nunca lanza error por formato ──
         parsed = red.parsed;
