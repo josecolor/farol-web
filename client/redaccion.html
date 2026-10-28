@@ -486,11 +486,16 @@
             }
 
             // KPIs
-            document.getElementById('gsc-clics').textContent = d.total_clics || 0;
-            const imp = d.total_impresiones || 0;
+            // Los KPIs se calculan SUMANDO las filas reales de la tabla "Top Consultas"
+            const filasGSC = Array.isArray(d.top_consultas) ? d.top_consultas : [];
+            const tClics = filasGSC.reduce((a, c) => a + (Number(c.clics) || 0), 0);
+            const tImp   = filasGSC.reduce((a, c) => a + (Number(c.impresiones) || 0), 0);
+            const tCtr   = tImp > 0 ? (tClics / tImp) * 100 : 0;           // CTR ponderado = clics / impresiones
+            const escG   = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+            document.getElementById('gsc-clics').textContent = tClics.toLocaleString('es-DO');
             document.getElementById('gsc-imp').textContent =
-                imp >= 1000 ? (imp / 1000).toFixed(1) + 'k' : imp;
-            document.getElementById('gsc-ctr').textContent = (d.ctr_promedio || 0) + '%';
+                tImp >= 1000 ? (tImp / 1000).toFixed(1) + 'k' : tImp;
+            document.getElementById('gsc-ctr').textContent = tCtr.toFixed(1) + '%';
 
             const sync = d.ultima_sync
                 ? new Date(d.ultima_sync).toLocaleTimeString('es-DO', { hour12: false })
@@ -531,15 +536,15 @@
                 topDiv.innerHTML = d.top_consultas.map((c, i) =>
                     '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--borde);font-size:10px;">' +
                     '<span style="color:var(--muted);margin-right:8px;">' + (i + 1) + '.</span>' +
-                    '<span style="flex:1;color:var(--crema);">"' + c.query + '"</span>' +
-                    '<span style="color:var(--muted);white-space:nowrap;">' + c.impresiones + ' imp · pos ' + c.posicion + '</span>' +
+                    '<span style="flex:1;color:var(--crema);">"' + escG(c.query) + '"</span>' +
+                    '<span style="color:var(--muted);white-space:nowrap;">' + (c.clics || 0) + ' clics · ' + c.impresiones + ' imp · ' + (c.ctr || 0) + '% · pos ' + c.posicion + '</span>' +
                     '</div>'
                 ).join('');
             } else {
                 topDiv.innerHTML = '<div style="color:var(--muted);font-size:11px;">Sin consultas aún</div>';
             }
 
-            log('terminal-gsc', '✅ GSC cargado: ' + d.total_clics + ' clics · ' + d.oportunidades_count + ' oportunidades', 'ok');
+            log('terminal-gsc', '✅ GSC cargado: ' + tClics + ' clics · ' + d.oportunidades_count + ' oportunidades', 'ok');
 
         } catch (e) {
             log('terminal-gsc', 'Error: ' + e.message, 'err');

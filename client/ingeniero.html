@@ -91,6 +91,7 @@ header h1{font-size:16px;color:#FF5500}
 <div class="ultima" id="ultima" style="display:none">
   <div style="font-size:9px;letter-spacing:2px;color:#FF5500;margin-bottom:4px">ÚLTIMA NOTICIA</div>
   <div id="u-tit" style="font-size:12px;color:#CCC;line-height:1.4">—</div>
+  <div id="u-sum" style="font-size:11px;color:#888;line-height:1.4;margin-top:3px"></div>
   <div id="u-meta" style="font-size:10px;color:#555;margin-top:4px">—</div>
 </div>
 
@@ -274,6 +275,7 @@ async function cargarStatus(){
   if(d.ultima_noticia&&d.ultima_noticia!=='—'){
     document.getElementById('ultima').style.display='block';
     document.getElementById('u-tit').textContent=d.ultima_noticia;
+    document.getElementById('u-sum').textContent=d.ultima_resumen||'';
     document.getElementById('u-meta').textContent='Hace '+min+' minutos · Proxima en ~'+(30-(min%30))+' min';
   }
 

@@ -221,12 +221,7 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 
       {{VIDEO}}
 
-      <!-- AdSense dentro del artículo -->
-      <div class="ad-articulo">
-        <div class="ad-label-small">PUBLICIDAD</div>
-        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
-        <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
-      </div>
+      {{AD_TOP}}
 
       {{TTS_PLAYER}}
       <div class="contenido">{{CONTENIDO}}</div>
@@ -290,13 +285,7 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
     <button class="sidebar-toggle" onclick="window.toggleSidebar()">📊 VER TENDENCIAS Y CATEGORÍAS ↓</button>
     <div class="sidebar-inner" id="sidebarInner">
 
-      <div class="sidebar-card">
-        <div class="sidebar-header"><h4>📢 PUBLICIDAD</h4></div>
-        <div class="sidebar-body" style="padding:8px">
-          <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5280872495839888" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
-          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
-        </div>
-      </div>
+      {{AD_SIDEBAR}}
 
       <div class="sidebar-card">
         <div class="sidebar-header"><h4>📂 CATEGORÍAS</h4></div>
@@ -620,6 +609,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.publicarComentario = publicarComentario;
 window.toggleSidebar      = toggleSidebar;
+</script>
+<script>
+/* AdSense: empuja cada <ins> una sola vez y solo cuando es visible (evita availableWidth=0 en el sidebar plegado) */
+(function(){
+  function pushAds(){
+    document.querySelectorAll('ins.adsbygoogle:not([data-ad-pushed])').forEach(function(el){
+      if(el.offsetWidth>0){ el.setAttribute('data-ad-pushed','1'); try{(window.adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){} }
+    });
+  }
+  window.__pushAds=pushAds;
+  window.addEventListener('load',pushAds);
+  var t=window.toggleSidebar;
+  window.toggleSidebar=function(){ if(t) t(); setTimeout(pushAds,350); };
+})();
 </script>
 </body>
 </html>

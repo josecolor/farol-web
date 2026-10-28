@@ -34,6 +34,16 @@ const cache   = require('./lib/cache');
 const llm     = require('./lib/llm');
 const jefe    = require('./lib/jefe');
 const redaccion = require('./lib/redaccion');
+
+// ── Textos comodín: jamás deben llegar a la marquesina ni al resumen público ──
+const esTextoComodin = t => /(aqu[ií]\s*\.{2,}|cuenco completo|lorem ipsum|texto de prueba|\{\{.*\}\})/i.test(String(t || ''));
+// ── AdSense: slots reales (Railway → Variables). Sin slot no se inyecta <ins> manual; las Auto ads del <head> siguen activas ──
+const ADS_CLIENT = 'ca-pub-5280872495839888';
+const ADS_SLOT_ARTICULO = (process.env.ADSENSE_SLOT_ARTICULO || '').replace(/\D/g, '');
+const ADS_SLOT_SIDEBAR  = (process.env.ADSENSE_SLOT_SIDEBAR  || '').replace(/\D/g, '');
+const adIns = slot => `<ins class="adsbygoogle" style="display:block" data-ad-client="${ADS_CLIENT}" data-ad-slot="${slot}" data-ad-format="auto" data-full-width-responsive="true"></ins>`;
+const adArticulo = () => ADS_SLOT_ARTICULO ? `<div class="ad-articulo"><div class="ad-label-small">PUBLICIDAD</div>${adIns(ADS_SLOT_ARTICULO)}</div>` : '';
+const adSidebar  = () => ADS_SLOT_SIDEBAR ? `<div class="sidebar-card"><div class="sidebar-header"><h4>📢 PUBLICIDAD</h4></div><div class="sidebar-body" style="padding:8px">${adIns(ADS_SLOT_SIDEBAR)}</div></div>` : '';
 const mongo   = require('./lib/mongo');
 const roles   = require('./lib/roles');
 const { obtenerImagenSegura } = require('./lib/imagenes');
@@ -136,12 +146,12 @@ app.use((req, res, next) => {
     // CSP básico — permite recursos propios + CDNs necesarios
     res.setHeader('Content-Security-Policy', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://partner.googleadservices.com https://tpc.googlesyndication.com https://www.googletagservices.com https://*.adtrafficquality.google https://*.google.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
         "img-src 'self' data: blob: https: http:",
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com",
-        "connect-src 'self' https://www.google-analytics.com https://pagead2.googlesyndication.com",
-        "frame-src 'self' https://www.youtube.com https://googleads.g.doubleclick.net",
+        "connect-src 'self' https://www.google-analytics.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.g.doubleclick.net https://*.adtrafficquality.google https://*.google.com",
+        "frame-src 'self' https://www.youtube.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://www.google.com",
         "object-src 'none'",
         "base-uri 'self'"
     ].join('; '));
@@ -1528,7 +1538,7 @@ app.get('/api/noticias', async (req,res) => {
     try {
         const noticias = await cache.wrap('noticias','home30',60,async()=>{
             const r = await pool.query("SELECT id,titulo,slug,seccion,imagen,imagen_alt,seo_description,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30",['publicada']);
-            return r.rows;
+            return r.rows.filter(n=>!esTextoComodin(n.titulo)).map(n=>({...n,seo_description:esTextoComodin(n.seo_description)?'':n.seo_description}));
         },{stale:600});
         res.json({success:true,noticias});
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
@@ -1567,7 +1577,7 @@ app.get('/api/gsc/status', authMiddleware, async (req,res) => {
             ganadoras_count:datos.ganadoras?.length||0,
             top_oportunidades:datos.oportunidades?.slice(0,5)||[],
             top_ganadoras:datos.ganadoras?.slice(0,5)||[],
-            top_consultas:datos.top_consultas?.slice(0,10)||[],
+            top_consultas:datos.top_consultas?.slice(0,20)||[],
         });
     } catch(e) { res.status(500).json({error:e.message}); }
 });
@@ -1912,7 +1922,10 @@ app.get('/noticia/:slug', contarVistaMW, cache.paginaCache({ ns:'paginas', ttl:1
         try {
             let html=fs.readFileSync(path.join(__dirname,'client','noticia.html'),'utf8');
             const urlN=`${BASE_URL}/noticia/${n.slug}`;
-            const cHTML=n.contenido.split('\n').filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join('');
+            const parrafos=n.contenido.split('\n').filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`);
+            const adMedio=adArticulo();   // anuncios dentro del texto: tras el 3.º y el 8.º párrafo (si la nota es larga)
+            if (adMedio) [2,7].filter(i=>parrafos.length>i+2).reverse().forEach(i=>parrafos.splice(i+1,0,adMedio));
+            const cHTML=parrafos.join('');
             // TTS player block (si hay audio o se puede generar bajo demanda)
             const audioSrc = n.audio_url || `${BASE_URL}/api/tts/${n.slug}`;
             const ttsPlayer = `<div class="tts-player" id="ttsPlayer">
@@ -1930,13 +1943,15 @@ app.get('/noticia/:slug', contarVistaMW, cache.paginaCache({ ns:'paginas', ttl:1
                 ? ledger.badgeCertificacion(n.ledger_hash, n.fecha)
                 : '';
             html=html.replace('<!-- META_TAGS -->',metaTagsCompletos(n,urlN))
-                .replace(/{{TITULO}}/g,esc(n.titulo)).replace(/{{CONTENIDO}}/g,cHTML)
+                .replace(/{{TITULO}}/g,esc(n.titulo)).replace(/{{CONTENIDO}}/g,()=>cHTML)
                 .replace(/{{FECHA}}/g,new Date(n.fecha).toLocaleDateString('es-DO',{year:'numeric',month:'long',day:'numeric'}))
                 .replace(/{{IMAGEN}}/g,n.imagen).replace(/{{ALT}}/g,esc(n.imagen_alt||n.titulo)).replace(/{{CREDITO}}/g,creditoHTML(n))
                 .replace(/{{VISTAS}}/g,n.vistas).replace(/{{REDACTOR}}/g,esc(n.redactor))
                 .replace(/{{SECCION}}/g,esc(n.seccion)).replace(/{{URL}}/g,encodeURIComponent(urlN))
                 .replace('{{VIDEO}}', () => videoHTML(n))
-                .replace('{{TTS_PLAYER}}', ttsPlayer)
+                .replace('{{TTS_PLAYER}}', ()=>ttsPlayer)
+                .replace('{{AD_TOP}}', ()=>adArticulo())
+                .replace('{{AD_SIDEBAR}}', ()=>adSidebar())
                 .replace('{{LEDGER_BADGE}}', ledgerBadge);
             res.setHeader('Content-Type','text/html;charset=utf-8');
             res.setHeader('Cache-Control','public,max-age=300');
@@ -1991,7 +2006,7 @@ app.get('/status', async (req,res) => {
         const [r,rss,ult,push,gsc] = await Promise.all([
             pool.query("SELECT COUNT(*) FROM noticias WHERE estado='publicada'"),
             pool.query('SELECT COUNT(*) FROM rss_procesados'),
-            pool.query("SELECT fecha,titulo FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT 1"),
+            pool.query("SELECT fecha,titulo,seo_description FROM noticias WHERE estado='publicada' AND titulo !~* '(cuenco completo|aqu[ií] ?[.]{3})' ORDER BY fecha DESC LIMIT 1"),
             pool.query('SELECT COUNT(*) FROM push_suscripciones').catch(()=>({rows:[{count:0}]})),
             pool.query("SELECT ultima_vez,valor FROM memoria_ia WHERE tipo='gsc_metricas' ORDER BY ultima_vez DESC LIMIT 1").catch(()=>({rows:[]})),
         ]);
@@ -2001,7 +2016,7 @@ app.get('/status', async (req,res) => {
         res.json({
             status:'OK', version:'41.0-GSC-DOMINANCE',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
-            min_sin_publicar:minS, ultima_noticia:ult.rows[0]?.titulo?.substring(0,60)||'—',
+            min_sin_publicar:minS, ultima_noticia:ult.rows[0]?.titulo||'—', ultima_resumen:esTextoComodin(ult.rows[0]?.seo_description)?'':(ult.rows[0]?.seo_description||''),
             ia:{motor:'ollama',modelo:llm.MODELO,circuito:llm.disponible()?'cerrado':'ABIERTO'},
             mongo:mongoSt,
             gsc_integrado:'✅ Search Console conectado — el modelo usa datos reales',
