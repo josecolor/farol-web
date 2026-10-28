@@ -34,6 +34,8 @@ const cache   = require('./lib/cache');
 const llm     = require('./lib/llm');
 const jefe    = require('./lib/jefe');
 const redaccion = require('./lib/redaccion');
+const asistente = require('./lib/asistente_reestructura');
+const { crearCurador } = require('./lib/curador_tendencias');
 
 // ── Textos comodín: jamás deben llegar a la marquesina ni al resumen público ──
 const esTextoComodin = t => /(aqu[ií]\s*\.{2,}|cuenco completo|lorem ipsum|texto de prueba|\{\{.*\}\})/i.test(String(t || ''));
@@ -1249,6 +1251,12 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         const similares = await detectarPlagio(contenido);
         if (similares.length) dbg(`   🕵️ Similitud con: ${similares.join(', ')}`);
 
+        // ── Curador: revisión de la nota ya redactada (repetida / sin impacto) ANTES de insertarla ──
+        if (typeof opts.evaluarAntes === 'function') {
+            const ev = await opts.evaluarAntes({ titulo, contenido, categoria, libre: !comunicadoExterno });
+            if (!ev.publicar) { dbg(`   🚫 Curador descarta la nota: ${ev.motivo}`); return { success:false, descartada:true, error:`Curador: ${ev.motivo}` }; }
+        }
+
         // ── Imagen: extractor web directo (fuente original + búsqueda por contexto); sin APIs de terceros ──
         // FASE 2 — multimedia: Openverse/Wikimedia (+extractor web); con timeout o restricción aplica el respaldo por defecto en silencio
         const imgResult = await obtenerImagenSegura({ titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido), enlaceFuente, comunicado: comunicadoExterno || '' });
@@ -1341,29 +1349,14 @@ const FUENTES_RSS = [
     {url:'https://feeds.feedburner.com/TechCrunch',categoria:'Tecnología',nombre:'TechCrunch'},
 ];
 
-async function procesarRSS() {
-    if (!CONFIG_IA.enabled) return;
-    console.log('\n📡 Procesando RSS...');
-    let ok = 0;
-    for (const fuente of FUENTES_RSS) {
-        try {
-            const feed = await rssParser.parseURL(fuente.url).catch(()=>null);
-            if (!feed?.items?.length) continue;
-            for (const item of feed.items.slice(0,3)) {
-                const guid = item.guid||item.link||item.title;
-                if (!guid) continue;
-                const existe = await pool.query('SELECT id FROM rss_procesados WHERE item_guid=$1',[guid.substring(0,500)]);
-                if (existe.rows.length) continue;
-                const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`,item.link?`ENLACE: ${item.link}`:''].filter(Boolean).join('\n');
-                const r = await generarNoticia(fuente.categoria, comunicado, 1, { videoUrl: videoDeItemRSS(item), videoFuente: fuente.nombre });
-                if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,8000)); }
-                break;
-            }
-        } catch(err) { console.warn(`⚠️ ${fuente.nombre}: ${err.message}`); }
-    }
-    console.log(`📡 RSS: ${ok} noticias`);
-    logAnalytics('RSS_PROCESADO',{noticias:ok});
-}
+// ── 🎯 Curador autónomo: filtro de impacto + frecuencia dinámica + tendencias/GSC (lib/curador_tendencias.js) ──
+const curador = crearCurador({
+    pool, fuentes: FUENTES_RSS, parser: rssParser, videoDe: videoDeItemRSS, llm,
+    generarNoticia: (...a) => generarNoticia(...a),
+    configIA: () => CONFIG_IA, cats: () => CATS,
+});
+// Compatibilidad: el disparo manual de RSS ahora pasa por el curador (mismo filtro de impacto, 1 nota por vuelta)
+async function procesarRSS() { return curador.tick({ forzar: true }); }
 
 // ══════════════════════════════════════════════════════════
 // 🗑️ AUTO-LIMPIEZA
@@ -1394,17 +1387,8 @@ async function getHorasPico() {
 
 cron.schedule('*/5 * * * *', async () => { try { await fetch(`http://localhost:${PORT}/health`); } catch {} });
 
-cron.schedule('0 8-18 * * *', async () => {
-    // Cada 3 horas — ahorra 66% de llamadas vs cada hora
-    if (!CONFIG_IA.enabled) return;
-    if (Date.now()-ARRANQUE_TIME < 35*60*1000) return;
-    const hora = new Date().getHours();
-    if ([0,1,2,3,4,5].includes(hora)) return; // Sin generar de madrugada
-    // Verificar llave disponible ANTES de intentar
-    if (!llm.disponible()) { console.warn('⏳ Cron: Llama no disponible (circuito abierto) — saltando'); return; }
-    console.log(`⏰ Cron hora ${hora}:00`);
-    await generarNoticia(CATS[hora%CATS.length]);
-});
+// Director de contenidos autónomo: cada 10 min decide SI toca publicar y QUÉ (una sola nota por vuelta, nunca ráfagas)
+cron.schedule('*/10 * * * *', () => { curador.tick().catch(e => console.error('❌ Curador:', e.message)); });
 
 // ── GSC Sync automático ───────────────────────────────────
 cron.schedule('0 6,12,18 * * *', async () => {
@@ -1412,7 +1396,6 @@ cron.schedule('0 6,12,18 * * *', async () => {
     await sincronizarGSC();
 });
 
-cron.schedule('30 8,19 * * *', procesarRSS);
 cron.schedule('0 */6 * * *', async () => { try { await analizarYGenerar(); } catch(e) { console.error('❌ Estrategia:', e.message); } });
 cron.schedule('0 7 * * *', async () => {
     try {
@@ -1437,8 +1420,8 @@ async function rafagaInicial() {
     // Solo 1 noticia al arrancar — antes eran 3 (quemaba llaves de golpe)
     if (!CONFIG_IA.enabled) return;
     if (!llm.disponible()) { console.warn('⏳ Ráfaga: Llama no disponible'); return; }
-    console.log('🚀 Ráfaga inicial — 1 noticia');
-    try { await generarNoticia(CATS[0]); } catch(e) { console.warn('⚠️ Ráfaga inicial:', e.message); }
+    console.log('🚀 Arranque — el curador decide si toca publicar');
+    try { await curador.tick(); } catch(e) { console.warn('⚠️ Ráfaga inicial:', e.message); }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1473,6 +1456,9 @@ async function inicializarBase() {
         await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='ledger_hash') THEN ALTER TABLE noticias ADD COLUMN ledger_hash VARCHAR(64); END IF; END$$;`).catch(()=>{});
         await client.query(`CREATE TABLE IF NOT EXISTS personas_publicas(id SERIAL PRIMARY KEY,nombre VARCHAR(200) NOT NULL,nombre_lower VARCHAR(200) NOT NULL UNIQUE,query_foto TEXT NOT NULL,categoria VARCHAR(100) DEFAULT 'general',activo BOOLEAN DEFAULT true,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_personas_nombre ON personas_publicas(nombre_lower)`).catch(()=>{});
+        await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS reestructurada_en TIMESTAMP`).catch(()=>{});
+        await client.query(`CREATE TABLE IF NOT EXISTS noticias_versiones(id SERIAL PRIMARY KEY,noticia_id INTEGER NOT NULL,titulo VARCHAR(255),contenido TEXT,seo_description VARCHAR(160),redactor VARCHAR(100),ledger_hash VARCHAR(64),causa VARCHAR(200),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_versiones_noticia ON noticias_versiones(noticia_id,fecha DESC)`).catch(()=>{});
         console.log('✅ BD lista V41');
     } catch(e) { console.error('❌ BD:', e.message); }
     finally { client.release(); }
@@ -1586,6 +1572,113 @@ app.post('/api/gsc/sync', authMiddleware, async (req,res) => {
     if (req.body.pin!=='311') return res.status(403).json({error:'PIN'});
     const ok = await sincronizarGSC();
     res.json({success:ok, mensaje:ok?'✅ GSC sincronizado':'⚠️ Error — verifica permisos en Search Console'});
+});
+
+// ══════════════════════════════════════════════════════════
+// 🎯 CURADOR — estado y disparo manual
+// ══════════════════════════════════════════════════════════
+app.get('/api/curador/estado', authMiddleware, (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ success: false, error: 'PIN' });
+    res.json({ success: true, ...curador.estado() });
+});
+app.post('/api/curador/tick', authMiddleware, (req, res) => {
+    if ((req.body?.pin ?? req.query.pin) !== '311') return res.status(403).json({ success: false, error: 'PIN' });
+    if (curador.estado().ocupado) return res.status(409).json({ success: false, error: 'El curador está publicando una nota' });
+    curador.tick({ forzar: req.body?.forzar === true }).then(r => console.log('🎯 [curador] tick manual →', JSON.stringify(r))).catch(() => {});
+    res.status(202).json({ success: true, mensaje: 'Vuelta del curador iniciada; mira /api/curador/estado' });
+});
+
+// ══════════════════════════════════════════════════════════
+// ♻️ ASISTENTE DE REESTRUCTURACIÓN Y CALIDAD
+//   POST /api/reestructurar-noticia/:id   (body: {pin, causa?, async?})  — ?async=1 responde 202 y se consulta por /estado
+//   GET  /api/reestructurar-noticia/:id/estado?pin=311
+//   GET  /api/admin/noticias?pin=311       — lista con diagnóstico de calidad para el panel
+//   Conserva id, slug, vistas, fecha e imagen. Guarda la versión anterior en noticias_versiones.
+// ══════════════════════════════════════════════════════════
+const reestJobs = new Map();   // id → { estado:'procesando'|'ok'|'error', inicio, fin, causa, resultado, error }
+
+async function ejecutarReestructura(id, causa) {
+    const t0 = Date.now();
+    const r = await pool.query("SELECT * FROM noticias WHERE id=$1 AND estado IN ('publicada','archivada')", [id]);
+    if (!r.rows.length) throw Object.assign(new Error('Noticia no encontrada'), { status: 404 });
+    const n = r.rows[0];
+
+    const out = await asistente.reestructurarNoticia(n, causa, { generar: (p, o) => llm.generarTexto(p, 3, 3500, o) });
+
+    // La certificación (ledger) se rehace sobre el texto nuevo; si falla, se conserva la anterior
+    let hash = n.ledger_hash || null;
+    try { hash = ledger.certificar({ titulo: out.titulo, contenido: out.contenido, seccion: n.seccion, fecha: n.fecha }).hash || hash; } catch (e) { console.warn('⚠️ [reestructura] ledger:', e.message); }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query('INSERT INTO noticias_versiones(noticia_id,titulo,contenido,seo_description,redactor,ledger_hash,causa) VALUES($1,$2,$3,$4,$5,$6,$7)',
+            [id, n.titulo, n.contenido, n.seo_description, n.redactor, n.ledger_hash || null, causa.slice(0, 200)]);
+        // id, slug, vistas, fecha, sección e imagen NO se tocan: la URL y el SEO acumulado siguen intactos
+        await client.query('UPDATE noticias SET titulo=$1,contenido=$2,seo_description=$3,redactor=$4,ledger_hash=$5,reestructurada_en=NOW() WHERE id=$6',
+            [out.titulo, out.contenido, out.seo_description, out.redactor, hash, id]);
+        await client.query('COMMIT');
+    } catch (e) { await client.query('ROLLBACK').catch(() => {}); throw e; }
+    finally { client.release(); }
+
+    await cache.invalidar('noticias', 'paginas');
+    console.log(`♻️ [reestructura] #${id} "${n.slug}" ${asistente.diagnosticar(n).palabras}→${out.palabras} palabras | ${out.redactor} | ${Math.round((Date.now() - t0) / 1000)}s | avisos: ${out.avisos.join(',') || '-'}`);
+
+    return {
+        id, slug: n.slug, url: `${BASE_URL}/noticia/${n.slug}`, causa,
+        antes:   { titulo: n.titulo, palabras: out.diagnostico_previo.palabras, redactor: n.redactor, fallos: out.diagnostico_previo.flags },
+        despues: { titulo: out.titulo, palabras: out.palabras, redactor: out.redactor, seo_description: out.seo_description, fallos: out.diagnostico_posterior.flags },
+        vistas_conservadas: n.vistas, ampliaciones: out.ampliaciones, alcanzo_meta: out.alcanzo_meta, avisos: out.avisos,
+        segundos: Math.round((Date.now() - t0) / 1000),
+    };
+}
+
+app.post('/api/reestructurar-noticia/:id', authMiddleware, async (req, res) => {
+    if ((req.body?.pin ?? req.query.pin) !== '311') return res.status(403).json({ success: false, error: 'PIN' });
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ success: false, error: 'ID inválido' });
+    const causa = String(req.body?.causa || req.query.causa || '').replace(/\s+/g, ' ').trim().slice(0, 200) || 'revisión de calidad';
+    if (reestJobs.get(id)?.estado === 'procesando') return res.status(409).json({ success: false, error: 'Esa noticia ya se está reestructurando', estado: 'procesando' });
+    if (!llm.disponible()) return res.status(503).json({ success: false, error: 'Ollama no disponible (circuito abierto); reintenta en 2 minutos' });
+
+    const job = { estado: 'procesando', inicio: Date.now(), causa };
+    reestJobs.set(id, job);
+    const correr = ejecutarReestructura(id, causa)
+        .then(resultado => { Object.assign(job, { estado: 'ok', fin: Date.now(), resultado }); return resultado; })
+        .catch(e => { Object.assign(job, { estado: 'error', fin: Date.now(), error: e.message, codigo: e.code || null }); throw e; })
+        .finally(() => setTimeout(() => { if (reestJobs.get(id) === job) reestJobs.delete(id); }, 3600000).unref());
+
+    if (req.query.async === '1' || req.body?.async === true) {
+        correr.catch(e => console.warn(`⚠️ [reestructura] #${id}: ${e.message}`));
+        return res.status(202).json({ success: true, estado: 'procesando', id, estado_url: `/api/reestructurar-noticia/${id}/estado?pin=311` });
+    }
+    try { res.json({ success: true, ...(await correr) }); }
+    catch (e) {
+        const status = e.status || (e.message === 'LLM_COLA_LLENA' ? 429 : /^REESTRUCTURA_/.test(e.code || '') ? 422 : 500);
+        res.status(status).json({ success: false, error: e.message, codigo: e.code || null });
+    }
+});
+
+app.get('/api/reestructurar-noticia/:id/estado', authMiddleware, (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ success: false, error: 'PIN' });
+    const j = reestJobs.get(parseInt(req.params.id, 10));
+    if (!j) return res.json({ success: true, estado: 'desconocido' });
+    res.json({ success: true, estado: j.estado, causa: j.causa, segundos: Math.round(((j.fin || Date.now()) - j.inicio) / 1000), resultado: j.resultado || null, error: j.error || null, codigo: j.codigo || null });
+});
+
+app.get('/api/admin/noticias', authMiddleware, async (req, res) => {
+    if (req.query.pin !== '311') return res.status(403).json({ success: false, error: 'PIN' });
+    const limite = Math.min(Math.max(parseInt(req.query.limite || '60', 10) || 60, 1), 200);
+    try {
+        const r = await pool.query("SELECT id,titulo,slug,seccion,fecha,vistas,redactor,contenido,reestructurada_en FROM noticias WHERE estado='publicada' ORDER BY fecha DESC LIMIT $1", [limite]);
+        const noticias = r.rows.map(n => {
+            const d = asistente.diagnosticar(n);
+            return { id: n.id, titulo: n.titulo, slug: n.slug, seccion: n.seccion, fecha: n.fecha, vistas: n.vistas, redactor: n.redactor,
+                     palabras: d.palabras, flags: d.flags, causa_sugerida: d.causa, necesita: d.necesita,
+                     reestructurada_en: n.reestructurada_en, procesando: reestJobs.get(n.id)?.estado === 'procesando' };
+        });
+        res.json({ success: true, total: noticias.length, con_fallos: noticias.filter(n => n.necesita).length, noticias });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.post('/api/publicar', express.json(), async (req,res) => {

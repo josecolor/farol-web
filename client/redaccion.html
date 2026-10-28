@@ -183,6 +183,7 @@
     <button class="tab-btn" onclick="setTab('manual',this)">✏️ MANUAL</button>
     <button class="tab-btn" onclick="setTab('analytics',this)">📊 ANALYTICS</button>
     <button class="tab-btn" onclick="setTab('personas',this)">🧑 PERSONAS</button>
+    <button class="tab-btn" onclick="setTab('noticias',this)">📰 NOTICIAS</button>
 </div>
 
 <!-- ══════════════════════════════════════════ -->
@@ -433,6 +434,19 @@
     </div>
 </div>
 
+<div class="tab-panel" id="tab-noticias">
+    <div class="workspace">
+        <div class="panel-left" style="grid-column:1/-1;">
+            <div class="slabel">Control de calidad — reestructurar con el Asistente Quirúrgico (Ollama)</div>
+            <div id="not-resumen" style="font-size:11px;color:var(--muted);margin-bottom:12px;">Cargando…</div>
+            <div id="not-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div class="slabel" style="margin-top:20px;">Registro</div>
+            <div class="terminal" id="terminal-noticias"></div>
+            <button class="btn-sec" style="margin-top:14px;" onclick="cargarListaNoticias()">🔄 REFRESCAR LISTA</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const AUTH = btoa('director:311');
 
@@ -451,6 +465,79 @@
         if (id === 'gsc') cargarGSC();
         if (id === 'analytics') cargarAnalytics();
         if (id === 'personas') cargarPersonas();
+        if (id === 'noticias') cargarListaNoticias();
+    }
+
+
+    // ── 📰 NOTICIAS / REESTRUCTURACIÓN ───────────────────────
+    const FLAG_TXT = { texto_corto:'texto corto', bajo_meta:'bajo meta de palabras', texto_incompleto:'texto incompleto', sin_gancho:'sin gancho',
+        redaccion_robotica:'redacción robótica', pocos_parrafos:'pocos párrafos', parrafos_largos:'párrafos largos', repeticion:'repeticiones', bajo_rendimiento:'bajo rendimiento' };
+    const escN = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    const dormir = ms => new Promise(r => setTimeout(r, ms));
+    const HDR = { 'Content-Type': 'application/json', 'Authorization': 'Basic ' + AUTH };
+
+    async function cargarListaNoticias() {
+        const box = document.getElementById('not-lista');
+        box.innerHTML = '<div style="color:var(--muted);font-size:12px;">Cargando…</div>';
+        try {
+            const r = await fetch('/api/admin/noticias?pin=311&limite=60', { headers: HDR });
+            const d = await r.json();
+            if (!d.success) throw new Error(d.error || 'sin datos');
+            document.getElementById('not-resumen').textContent = d.total + ' noticias recientes · ' + d.con_fallos + ' con fallos detectados';
+            box.innerHTML = d.noticias.map(n => {
+                const badges = (n.flags || []).map(f => '<span class="gsc-tag tag-opp">' + escN(FLAG_TXT[f] || f) + '</span>').join('')
+                    || '<span class="gsc-tag tag-win">OK</span>';
+                const hecha = n.reestructurada_en ? ' · ♻️ reestructurada' : '';
+                return '<div class="gsc-card" data-id="' + n.id + '" style="display:flex;gap:12px;align-items:center;justify-content:space-between;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div class="gsc-query"><a href="/noticia/' + encodeURIComponent(n.slug) + '" target="_blank" style="color:var(--crema);text-decoration:none;">' + escN(n.titulo) + '</a></div>' +
+                        '<div class="gsc-stats">' + escN(n.seccion) + ' · ' + n.palabras + ' palabras · ' + (n.vistas || 0) + ' vistas · ' + escN(n.redactor) + hecha + '</div>' +
+                        '<div style="margin-top:4px;">' + badges + '</div>' +
+                    '</div>' +
+                    '<button class="btn-sec btn-reest" data-id="' + n.id + '" data-causa="' + escN(n.causa_sugerida || '') + '"' + (n.procesando ? ' disabled' : '') +
+                        ' style="white-space:nowrap;">' + (n.procesando ? '⏳ EN PROCESO' : '♻️ REESTRUCTURAR') + '</button>' +
+                '</div>';
+            }).join('') || '<div style="color:var(--muted);font-size:12px;">Sin noticias publicadas.</div>';
+        } catch (e) {
+            box.innerHTML = '<div style="color:red;font-size:12px;">Error: ' + escN(e.message) + '</div>';
+        }
+    }
+
+    // Un solo clic: delegación sobre la lista
+    document.addEventListener('click', e => {
+        const b = e.target.closest('.btn-reest');
+        if (b && !b.disabled) reestructurarNoticia(b.dataset.id, b.dataset.causa, b);
+    });
+
+    async function reestructurarNoticia(id, causa, btn) {
+        const term = 'terminal-noticias';
+        causa = causa || 'revisión de calidad';
+        if (!confirm('Reestructurar la noticia #' + id + '?\nCausa: ' + causa + '\nSe conservan URL, vistas e imagen. La versión anterior queda respaldada.')) return;
+        btn.disabled = true; btn.textContent = '⏳ REESTRUCTURANDO…';
+        log(term, '♻️ #' + id + ' → enviada a Ollama (' + escN(causa) + '). Puede tardar varios minutos…', 'info');
+        try {
+            const r = await fetch('/api/reestructurar-noticia/' + id + '?async=1', { method: 'POST', headers: HDR, body: JSON.stringify({ pin: '311', causa }) });
+            const d = await r.json();
+            if (!d.success && r.status !== 409) throw new Error(d.error || ('HTTP ' + r.status));
+            const t0 = Date.now();
+            while (Date.now() - t0 < 25 * 60 * 1000) {
+                await dormir(5000);
+                const e = await (await fetch('/api/reestructurar-noticia/' + id + '/estado?pin=311', { headers: HDR })).json();
+                if (e.estado === 'ok') {
+                    const x = e.resultado;
+                    log(term, '✅ #' + id + ' reestructurada por ' + escN(x.despues.redactor) + ': ' + x.antes.palabras + ' → ' + x.despues.palabras + ' palabras en ' + x.segundos + 's · vistas conservadas: ' + x.vistas_conservadas, 'ok');
+                    log(term, '   Titular: ' + escN(x.despues.titulo), 'info');
+                    if (x.avisos && x.avisos.length) log(term, '   Avisos: ' + escN(x.avisos.join(', ')), 'err');
+                    return cargarListaNoticias();
+                }
+                if (e.estado === 'error') throw new Error(e.error || 'falló la reestructura');
+                if (e.estado === 'desconocido') throw new Error('el servidor perdió el trabajo (¿reinicio?); revisa la lista y reintenta');
+            }
+            throw new Error('tiempo de espera agotado (25 min)');
+        } catch (err) {
+            log(term, '❌ #' + id + ': ' + escN(err.message), 'err');
+            btn.disabled = false; btn.textContent = '♻️ REESTRUCTURAR';
+        }
     }
 
     // Terminal logger
