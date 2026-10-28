@@ -247,7 +247,7 @@
 <div class="tab-panel" id="tab-ia">
     <div class="workspace">
         <div class="panel-left">
-            <div class="slabel">Generación IA con contexto GSC + Gemini</div>
+            <div class="slabel">Generación IA con contexto GSC + Ollama</div>
 
             <label class="field-label">Categoría</label>
             <select id="cat-ia">
@@ -261,6 +261,11 @@
 
             <label class="field-label">Referencia / Comunicado (opcional)</label>
             <textarea id="comunicado" placeholder="Pega aquí tu fuente, comunicado oficial, o deja vacío para generación libre con keywords GSC..."></textarea>
+
+            <label class="field-label">Clip de video corto — 15 a 20 s (opcional)</label>
+            <input type="file" id="clip-ia" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onchange="subirClip('ia')">
+            <input type="text" id="clip-ia-fuente" placeholder="Crédito del clip (ej. Policía Nacional)">
+            <div class="hint-box" id="clip-ia-estado" style="margin-top:6px;">Se le aplica degradado de marca y se limpian los metadatos con FFmpeg antes de publicarse.</div>
         </div>
 
         <div class="panel-right">
@@ -269,7 +274,7 @@
             <button class="btn-sec" onclick="procesarRSS()">📡 PROCESAR RSS</button>
 
             <div class="hint-box" style="margin-top:14px;">
-                Gemini recibe las keywords reales de GSC y escribe con ellas en el título. Cada noticia lleva watermark garantizado y se publica en Telegram + Ollama Local + Twitter.
+                El modelo (Ollama) recibe las keywords reales de GSC y escribe con ellas en el título. Cada noticia lleva watermark garantizado y se publica en Telegram + Facebook + Twitter.
             </div>
 
             <div class="divider"></div>
@@ -331,6 +336,12 @@
             <label class="field-label">Alt de imagen (SEO)</label>
             <input type="text" id="m-alt" placeholder="Descripción de la imagen para Google...">
 
+
+            <label class="field-label">Clip de video corto — 15 a 20 s (opcional)</label>
+            <input type="file" id="clip-manual" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" onchange="subirClip('manual')">
+            <input type="text" id="clip-manual-fuente" placeholder="Crédito del clip (ej. Policía Nacional)">
+            <div class="hint-box" id="clip-manual-estado" style="margin-top:6px;">Se le aplica degradado de marca y se limpian los metadatos con FFmpeg antes de publicarse.</div>
+
             <label class="field-label">Redactor</label>
             <input type="text" id="m-redactor" placeholder="Nombre del redactor...">
 
@@ -364,7 +375,7 @@
         </div>
 
         <div class="panel-right">
-            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Llaves Gemini</div>
+            <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;">Motor IA (Ollama)</div>
             <div id="an-llaves"></div>
 
             <div class="divider"></div>
@@ -412,7 +423,7 @@
         <div class="panel-right">
             <div style="font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;">¿Cómo funciona?</div>
             <p style="font-size:12px;color:var(--crema2);line-height:1.7;margin-bottom:14px;">
-                Cada vez que Gemini genera una noticia que mencione el nombre de esta persona, el sistema busca automáticamente su foto en Wikipedia para ilustrar la noticia.<br><br>
+                Cada vez que el modelo genera una noticia que mencione el nombre de esta persona, el sistema busca automáticamente su foto en Wikipedia para ilustrar la noticia.<br><br>
                 <strong style="color:var(--fuego)">Nombre:</strong> Escribe el nombre como aparecería en el texto de la noticia.<br><br>
                 <strong style="color:var(--fuego)">Query de foto:</strong> Palabras en inglés para buscar la foto correcta. Ej: <code style="font-size:10px;opacity:.8">Luis Abinader Dominican Republic president podium</code>
             </p>
@@ -568,6 +579,22 @@
         }
     }
 
+    // ── CLIPS DE VIDEO CORTOS: sube el original → el servidor lo procesa con FFmpeg → queda el nombre para publicar ──
+    const CLIP = { ia: null, manual: null };
+    async function subirClip(k) {
+        const f = document.getElementById('clip-' + k).files[0], est = document.getElementById('clip-' + k + '-estado');
+        CLIP[k] = null; if (!f) { est.textContent = 'Sin clip.'; return; }
+        est.textContent = '⏳ Procesando "' + f.name + '" (' + (f.size / 1048576).toFixed(1) + ' MB)…';
+        try {
+            const q = new URLSearchParams({ fuente: document.getElementById('clip-' + k + '-fuente').value, titulo: f.name.replace(/\.[^.]+$/, '') });
+            const r = await fetch('/api/video/subir?' + q, { method: 'POST', headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': f.type || 'video/mp4' }, body: f });
+            const d = await r.json();
+            if (!d.success) { est.textContent = '❌ ' + d.error; return; }
+            CLIP[k] = d.video.nombre;
+            est.textContent = '✅ Listo: ' + d.video.duracion + ' s, ' + d.video.ancho + 'x' + d.video.alto + ', ' + (d.video.bytes / 1048576).toFixed(1) + ' MB — se publicará con la noticia.';
+        } catch (e) { est.textContent = '❌ ' + e.message; }
+    }
+
     async function publicarManual() {
         const titulo   = document.getElementById('m-titulo').value.trim();
         const contenido= document.getElementById('m-contenido').value.trim();
@@ -587,6 +614,7 @@
                     seo_description: document.getElementById('m-desc').value,
                     seo_keywords:    document.getElementById('m-keywords').value,
                     redactor:        document.getElementById('m-redactor').value,
+                    video_nombre:    CLIP.manual, video_fuente: document.getElementById('clip-manual-fuente').value,
                 })
             });
             const d = await r.json();
@@ -608,14 +636,15 @@
         const btn = document.getElementById('btn-ia');
         btn.disabled = true;
         btn.textContent = '⏳ GENERANDO...';
-        log('terminal-ia', '🚀 Enviando a Gemini con contexto GSC...', 'info');
+        log('terminal-ia', '🚀 Enviando a Ollama con contexto GSC...', 'info');
         try {
             const r = await fetch('/api/generar-noticia', {
                 method: 'POST',
                 headers: { 'Authorization': 'Basic ' + AUTH, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     categoria:  document.getElementById('cat-ia').value,
-                    comunicado: document.getElementById('comunicado').value
+                    comunicado: document.getElementById('comunicado').value,
+                    video_nombre: CLIP.ia, video_fuente: document.getElementById('clip-ia-fuente').value
                 })
             });
             const d = await r.json();
@@ -684,16 +713,13 @@
                     '</li>'
                 ).join('');
 
-            // Llaves Gemini
-            document.getElementById('an-llaves').innerHTML =
-                (d.gemini_keys || []).map(k =>
-                    '<div style="display:flex;justify-content:space-between;font-size:10px;padding:5px 0;border-bottom:1px solid var(--borde);">' +
-                    '<span>' + k.llave + '</span>' +
-                    '<span class="' + (k.disponible ? 'badge-ok' : 'badge-err') + '">' +
-                    (k.disponible ? 'OK' : 'RATE LIMIT') + '</span>' +
-                    '<span style="color:var(--muted);">' + k.exitos + '✓ ' + k.errores + '✗</span>' +
-                    '</div>'
-                ).join('');
+            // Motor IA (Ollama)
+            document.getElementById('an-llaves').innerHTML = d.ia ?
+                '<div style="display:flex;justify-content:space-between;font-size:10px;padding:5px 0;border-bottom:1px solid var(--borde);">' +
+                '<span>' + (d.ia.modelo || 'ollama') + '</span>' +
+                '<span class="' + (d.ia.circuito === 'ABIERTO' ? 'badge-err' : 'badge-ok') + '">' +
+                (d.ia.circuito === 'ABIERTO' ? 'CIRCUITO ABIERTO' : 'OK') + '</span>' +
+                '</div>' : '';
 
             // Horas pico
             document.getElementById('an-horas').innerHTML =

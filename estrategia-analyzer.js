@@ -1,6 +1,6 @@
 /**
  * 🏮 EL FAROL AL DÍA — ANALIZADOR DE ESTRATEGIA V38.1
- * Analiza BD y genera estrategia.json para Gemini.
+ * Analiza BD y genera estrategia.json para el modelo (Ollama).
  * MEJORAS: palabras clave exitosas, horas pico, barrios con más engagement.
  */
 const { Pool } = require('pg');
@@ -65,7 +65,7 @@ async function analizarYGenerar() {
         const topNots  = resTop.rows;
         const horasPico = resHoras.rows.map(h => `${h.hora}:00h`);
 
-        // ── Construir resumen para Gemini ──────────────────────────
+        // ── Construir resumen para el modelo ──────────────────────────
         let resumen = `📊 ESTRATEGIA EL FAROL AL DÍA — ${new Date().toLocaleDateString('es-DO')}:\n\n`;
 
         // Categorías que funcionan
@@ -105,7 +105,7 @@ async function analizarYGenerar() {
         // ── Guardar estrategia.json ────────────────────────────────
         const datosEstrategia = {
             generado: new Date().toISOString(),
-            resumen_para_gemini: resumen,
+            resumen_para_ia: resumen,
             datos: {
                 categorias_top:          topCats.map(c => c.seccion),
                 mejores_horas:           horasPico,
@@ -124,7 +124,7 @@ async function analizarYGenerar() {
         // Fallback básico para que el loader no falle
         const fallback = {
             generado: new Date().toISOString(),
-            resumen_para_gemini: 'Sin datos suficientes aún. Mantén enfoque en SDE con lenguaje de barrio directo y párrafos cortos.'
+            resumen_para_ia: 'Sin datos suficientes aún. Mantén enfoque en SDE con lenguaje de barrio directo y párrafos cortos.'
         };
         fs.writeFileSync(RUTA_ESTRATEGIA, JSON.stringify(fallback, null, 2));
         return false;

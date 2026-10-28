@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- META_TAGS -->
 <meta name="google-adsense-account" content="ca-pub-5280872495839888">
-    <link rel="preconnect" href="https://images.pexels.com">
     <link rel="preconnect" href="https://upload.wikimedia.org">
-    <link rel="dns-prefetch" href="https://images.pexels.com">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5280872495839888" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -217,9 +215,11 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
 
       <div class="imagen-wrap">
         <img src="{{IMAGEN}}" alt="{{ALT}}"
-             onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=800'">
+             onerror="this.src='/static/favicon.png'">
         <div class="imagen-caption">{{ALT}} — El Farol al Día<span class="imagen-credito">{{CREDITO}}</span></div>
       </div>
+
+      {{VIDEO}}
 
       <!-- AdSense dentro del artículo -->
       <div class="ad-articulo">
@@ -235,7 +235,7 @@ footer{background:var(--tinta);border-top:1px solid var(--borde);padding:32px 24
       <div class="compartir">
         <h3>📢 COMPARTIR ESTA NOTICIA</h3>
         <div class="compartir-btns">
-          <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank" rel="noopener">👍 Comunidad</a>
+          <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u={{URL}}" target="_blank" rel="noopener">👍 Facebook</a>
           <a class="share-btn" href="https://twitter.com/intent/tweet?text={{TITULO}}&url={{URL}}" target="_blank" rel="noopener">🐦 Twitter/X</a>
           <a class="share-btn" href="https://wa.me/?text={{TITULO}}%20{{URL}}" target="_blank" rel="noopener">💬 WhatsApp</a>
           <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url={{URL}}" target="_blank" rel="noopener">💼 LinkedIn</a>
@@ -503,7 +503,7 @@ function cargarRelacionadas(actual) {
     c.innerHTML = rel.map(n => `
         <a class="rel-card" href="/noticia/${n.slug}">
             <img src="${n.imagen}" alt="${n.titulo}"
-                 onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=400'">
+                 onerror="this.src='/static/favicon.png'">
             <div class="rel-body">
                 <div class="rel-seccion">${n.seccion}</div>
                 <div class="rel-titulo">${n.titulo.substring(0, 60)}</div>
@@ -519,7 +519,7 @@ function cargarSidebar() {
     nav.innerHTML = ultimas.map(n => `
         <a class="sidebar-noticia" href="/noticia/${n.slug}">
             <img class="sidebar-thumb" src="${n.imagen}" alt="${n.titulo}"
-                 onerror="this.src='https://images.pexels.com/photos/3052454/pexels-photo-3052454.jpeg?auto=compress&w=100'">
+                 onerror="this.src='/static/favicon.png'">
             <div>
                 <div class="sidebar-titulo">${n.titulo.substring(0, 55)}</div>
                 <div class="sidebar-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>

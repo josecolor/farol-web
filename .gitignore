@@ -26,4 +26,6 @@ Thumbs.db
 .cache/
 config.json
 *.json
+!package.json
+!package-lock.json
 .env

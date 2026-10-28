@@ -8,7 +8,7 @@ ENV OLLAMA_HOST=0.0.0.0:11434 \
     OLLAMA_NUM_PARALLEL=1 \
     OLLAMA_MAX_LOADED_MODELS=1 \
     OLLAMA_FLASH_ATTENTION=1 \
-    LLM_MODELS="llama3.1:8b llama3.2:3b"
+    LLM_MODELS="qwen2.5:0.5b"
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

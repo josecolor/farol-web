@@ -1,6 +1,6 @@
 /**
  * 🎯 ESTRATEGIA LOADER — V38.1
- * Carga estrategia.json e inyecta el resumen en el prompt de Gemini.
+ * Carga estrategia.json e inyecta el resumen en el prompt del modelo (Ollama).
  * FIX: variable 'ahora' declarada antes de usarse.
  */
 const fs   = require('fs');
@@ -27,7 +27,7 @@ function leerEstrategia() {
         }
 
         console.log('✅ [LOADER]: Estrategia inyectada.');
-        return estrategia.resumen_para_gemini || '';
+        return estrategia.resumen_para_ia || '';
     } catch (error) {
         console.error('❌ [LOADER] Error:', error.message);
         return '';

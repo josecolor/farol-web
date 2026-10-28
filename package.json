@@ -1,10 +1,11 @@
 {
   "name": "farol-web",
-  "version": "2.0.0",
+  "version": "43.0.0",
   "description": "El Farol al Dia - Periodico Digital Santo Domingo Este",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node test/fase2.test.js && node test/fase3.test.js && node test/fase4.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -2,8 +2,9 @@
  * 🏮 EL FAROL AL DÍA — V41.0 GSC DOMINANCE EDITION
  * ═══════════════════════════════════════════════════════════════
  * NUEVO EN V41 vs V40:
- *  📊 Google Search Console integrado en Gemini
- *  🎯 Gemini escribe sobre lo que la gente YA busca en Google
+ *  📊 Google Search Console integrado en el prompt del modelo
+ *  🎯 Ollama (qwen2.5:0.5b) escribe sobre lo que la gente YA busca en Google
+ *  🧠 Jefe de Redacción Inteligente + memoria de rendimiento en MongoDB
  *  💡 Oportunidades de oro: impresiones altas + CTR bajo
  *  🏆 Replica fórmula de consultas ganadoras (CTR >5%)
  *  🔍 Palabras clave REALES de tu audiencia dominicana
@@ -31,11 +32,15 @@ const { analizarYGenerar } = require('./estrategia-analyzer');
 // ── FASE 2: caché Redis, Llama autohospedado, imágenes con licencia verificada ──
 const cache   = require('./lib/cache');
 const llm     = require('./lib/llm');
+const jefe    = require('./lib/jefe');
+const redaccion = require('./lib/redaccion');
+const mongo   = require('./lib/mongo');
 const roles   = require('./lib/roles');
-const { obtenerImagenLimpia } = require('./lib/imagenes');
+const { obtenerImagenSegura } = require('./lib/imagenes');
 const { aplicarMarca }        = require('./lib/imagenes/marca');
 const imgDep  = require('./lib/imagenes/depurador');
 const almacen = require('./lib/imagenes/almacen');
+const videos  = require('./lib/videos');
 cache.iniciar();
 
 // ══════════════════════════════════════════════════════════
@@ -45,15 +50,10 @@ const PORT     = process.env.PORT     || 8080;
 const BASE_URL = (process.env.BASE_URL || 'https://elfarolaldia.com').replace(/\/$/, '');
 
 if (!process.env.DATABASE_URL)   { console.error('❌ DATABASE_URL requerido');  process.exit(1); }
-// FASE 2: sin llaves de pago. El texto sale de Llama (LLM_BASE_URL) — ver lib/llm.js
-
-// Compatibilidad con paneles antiguos (ya no se usan llaves de pago)
-const TODAS_LLAVES_GEMINI = [], LLAVES_TEXTO = [], LLAVES_IMAGEN = [];
+// Motor único: Ollama (qwen2.5:0.5b) vía LLM_BASE_URL — ver lib/llm.js. Imágenes: extractor web propio (lib/imagenes/web.js).
 
 const GOOGLE_CSE_KEYS     = [process.env.GOOGLE_CSE_KEY, process.env.GOOGLE_CSE_KEY_2].filter(Boolean);
 const GOOGLE_CSE_CX       = process.env.GOOGLE_CSE_ID || process.env.GOOGLE_CSE_CX || '';
-const PEXELS_API_KEY      = process.env.PEXELS_API_KEY      || null;
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || null;
 const ELEVENLABS_API_KEY  = process.env.ELEVENLABS_API_KEY  || null;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
 const ONESIGNAL_APP_ID    = process.env.ONESIGNAL_APP_ID    || null;
@@ -113,7 +113,7 @@ const WATERMARK_PATH = (() => {
     return null;
 })();
 
-const rssParser = new RSSParser({ timeout: 10000 });
+const rssParser = new RSSParser({ timeout: 10000, customFields: { item: [['media:content', 'mediaContent', { keepArray: true }]] } });
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 const app  = express();
 
@@ -165,6 +165,8 @@ app.options('*', cors());
 // ══════════════════════════════════════════════════════════
 // 📊 ANALYTICS
 // ══════════════════════════════════════════════════════════
+// Progreso paso a paso solo con LOG_DETALLE=1; en operación normal el ciclo reporta un único '[Analytics / Publicada]' (los errores siempre se registran)
+const dbg = (...a) => { if (process.env.LOG_DETALLE === '1') console.log(...a); };
 function logAnalytics(evento, datos = {}) {
     console.log(`[ANALYTICS] ${new Date().toISOString()} | ${evento} | ${JSON.stringify(datos)}`);
 }
@@ -475,8 +477,9 @@ async function enviarOneSignal(titulo, cuerpo, slug) {
 
 async function notificarNuevaNoticia(titulo, cuerpo, slug, imagenUrl) {
     const vapidOk = await enviarVAPID(titulo, cuerpo, slug, imagenUrl);
-    console.log(`📱 Push VAPID: ${vapidOk} enviadas`);
+    dbg(`📱 Push VAPID: ${vapidOk} enviadas`);
     if (!vapidOk) await enviarOneSignal(titulo, cuerpo, slug);
+    return !!vapidOk;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -583,8 +586,8 @@ async function publicarEnRedes(titulo, slug, imagen, descripcion, seccion, conte
         publicarEnFacebook(titulo,slug,imagen,descripcion),
         publicarEnTwitter(titulo,slug,descripcion),
     ]).then(r=>r.map(x=>x.status==='fulfilled'?x.value:false));
-    console.log(`📡 Redes → Telegram:${tg?'✅':'—'} Facebook:${fb?'✅':'—'} Twitter:${tw?'✅':'—'} Audio:${audioNombre?'✅':'—'}`);
-    logAnalytics('REDES_SOCIALES',{telegram:tg,facebook:fb,twitter:tw,audio:!!audioNombre,slug});
+    dbg(`📡 Redes → Telegram:${tg?'✅':'—'} Facebook:${fb?'✅':'—'} Twitter:${tw?'✅':'—'} Audio:${audioNombre?'✅':'—'}`);
+    return {telegram:!!tg,facebook:!!fb,twitter:!!tw,audio:!!audioNombre};
 }
 
 async function bienvenidaTelegram() {
@@ -594,7 +597,7 @@ async function bienvenidaTelegram() {
     if (!chatId) return;
     await _tgFetch('sendMessage',{
         chat_id:chatId,
-        text:`🏮 *El Farol al Día — V41\\.0 GSC DOMINANCE*\n\n✅ Google Search Console integrado\\.\n✅ Gemini escribe sobre lo que la gente busca\\.\n✅ Oportunidades de oro: CTR bajo → título nuevo\\.\n✅ ${TODAS_LLAVES_GEMINI.length} llaves Gemini activas\\.\n✅ Watermark garantizado\\.\n\n🌐 [elfarolaldia\\.com](https://elfarolaldia.com)`,
+        text:`🏮 *El Farol al Día — V41\\.0 GSC DOMINANCE*\n\n✅ Google Search Console integrado\\.\n✅ Ollama escribe sobre lo que la gente busca\\.\n✅ Oportunidades de oro: CTR bajo → título nuevo\\.\n✅ Jefe de Redacción Inteligente activo\\.\n✅ Watermark garantizado\\.\n\n🌐 [elfarolaldia\\.com](https://elfarolaldia.com)`,
         parse_mode:'MarkdownV2',
     });
 }
@@ -640,12 +643,8 @@ async function guardarConfigIA(cfg) {
 }
 
 // ══════════════════════════════════════════════════════════
-// 🦙 TEXTO — Llama autohospedado (reemplaza a Gemini; mismo contrato)
+// 🦙 TEXTO — Ollama (qwen2.5:0.5b), motor único (lib/llm.js)
 // ══════════════════════════════════════════════════════════
-// Motor único: Ollama vía llm.js (qwen2.5:0.5b) — sin APIs externas
-const llamarGemini = llm.llamarGemini;  // firma compatible, internamente habla con Ollama
-const getKeyState  = () => ({ lastRequest:0, resetTime:0, exitos:0, errores:0 });   // compat. con paneles antiguos
-let   _rrIdx       = 0;
 
 // ══════════════════════════════════════════════════════════
 // 🧠 APRENDIZAJE AUTOMÁTICO
@@ -701,65 +700,6 @@ async function buscarContextoWikipedia(categoria) {
 }
 
 
-// ══════════════════════════════════════════════════════════
-// 📸 IMAGEN DESDE WIKIPEDIA — fotos libres de figuras públicas
-//    Busca la foto del artículo de Wikipedia de la persona
-//    Funciona para: David Ortiz, Abinader, Alfredo Pacheco,
-//    Kamala Harris, Trump, Romeo Santos, etc.
-// ══════════════════════════════════════════════════════════
-async function buscarImagenWikipedia(nombrePersona) {
-    try {
-        // Paso 1: buscar el artículo en Wikipedia (español primero, inglés si falla)
-        const idiomas = ['es', 'en'];
-        let pageTitle = null, lang = 'es';
-
-        for (const idioma of idiomas) {
-            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(), 6000);
-            const res = await fetch(
-                `https://${idioma}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(nombrePersona)}&format=json&srlimit=1&origin=*`,
-                { signal: ctrl.signal }
-            ).finally(()=>clearTimeout(tm));
-            if (!res.ok) continue;
-            const data = await res.json();
-            const titulo = data?.query?.search?.[0]?.title;
-            if (titulo) { pageTitle = titulo; lang = idioma; break; }
-        }
-
-        if (!pageTitle) return null;
-
-        // Paso 2: obtener imagen principal del artículo (pageimages)
-        const ctrl2 = new AbortController(); const tm2 = setTimeout(()=>ctrl2.abort(), 6000);
-        const resImg = await fetch(
-            `https://${lang}.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(pageTitle)}&prop=pageimages&format=json&pithumbsize=1200&origin=*`,
-            { signal: ctrl2.signal }
-        ).finally(()=>clearTimeout(tm2));
-
-        if (!resImg.ok) return null;
-        const dataImg = await resImg.json();
-        const pages = dataImg?.query?.pages;
-        const pid = Object.keys(pages||{})[0];
-        const thumb = pages?.[pid]?.thumbnail?.source;
-
-        if (!thumb) return null;
-
-        // Filtrar iconos, logos, banderas — queremos fotos reales
-        const url = thumb.toLowerCase();
-        const basura = ['flag','logo','coat','seal','emblem','icon','badge','svg','map','blank','silhouette','placeholder'];
-        if (basura.some(b => url.includes(b))) return null;
-        if ((pages?.[pid]?.thumbnail?.width || 0) < 200) return null;
-
-        console.log(`   📸 Wikipedia imagen: ${thumb.substring(0,80)}`);
-        return thumb;
-
-    } catch(err) {
-        console.warn(`   ⚠️ Wikipedia imagen falló: ${err.message}`);
-        return null;
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// 🖼️ SISTEMA DE IMAGEN V40 (sin cambios)
-// ══════════════════════════════════════════════════════════
 const BARRIOS_QUERIES = {
     'los mina':'barrio Los Mina Santo Domingo Este calle vecinos',
     'invivienda':'viviendas sociales Santo Domingo Este construccion',
@@ -833,25 +773,6 @@ const TEMA_QUERIES = {
 };
 
 const URL_INVALIDAS_V40 = ['shutterstock','gettyimages','adobe.com/stock','dreamstime','alamy','depositphotos','123rf','istockphoto','vectorstock','bigstockphoto','watermark','wm_','preview','thumbnail','small_','lowres','100px','150px','200px','50px','icon','logo_','flag','seal','badge','avatar'];
-
-function urlImagenValidaV40(url) {
-    if (!url) return false;
-    const u = url.toLowerCase();
-    if (!/(\.jpg|\.jpeg|\.png)(\?|$|#)/i.test(u) && !u.endsWith('.jpg') && !u.endsWith('.jpeg') && !u.endsWith('.png')) return false;
-    return !URL_INVALIDAS_V40.some(p => u.includes(p));
-}
-
-async function verificarResolucionV40(url, minWidth = 800) {
-    try {
-        const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),9000);
-        const res  = await fetch(url,{method:'GET',signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-        if (!res.ok) return false;
-        const buf  = Buffer.from(await res.arrayBuffer());
-        if (buf.length < 20000) return false;
-        const meta = await sharp(buf).metadata();
-        return (meta.width||0) >= minWidth;
-    } catch { return false; }
-}
 
 
 // ══════════════════════════════════════════════════════════
@@ -1017,134 +938,6 @@ function buildQueryInternacional(titulo, contenido) {
     return `${pals||'international'} news event people`;
 }
 
-const CSE_EXCLUDES_V40 = ['-site:shutterstock.com','-site:gettyimages.com','-site:adobe.com','-site:dreamstime.com','-site:alamy.com','-site:istockphoto.com','-site:depositphotos.com','-site:123rf.com'].join(' ');
-const CSE_STATE_V40 = {};
-function getCseStateV40(k) { if (!CSE_STATE_V40[k]) CSE_STATE_V40[k]={fallos:0,bloqueadaHasta:0}; return CSE_STATE_V40[k]; }
-
-async function buscarImagenCSEV40(query, llaves, cx) {
-    if (!llaves?.length||!cx) return null;
-    const qFull = `${query} ${CSE_EXCLUDES_V40}`.trim();
-    for (const llave of llaves) {
-        const st = getCseStateV40(llave);
-        if (Date.now() < st.bloqueadaHasta) continue;
-        try {
-            const url  = `https://www.googleapis.com/customsearch/v1?key=${llave}&cx=${cx}&q=${encodeURIComponent(qFull)}&searchType=image&imgType=photo&imgSize=large&fileType=jpg,png&num=10&safe=active`;
-            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),9000);
-            const res  = await fetch(url,{signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-            if (res.status===429||res.status===403) { st.fallos++; st.bloqueadaHasta=Date.now()+(st.fallos>=3?3600000:300000); continue; }
-            if (!res.ok) continue;
-            const data = await res.json();
-            for (const item of (data.items||[])) {
-                if (!urlImagenValidaV40(item.link)) continue;
-                if (await verificarResolucionV40(item.link,800)) { st.fallos=0; return item.link; }
-            }
-        } catch(err) { st.fallos++; console.warn(`   ⚠️ CSE: ${err.message}`); }
-    }
-    return null;
-}
-
-// ════════════════════════════════════════════════════════════════
-// 🖼️ CURADOR DE IMÁGENES WEB — Sin Pexels ni APIs de terceros
-// Busca imágenes reales via DuckDuckGo Images (libre, sin key)
-// Filtra: solo dominios confiables, formatos válidos, sin paywall
-// ════════════════════════════════════════════════════════════════
-const DOMINIOS_BLOQUEADOS = ['shutterstock','getty','alamy','istockphoto','depositphotos','dreamstime','adobe.com/stock'];
-const EXTENSIONES_VALIDAS = /\.(jpg|jpeg|png|webp)(\?|$)/i;
-
-async function buscarImagenWebNativa(queries) {
-    for (const q of queries) {
-        try {
-            const query  = encodeURIComponent(q + ' site:noticiassin.com OR site:listindiario.com OR site:elnacional.com.do OR site:acento.com.do OR site:elcaribe.com.do');
-            const url    = `https://duckduckgo.com/i.js?q=${query}&p=1&s=0&u=bing&f=,,,,,&l=es-419`;
-            const ctrl   = new AbortController();
-            const tm     = setTimeout(() => ctrl.abort(), 8000);
-            const res    = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; ElFarolBot/2.0)',
-                    'Accept': 'application/json',
-                },
-                signal: ctrl.signal,
-            }).finally(() => clearTimeout(tm));
-            if (!res.ok) continue;
-            const data = await res.json().catch(() => null);
-            if (!data?.results?.length) continue;
-            for (const item of data.results) {
-                const img = item.image || item.thumbnail;
-                if (!img) continue;
-                if (DOMINIOS_BLOQUEADOS.some(d => img.includes(d))) continue;
-                if (!EXTENSIONES_VALIDAS.test(img)) continue;
-                console.log(`   🖼️ Imagen web encontrada: ${img.substring(0,80)}...`);
-                return img;
-            }
-        } catch (e) {
-            console.warn(`   ⚠️ Curador web falló para "${q}": ${e.message}`);
-        }
-    }
-    return null;
-}
-
-// Mantener función antigua como alias para compatibilidad
-async function buscarImagenPexelsV40(queries, apiKey) {
-    // Primero intentar curador web nativo
-    const webImg = await buscarImagenWebNativa(queries);
-    if (webImg) return webImg;
-    // Fallback: si tienen key de Pexels aún, usarla
-    if (!apiKey) return null;
-    if (!apiKey) return null;
-    for (const q of (Array.isArray(queries)?queries:[queries]).slice(0,3)) {
-        try {
-            const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),7000);
-            const res  = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=8&orientation=landscape`,{headers:{Authorization:apiKey},signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-            if (!res.ok) continue;
-            const data  = await res.json();
-            const fotos = (data.photos||[]).filter(f=>(f.width||0)>=1000);
-            if (!fotos.length) continue;
-            const foto = fotos[Math.floor(Math.random()*Math.min(3,fotos.length))];
-            const urlP = foto.src.large||foto.src.large2x||''; return urlP.includes('?') ? urlP+'&w=800&q=80' : urlP+'?auto=compress&cs=tinysrgb&w=800&q=80';
-        } catch { continue; }
-    }
-    return null;
-}
-
-async function buscarImagenUnsplashV40(query, apiKey) {
-    if (!apiKey) return null;
-    try {
-        const ctrl = new AbortController(); const tm = setTimeout(()=>ctrl.abort(),8000);
-        const res  = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=8&orientation=landscape`,{headers:{Authorization:`Client-ID ${apiKey}`},signal:ctrl.signal}).finally(()=>clearTimeout(tm));
-        if (!res.ok) return null;
-        const data  = await res.json();
-        const fotos = (data.results||[]).filter(f=>(f.width||0)>=1000);
-        const urlU = fotos[0]?.urls?.regular||fotos[0]?.urls?.full||null; return urlU ? urlU.split('?')[0]+'?w=800&q=80&auto=format&fit=crop' : null;
-    } catch { return null; }
-}
-
-const PB  = 'https://images.pexels.com/photos';
-const OPT = '?auto=compress&cs=tinysrgb&w=1200';
-const BANCO_LOCAL_V40 = {
-    'politica-gobierno':[`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`,`${PB}/290595/pexels-photo-290595.jpeg${OPT}`],
-    'seguridad-policia':[`${PB}/6261776/pexels-photo-6261776.jpeg${OPT}`,`${PB}/1416367/pexels-photo-1416367.jpeg${OPT}`],
-    'relaciones-internacionales':[`${PB}/2860705/pexels-photo-2860705.jpeg${OPT}`,`${PB}/1550337/pexels-photo-1550337.jpeg${OPT}`],
-    'economia-mercado':[`${PB}/4386466/pexels-photo-4386466.jpeg${OPT}`,`${PB}/3943882/pexels-photo-3943882.jpeg${OPT}`],
-    'infraestructura':[`${PB}/1216589/pexels-photo-1216589.jpeg${OPT}`,`${PB}/2219024/pexels-photo-2219024.jpeg${OPT}`],
-    'salud-medicina':[`${PB}/3786157/pexels-photo-3786157.jpeg${OPT}`,`${PB}/263402/pexels-photo-263402.jpeg${OPT}`],
-    'deporte-beisbol':[`${PB}/1661950/pexels-photo-1661950.jpeg${OPT}`,`${PB}/209977/pexels-photo-209977.jpeg${OPT}`],
-    'deporte-futbol':[`${PB}/46798/pexels-photo-46798.jpeg${OPT}`,`${PB}/274422/pexels-photo-274422.jpeg${OPT}`],
-    'deporte-general':[`${PB}/863988/pexels-photo-863988.jpeg${OPT}`,`${PB}/248547/pexels-photo-248547.jpeg${OPT}`],
-    'tecnologia':[`${PB}/3861958/pexels-photo-3861958.jpeg${OPT}`,`${PB}/1181671/pexels-photo-1181671.jpeg${OPT}`],
-    'educacion':[`${PB}/256490/pexels-photo-256490.jpeg${OPT}`,`${PB}/301926/pexels-photo-301926.jpeg${OPT}`],
-    'cultura-musica':[`${PB}/1190297/pexels-photo-1190297.jpeg${OPT}`,`${PB}/167636/pexels-photo-167636.jpeg${OPT}`],
-    'medio-ambiente':[`${PB}/1108572/pexels-photo-1108572.jpeg${OPT}`,`${PB}/886521/pexels-photo-886521.jpeg${OPT}`],
-    'turismo':[`${PB}/1450353/pexels-photo-1450353.jpeg${OPT}`,`${PB}/1174732/pexels-photo-1174732.jpeg${OPT}`],
-    'emergencia':[`${PB}/1437862/pexels-photo-1437862.jpeg${OPT}`,`${PB}/239548/pexels-photo-239548.jpeg${OPT}`],
-    'vivienda-social':[`${PB}/323780/pexels-photo-323780.jpeg${OPT}`,`${PB}/1396122/pexels-photo-1396122.jpeg${OPT}`],
-    'transporte-vial':[`${PB}/93398/pexels-photo-93398.jpeg${OPT}`,`${PB}/1004409/pexels-photo-1004409.jpeg${OPT}`],
-};
-const FALLBACK_CAT_V40 = {'Nacionales':'politica-gobierno','Deportes':'deporte-general','Internacionales':'relaciones-internacionales','Economía':'economia-mercado','Tecnología':'tecnologia','Espectáculos':'cultura-musica'};
-function imgLocalV40(subtema, categoria) {
-    const banco = BANCO_LOCAL_V40[subtema]||BANCO_LOCAL_V40[FALLBACK_CAT_V40[categoria]]||BANCO_LOCAL_V40['politica-gobierno'];
-    return banco[Math.floor(Math.random()*banco.length)];
-}
-
 // FASE 2: ambas funciones ahora usan lib/imagenes (marca validada, almacén persistente, descarga anti-SSRF).
 async function aplicarWatermarkV40(urlImagen) {
     try {
@@ -1164,93 +957,11 @@ async function aplicarWatermarkBuffer(bufOrig) {
     } catch { return null; }
 }
 
-async function obtenerImagenV40(titulo, contenido, categoria, subtema, queryIA) {
-    console.log(`\n   🖼️ [V41] Imagen → "${titulo.substring(0,55)}"`);
-
-    // ── PRIORIDAD 0: Wikipedia para personas conocidas ──────────────
-    // Si el título menciona a David Ortiz, Abinader, Trump, etc.
-    // buscamos directamente su foto en Wikipedia (libre, precisa, sin stock)
-    const queryPersona = await detectarPersona(titulo, contenido);
-    if (queryPersona) {
-        // Extraer el nombre de la persona del query (primeras 2-3 palabras)
-        const nombreWiki = queryPersona.split(' ').slice(0,3).join(' ');
-        const urlWiki = await buscarImagenWikipedia(nombreWiki);
-        if (urlWiki) {
-            console.log(`   ✅ Wikipedia persona: OK`);
-            const wmResult = await aplicarWatermarkV40(urlWiki);
-            return { urlFinal:wmResult.url, urlOriginal:urlWiki, nombre:wmResult.nombre||'efd-wiki.jpg', fuente:'wikipedia-wm', procesada:wmResult.procesada };
-        }
-    }
-
-    // ── PRIORIDAD 1-4: Flujo normal ─────────────────────────────────
-    let queries;
-    if (categoria === 'Internacionales') {
-        const qIntl = buildQueryInternacional(titulo,contenido);
-        queries = [qIntl];
-        if (queryIA) queries.push(queryIA);
-        queries.push(...extraerQueriesCoherentes(titulo,contenido,categoria));
-    } else {
-        queries = extraerQueriesCoherentes(titulo,contenido,categoria);
-        if (queryIA) queries.unshift(queryIA);
-    }
-    let urlImagen=null, fuente='banco-local';
-    for (let i=0;i<Math.min(queries.length,3);i++) {
-        const q = queries[i];
-        urlImagen = await buscarImagenCSEV40(q,GOOGLE_CSE_KEYS,GOOGLE_CSE_CX);
-        if (urlImagen){fuente='cse';break;}
-        urlImagen = await buscarImagenPexelsV40([q],PEXELS_API_KEY);
-        if (urlImagen){fuente='pexels';break;}
-    }
-    if (!urlImagen&&UNSPLASH_ACCESS_KEY) { urlImagen=await buscarImagenUnsplashV40(queries[0],UNSPLASH_ACCESS_KEY); if(urlImagen)fuente='unsplash'; }
-    if (!urlImagen) { urlImagen=imgLocalV40(subtema,categoria); fuente='banco-local'; }
-    const wmResult = await aplicarWatermarkV40(urlImagen);
-    return { urlFinal:wmResult.url, urlOriginal:urlImagen, nombre:wmResult.nombre||'efd-fallback.jpg', fuente:fuente+(wmResult.procesada?'-wm':''), procesada:wmResult.procesada };
-}
-
 // ══════════════════════════════════════════════════════════
 // 🧠 PROMPT V41 — CON GSC INTEGRADO
 // ══════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════════
-// 🧠 JEFE DE REDACCIÓN INTELIGENTE — Fase 2 Plan Maestro
-// Evalúa tipo de noticia, calcula Virality Score y optimiza SEO
-// ════════════════════════════════════════════════════════════════
-function clasificarNoticia(contexto) {
-    const texto = (contexto || '').toLowerCase();
-    const duros = ['muerto','herido','accidente','crimen','arrestado','deteni','incendi','tiroteo','terremoto','huracán','emergencia','fiscal','juicio','condena'];
-    const esDura = duros.some(p => texto.includes(p));
-    return esDura ? 'DURA' : 'GENERAL';
-}
-
-function calcularViralityScore(contexto, categoria) {
-    let score = 50;
-    const texto = (contexto || '').toLowerCase();
-    // Factores que suben el score
-    if (/los mina|invivienda|sde|santo domingo este/i.test(texto)) score += 20;
-    if (/presidente|gobierno|policía|militar/i.test(texto)) score += 15;
-    if (/muerto|herido|accidente|crimen/i.test(texto)) score += 20;
-    if (/millones|pesos|dinero|precio/i.test(texto)) score += 10;
-    if (/video|foto|imágen|viral/i.test(texto)) score += 10;
-    // Categorías de alto impacto local
-    if (['Nacionales','Deportes'].includes(categoria)) score += 10;
-    return Math.min(score, 100);
-}
-
-function inyectarJefeRedaccion(promptBase, contexto, categoria) {
-    const tipo = clasificarNoticia(contexto);
-    const virality = calcularViralityScore(contexto, categoria);
-    const instruccion = tipo === 'DURA'
-        ? 'Esta es una NOTICIA DURA. Titula con el hecho central directo. No suavices ni especules.'
-        : 'Esta es una NOTICIA GENERAL. Titula de forma atractiva resaltando el beneficio o impacto local.';
-    return `${promptBase}
-
---- ANÁLISIS DEL JEFE DE REDACCIÓN ---
-TIPO_NOTICIA: ${tipo}
-VIRALITY_SCORE: ${virality}/100
-INSTRUCCIÓN: ${instruccion}
-SEO: Incluye sector SDE o nombre de persona real si aplica en el título.
-REDES: El título debe funcionar como post de Facebook sin cambios.
---------------------------------------`;
-}
+// 🧠 El Jefe de Redacción Inteligente vive en lib/jefe.js (prompt de sistema + parser flexible + virality) y
+//    sus metadatos se guardan en MongoDB (lib/mongo.js).
 
 async function construirPrompt(categoria, comunicadoExterno) {
     const ALTO_CPM  = ['Economía','Tecnología','Internacionales'];
@@ -1289,23 +1000,26 @@ async function construirPrompt(categoria, comunicadoExterno) {
         } catch {}
     }
 
+    const memoriaMongo = await mongo.memoriaParaPrompt(categoria);
+    const fechaTxt     = new Date().toLocaleDateString('es-DO',{month:'long',year:'numeric',timeZone:'America/Santo_Domingo'}).toUpperCase();
     const contextoWiki = await buscarContextoWikipedia(categoria);
     const estrategia   = leerEstrategia();
 
     const fuenteContenido = comunicadoExterno
-        ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno}\n"""\nRedacta una noticia profesional basada en este comunicado.`
-        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ABRIL 2026.`;
+        ? `\nCOMUNICADO OFICIAL:\n"""\n${comunicadoExterno.replace(/^ENLACE:.*$/m,'').trim()}\n"""\nRedacta una noticia profesional basada en este comunicado.`
+        : `\nEscribe una noticia NUEVA, ORIGINAL, de impacto para la categoría "${categoria}" enfocada en Santo Domingo Este, República Dominicana. Hecho real y relevante para ${fechaTxt}.`;
 
     return `${CONFIG_IA.instruccion_principal}
 
 ROL: Redactor Jefe de El Farol al Día. Voz del barrio de SDE. Conoces tus métricas y escribes para dominar Google.
-FECHA: ABRIL 2026. Nada de noticias del pasado.
+FECHA: ${fechaTxt}. Nada de noticias del pasado.
 
 ${topNoticias}
 ${malNoticias}
 ${metaStr}
 ${memoriaAnti}
 ${seccionFrases}
+${memoriaMongo}
 ${gscContexto}
 ${contextoActual}
 ${contextoWiki}
@@ -1315,27 +1029,26 @@ ${fuenteContenido}
 🎯 INSTRUCCIONES OBLIGATORIAS V41 — LEER COMPLETO
 ════════════════════════════════════════════════════════
 
-SECCIÓN A — FORMATO DE RESPUESTA (EXACTO, SIN VARIACIONES):
+SECCIÓN A — FORMATO DE RESPUESTA:
 
-TITULO_A: [Opción 1 — 65 chars, usa palabras clave reales de GSC]
-TITULO_B: [Opción 2 — 65 chars, dato impactante o cifra]
-DESCRIPCION: [SEO 150-160 chars con keywords RD + SDE]
-PALABRAS: [keyword1, keyword2, keyword3, keyword4, keyword5]
-SUBTEMA_LOCAL: [UNO DE: politica-gobierno | seguridad-policia | economia-mercado | deporte-beisbol | deporte-futbol | deporte-general | tecnologia | educacion | cultura-musica | salud-medicina | infraestructura | vivienda-social | transporte-vial | medio-ambiente | turismo | emergencia | relaciones-internacionales]
-CONTENIDO:
-[EL CUERPO COMPLETO AQUÍ — MÍNIMO 900 PALABRAS]
+Sigue el formato del MÓDULO JEFE DE REDACCIÓN (líneas TIPO_NOTICIA, VIRALITY_SCORE, TITULO, TITULAR_SOCIAL, DESCRIPCION, PALABRAS, SUBTEMA_LOCAL y luego CONTENIDO:).
+- TITULO: máximo 65 caracteres, con palabras clave reales de GSC.
+- DESCRIPCION: SEO de 150-160 caracteres con keywords RD + SDE.
+- SUBTEMA_LOCAL: [UNO DE: politica-gobierno | seguridad-policia | economia-mercado | deporte-beisbol | deporte-futbol | deporte-general | tecnologia | educacion | cultura-musica | salud-medicina | infraestructura | vivienda-social | transporte-vial | medio-ambiente | turismo | emergencia | relaciones-internacionales]
+- BAJADA: copete de dos oraciones.
+- CONTENIDO: cuerpo periodístico desarrollado y, como último párrafo, la conclusión. Nada de saludos, preguntas ni notas: solo la nota final.
 
 ════════════════════════════════════════════════════════
 SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
 ════════════════════════════════════════════════════════
 
-1️⃣  EXTENSIÓN: MÍNIMO 900 palabras. MÍNIMO 8 párrafos.
+1️⃣  EXTENSIÓN: MÍNIMO 900 palabras. MÍNIMO 8 párrafos cortos.
 
 2️⃣  ESTRUCTURA DE 8 PÁRRAFOS:
    P1-GANCHO: Hecho impactante. Menciona el barrio. Usa palabras clave GSC.
    P2-CONTEXTO: Antecedentes. ¿Qué venía pasando?
    P3-DETALLES: Nombres, cifras, calles específicas de SDE.
-   P4-AMBIENTE: El calor de abril, ruido de motores, parada del carro público, el colmado.
+   P4-AMBIENTE: El ambiente del día, ruido de motores, parada del carro público, el colmado.
    P5-IMPACTO LOCAL: ¿Cómo afecta a la gente de ${categoria==='Deportes'?'Los Mina':'Invivienda'}?
    P6-REACCIÓN: Testimonios del barrio en comillas.
    P7-ANÁLISIS: Contexto más amplio para RD.
@@ -1361,7 +1074,7 @@ SECCIÓN B — REGLAS DEL CONTENIDO (OBLIGATORIAS)
 7️⃣  CATEGORÍA: ${categoria}
 8️⃣  EVITAR: ${CONFIG_IA.evitar}
 9️⃣  ÉNFASIS: ${CONFIG_IA.enfasis}
-🔟 EXTENSIÓN OBJETIVO: ${esCatAlta?'800-1000':'700-900'} palabras
+🔟 EXTENSIÓN OBJETIVO: ${esCatAlta?'1000-1200':'900-1100'} palabras
 
 ${estrategia}
 
@@ -1369,36 +1082,24 @@ RECUERDA: Usa las PALABRAS CLAVE REALES de Search Console en el título. Eso es 
 }
 
 // ══════════════════════════════════════════════════════════
-// ✅ VALIDADOR DUAL
+// ✅ VALIDADOR FLEXIBLE — solo es bloqueante lo que de verdad impide publicar (texto vacío/diminuto).
+//    Barrio SDE, lenguaje dominicano y nº de párrafos son AVISOS de calidad: se guardan en Mongo, no queman intentos.
 // ══════════════════════════════════════════════════════════
 function validarContenido(contenido, intento = 1) {
-    if (!contenido||typeof contenido!=='string') if(contenido) return {valido:true,contenido:contenido.trim()}; if(contenido) return {valido:true,contenido:contenido.trim()}; return {valido:false,razon:'Contenido nulo'};
+    if (!contenido||typeof contenido!=='string') return {valido:false,razon:'Contenido nulo'};
     const limpio   = contenido.trim();
-    const longMin  = intento===1?600:intento===2?700:800;
-    const parrafMin = intento===1?4:5;
-    if (limpio.length<longMin) return {valido:false,razon:`${limpio.length} chars < ${longMin}`};
+    const palabras = limpio.split(/\s+/).filter(w=>w.length>1).length;
+    const piso     = parseInt(process.env.PALABRAS_PISO||'350',10);          // por debajo no se publica: se reintenta
+    const meta     = parseInt(process.env.PALABRAS_MIN||'900',10);           // meta editorial (se alcanza con ampliaciones automáticas)
+    if (palabras<piso) return {valido:false,razon:`${palabras} palabras < piso ${piso}`};
+    const avisos = [];
+    if (palabras<meta) avisos.push(`bajo_meta_${palabras}_de_${meta}`);
     const barriosSDE = ['Los Mina','Invivienda','Charles de Gaulle','Ensanche Ozama','Sabana Perdida','Villa Mella','El Almirante','Mendoza','Los Trinitarios','San Isidro','Santo Domingo Este','SDE','Carretera Mella','Sabana Larga'];
     const barriosMencionados = barriosSDE.filter(b=>limpio.toLowerCase().includes(b.toLowerCase()));
-    if (!barriosMencionados.length) return {valido:false,razon:'No menciona ningún barrio de SDE'};
+    if (!barriosMencionados.length) avisos.push('sin_barrio_sde');
     const parrafos = limpio.split(/\n\s*\n/).filter(p=>p.trim().length>20);
-    if (parrafos.length<parrafMin) return {valido:false,razon:`${parrafos.length} párrafos < ${parrafMin}`};
-    const frasesDom = ['se supo','fue confirmado','según fuentes','la gente del sector','vecinos dicen','en el barrio','en la calle','fue informado','trascendió','se conoció','se armó','está en grito','de buena fuente','los residentes','la comunidad','fuentes cercanas'];
-    if (!frasesDom.some(f=>limpio.toLowerCase().includes(f))) return {valido:false,razon:'Falta lenguaje de barrio dominicano'};
-    const palabras = limpio.split(/\s+/).filter(w=>w.length>2).length;
-    return {valido:true,longitud:limpio.length,palabras,barrios:barriosMencionados,parrafos:parrafos.length};
-}
-
-// ══════════════════════════════════════════════════════════
-// 🎰 SELECTOR A/B
-// ══════════════════════════════════════════════════════════
-async function elegirMejorTitulo(tituloA, tituloB, categoria) {
-    if (!tituloA) return tituloB;
-    if (!tituloB) return tituloA;
-    const score = t => [/\d/.test(t),/[¿?]/.test(t),/mina|invivienda|gaulle|ozama|mella/i.test(t),t.length>45].filter(Boolean).length;
-    const pA=score(tituloA),pB=score(tituloB);
-    const elegido = pB>pA?tituloB:tituloA;
-    console.log(`   🎰 A/B: "${tituloA}"(${pA}) vs "${tituloB}"(${pB}) → "${elegido}"`);
-    return elegido;
+    if (parrafos.length<4) avisos.push(`pocos_parrafos_${parrafos.length}`);
+    return {valido:true,longitud:limpio.length,palabras,barrios:barriosMencionados,parrafos:parrafos.length,avisos};
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1411,6 +1112,21 @@ function creditoHTML(n) {
     return `Foto: ${src}${lic ? ' · ' + lic : ''}`;
 }
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ── Video corto de la noticia (micro-pipeline FFmpeg, lib/videos) ──
+const videoDe = n => (n.video_nombre && videos.NOMBRE_RE.test(n.video_nombre)) ? {
+    nombre: n.video_nombre, src: `/video/${n.video_nombre}`, abs: `${BASE_URL}/video/${n.video_nombre}`,
+    poster: `/img/${n.video_nombre.replace(/\.mp4$/, '.jpg')}`, posterAbs: `${BASE_URL}/img/${n.video_nombre.replace(/\.mp4$/, '.jpg')}`,
+    credito: n.video_credito || '', seg: Math.max(1, Math.round(Number(n.video_duracion) || 0)) } : null;
+function videoHTML(n) {
+    const v = videoDe(n); if (!v) return '';
+    return `<figure class="video-noticia" style="margin:0 0 18px"><video controls playsinline preload="metadata" poster="${esc(v.poster)}" style="width:100%;max-height:78vh;background:#070707;border-radius:8px"><source src="${esc(v.src)}" type="video/mp4"></video>${v.credito ? `<figcaption class="imagen-caption">Video: ${esc(v.credito)}</figcaption>` : ''}</figure>`;
+}
+function videoMeta(n, url) {
+    const v = videoDe(n); if (!v) return '';
+    const ld = { '@context': 'https://schema.org', '@type': 'VideoObject', name: n.titulo, description: n.seo_description || n.titulo, thumbnailUrl: [v.posterAbs], uploadDate: new Date(n.fecha).toISOString(), duration: `PT${v.seg}S`, contentUrl: v.abs, embedUrl: url, ...(v.credito ? { creditText: v.credito } : {}) };
+    return `\n<meta property="og:video" content="${esc(v.abs)}"><meta property="og:video:secure_url" content="${esc(v.abs)}"><meta property="og:video:type" content="video/mp4">\n<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`;
+}
 
 function metaTagsCompletos(n, url) {
     const t=esc(n.titulo),d=esc(n.seo_description||''),img=esc(n.imagen),sec=esc(n.seccion);
@@ -1433,15 +1149,12 @@ function metaTagsCompletos(n, url) {
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${t}">
 <meta name="twitter:description" content="${d}"><meta name="twitter:image" content="${img}">
 <script type="application/ld+json">${JSON.stringify(schema)}</script>
-<script type="application/ld+json">${JSON.stringify(bread)}</script>`;
+<script type="application/ld+json">${JSON.stringify(bread)}</script>${videoMeta(n, url)}`;
 }
 
 function slugify(t) {
     return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[ñ]/g,'n').replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').substring(0,75);
 }
-
-const REDACTORES=[{nombre:'Carlos Méndez',esp:'Nacionales'},{nombre:'Laura Santana',esp:'Deportes'},{nombre:'Roberto Peña',esp:'Internacionales'},{nombre:'Ana María Castillo',esp:'Economía'},{nombre:'José Miguel Fernández',esp:'Tecnología'},{nombre:'Patricia Jiménez',esp:'Espectáculos'}];
-function redactor(cat) { const m=REDACTORES.filter(r=>r.esp===cat); return m.length?m[Math.floor(Math.random()*m.length)].nombre:'Redacción EFD'; }
 
 async function registrarError(desc, cat) {
     try {
@@ -1451,77 +1164,86 @@ async function registrarError(desc, cat) {
 }
 
 // ══════════════════════════════════════════════════════════
+// 🎬 VIDEO CORTO — vínculo con la noticia
+// ══════════════════════════════════════════════════════════
+/** Guarda el descriptor del clip ya procesado en la noticia. donde = {id} | {slug}. Devuelve el slug o null. */
+async function guardarVideoEnNoticia(donde, d, creditoManual) {
+    const cred = String(creditoManual || d.fuente || '').slice(0,120) || null;
+    const col = donde.id !== undefined ? 'id' : 'slug';
+    const r = await pool.query(`UPDATE noticias SET video_nombre=$1,video_url=$2,video_poster=$3,video_credito=$4,video_duracion=$5 WHERE ${col}=$6 RETURNING slug`,
+        [d.nombre, d.url, d.urlPoster, cred, d.duracion, donde.id !== undefined ? donde.id : donde.slug]);
+    if (r.rows.length) invalidarCache();
+    return r.rows[0]?.slug || null;
+}
+/** Clip que acompaña a una primicia: ya procesado (video_nombre, subido por el redactor) o URL de la fuente (video_url / enclosure RSS). Nunca lanza. */
+async function procesarVideoDeNoticia(slug, titulo, opts = {}) {
+    if (!opts.videoNombre && !opts.videoUrl) return null;
+    try {
+        const d = opts.videoNombre ? await videos.descriptor(opts.videoNombre) : await videos.procesarDesdeUrl(opts.videoUrl, { fuente: opts.videoFuente, titulo });
+        if (!d) { console.warn(`   ⚠️ [video] clip ${opts.videoNombre} no existe`); return null; }
+        await guardarVideoEnNoticia({ slug }, d, opts.videoFuente);
+        console.log(`   🎬 [video] adjuntado a /noticia/${slug} (${d.duracion}s, ${(d.bytes/1024)|0} KB)`);
+        return d;
+    } catch (e) { console.warn(`   ⚠️ [video] no se adjuntó (la noticia se publica igual): ${e.message}`); return null; }
+}
+/** URL de clip en un ítem RSS (enclosure o media:content con tipo video). Solo https. */
+function videoDeItemRSS(item) {
+    const c = [item.enclosure, ...(item.mediaContent || []).map(m => m?.$)].filter(Boolean);
+    for (const x of c) { const u = String(x.url || ''), t = String(x.type || x.medium || '').toLowerCase();
+        if (/^https:\/\//i.test(u) && (t.startsWith('video') || /\.(mp4|mov|m4v|webm)(\?|$)/i.test(u))) return u; }
+    return null;
+}
+
+// ══════════════════════════════════════════════════════════
 // 📰 GENERAR NOTICIA — V41
 // ══════════════════════════════════════════════════════════
-async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1) {
+async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1, opts = {}) {
     const MAX_REINTENTOS = 3;
     const inicio = Date.now();
-    const rol = roles.rolPara(categoria);
+    // FASE 1 — asignación autónoma del periodista (sección de la fuente + tema del texto); sin confirmaciones ni opciones
+    const asign = roles.asignarPeriodista({ categoria, texto: comunicadoExterno || '' });
+    categoria = asign.seccion;
+    const rol = asign.rol;
+    const enlaceFuente = ((comunicadoExterno || '').match(/^ENLACE:\s*(https:\/\/\S+)/m) || [])[1] || null;
+    let parsed = null;
     try {
         if (!CONFIG_IA.enabled) return {success:false,error:'IA desactivada'};
-        console.log(`\n📰 [V41] Generando — ${categoria} — Intento ${reintento}/${MAX_REINTENTOS}`);
+        dbg(`\n📰 [V41] Generando — ${categoria} — ${rol.nombre} (${asign.motivo}) — Intento ${reintento}/${MAX_REINTENTOS}`);
 
+        // ── Jefe de Redacción: pre-evaluación (código) + módulo analítico inyectado en el prompt de SISTEMA ──
+        const pre        = jefe.preevaluar(comunicadoExterno || '', categoria);
         const promptBase = roles.encabezado(rol) + await construirPrompt(categoria, comunicadoExterno);
-        const prompt     = inyectarJefeRedaccion(promptBase, comunicadoExterno || '', categoria);
-        console.log(`   📝 ${rol.nombre} (${rol.cargo}) redacta | Jefe Redacción activo...`);
-        const textoIA = await llamarGemini(prompt, 3, 8000, { system: roles.systemDe(rol), temperature: rol.temperature });
-        
-        // 🛡️ LIMPIEZA AUTOMÁTICA: Si la IA incluye un saludo inicial, cortamos hasta donde empieza la estructura
-        let limpio = textoIA.replace(/\*\*/g,'').replace(/\*/g,'').replace(/^#+\s*/gm,'').replace(/^-\s*/gm,'');
-        const idxInicio = limpio.search(/(TITULO_A:|TITULO:|CONTENIDO:)/i);
-        if (idxInicio > 0) {
-            console.log(`   🧹 [Parser] Saludo inicial detectado, recortando \${idxInicio} caracteres...`);
-            limpio = limpio.substring(idxInicio);
-        }
+        const prompt     = `${promptBase}\n\n--- PRE-EVALUACIÓN DEL JEFE DE REDACCIÓN ---\nTIPO_SUGERIDO: ${pre.tipo}\nVIRALITY_BASE: ${pre.virality}/100\nÚsalos internamente en las líneas TIPO_NOTICIA y VIRALITY_SCORE; no los comentes ni hagas preguntas.\n--------------------------------------------`;
+        const system     = `${roles.systemDe(rol)}\n\n${jefe.bloqueSistema()}`;
+        dbg(`   📝 ${rol.nombre} (${rol.cargo}) redacta | Jefe Redacción activo (${pre.tipo}, base ${pre.virality})...`);
+        // FASE 3 — redacción completa (≥900 palabras): si el modelo se queda corto, se amplía solo, sin intervención
+        const red = await redaccion.redactar({ generar:(p,o)=>llm.generarTexto(p,3,3500,o), prompt, system, temperature: rol.temperature, categoria, rol, minPalabras: parseInt(process.env.PALABRAS_MIN||'900',10) });
 
-        let tituloA='',tituloB='',desc='',pals='',sub='';
-        let enContenido=false, bloques=[];
-        for (const linea of limpio.split('\n')) {
-            const t = linea.trim();
-            if      (t.startsWith('TITULO_A:'))      tituloA = t.replace('TITULO_A:','').trim();
-            else if (t.startsWith('TITULO_B:'))      tituloB = t.replace('TITULO_B:','').trim();
-            else if (t.startsWith('TITULO:'))        tituloA = t.replace('TITULO:','').trim();
-            else if (t.startsWith('DESCRIPCION:'))   desc    = t.replace('DESCRIPCION:','').trim();
-            else if (t.startsWith('PALABRAS:'))      pals    = t.replace('PALABRAS:','').trim();
-            else if (t.startsWith('SUBTEMA_LOCAL:')) sub     = t.replace('SUBTEMA_LOCAL:','').trim();
-            else if (t.startsWith('CONTENIDO:'))     enContenido = true;
-            else if (enContenido && t.length > 0)    bloques.push(t);
-        }
-        const contenido = bloques.join('\n\n');
-        tituloA = tituloA.replace(/[*_#`"]/g,'').trim();
-        tituloB = tituloB.replace(/[*_#`"]/g,'').trim();
-        desc    = desc.replace(/[*_#`]/g,'').trim();
-        // Parser flexible — si no hay etiquetas, extraer primera línea larga como título
-        if (!tituloA && !tituloB) {
-            const lineas = limpio.split('\n').map(l=>l.trim()).filter(l=>l.length>20);
-            tituloA = lineas[0] ? lineas[0].substring(0,100).replace(/[*_#`"]/g,'').trim() : '';
-            if (!tituloA) {
-                console.warn('   ⚠️ Parser flexible no encontró título — usando categoría como título temporal');
-                tituloA = `Noticias de ${categoria} — Santo Domingo Este`;
-            }
-            console.log(`   🔧 Parser flexible activado: "${tituloA}"`);
-        }
-
-        const titulo = await elegirMejorTitulo(tituloA, tituloB, categoria);
+        // ── Parser inteligente: acepta etiquetas o texto libre; nunca lanza error por formato ──
+        parsed = red.parsed;
+        const titulo    = jefe.elegirTitular(parsed.tituloA, parsed.tituloB);
+        const contenido = parsed.contenido;
+        const desc      = parsed.descripcion;
+        const pals      = parsed.palabras;
+        const sub       = parsed.subtema;
+        dbg(`   🧾 Parser: ${parsed.modo} | título: "${titulo}" | ampliaciones: ${red.ampliaciones}`);
 
         const val = validarContenido(contenido, reintento);
         if (!val.valido) {
-            console.log(`   ⚠️ Validación falló (${reintento}): ${val.razon}`);
-            if (reintento < MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,5000)); return generarNoticia(categoria,comunicadoExterno,reintento+1); }
+            dbg(`   ⚠️ Validación falló (${reintento}): ${val.razon}`);
             throw new Error(`Validación fallida: ${val.razon}`);
         }
-        console.log(`   ✅ OK: ${val.longitud} chars, ${val.palabras} palabras, ${val.parrafos} párrafos`);
-        logAnalytics('NOTICIA_GENERADA',{categoria,chars:val.longitud,palabras:val.palabras,dur_s:Math.round((Date.now()-inicio)/1000)});
+        if (val.avisos.length) dbg(`   ℹ️ Avisos de calidad (no bloquean): ${val.avisos.join(', ')}`);
+        dbg(`   ✅ OK: ${val.longitud} chars, ${val.palabras} palabras, ${val.parrafos} párrafos`);
 
         const similares = await detectarPlagio(contenido);
-        if (similares.length) console.warn(`   🕵️ Similitud con: ${similares.join(', ')}`);
+        if (similares.length) dbg(`   🕵️ Similitud con: ${similares.join(', ')}`);
 
-        // ── SIN llamada extra a Gemini para imagen ──────────────────
-        // El sistema detecta personas y temas automáticamente
-        // Ahorra tokens y es más preciso que el query genérico de Gemini
-        const imgResult = await obtenerImagenLimpia({ titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido) });
+        // ── Imagen: extractor web directo (fuente original + búsqueda por contexto); sin APIs de terceros ──
+        // FASE 2 — multimedia: Openverse/Wikimedia (+extractor web); con timeout o restricción aplica el respaldo por defecto en silencio
+        const imgResult = await obtenerImagenSegura({ titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido), enlaceFuente, comunicado: comunicadoExterno || '' });
 
-        const altBase = {'Nacionales':`Noticias ${titulo.substring(0,40)} Santo Domingo Este`,'Deportes':`Deportes dominicanos ${titulo.substring(0,35)}`,'Internacionales':`Internacional ${titulo.substring(0,35)} Caribe`,'Economía':`Economía dominicana ${titulo.substring(0,35)}`,'Tecnología':`Tecnología ${titulo.substring(0,40)}`,'Espectáculos':`Espectáculos ${titulo.substring(0,35)} RD`};
+        const altBase = {'Nacionales':`Noticias ${titulo.substring(0,40)} Santo Domingo Este`,'Deportes':`Deportes dominicanos ${titulo.substring(0,35)}`,'Internacionales':`Internacional ${titulo.substring(0,35)} Caribe`,'Economía':`Economía dominicana ${titulo.substring(0,35)}`,'Tecnología':`Tecnología ${titulo.substring(0,40)} RD`,'Espectáculos':`Espectáculos ${titulo.substring(0,35)} República Dominicana`};
         const altFinal = `${altBase[categoria]||titulo.substring(0,50)} - El Farol al Día`;
 
         const slugBase = slugify(titulo);
@@ -1530,44 +1252,57 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
         const slFin  = existe.rows.length?`${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}`:slugBase;
 
         const cert = ledger.certificar({titulo, contenido, seccion: categoria, fecha: new Date()});
+        const redactorFinal = rol.nombre;                       // la nota se firma SIEMPRE con el periodista asignado
         await pool.query(
             'INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado,ledger_hash,imagen_credito,imagen_licencia,imagen_licencia_url) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)',
-            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),rol.heredado?redactor(categoria):rol.nombre,imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada',cert.hash,imgResult.credito||null,imgResult.licencia||null,imgResult.licenciaUrl||null]
+            [titulo.substring(0,255),slFin,categoria,contenido.substring(0,12000),desc.substring(0,160),(pals||categoria).substring(0,255),redactorFinal,imgResult.urlFinal,altFinal.substring(0,255),`Fotografía: ${titulo}`,imgResult.nombre,imgResult.fuente,imgResult.urlOriginal,'publicada',cert.hash,imgResult.credito||null,imgResult.licencia||null,imgResult.licenciaUrl||null]
         );
-        console.log(`   🔐 Ledger: ${ledger.hashCorto(cert.hash)}`);
+        dbg(`   🔐 Ledger: ${ledger.hashCorto(cert.hash)}`);
+
+        // ── Video corto (clip flash de la fuente): FFmpeg local → degradado + sin metadatos → se publica junto a la noticia ──
+        const videoRes = await procesarVideoDeNoticia(slFin, titulo, opts);
 
         const durTotal = Math.round((Date.now()-inicio)/1000);
-        console.log(`\n✅ [V41] Publicada → /noticia/${slFin} (${durTotal}s) | GSC:✅ | WM:${imgResult.procesada?'✅':'⚠️'}`);
-        logAnalytics('NOTICIA_PUBLICADA',{slug:slFin,categoria,chars:val.longitud,duracion_s:durTotal,imagen:imgResult.fuente,watermark:imgResult.procesada,gsc:true});
 
         invalidarCache();
 
         const frases = titulo.match(/[A-ZÁÉÍÓÚ][^,.:;!?]{10,40}/g)||[];
         for (const f of frases.slice(0,2)) await guardarFraseExitosa(f,10);
 
-        await notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, imgResult.urlFinal);
-        setImmediate(()=>publicarEnRedes(titulo,slFin,imgResult.urlFinal,desc,categoria,contenido));
+        // FASE 4 — distribución inmediata (push + Telegram + redes) en paralelo; un fallo en un canal nunca tumba la publicación
+        const [push, redes] = await Promise.allSettled([
+            notificarNuevaNoticia(titulo, desc.substring(0,160), slFin, imgResult.urlFinal),
+            publicarEnRedes(titulo,slFin,imgResult.urlFinal,desc,categoria,contenido),
+        ]).then(r=>[r[0].status==='fulfilled'?r[0].value:false, r[1].status==='fulfilled'?r[1].value:{}]);
 
-        // Persistir metadatos del Jefe de Redacción en MongoDB
+        // ── Memoria: evaluación del Jefe de Redacción + historial en MongoDB (nunca bloquea ni tumba la publicación) ──
+        const evalJefe = jefe.evaluarFinal({ parsed, titulo, contenido, categoria, contexto: comunicadoExterno });
         const meta = {
-            slug: slFin, titulo, categoria,
-            tipo_noticia: clasificarNoticia(comunicadoExterno || ''),
-            virality_score: calcularViralityScore(comunicadoExterno || '', categoria),
-            redactor: rol.heredado ? redactor(categoria) : rol.nombre,
-            ab_test: { a: tituloA, b: tituloB, elegido: titulo },
-            chars: val.longitud, palabras: val.palabras,
-            publicada_at: new Date().toISOString(),
+            slug: slFin, titulo, categoria, ...evalJefe,
+            redactor: redactorFinal,
+            ab_test: { a: parsed.tituloA, b: parsed.tituloB, elegido: titulo },
+            seo: { descripcion: desc.substring(0,160), palabras: pals, subtema: sub },
+            parser: parsed.modo, modelo: llm.MODELO, intento: reintento,
+            imagen: { fuente: imgResult.fuente, licencia: imgResult.licencia||null, credito: imgResult.credito||null, pagina_fuente: imgResult.paginaFuente||null, contexto_geo: imgResult.contextoGeo||null },
+            video: videoRes ? { nombre: videoRes.nombre, duracion: videoRes.duracion, fuente: videoRes.fuente, bytes: videoRes.bytes } : null,
+            enlace_fuente: enlaceFuente,
+            calidad: { chars: val.longitud, palabras: val.palabras, parrafos: val.parrafos, avisos: val.avisos, ampliaciones: red.ampliaciones, depuradas: parsed.depuradas||0, alcanzo_minimo: red.alcanzoMinimo },
+            periodista: { nombre: redactorFinal, seccion: categoria, asignacion: asign.motivo },
+            dur_s: durTotal, publicada_at: new Date().toISOString(),
         };
-        if (llm.guardarMetaMongo) {
-            llm.guardarMetaMongo(meta).catch(e => console.warn('⚠️ MongoDB meta:', e.message));
-        }
-        return {success:true,slug:slFin,titulo,redactor:meta.redactor,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con Ollama + Jefe Redacción',stats:val,imagen:imgResult,ab:{a:tituloA,b:tituloB,elegido:titulo},virality:meta.virality_score,tipo:meta.tipo_noticia};
+        const guardada = await mongo.guardarEvaluacion(meta);
+        if (!guardada) dbg('   ⚠️ Evaluación del Jefe de Redacción NO guardada en MongoDB (ver /api/jefe-redaccion/estado)');
+        mongo.registrarIntento({ categoria, reintento, ok: true, slug: slFin, parser: parsed.modo, modelo: llm.MODELO, dur_s: durTotal, tipo_noticia: meta.tipo_noticia, virality_score: meta.virality_score });
+
+        console.log(`[Analytics / Publicada] ${slFin} | ${redactorFinal} (${categoria}) | ${val.palabras} palabras | ledger ${ledger.hashCorto(cert.hash)} | telegram:${redes.telegram?'ok':'-'} redes:${(redes.facebook||redes.twitter)?'ok':'-'} push:${push?'ok':'-'} | ${durTotal}s`);
+        return {success:true,slug:slFin,titulo,redactor:meta.redactor,rol:rol.cargo,alt:altFinal,mensaje:'✅ Publicada V41 con Ollama + Jefe Redacción',stats:val,imagen:imgResult,video:videoRes?{nombre:videoRes.nombre,url:videoRes.url,duracion:videoRes.duracion}:null,ab:{a:parsed.tituloA,b:parsed.tituloB,elegido:titulo},virality:meta.virality_score,tipo:meta.tipo_noticia,mongo:guardada};
 
     } catch(error) {
         const dur = Math.round((Date.now()-inicio)/1000);
         console.error(`❌ [V41] Error intento ${reintento} (${dur}s):`, error.message);
         logAnalytics('NOTICIA_ERROR',{categoria,reintento,error:error.message,dur_s:dur});
-        if (reintento<MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,8000)); return generarNoticia(categoria,comunicadoExterno,reintento+1); }
+        mongo.registrarIntento({ categoria, reintento, ok: false, error: error.message.slice(0,300), parser: parsed?.modo||null, modelo: llm.MODELO, dur_s: dur });
+        if (reintento<MAX_REINTENTOS) { await new Promise(r=>setTimeout(r,3000)); return generarNoticia(categoria,comunicadoExterno,reintento+1,opts); }
         await registrarError(error.message, categoria);
         return {success:false,error:error.message};
     }
@@ -1609,8 +1344,8 @@ async function procesarRSS() {
                 if (!guid) continue;
                 const existe = await pool.query('SELECT id FROM rss_procesados WHERE item_guid=$1',[guid.substring(0,500)]);
                 if (existe.rows.length) continue;
-                const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`].filter(Boolean).join('\n');
-                const r = await generarNoticia(fuente.categoria, comunicado);
+                const comunicado = [item.title?`TÍTULO: ${item.title}`:'',item.contentSnippet?`RESUMEN: ${item.contentSnippet}`:'',`FUENTE: ${fuente.nombre}`,item.link?`ENLACE: ${item.link}`:''].filter(Boolean).join('\n');
+                const r = await generarNoticia(fuente.categoria, comunicado, 1, { videoUrl: videoDeItemRSS(item), videoFuente: fuente.nombre });
                 if (r.success) { await pool.query('INSERT INTO rss_procesados(item_guid,fuente) VALUES($1,$2) ON CONFLICT DO NOTHING',[guid.substring(0,500),fuente.nombre]); ok++; await new Promise(r=>setTimeout(r,8000)); }
                 break;
             }
@@ -1684,6 +1419,7 @@ cron.schedule('0 7 * * *', async () => {
     } catch(e) { console.warn('⚠️ Reporte:', e.message); }
 });
 cron.schedule('0 3 * * 0', autoLimpieza);
+cron.schedule('20 */6 * * *', () => mongo.sincronizarRendimiento(pool).catch(()=>{}));   // vistas reales → memoria del Jefe de Redacción
 cron.schedule('* * * * *', () => cache.vaciarVistas(pool).catch(()=>{}));     // vistas: Redis → Postgres por lotes
 for (const sig of ['SIGTERM','SIGINT']) process.on(sig, async () => { try { await cache.vaciarVistas(pool); await cache.cerrar(); } finally { process.exit(0); } });
 
@@ -1711,6 +1447,9 @@ async function inicializarBase() {
             await client.query(`DO $$BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='noticias' AND column_name='${col}') THEN ALTER TABLE noticias ADD COLUMN ${col} TEXT; END IF; END$$;`).catch(()=>{});
         for (const col of ['imagen_credito','imagen_licencia','imagen_licencia_url'])
             await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS ${col} TEXT`).catch(()=>{});
+        for (const col of ['video_nombre','video_url','video_poster','video_credito'])
+            await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS ${col} TEXT`).catch(()=>{});
+        await client.query(`ALTER TABLE noticias ADD COLUMN IF NOT EXISTS video_duracion DOUBLE PRECISION`).catch(()=>{});
         await client.query(`CREATE INDEX IF NOT EXISTS idx_noticias_estado_fecha ON noticias(estado,fecha DESC)`).catch(()=>{});
         await client.query(`CREATE TABLE IF NOT EXISTS rss_procesados(id SERIAL PRIMARY KEY,item_guid VARCHAR(500) UNIQUE,fuente VARCHAR(100),fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await client.query(`CREATE TABLE IF NOT EXISTS memoria_ia(id SERIAL PRIMARY KEY,tipo VARCHAR(50) NOT NULL,valor TEXT NOT NULL,categoria VARCHAR(100),exitos INTEGER DEFAULT 0,fallos INTEGER DEFAULT 0,fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,ultima_vez TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -1778,9 +1517,9 @@ app.patch('/api/personas/:id', authMiddleware, async (req,res) => {
     } catch(e) { res.status(500).json({success:false, error:e.message}); }
 });
 
-app.get('/health', (req,res) => res.json({status:'OK',version:'42.0-F2',llm:llm.disponible()?'ok':'circuito-abierto',cache:cache.estado().redis,gsc:'integrado'}));
+app.get('/health', (req,res) => res.json({status:'OK',version:'43.0-FINAL',llm:llm.disponible()?'ok':'circuito-abierto',cache:cache.estado().redis,gsc:'integrado'}));
 app.get('/api/llm/status',   authMiddleware, async (req,res) => res.json({success:true,...await llm.estado()}));
-app.get('/api/roles', authMiddleware, (req,res) => res.json({success:true,motor:process.env.LLM_MODEL||'qwen2.5:0.5b',roles:roles.publico()}));
+app.get('/api/roles', authMiddleware, (req,res) => res.json({success:true,motor:llm.MODELO,roles:roles.publico()}));
 app.get('/api/cache/status', authMiddleware, (req,res) => res.json({success:true,...cache.estado()}));
 app.post('/api/cache/purgar', authMiddleware, async (req,res) => { await cache.invalidar('noticias','paginas'); res.json({success:true}); });
 
@@ -1801,9 +1540,9 @@ app.get('/api/estadisticas', async (req,res) => {
 });
 
 app.post('/api/generar-noticia', authMiddleware, async (req,res) => {
-    const { categoria } = req.body;
+    const { categoria, comunicado, video_nombre, video_url, video_fuente } = req.body;
     if (!categoria) return res.status(400).json({error:'Falta categoría'});
-    const r = await generarNoticia(categoria);
+    const r = await generarNoticia(categoria, comunicado ? String(comunicado) : null, 1, { videoNombre: video_nombre, videoUrl: video_url, videoFuente: video_fuente });
     res.status(r.success?200:500).json(r);
 });
 
@@ -1840,14 +1579,14 @@ app.post('/api/gsc/sync', authMiddleware, async (req,res) => {
 });
 
 app.post('/api/publicar', express.json(), async (req,res) => {
-    const {pin,titulo,seccion,contenido,redactor:red,seo_description,seo_keywords,imagen,imagen_alt}=req.body;
+    const {pin,titulo,seccion,contenido,redactor:red,seo_description,seo_keywords,imagen,imagen_alt,video_nombre,video_fuente}=req.body;
     if (pin!=='311') return res.status(403).json({success:false,error:'PIN'});
     if (!titulo||!seccion||!contenido) return res.status(400).json({success:false,error:'Faltan campos'});
     try {
         const slugBase=slugify(titulo);
         const e=await pool.query('SELECT id FROM noticias WHERE slug=$1',[slugBase]);
         const slF=e.rows.length?`${slugBase.substring(0,68)}-${Date.now().toString().slice(-6)}`:slugBase;
-        let imgFinal=imagen||`${PB}/3052454/pexels-photo-3052454.jpeg${OPT}`;
+        let imgFinal=imagen||`${BASE_URL}/static/favicon.png`;
         const altFinal=imagen_alt||`${titulo} - El Farol al Día`;
         let imgOriginal=imgFinal,imgNombre='manual.jpg',imgFuente='manual';
         try {
@@ -1862,10 +1601,11 @@ app.post('/api/publicar', express.json(), async (req,res) => {
         } catch {}
         await pool.query('INSERT INTO noticias(titulo,slug,seccion,contenido,seo_description,seo_keywords,redactor,imagen,imagen_alt,imagen_caption,imagen_nombre,imagen_fuente,imagen_original,estado) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
             [titulo,slF,seccion,contenido,seo_description||titulo.substring(0,155),seo_keywords||seccion,red||'Manual',imgFinal,altFinal,`Foto: ${titulo}`,imgNombre,imgFuente,imgOriginal,'publicada']);
+        const vid = video_nombre ? await procesarVideoDeNoticia(slF, titulo, { videoNombre: video_nombre, videoFuente: video_fuente }) : null;
         invalidarCache();
         await notificarNuevaNoticia(titulo,(seo_description||titulo).substring(0,160),slF,imgFinal);
         setImmediate(()=>publicarEnRedes(titulo,slF,imgFinal,seo_description||titulo,seccion,contenido));
-        res.json({success:true,slug:slF});
+        res.json({success:true,slug:slF,video:vid?vid.nombre:null});
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
@@ -1993,15 +1733,33 @@ app.get('/api/metricas', authMiddleware, async (req,res) => {
             pool.query("SELECT ROUND(AVG(vistas)) as p,MAX(vistas) as mx,COUNT(*) as t FROM noticias WHERE estado='publicada' AND fecha>NOW()-INTERVAL '30 days'"),
             pool.query("SELECT valor,exitos FROM memoria_ia WHERE tipo='frase_exitosa' ORDER BY exitos DESC LIMIT 10"),
         ]);
-        const llaves=TODAS_LLAVES_GEMINI.map((k,i)=>{const st=getKeyState(k);return{llave:`KEY${i+1}`,disponible:Date.now()>=st.resetTime,exitos:st.exitos,errores:st.errores};});
-        res.json({success:true,resumen:gl.rows[0],top_noticias:top.rows,por_categoria:proms.rows,horas_pico:horas.rows,frases_exitosas:frases.rows,gemini_keys:llaves,recomendacion:`Publica en: ${horas.rows.slice(0,3).map(h=>`${h.h}:00`).join(', ')}`});
+        const ia={motor:'ollama',modelo:llm.MODELO,circuito:llm.disponible()?'cerrado':'ABIERTO'};
+        res.json({success:true,resumen:gl.rows[0],top_noticias:top.rows,por_categoria:proms.rows,horas_pico:horas.rows,frases_exitosas:frases.rows,ia,recomendacion:`Publica en: ${horas.rows.slice(0,3).map(h=>`${h.h}:00`).join(', ')}`});
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
-app.get('/api/gemini/status', authMiddleware, async (req,res) => {
+app.get('/api/ia/status', authMiddleware, async (req,res) => {
     if (req.query.pin!=='311') return res.status(403).json({error:'PIN'});
-    const estado=TODAS_LLAVES_GEMINI.map((k,i)=>{const st=getKeyState(k);return{llave:`KEY${i+1}`,disponible:Date.now()>=st.resetTime,exitos:st.exitos,errores:st.errores,ultimo_uso:st.lastRequest?new Date(st.lastRequest).toISOString():null,desbloqueo:Date.now()<st.resetTime?new Date(st.resetTime).toISOString():null};});
-    res.json({success:true,total:TODAS_LLAVES_GEMINI.length,llaves:estado,rr_index:_rrIdx});
+    try { res.json({success:true,motor:'ollama',...(await llm.estado())}); } catch(e) { res.status(500).json({success:false,error:e.message}); }
+});
+
+// ══════════════════════════════════════════════════════════
+// 🧠 JEFE DE REDACCIÓN — memoria de rendimiento (MongoDB)
+// ══════════════════════════════════════════════════════════
+app.get('/api/jefe-redaccion/estado', authMiddleware, async (req,res) => {
+    if (req.query.pin!=='311') return res.status(403).json({error:'PIN'});
+    try { res.json({success:true,modelo:llm.MODELO,mongo:await mongo.estado(),rendimiento_por_tipo:await mongo.rendimientoPorTipo(30)}); }
+    catch(e) { res.status(500).json({success:false,error:e.message}); }
+});
+app.get('/api/jefe-redaccion/historial', authMiddleware, async (req,res) => {
+    if (req.query.pin!=='311') return res.status(403).json({error:'PIN'});
+    try { res.json({success:true,historial:await mongo.historial({limite:req.query.limite,tipo:req.query.tipo,categoria:req.query.categoria})}); }
+    catch(e) { res.status(500).json({success:false,error:e.message}); }
+});
+app.post('/api/jefe-redaccion/sincronizar', authMiddleware, async (req,res) => {
+    if ((req.query.pin||req.body?.pin)!=='311') return res.status(403).json({error:'PIN'});
+    try { res.json({success:true,...(await mongo.sincronizarRendimiento(pool))}); }
+    catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
 app.get('/api/publicidad', authMiddleware, async (req,res) => {
@@ -2069,6 +1827,54 @@ app.post('/api/configuracion', express.json(), (req,res) => {
     catch(e) { res.status(500).json({success:false,error:e.message}); }
 });
 
+// ══════════════════════════════════════════════════════════
+// 🎬 VIDEOS CORTOS (15–20 s) — recepción, procesado FFmpeg y entrega
+// ══════════════════════════════════════════════════════════
+const VIDEO_HTTP = { sin_ffmpeg: 503, grande: 413, url: 400, timeout: 504 };
+function videoFallo(res, e) {
+    if (e instanceof videos.VideoError) return res.status(VIDEO_HTTP[e.codigo] || 422).json({success:false,codigo:e.codigo,error:e.message});
+    console.error('❌ [video]', e.message);
+    return res.status(500).json({success:false,error:'No se pudo procesar el video'});
+}
+const limiteVideo = cache.limitar({nombre:'video',max:10,ventana:60});
+
+app.get('/video/:nombre', (req,res) => videos.servir(req,res).catch(()=>{ if (!res.headersSent) res.status(500).send('Error interno'); }));
+app.get('/api/video/status', authMiddleware, async (req,res) => res.json({success:true,ffmpeg:await videos.disponible(),limites:videos.LIMITES}));
+
+// El redactor envía el clip tal cual lo recibió de la fuente (cuerpo binario, Content-Type: video/*) → MP4 listo para web.
+app.post('/api/video/subir', authMiddleware, limiteVideo, async (req,res) => {
+    if (!/^(video\/|application\/octet-stream)/i.test(req.headers['content-type']||'')) return res.status(415).json({success:false,error:'Envía el clip como cuerpo binario con Content-Type video/mp4 (o mov, webm)'});
+    let ent = null;
+    try {
+        ent = await videos.recibirEnTemporal(req);
+        const video = await videos.procesarArchivo(ent.archivo, {fuente:String(req.query.fuente||''),titulo:String(req.query.titulo||'')});
+        res.json({success:true,video});
+    } catch(e) { if (e.codigo==='grande') res.setHeader('Connection','close'); videoFallo(res,e); }
+    finally { if (ent) await ent.limpiar(); }
+});
+
+// La fuente de prensa manda un enlace al clip: se descarga (anti-SSRF), se procesa y, si se indica noticia_id, se adjunta.
+app.post('/api/video/desde-url', authMiddleware, limiteVideo, async (req,res) => {
+    const {url,fuente,titulo,noticia_id} = req.body||{};
+    try {
+        const video = await videos.procesarDesdeUrl(String(url||''),{fuente,titulo});
+        const slug = noticia_id ? await guardarVideoEnNoticia({id:parseInt(noticia_id)}, video, fuente) : null;
+        res.json({success:true,video,slug});
+    } catch(e) { videoFallo(res,e); }
+});
+
+// Adjunta un clip YA procesado a una noticia. El servidor solo confía en su propio descriptor, nunca en URLs del cliente.
+app.post('/api/video/adjuntar/:id', authMiddleware, async (req,res) => {
+    const id = parseInt(req.params.id); if (!id) return res.status(400).json({success:false,error:'ID inválido'});
+    try {
+        const d = await videos.descriptor(req.body?.nombre);
+        if (!d) return res.status(404).json({success:false,error:'Ese clip no existe o no fue procesado'});
+        const slug = await guardarVideoEnNoticia({id}, d, req.body?.fuente);
+        if (!slug) return res.status(404).json({success:false,error:'Noticia no encontrada'});
+        res.json({success:true,slug,video:d});
+    } catch(e) { res.status(500).json({success:false,error:e.message}); }
+});
+
 app.get('/img/:nombre', async (req,res) => {
     const buf = await almacen.leer(req.params.nombre).catch(()=>null);
     if (buf) { res.setHeader('Content-Type','image/jpeg'); res.setHeader('Cache-Control','public,max-age=31536000,immutable'); return res.send(buf); }
@@ -2129,6 +1935,7 @@ app.get('/noticia/:slug', contarVistaMW, cache.paginaCache({ ns:'paginas', ttl:1
                 .replace(/{{IMAGEN}}/g,n.imagen).replace(/{{ALT}}/g,esc(n.imagen_alt||n.titulo)).replace(/{{CREDITO}}/g,creditoHTML(n))
                 .replace(/{{VISTAS}}/g,n.vistas).replace(/{{REDACTOR}}/g,esc(n.redactor))
                 .replace(/{{SECCION}}/g,esc(n.seccion)).replace(/{{URL}}/g,encodeURIComponent(urlN))
+                .replace('{{VIDEO}}', () => videoHTML(n))
                 .replace('{{TTS_PLAYER}}', ttsPlayer)
                 .replace('{{LEDGER_BADGE}}', ledgerBadge);
             res.setHeader('Content-Type','text/html;charset=utf-8');
@@ -2139,7 +1946,7 @@ app.get('/noticia/:slug', contarVistaMW, cache.paginaCache({ ns:'paginas', ttl:1
 });
 
 // ══════════════════════════════════════════════════════════
-// 🎙️ TTS ON-DEMAND — Audio de noticia via Gemini TTS o ElevenLabs
+// 🎙️ TTS ON-DEMAND — Audio de noticia via ElevenLabs
 // ══════════════════════════════════════════════════════════
 app.get('/api/tts/:slug', async (req,res) => {
     try {
@@ -2189,14 +1996,15 @@ app.get('/status', async (req,res) => {
             pool.query("SELECT ultima_vez,valor FROM memoria_ia WHERE tipo='gsc_metricas' ORDER BY ultima_vez DESC LIMIT 1").catch(()=>({rows:[]})),
         ]);
         const minS=ult.rows.length?Math.round((Date.now()-new Date(ult.rows[0].fecha))/60000):9999;
-        const llaves=TODAS_LLAVES_GEMINI.map((k,i)=>{const st=getKeyState(k);return`KEY${i+1}:${Date.now()>=st.resetTime?'✅':'⏳'}`;}).join(' ');
+        const mongoSt=await Promise.race([mongo.estado(),new Promise(r=>setTimeout(()=>r({conectada:false,ultimo_error:'timeout'}),2500))]);
         const gscData = gsc.rows.length ? JSON.parse(gsc.rows[0].valor) : null;
         res.json({
             status:'OK', version:'41.0-GSC-DOMINANCE',
             noticias:parseInt(r.rows[0].count), rss_procesados:parseInt(rss.rows[0].count),
             min_sin_publicar:minS, ultima_noticia:ult.rows[0]?.titulo?.substring(0,60)||'—',
-            gemini:`${TODAS_LLAVES_GEMINI.length}/8 llaves`, gemini_llaves:llaves,
-            gsc_integrado:'✅ Search Console conectado — Gemini usa datos reales',
+            ia:{motor:'ollama',modelo:llm.MODELO,circuito:llm.disponible()?'cerrado':'ABIERTO'},
+            mongo:mongoSt,
+            gsc_integrado:'✅ Search Console conectado — el modelo usa datos reales',
             gsc_ultima_sync:gsc.rows[0]?.ultima_vez||'Pendiente',
             gsc_clics:gscData?.total_clics||0,
             gsc_impresiones:gscData?.total_impresiones||0,
@@ -2204,9 +2012,9 @@ app.get('/status', async (req,res) => {
             gsc_oportunidades:gscData?.oportunidades?.length||0,
             imagen_v41:'✅ Coherente con contenido',
             watermark:'✅ GARANTIZADO',
-            prompt:'✅ V41 — GSC + calles SDE + 8 párrafos + A/B titles',
-            validacion:'✅ Dual: longitud + semántica SDE',
-            max_tokens:'✅ 8000',
+            prompt:'✅ V41 — GSC + calles SDE + Jefe de Redacción (sistema)',
+            validacion:'✅ Flexible: longitud mínima bloquea; barrio/lenguaje = avisos',
+            max_tokens:'✅ 3500',
             anti_plagio:'✅ FTS postgresql',
             push:`✅ VAPID (${push.rows[0].count} subs) + OneSignal`,
             telegram:process.env.TELEGRAM_TOKEN?`✅ ${_telegramChatId||'detectando'}`:'⚠️ Sin token',
@@ -2219,7 +2027,8 @@ app.get('/status', async (req,res) => {
                 gsc_status:`${BASE_URL}/api/gsc/status?pin=311`,
                 gsc_sync:`POST ${BASE_URL}/api/gsc/sync`,
                 metricas:`${BASE_URL}/api/metricas?pin=311`,
-                gemini:`${BASE_URL}/api/gemini/status?pin=311`,
+                ia:`${BASE_URL}/api/ia/status?pin=311`,
+                jefe_redaccion:`${BASE_URL}/api/jefe-redaccion/estado?pin=311`,
             },
         });
     } catch(e) { res.status(500).json({error:e.message}); }
@@ -2232,6 +2041,7 @@ app.use((req,res)=>res.sendFile(path.join(__dirname,'client','index.html')));
 // ══════════════════════════════════════════════════════════
 async function iniciar() {
     try {
+        mongo.iniciar();                      // memoria de rendimiento (no bloquea si falta MONGO_URL)
         await inicializarBase();
         await initPushTable();
         app.listen(PORT, '0.0.0.0', () => {
@@ -2239,12 +2049,12 @@ async function iniciar() {
 ╔══════════════════════════════════════════════════════════════════╗
 ║  🏮 EL FAROL AL DÍA — V41.0 GSC DOMINANCE EDITION             ║
 ╠══════════════════════════════════════════════════════════════════╣
-║  📊 Google Search Console → Gemini escribe lo que buscan       ║
+║  📊 Google Search Console → Ollama escribe lo que buscan       ║
 ║  🎯 Oportunidades de oro: impresiones altas + CTR bajo         ║
 ║  🏆 Réplica de fórmulas ganadoras (CTR >5%)                   ║
-║  🔑 ${TODAS_LLAVES_GEMINI.length}/8 llaves Gemini | maxTokens: 8000                   ║
+║  🦙 Ollama ${String(llm.MODELO).padEnd(14)} | motor único           ║
 ║  💧 Watermark GARANTIZADO en cada noticia                      ║
-║  🧠 Prompt V41: GSC + calles SDE + 8 párrafos + A/B          ║
+║  🧠 Jefe de Redacción + memoria en MongoDB                    ║
 ║  ⏰ GSC Sync: arranque + 6AM + 12PM + 6PM                     ║
 ║  📡 /api/gsc/status y /api/gsc/sync disponibles               ║
 ╚══════════════════════════════════════════════════════════════════╝`);
@@ -2256,7 +2066,8 @@ async function iniciar() {
             await sincronizarGSC();
         }, 30000);
 
-        setTimeout(()=>llm.calentar(), 15000);          // carga Llama en RAM antes de la primera noticia
+        setTimeout(()=>llm.calentar(), 15000);          // carga el modelo en RAM antes de la primera noticia
+        setTimeout(()=>mongo.sincronizarRendimiento(pool).catch(()=>{}), 120000);
         setTimeout(()=>bienvenidaTelegram().catch(()=>{}), 5000);
         setTimeout(()=>rafagaInicial().catch(()=>{}), 90000);
         setTimeout(()=>{

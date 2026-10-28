@@ -1,0 +1,4 @@
+# Railway (Nixpacks): el micro-pipeline de videos cortos necesita FFmpeg/FFprobe en el servicio web.
+# "..." conserva los paquetes por defecto (Node) y añade ffmpeg.
+[phases.setup]
+nixPkgs = ["...", "ffmpeg"]

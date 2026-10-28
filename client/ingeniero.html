@@ -98,12 +98,12 @@ header h1{font-size:16px;color:#FF5500}
   <div class="met"><div class="met-lbl">Noticias</div><div class="met-val" id="mn">—</div><div class="met-sub">publicadas</div></div>
   <div class="met"><div class="met-lbl">Vistas</div><div class="met-val" id="mv">—</div><div class="met-sub">totales</div></div>
   <div class="met"><div class="met-lbl">Sin pub.</div><div class="met-val" id="mm">—</div><div class="met-sub">minutos</div></div>
-  <div class="met"><div class="met-lbl">Keys IA</div><div class="met-val" id="mk">—</div><div class="met-sub">Gemini</div></div>
+  <div class="met"><div class="met-lbl">Motor IA</div><div class="met-val" id="mk" style="font-size:13px">—</div><div class="met-sub">Ollama</div></div>
 </div>
 
 <div class="tabs">
   <button class="tab active" onclick="tab('salud')">🩺 Salud</button>
-  <button class="tab" onclick="tab('gemini')">🤖 IA</button>
+  <button class="tab" onclick="tab('ia')">🤖 IA</button>
   <button class="tab" onclick="tab('acciones')">⚙️ Acciones</button>
   <button class="tab" onclick="tab('noticias')">📰 Noticias</button>
   <button class="tab" onclick="tab('logs')">📋 Logs</button>
@@ -125,22 +125,22 @@ header h1{font-size:16px;color:#FF5500}
   </div>
 </div>
 
-<!-- GEMINI / IA -->
-<div id="tc-gemini" class="tc">
+<!-- IA (Ollama) -->
+<div id="tc-ia" class="tc">
   <div class="sec">
-    <div class="sec-tit">Llaves de Gemini 2.5 Flash</div>
+    <div class="sec-tit">Motor de texto — Ollama</div>
     <div class="keys-grid" id="keys-grid"><div class="carg" style="grid-column:1/-1"><div class="loader"></div></div></div>
     <div style="font-size:10px;color:#444;margin-top:8px;line-height:1.6">
-      Gemini escribe las noticias con E-E-A-T SEO. Pexels provee las fotos reales de prensa con watermark automático. Si agregas GEMINI_KEY_2/3/4 en Railway, el sistema rota entre ellas para nunca detenerse.
+      Ollama (qwen2.5:0.5b) es el motor único: escribe y evalúa cada noticia (Jefe de Redacción). Las fotos se extraen directamente de la web según el contexto de la noticia y llevan watermark automático. Las evaluaciones y el historial se guardan en MongoDB.
     </div>
   </div>
   <div class="sec">
     <div class="sec-tit">Fuentes de imágenes</div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Pexels API — fotos reales</span><span class="cv cok" id="pexels-st">—</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Wikipedia/Wikimedia</span><span class="cv cok">✅ Activa (pública)</span></div>
-    <div class="chk"><div class="dot dv"></div><span class="lbl">Banco local 170 fotos</span><span class="cv cok">✅ 17 categorías</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Extractor web directo (fuente original + búsqueda)</span><span class="cv cok">✅ Activo</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Respaldo con licencia (Wikimedia/Openverse)</span><span class="cv cok">✅ Activo</span></div>
+    <div class="chk"><div class="dot dv"></div><span class="lbl">Tarjeta de marca propia (último recurso)</span><span class="cv cok">✅ Activa</span></div>
     <div style="margin-top:10px">
-      <div style="font-size:10px;color:#555;margin-bottom:6px">Rendimiento Pexels hoy</div>
+      <div style="font-size:10px;color:#555;margin-bottom:6px">Memoria del Jefe de Redacción (MongoDB)</div>
       <div id="img-stats"><div class="carg"><div class="loader"></div></div></div>
     </div>
   </div>
@@ -199,7 +199,7 @@ header h1{font-size:16px;color:#FF5500}
     <div id="bd-err"><div class="carg"><div class="loader"></div></div></div>
   </div>
   <div class="sec">
-    <div class="sec-tit">Mejores queries de imagen</div>
+    <div class="sec-tit">Últimas evaluaciones del Jefe de Redacción</div>
     <div id="best-q"><div class="carg"><div class="loader"></div></div></div>
   </div>
 </div>
@@ -235,13 +235,13 @@ async function api(ep,method='GET',body=null){
 function tab(t){
   tabActual=t;
   document.querySelectorAll('.tab').forEach((b,i)=>{
-    b.classList.toggle('active',['salud','gemini','acciones','noticias','logs'][i]===t);
+    b.classList.toggle('active',['salud','ia','acciones','noticias','logs'][i]===t);
   });
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('active'));
   document.getElementById('tc-'+t).classList.add('active');
   if(t==='noticias')cargarNoticias();
   if(t==='logs')cargarLogs();
-  if(t==='gemini')cargarGemini();
+  if(t==='ia')cargarIA();
   if(t==='acciones')cargarRedes();
 }
 
@@ -264,7 +264,7 @@ async function cargarStatus(){
     return;
   }
   const min=d.min_sin_publicar||0;
-  const critico=d.errores_gemini>=3||min>120;
+  const critico=(d.ia&&d.ia.circuito==='ABIERTO')||min>120;
   const alerta=min>60||!d.ia_activa;
   document.getElementById('sluz').className=critico?'rojo':alerta?'amarillo':'verde';
   document.getElementById('stit').textContent=critico?'Problema critico detectado':alerta?'Sistema con alertas':'Sistema operando perfectamente';
@@ -281,19 +281,18 @@ async function cargarStatus(){
   mMin.textContent=min;
   mMin.className='met-val'+(min>120?' err':min>60?' warn':' ok');
   document.getElementById('mn').textContent=d.noticias;
-  document.getElementById('mk').textContent=d.gemini_keys||1;
-  document.getElementById('pexels-st').textContent=d.pexels_api||'—';
+  document.getElementById('mk').textContent=(d.ia&&d.ia.modelo)||'—';
 
   const checks=[
     {dot:d.ia_activa?'dv':'dr',l:'Inteligencia Artificial',v:d.ia_activa?'Activa y generando':'PAUSADA manualmente',c:d.ia_activa?'cok':'cer'},
-    {dot:d.errores_gemini>=3?'dr':d.errores_gemini>0?'da':'dv',l:'Gemini — errores hora',v:d.errores_gemini===0?'Sin errores':d.errores_gemini+' errores recientes',c:d.errores_gemini>=3?'cer':d.errores_gemini>0?'cwn':'cok'},
+    {dot:d.ia&&d.ia.circuito==='ABIERTO'?'dr':'dv',l:'Ollama — '+((d.ia&&d.ia.modelo)||'modelo'),v:d.ia&&d.ia.circuito==='ABIERTO'?'Circuito ABIERTO (fallos recientes)':'Circuito cerrado — OK',c:d.ia&&d.ia.circuito==='ABIERTO'?'cer':'cok'},
     {dot:min>120?'dr':min>60?'da':'dv',l:'Cadencia publicacion',v:min>120?'SIN PUBLICAR '+min+' MIN':min>60?min+' min sin publicar':'OK — ultima hace '+min+'min',c:min>120?'cer':min>60?'cwn':'cok'},
     {dot:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'dv':'dr',l:'Watermark en imagenes',v:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'WATERMARK(1).png activa':'No encontrada',c:d.marca_de_agua&&d.marca_de_agua.includes('✅')?'cok':'cer'},
-    {dot:d.pexels_api&&d.pexels_api.includes('✅')?'dv':'da',l:'Pexels API',v:d.pexels_api||'Sin configurar',c:d.pexels_api&&d.pexels_api.includes('✅')?'cok':'cwn'},
+    {dot:d.mongo&&d.mongo.conectada?'dv':'da',l:'MongoDB — memoria Jefe de Redacción',v:d.mongo&&d.mongo.conectada?'Conectada ('+(d.mongo.noticias_meta||0)+' evaluaciones)':(d.mongo&&d.mongo.configurada?'Sin conexión: '+(d.mongo.ultimo_error||''):'MONGO_URL sin definir'),c:d.mongo&&d.mongo.conectada?'cok':'cwn'},
     {dot:'dv',l:'PostgreSQL base de datos',v:'Online — noticias intactas',c:'cok'},
-    {dot:d.facebook&&d.facebook.includes('✅')?'dv':'da',l:'Ollama Local',v:d.facebook||'—',c:d.facebook&&d.facebook.includes('✅')?'cok':'cwn'},
-    {dot:d.twitter&&d.twitter.includes('✅')?'dv':'da',l:'Motor Autónomo',v:d.twitter||'—',c:d.twitter&&d.twitter.includes('✅')?'cok':'cwn'},
-    {dot:d.telegram&&d.telegram.includes('✅')?'dv':'da',l:'Sistema Interno',v:d.telegram||'—',c:d.telegram&&d.telegram.includes('✅')?'cok':'cwn'},
+    {dot:d.facebook&&d.facebook.includes('✅')?'dv':'da',l:'Facebook',v:d.facebook||'—',c:d.facebook&&d.facebook.includes('✅')?'cok':'cwn'},
+    {dot:d.twitter&&d.twitter.includes('✅')?'dv':'da',l:'Twitter / X',v:d.twitter||'—',c:d.twitter&&d.twitter.includes('✅')?'cok':'cwn'},
+    {dot:d.telegram&&d.telegram.includes('✅')?'dv':'da',l:'Telegram Bot',v:d.telegram||'—',c:d.telegram&&d.telegram.includes('✅')?'cok':'cwn'},
   ];
   const nA=checks.filter(c=>c.dot!=='dv').length;
   const bp=document.getElementById('bp');
@@ -311,29 +310,22 @@ async function cargarEstadisticas(){
   }
 }
 
-async function cargarGemini(){
-  const keys=datosStatus?.gemini_keys||1;
-  let html='';
-  for(let i=1;i<=4;i++){
-    const activa=i<=keys;
-    html+='<div class="key-card" style="border-color:'+(activa?'rgba(34,197,94,.3)':'#1a1a2e')+'">'
-      +'<div style="font-size:20px;font-weight:700;color:'+(activa?'#22c55e':'#333')+'">K'+i+'</div>'
-      +'<div style="font-size:9px;color:#555;margin:2px 0">KEY '+i+'</div>'
-      +'<div style="font-size:10px;color:'+(activa?'#22c55e':'#333')+'">'+(activa?'Activa':'—')+'</div>'
-      +'</div>';
+async function cargarIA(){
+  const ia=datosStatus&&datosStatus.ia||{};
+  document.getElementById('keys-grid').innerHTML=
+    '<div class="key-card" style="grid-column:1/-1;border-color:'+(ia.circuito==='ABIERTO'?'rgba(239,68,68,.4)':'rgba(34,197,94,.3)')+'">'
+    +'<div style="font-size:18px;font-weight:700;color:'+(ia.circuito==='ABIERTO'?'#ef4444':'#22c55e')+'">'+(ia.modelo||'qwen2.5:0.5b')+'</div>'
+    +'<div style="font-size:10px;color:#555;margin:2px 0">Ollama — motor único</div>'
+    +'<div style="font-size:10px;color:'+(ia.circuito==='ABIERTO'?'#ef4444':'#22c55e')+'">'+(ia.circuito==='ABIERTO'?'Circuito abierto':'Operativo')+'</div></div>';
+  const jr=await api('/api/jefe-redaccion/estado?pin=311');
+  if(jr&&jr.success){
+    const tipos=(jr.rendimiento_por_tipo||[]).map(t=>'<div class="chk"><div class="dot dv"></div><span class="lbl">'+t.tipo+' ('+t.noticias+')</span><span class="cv cok">'+(t.vistas_prom||0)+' vistas · viral '+(t.virality_prom||0)+'</span></div>').join('');
+    document.getElementById('img-stats').innerHTML=
+      '<div class="chk"><div class="dot '+(jr.mongo.conectada?'dv':'da')+'"></div><span class="lbl">MongoDB</span><span class="cv '+(jr.mongo.conectada?'cok':'cwn')+'">'+(jr.mongo.conectada?'Conectada':(jr.mongo.ultimo_error||'Sin conexión'))+'</span></div>'
+      +(tipos||'<p style="color:#444;font-size:12px">Aún sin evaluaciones guardadas</p>');
   }
-  document.getElementById('keys-grid').innerHTML=html;
-
   const d=await api('/api/memoria?pin=311');
   if(d.registros){
-    const total=d.registros.filter(r=>r.tipo==='pexels_query').length;
-    const exitosas=d.registros.filter(r=>r.tipo==='pexels_query'&&r.exitos>0).length;
-    const pct=total>0?Math.round((exitosas/total)*100):0;
-    document.getElementById('img-stats').innerHTML=
-      '<div class="chk"><div class="dot dv"></div><span class="lbl">Queries exitosas</span><span class="cv cok">'+exitosas+' de '+total+'</span></div>'
-      +'<div class="chk"><div class="dot '+(pct>70?'dv':'da')+'"></div><span class="lbl">Tasa de exito</span><span class="cv '+(pct>70?'cok':'cwn')+'">'+pct+'%</span></div>'
-      +'<div class="prog-wrap"><div class="prog-fill" style="width:'+pct+'%;background:'+(pct>70?'#22c55e':'#f59e0b')+'"></div></div>';
-    const errores=d.registros.filter(r=>r.tipo==='error').slice(0,5);
     document.getElementById('errores-ia').innerHTML=errores.length
       ?errores.map(e=>'<div class="chk"><div class="dot dr"></div><span class="lbl" style="font-size:11px">'+e.valor.substring(0,50)+'</span><span class="cv cer">'+e.fallos+'x</span></div>').join('')
       :'<div style="color:#22c55e;font-size:12px;padding:4px 0">Sin errores recientes</div>';
@@ -344,9 +336,9 @@ async function cargarRedes(){
   if(!datosStatus)return;
   const d=datosStatus;
   document.getElementById('redes-st').innerHTML=
-    '<div class="chk"><div class="dot '+(d.facebook&&d.facebook.includes('✅')?'dv':'da')+'"></div><span class="lbl">Ollama Local</span><span class="cv '+(d.facebook&&d.facebook.includes('✅')?'cok':'cwn')+'">'+( d.facebook||'—')+'</span></div>'
-    +'<div class="chk"><div class="dot '+(d.twitter&&d.twitter.includes('✅')?'dv':'da')+'"></div><span class="lbl">Motor Autónomo</span><span class="cv '+(d.twitter&&d.twitter.includes('✅')?'cok':'cwn')+'">'+( d.twitter||'—')+'</span></div>'
-    +'<div class="chk"><div class="dot '+(d.telegram&&d.telegram.includes('✅')?'dv':'da')+'"></div><span class="lbl">Sistema Interno</span><span class="cv '+(d.telegram&&d.telegram.includes('✅')?'cok':'cwn')+'">'+( d.telegram||'—')+'</span></div>';
+    '<div class="chk"><div class="dot '+(d.facebook&&d.facebook.includes('✅')?'dv':'da')+'"></div><span class="lbl">Facebook</span><span class="cv '+(d.facebook&&d.facebook.includes('✅')?'cok':'cwn')+'">'+( d.facebook||'—')+'</span></div>'
+    +'<div class="chk"><div class="dot '+(d.twitter&&d.twitter.includes('✅')?'dv':'da')+'"></div><span class="lbl">Twitter / X</span><span class="cv '+(d.twitter&&d.twitter.includes('✅')?'cok':'cwn')+'">'+( d.twitter||'—')+'</span></div>'
+    +'<div class="chk"><div class="dot '+(d.telegram&&d.telegram.includes('✅')?'dv':'da')+'"></div><span class="lbl">Telegram Bot</span><span class="cv '+(d.telegram&&d.telegram.includes('✅')?'cok':'cwn')+'">'+( d.telegram||'—')+'</span></div>';
 }
 
 async function cargarNoticias(){
@@ -372,10 +364,11 @@ async function cargarLogs(){
   document.getElementById('bd-err').innerHTML=errores.length
     ?errores.map(e=>'<div class="chk"><div class="dot dr"></div><div style="flex:1"><div style="font-size:11px;color:#bbb">'+e.valor.substring(0,55)+'</div><div style="font-size:10px;color:#444">'+e.categoria+' · '+new Date(e.ultima_vez).toLocaleDateString('es-DO')+'</div></div><span class="cv cer">'+e.fallos+'x</span></div>').join('')
     :'<p style="color:#22c55e;font-size:12px">Sin errores</p>';
-  const queries=d.registros.filter(r=>r.tipo==='pexels_query'&&r.exitos>0).sort((a,b)=>b.exitos-a.exitos).slice(0,6);
-  document.getElementById('best-q').innerHTML=queries.length
-    ?queries.map(q=>'<div class="chk"><div class="dot dv"></div><span class="lbl" style="font-size:11px">'+q.valor.substring(0,40)+'</span><span class="cv cok">'+q.exitos+'✓</span></div>').join('')
-    :'<p style="color:#444;font-size:12px">Sin datos de queries aun</p>';
+  const h=await api('/api/jefe-redaccion/historial?pin=311&limite=6');
+  const evs=(h&&h.historial)||[];
+  document.getElementById('best-q').innerHTML=evs.length
+    ?evs.map(e=>'<div class="chk"><div class="dot dv"></div><span class="lbl" style="font-size:11px">'+String(e.titulo||'').substring(0,40)+'</span><span class="cv cok">'+e.tipo_noticia+' · '+e.virality_score+'</span></div>').join('')
+    :'<p style="color:#444;font-size:12px">Sin evaluaciones aun</p>';
 }
 
 async function acc(tipo){
@@ -408,7 +401,7 @@ async function cargarTodo(){
   await cargarEstadisticas();
   if(tabActual==='noticias')await cargarNoticias();
   if(tabActual==='logs')await cargarLogs();
-  if(tabActual==='gemini')await cargarGemini();
+  if(tabActual==='ia')await cargarIA();
   if(tabActual==='acciones')await cargarRedes();
 }
 
