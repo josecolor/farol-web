@@ -495,12 +495,9 @@
             <button class="btn-push" id="btnPush" onclick="window.togglePush()">🔔 Alertas</button>
         </div>
     </div>
-    <div class="ticker-wrap">
+    <div class="ticker-wrap" style="display:none">
         <div class="ticker-label">🔴 ÚLTIMO MINUTO</div>
-        <div class="ticker-track" id="ticker">
-            <span class="ticker-item">Cargando últimas noticias de Santo Domingo Este...</span>
-            <span class="ticker-item">El Farol al Día · Los Mina · Invivienda · Ensanche Ozama</span>
-        </div>
+        <div class="ticker-track" id="ticker"></div>
     </div>
 </header>
 
@@ -654,11 +651,22 @@ function renderHero(noticias) {
 // ── RENDER TICKER ─────────────────────────────────────
 function renderTicker(noticias) {
     const t = document.getElementById('ticker');
-    if (!t || !noticias.length) return;
-    const items = noticias.slice(0, 10).map(n =>
-        `<span class="ticker-item" onclick="irANoticia('${n.slug}')">🔴 ${n.titulo}</span>`
-    ).join('');
+    if (!t) return;
+    const wrap = t.closest('.ticker-wrap');
+    const COMODIN = /(\[|\]|\{\{|aqu[ií]\s*[.\u2014\-]|cuerpo completo|m[ií]nimo \d+ palabras|extensi[oó]n\s*:|opci[oó]n \d|\d+ chars|palabras clave|tipos? de noticias?|lorem ipsum|texto de prueba)/i;
+    const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    // Solo noticias reales de la BD: título + resumen (seo_description). Nada estático.
+    const reales = (noticias || []).filter(n => n && n.titulo && n.titulo.length >= 10 && n.slug && !COMODIN.test(n.titulo)).slice(0, 10);
+    if (!reales.length) { t.innerHTML = ''; if (wrap) wrap.style.display = 'none'; return; }
+    const items = reales.map(n => {
+        let r = String(n.seo_description || '').trim();
+        if (COMODIN.test(r)) r = '';
+        if (r.length > 120) r = r.slice(0, 120).replace(/\s+\S*$/, '') + '…';
+        return `<span class="ticker-item" data-slug="${esc(n.slug)}">🔴 <strong>${esc(n.titulo)}</strong>${r ? ' — ' + esc(r) : ''}</span>`;
+    }).join('');
     t.innerHTML = items + items;
+    t.onclick = e => { const el = e.target.closest('.ticker-item'); if (el && el.dataset.slug) irANoticia(el.dataset.slug); };
+    if (wrap) wrap.style.display = '';
 }
 
 // ── RENDER GRID ───────────────────────────────────────

@@ -36,9 +36,10 @@ const jefe    = require('./lib/jefe');
 const redaccion = require('./lib/redaccion');
 const asistente = require('./lib/asistente_reestructura');
 const { crearCurador } = require('./lib/curador_tendencias');
+const { obtenerImagenContextual } = require('./lib/imagen_contexto');
 
 // ── Textos comodín: jamás deben llegar a la marquesina ni al resumen público ──
-const esTextoComodin = t => /(aqu[ií]\s*\.{2,}|cuenco completo|lorem ipsum|texto de prueba|\{\{.*\}\})/i.test(String(t || ''));
+const esTextoComodin = t => /(aqu[ií]\s*\.{2,}|cuenco completo|lorem ipsum|texto de prueba|\{\{.*\}\})/i.test(String(t || '')) || jefe.esTituloBasura(t);
 // ── AdSense: slots reales (Railway → Variables). Sin slot no se inyecta <ins> manual; las Auto ads del <head> siguen activas ──
 const ADS_CLIENT = 'ca-pub-5280872495839888';
 const ADS_SLOT_ARTICULO = (process.env.ADSENSE_SLOT_ARTICULO || '').replace(/\D/g, '');
@@ -1046,7 +1047,7 @@ SECCIÓN A — FORMATO DE RESPUESTA:
 Sigue el formato del MÓDULO JEFE DE REDACCIÓN (líneas TIPO_NOTICIA, VIRALITY_SCORE, TITULO, TITULAR_SOCIAL, DESCRIPCION, PALABRAS, SUBTEMA_LOCAL y luego CONTENIDO:).
 - TITULO: máximo 65 caracteres, con palabras clave reales de GSC.
 - DESCRIPCION: SEO de 150-160 caracteres con keywords RD + SDE.
-- SUBTEMA_LOCAL: [UNO DE: politica-gobierno | seguridad-policia | economia-mercado | deporte-beisbol | deporte-futbol | deporte-general | tecnologia | educacion | cultura-musica | salud-medicina | infraestructura | vivienda-social | transporte-vial | medio-ambiente | turismo | emergencia | relaciones-internacionales]
+- SUBTEMA_LOCAL: uno solo de estos valores: politica-gobierno | seguridad-policia | economia-mercado | deporte-beisbol | deporte-futbol | deporte-general | tecnologia | educacion | cultura-musica | salud-medicina | infraestructura | vivienda-social | transporte-vial | medio-ambiente | turismo | emergencia | relaciones-internacionales
 - BAJADA: copete de dos oraciones.
 - CONTENIDO: cuerpo periodístico desarrollado y, como último párrafo, la conclusión. Nada de saludos, preguntas ni notas: solo la nota final.
 
@@ -1233,9 +1234,9 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
 
         // ── Parser inteligente: acepta etiquetas o texto libre; nunca lanza error por formato ──
         parsed = red.parsed;
-        const titulo    = jefe.elegirTitular(parsed.tituloA, parsed.tituloB);
         const contenido = parsed.contenido;
-        const desc      = parsed.descripcion;
+        const titulo    = jefe.elegirTitular(parsed.tituloA, parsed.tituloB, contenido, categoria);   // filtro estricto: sin corchetes ni instrucciones
+        const desc      = jefe.limpiarDescripcionEstricta(parsed.descripcion, contenido);
         const pals      = parsed.palabras;
         const sub       = parsed.subtema;
         dbg(`   🧾 Parser: ${parsed.modo} | título: "${titulo}" | ampliaciones: ${red.ampliaciones}`);
@@ -1259,7 +1260,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
 
         // ── Imagen: extractor web directo (fuente original + búsqueda por contexto); sin APIs de terceros ──
         // FASE 2 — multimedia: Openverse/Wikimedia (+extractor web); con timeout o restricción aplica el respaldo por defecto en silencio
-        const imgResult = await obtenerImagenSegura({ titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido), enlaceFuente, comunicado: comunicadoExterno || '' });
+        const imgResult = await obtenerImagenContextual(obtenerImagenSegura, { titulo, contenido, categoria, subtema: sub, personaQuery: await detectarPersona(titulo, contenido), enlaceFuente, comunicado: comunicadoExterno || '' });
 
         const altBase = {'Nacionales':`Noticias ${titulo.substring(0,40)} Santo Domingo Este`,'Deportes':`Deportes dominicanos ${titulo.substring(0,35)}`,'Internacionales':`Internacional ${titulo.substring(0,35)} Caribe`,'Economía':`Economía dominicana ${titulo.substring(0,35)}`,'Tecnología':`Tecnología ${titulo.substring(0,40)} RD`,'Espectáculos':`Espectáculos ${titulo.substring(0,35)} República Dominicana`};
         const altFinal = `${altBase[categoria]||titulo.substring(0,50)} - El Farol al Día`;
@@ -1301,7 +1302,7 @@ async function generarNoticia(categoria, comunicadoExterno = null, reintento = 1
             ab_test: { a: parsed.tituloA, b: parsed.tituloB, elegido: titulo },
             seo: { descripcion: desc.substring(0,160), palabras: pals, subtema: sub },
             parser: parsed.modo, modelo: llm.MODELO, intento: reintento,
-            imagen: { fuente: imgResult.fuente, licencia: imgResult.licencia||null, credito: imgResult.credito||null, pagina_fuente: imgResult.paginaFuente||null, contexto_geo: imgResult.contextoGeo||null },
+            imagen: { fuente: imgResult.fuente, licencia: imgResult.licencia||null, credito: imgResult.credito||null, pagina_fuente: imgResult.paginaFuente||null, contexto_geo: imgResult.contextoGeo||null, validacion: imgResult.validacion||null },
             video: videoRes ? { nombre: videoRes.nombre, duracion: videoRes.duracion, fuente: videoRes.fuente, bytes: videoRes.bytes } : null,
             enlace_fuente: enlaceFuente,
             calidad: { chars: val.longitud, palabras: val.palabras, parrafos: val.parrafos, avisos: val.avisos, ampliaciones: red.ampliaciones, depuradas: parsed.depuradas||0, alcanzo_minimo: red.alcanzoMinimo },
@@ -1524,7 +1525,7 @@ app.get('/api/noticias', async (req,res) => {
     try {
         const noticias = await cache.wrap('noticias','home30',60,async()=>{
             const r = await pool.query("SELECT id,titulo,slug,seccion,imagen,imagen_alt,seo_description,fecha,vistas,redactor FROM noticias WHERE estado=$1 ORDER BY fecha DESC LIMIT 30",['publicada']);
-            return r.rows.filter(n=>!esTextoComodin(n.titulo)).map(n=>({...n,seo_description:esTextoComodin(n.seo_description)?'':n.seo_description}));
+            return r.rows.filter(n=>!esTextoComodin(n.titulo)).map(n=>({...n,seo_description:jefe.esDescripcionBasura(n.seo_description)?'':n.seo_description}));
         },{stale:600});
         res.json({success:true,noticias});
     } catch(e) { res.status(500).json({success:false,error:e.message}); }
@@ -1682,9 +1683,10 @@ app.get('/api/admin/noticias', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/publicar', express.json(), async (req,res) => {
-    const {pin,titulo,seccion,contenido,redactor:red,seo_description,seo_keywords,imagen,imagen_alt,video_nombre,video_fuente}=req.body;
+    const {pin,titulo:tituloIn,seccion,contenido,redactor:red,seo_description,seo_keywords,imagen,imagen_alt,video_nombre,video_fuente}=req.body;
     if (pin!=='311') return res.status(403).json({success:false,error:'PIN'});
-    if (!titulo||!seccion||!contenido) return res.status(400).json({success:false,error:'Faltan campos'});
+    if (!tituloIn||!seccion||!contenido) return res.status(400).json({success:false,error:'Faltan campos'});
+    const titulo = jefe.limpiarTituloEstricto(tituloIn, { contenido, categoria: seccion });          // filtro estricto también en publicación manual
     try {
         const slugBase=slugify(titulo);
         const e=await pool.query('SELECT id FROM noticias WHERE slug=$1',[slugBase]);
@@ -2012,6 +2014,8 @@ app.get('/noticia/:slug', contarVistaMW, cache.paginaCache({ ns:'paginas', ttl:1
             return res.status(410).send('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>410 - Contenido retirado</title><meta name="robots" content="noindex"></head><body style="background:#070707;color:#EDE8DF;text-align:center;padding:60px;font-family:sans-serif"><h1 style="color:#FF5500">410</h1><p>Esta noticia ya no está disponible</p><a href="/" style="color:#FF5500">← Volver al inicio</a></body></html>');
         }
         const n=r.rows[0];
+        n.titulo=jefe.limpiarTituloEstricto(n.titulo,{contenido:n.contenido,categoria:n.seccion});     // nunca se sirve un titular con corchetes/instrucciones
+        if (jefe.esDescripcionBasura(n.seo_description)) n.seo_description=jefe.limpiarDescripcionEstricta('',n.contenido);
         try {
             let html=fs.readFileSync(path.join(__dirname,'client','noticia.html'),'utf8');
             const urlN=`${BASE_URL}/noticia/${n.slug}`;
