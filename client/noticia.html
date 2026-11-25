@@ -378,175 +378,111 @@ let todasNoticias = [];
 // TTS PLAYER
 // ============================================================
 function toggleAudio() {
-    const audio = document.getElementById('ttsAudio');
-    const btn   = document.getElementById('ttsBtn');
-    const icon  = btn.querySelector('.tts-icon');
-    const label = btn.querySelector('.tts-label');
-    const load  = btn.querySelector('.tts-loading');
-    if (!audio) return;
-    if (audio.paused) {
-        if (!audio.src || audio.readyState === 0) {
-            icon.style.display = 'none';
-            label.style.display = 'none';
-            load.style.display = 'inline';
-            audio.load();
-        }
-        audio.play().then(() => {
-            icon.style.display = '';
-            label.style.display = '';
-            load.style.display = 'none';
-            icon.textContent = '⏸️';
-            label.textContent = 'Pausar';
-            btn.classList.add('playing');
-        }).catch(() => {
-            icon.style.display = '';
-            label.style.display = '';
-            load.style.display = 'none';
-            icon.textContent = '🎙️';
-            label.textContent = 'Audio no disponible';
-        });
-    } else {
-        audio.pause();
-        icon.textContent = '🎙️';
-        label.textContent = 'Escuchar noticia';
-        btn.classList.remove('playing');
+  const audio = document.getElementById("ttsAudio");
+  const btn = document.getElementById("ttsBtn");
+  if (!btn) return;
+  const icon = btn.querySelector(".tts-icon");
+  const label = btn.querySelector(".tts-label");
+  const load = btn.querySelector(".tts-loading");
+
+  const resetBtn = (textoLabel = "Escuchar noticia", textoIcono = "🎙️") => {
+    if (icon) { icon.style.display = ""; icon.textContent = textoIcono; }
+    if (label) { label.style.display = ""; label.textContent = textoLabel; }
+    if (load) { load.style.display = "none"; }
+    btn.classList.remove("playing");
+  };
+
+  const leerConVozNavegador = () => {
+    if (!("speechSynthesis" in window)) {
+      resetBtn("Audio no disponible", "🎙️");
+      return;
     }
-    audio.onended = () => {
-        icon.textContent = '🔁';
-        label.textContent = 'Reproducir de nuevo';
-        btn.classList.remove('playing');
+    const synth = window.speechSynthesis;
+    if (synth.speaking && !synth.paused) {
+      synth.pause();
+      if (icon) icon.textContent = "▶️";
+      if (label) label.textContent = "Continuar escuchando";
+      btn.classList.remove("playing");
+      return;
+    }
+    if (synth.paused) {
+      synth.resume();
+      if (icon) icon.textContent = "⏸️";
+      if (label) label.textContent = "Pausar lectura";
+      btn.classList.add("playing");
+      return;
+    }
+
+    synth.cancel();
+    const tituloEl = document.querySelector("h1, .noticia-titulo, #tituloNoticia");
+    const cuerpoEl = document.querySelector(".noticia-cuerpo, .articulo-contenido, #cuerpoNoticia, article");
+    const tituloTxt = tituloEl ? tituloEl.innerText.trim() : "";
+    const cuerpoTxt = cuerpoEl ? cuerpoEl.innerText.replace(/Escuchar noticia|Pausar lectura|Continuar escuchando|Reproducir de nuevo/gi, "").trim() : "";
+    const textoLeer = [tituloTxt, cuerpoTxt].filter(Boolean).join(". ").slice(0, 4500);
+
+    if (!textoLeer) {
+      resetBtn("Audio no disponible", "🎙️");
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(textoLeer);
+    const voces = synth.getVoices ? synth.getVoices() : [];
+    const vozEs = voces.find(v => /^(es-DO|es-419|es-US|es-ES|es)/i.test(v.lang));
+    if (vozEs) utter.voice = vozEs;
+    utter.lang = (vozEs && vozEs.lang) || "es-DO";
+    utter.rate = 0.95;
+    utter.pitch = 1.0;
+
+    utter.onstart = () => {
+      if (icon) { icon.style.display = ""; icon.textContent = "⏸️"; }
+      if (label) { label.style.display = ""; label.textContent = "Pausar lectura"; }
+      if (load) { load.style.display = "none"; }
+      btn.classList.add("playing");
     };
-}
+    utter.onend = () => resetBtn("Reproducir de nuevo", "🔁");
+    utter.onerror = () => resetBtn("Escuchar noticia", "🎙️");
 
-// ============================================================
-// SIDEBAR MOBILE
-// ============================================================
-function toggleSidebar() {
-    document.getElementById('sidebarInner').classList.toggle('open');
-}
+    if (icon) icon.style.display = "none";
+    if (label) label.style.display = "none";
+    if (load) load.style.display = "inline";
+    synth.speak(utter);
+  };
 
-// ============================================================
-// INICIO
-// ============================================================
-async function iniciar() {
-    try {
-        const r = await fetch('/api/noticias');
-        const d = await r.json();
+  window.addEventListener("beforeunload", () => {
+    try { if ("speechSynthesis" in window) window.speechSynthesis.cancel(); } catch (_) {}
+  }, { once: true });
 
-        if (d.success && Array.isArray(d.noticias)) {
-            todasNoticias = d.noticias;
-        } else if (Array.isArray(d)) {
-            todasNoticias = d;
-        } else {
-            todasNoticias = d.noticias || [];
-        }
+  if (!audio) {
+    leerConVozNavegador();
+    return;
+  }
 
-        const actual = todasNoticias.find(n => n.slug === SLUG);
-        if (actual) {
-            NOTICIA_ID = actual.id;
-            actualizarBreadcrumb(actual);
-            navegacionAnteriorSiguiente(actual);
-            cargarComentarios();
-        }
-        cargarRelacionadas(actual);
-        cargarSidebar();
-
-    } catch (e) {
-        console.error('Error:', e);
-        document.getElementById('relacionadas').innerHTML = '<p style="color:var(--muted)">⚠️ Error cargando</p>';
+  if (audio.paused) {
+    if (!audio.src || audio.readyState === 0) {
+      if (icon) icon.style.display = "none";
+      if (label) label.style.display = "none";
+      if (load) load.style.display = "inline";
+      try { audio.load(); } catch (_) {}
     }
+    audio.play().then(() => {
+      if (icon) { icon.style.display = ""; icon.textContent = "⏸️"; }
+      if (label) { label.style.display = ""; label.textContent = "Pausar"; }
+      if (load) { load.style.display = "none"; }
+      btn.classList.add("playing");
+    }).catch(() => {
+      leerConVozNavegador();
+    });
+  } else {
+    audio.pause();
+    resetBtn("Escuchar noticia", "🎙️");
+  }
+
+  audio.onended = () => {
+    resetBtn("Reproducir de nuevo", "🔁");
+  };
 }
 
-function actualizarBreadcrumb(noticia) {
-    if (!noticia) return;
-    const tit = document.getElementById('breadTitulo');
-    const sec = document.getElementById('breadSeccionLink');
-    if (tit) tit.textContent = noticia.titulo.substring(0, 50) + (noticia.titulo.length > 50 ? '...' : '');
-    if (sec) { sec.textContent = noticia.seccion; sec.href = `/#${noticia.seccion}`; }
-}
-
-function navegacionAnteriorSiguiente(actual) {
-    const idx    = todasNoticias.findIndex(n => n.id === actual.id);
-    const btnAnt = document.getElementById('btnAnterior');
-    const btnSig = document.getElementById('btnSiguiente');
-
-    if (idx > 0) {
-        const sig = todasNoticias[idx - 1];
-        btnSig.href = `/noticia/${sig.slug}`;
-        document.getElementById('titSiguiente').textContent = sig.titulo;
-        btnSig.style.visibility = 'visible';
-    }
-    if (idx < todasNoticias.length - 1 && idx !== -1) {
-        const ant = todasNoticias[idx + 1];
-        btnAnt.href = `/noticia/${ant.slug}`;
-        document.getElementById('titAnterior').textContent = ant.titulo;
-        btnAnt.style.visibility = 'visible';
-    }
-}
-
-function cargarRelacionadas(actual) {
-    const c = document.getElementById('relacionadas');
-    if (!todasNoticias.length) { c.innerHTML = '<p style="color:var(--muted)">No hay noticias</p>'; return; }
-    const rel = todasNoticias.filter(n => n.id !== actual?.id).slice(0, 4);
-    if (!rel.length) { c.innerHTML = '<p style="color:var(--muted)">No hay más noticias</p>'; return; }
-    c.innerHTML = rel.map(n => `
-        <a class="rel-card" href="/noticia/${n.slug}">
-            <img src="${n.imagen}" alt="${n.titulo}"
-                 onerror="this.src='/static/favicon.png'">
-            <div class="rel-body">
-                <div class="rel-seccion">${n.seccion}</div>
-                <div class="rel-titulo">${n.titulo.substring(0, 60)}</div>
-                <div class="rel-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>
-            </div>
-        </a>`).join('');
-}
-
-function cargarSidebar() {
-    const nav = document.getElementById('sidebarNoticias');
-    const ultimas = todasNoticias.slice(0, 8);
-    if (!ultimas.length) { nav.innerHTML = '<div style="color:var(--muted)">Cargando...</div>'; return; }
-    nav.innerHTML = ultimas.map(n => `
-        <a class="sidebar-noticia" href="/noticia/${n.slug}">
-            <img class="sidebar-thumb" src="${n.imagen}" alt="${n.titulo}"
-                 onerror="this.src='/static/favicon.png'">
-            <div>
-                <div class="sidebar-titulo">${n.titulo.substring(0, 55)}</div>
-                <div class="sidebar-fecha">📅 ${new Date(n.fecha).toLocaleDateString('es-DO')}</div>
-            </div>
-        </a>`).join('');
-}
-
-// ============================================================
-// COMENTARIOS
-// ============================================================
-async function cargarComentarios() {
-    if (!NOTICIA_ID) return;
-    try {
-        const r    = await fetch(`/api/comentarios/${NOTICIA_ID}`);
-        const d    = await r.json();
-        const lista = document.getElementById('comLista');
-        const count = document.getElementById('comCount');
-        const coms  = d.comentarios || [];
-
-        if (!coms.length) {
-            lista.innerHTML = '<div class="com-empty">Sé el primero en comentar 🏮</div>';
-            count.textContent = '';
-            return;
-        }
-        count.textContent = `${coms.length} COMENTARIOS`;
-        lista.innerHTML = coms.map(c => `
-            <div class="comentario-item">
-                <div class="com-header">
-                    <div class="com-avatar">${c.nombre.charAt(0).toUpperCase()}</div>
-                    <span class="com-nombre">${esc(c.nombre)}</span>
-                    <span class="com-fecha">📅 ${new Date(c.fecha).toLocaleDateString()}</span>
-                </div>
-                <p class="com-texto">${esc(c.texto)}</p>
-            </div>`).join('');
-    } catch (e) { console.error(e); }
-}
-
-async function publicarComentario() {
+function publicarComentario() {
     const nombre = document.getElementById('comNombre').value.trim();
     const texto  = document.getElementById('comTexto').value.trim();
     const btn    = document.getElementById('btnComentar');
