@@ -445,7 +445,9 @@ function toggleAudio() {
     if (icon) icon.style.display = "none";
     if (label) label.style.display = "none";
     if (load) load.style.display = "inline";
-    synth.speak(utter);
+utter.onend = () => { resetBtn("Reproducir de nuevo", "🔁"); };
+utter.onerror = () => { resetBtn("Escuchar noticia", "🎙️"); };
+synth.speak(utter);
   };
 
   window.addEventListener("beforeunload", () => {
