@@ -562,5 +562,18 @@ window.toggleSidebar      = toggleSidebar;
   window.toggleSidebar=function(){ if(t) t(); setTimeout(pushAds,350); };
 })();
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  try {
+    const b = document.getElementById("ttsBtn");
+    if (b && !b.dataset.xmlTtsBound) {
+      b.dataset.xmlTtsBound = "1";
+      b.addEventListener("click", function (e) {
+        if (typeof toggleAudio === "function") toggleAudio(e);
+      });
+    }
+  } catch (_) {}
+});
+</script>
 </body>
 </html>
